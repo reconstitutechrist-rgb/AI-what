@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Sandpack } from '@codesandbox/sandpack-react';
+import { SandpackProvider, SandpackPreview } from '@codesandbox/sandpack-react';
 
 interface AppFile {
   path: string;
@@ -99,7 +99,7 @@ body {
 
   return (
     <div className="h-full w-full">
-      <Sandpack
+      <SandpackProvider
         template="react"
         theme="dark"
         files={sandpackFiles}
@@ -108,26 +108,25 @@ body {
           entry: '/index.js',
         }}
         options={{
-          showNavigator: false,
-          showTabs: true,
-          showLineNumbers: true,
-          showInlineErrors: true,
-          wrapContent: true,
-          editorHeight: '100%',
-          editorWidthPercentage: 0, // Hide editor, show only preview
           classes: {
             'sp-wrapper': 'h-full',
             'sp-layout': 'h-full',
             'sp-preview': 'h-full',
           },
         }}
-      />
-      
-      {appData.appType === 'FULL_STACK' && (
-        <div className="absolute top-4 left-4 bg-yellow-500/90 text-yellow-900 px-4 py-2 rounded-lg text-sm font-medium shadow-lg">
-          ⚠️ Preview mode: Backend features disabled
-        </div>
-      )}
+      >
+        <SandpackPreview 
+          showOpenInCodeSandbox={false}
+          showRefreshButton={true}
+          style={{ height: '100%' }}
+        />
+        
+        {appData.appType === 'FULL_STACK' && (
+          <div className="absolute top-4 left-4 bg-yellow-500/90 text-yellow-900 px-4 py-2 rounded-lg text-sm font-medium shadow-lg z-50">
+            ⚠️ Preview mode: Backend features disabled
+          </div>
+        )}
+      </SandpackProvider>
     </div>
   );
 }
