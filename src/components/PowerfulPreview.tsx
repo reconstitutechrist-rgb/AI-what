@@ -37,9 +37,9 @@ export default function PowerfulPreview({ appDataJson }: PowerfulPreviewProps) {
       sandpackPath = sandpackPath.substring(4); // Remove 'src/' (4 characters)
     }
     
-    // Ensure we map to App.tsx for the main file
+    // Ensure we map to App.js (not .tsx) since Sandpack react template expects .js
     if (sandpackPath === 'App.tsx' || sandpackPath === 'app/page.tsx' || sandpackPath === 'page.tsx') {
-      sandpackPath = 'App.tsx';
+      sandpackPath = 'App.js'; // Use .js for compatibility
     }
     
     // Add leading / for Sandpack react template
@@ -51,9 +51,9 @@ export default function PowerfulPreview({ appDataJson }: PowerfulPreviewProps) {
     sandpackFiles[sandpackPath] = { code: file.content };
   });
 
-  // Ensure we have /App.tsx
-  if (!sandpackFiles['/App.tsx']) {
-    console.error('No /App.tsx found in files:', Object.keys(sandpackFiles));
+  // Ensure we have /App.js
+  if (!sandpackFiles['/App.js']) {
+    console.error('No /App.js found in files:', Object.keys(sandpackFiles));
     console.log('Original file paths:', appData.files.map(f => f.path));
   }
 
@@ -118,12 +118,12 @@ h1, h2, h3, h4, h5, h6 {
   };
 
   console.log('Sandpack files:', Object.keys(sandpackFiles));
-  console.log('/App.tsx exists:', !!sandpackFiles['/App.tsx']);
+  console.log('/App.js exists:', !!sandpackFiles['/App.js']);
   console.log('Dependencies:', dependencies);
   
-  // Log first 200 chars of App.tsx to verify content
-  if (sandpackFiles['/App.tsx']) {
-    console.log('App.tsx content preview:', sandpackFiles['/App.tsx'].code.substring(0, 200));
+  // Log first 200 chars of App.js to verify content
+  if (sandpackFiles['/App.js']) {
+    console.log('App.js content preview:', sandpackFiles['/App.js'].code.substring(0, 200));
   }
 
   return (
@@ -134,7 +134,6 @@ h1, h2, h3, h4, h5, h6 {
         files={sandpackFiles}
         customSetup={{
           dependencies,
-          entry: '/index.js',
         }}
         options={{
           autorun: true,
@@ -147,6 +146,14 @@ h1, h2, h3, h4, h5, h6 {
           <SandpackPreview 
             showOpenInCodeSandbox={false}
             showRefreshButton={true}
+            actionsChildren={
+              <button
+                onClick={() => window.location.reload()}
+                className="text-xs px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded"
+              >
+                Reset
+              </button>
+            }
             style={{ height: '100%', width: '100%' }}
           />
         </SandpackLayout>
