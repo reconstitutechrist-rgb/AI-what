@@ -69,6 +69,8 @@ IMPORTANT FOR COMPLEX/LONG APPS:
 For simple UI apps without backend needs:
 
 - **CRITICAL**: src/App.tsx MUST be PLAIN JSX (NO TypeScript syntax)
+- **CRITICAL**: Use double quotes "text" for all strings, NEVER single quotes/apostrophes 'text'
+- **CRITICAL**: In template literals, write "it is" instead of "it's", "you are" instead of "you're", etc.
 - NO interfaces, types, type annotations, or "as" assertions in App.tsx
 - All components inline within App.tsx file
 - Only import React hooks (useState, useEffect, etc.)
@@ -592,47 +594,6 @@ REMEMBER:
     }
     
     console.log('Parsed files:', files.length);
-
-    // Sanitize code to fix common syntax errors
-    function sanitizeCode(code: string): string {
-      // Split by template literals to process them individually
-      const parts: string[] = [];
-      let currentIndex = 0;
-      let inTemplate = false;
-      let templateStart = -1;
-      
-      for (let i = 0; i < code.length; i++) {
-        if (code[i] === '`' && (i === 0 || code[i - 1] !== '\\')) {
-          if (!inTemplate) {
-            // Starting a template literal
-            parts.push(code.substring(currentIndex, i));
-            templateStart = i;
-            inTemplate = true;
-          } else {
-            // Ending a template literal - fix apostrophes inside
-            let templateContent = code.substring(templateStart + 1, i);
-            // Only escape unescaped apostrophes
-            templateContent = templateContent.replace(/([^\\])'/g, "$1\\'");
-            parts.push('`' + templateContent + '`');
-            currentIndex = i + 1;
-            inTemplate = false;
-          }
-        }
-      }
-      
-      // Add remaining code
-      if (currentIndex < code.length) {
-        parts.push(code.substring(currentIndex));
-      }
-      
-      return parts.join('');
-    }
-
-    files.forEach(file => {
-      if (file.path.endsWith('.tsx') || file.path.endsWith('.ts') || file.path.endsWith('.jsx') || file.path.endsWith('.js')) {
-        file.content = sanitizeCode(file.content);
-      }
-    });
 
     // Parse dependencies
     const dependencies: Record<string, string> = {};
