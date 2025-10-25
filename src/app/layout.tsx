@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import AuthGuard from "../components/AuthGuard";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,9 +21,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body className={`${inter.className} h-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900`}>
-        <div className="min-h-full">
-          {children}
-        </div>
+        <AuthGuard>
+          <div className="min-h-full">
+            {children}
+          </div>
+        </AuthGuard>
       </body>
     </html>
   );
