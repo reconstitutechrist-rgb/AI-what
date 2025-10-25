@@ -597,6 +597,41 @@ REMEMBER:
     
     console.log('Parsed files:', files.length);
 
+    // Sanitize code to fix unterminated template literals
+    files.forEach(file => {
+      if (file.path.endsWith('.tsx') || file.path.endsWith('.ts') || file.path.endsWith('.jsx') || file.path.endsWith('.js')) {
+        let code = file.content;
+        
+        // Check for unterminated template literals at the end
+        // Count backticks - if odd number, we have an unterminated template
+        const backtickCount = (code.match(/`/g) || []).length;
+        if (backtickCount % 2 !== 0) {
+          // Find the last backtick and close the template literal
+          const lastBacktickIndex = code.lastIndexOf('`');
+          if (lastBacktickIndex !== -1) {
+            // Add closing backtick and comma if it looks like it's in an object/array
+            code = code + '`,';
+            console.log('Fixed unterminated template literal in', file.path);
+          }
+        }
+        
+        // Fix incomplete lines that end abruptly (likely truncated)
+        const lines = code.split('\n');
+        const lastLine = lines[lines.length - 1].trim();
+        
+        // If last line looks incomplete (no semicolon, comma, or closing bracket)
+        if (lastLine && !lastLine.match(/[;,}\])]$/)) {
+          // If it's in a template literal context (contains backtick without closing)
+          if (lastLine.includes('`') && !lastLine.endsWith('`')) {
+            code = code + '`';
+            console.log('Closed incomplete template literal in', file.path);
+          }
+        }
+        
+        file.content = code;
+      }
+    });
+
     // Parse dependencies
     const dependencies: Record<string, string> = {};
     if (dependenciesMatch) {
