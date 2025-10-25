@@ -25,7 +25,7 @@ interface PowerfulPreviewProps {
 export default function PowerfulPreview({ appDataJson }: PowerfulPreviewProps) {
   const appData: FullAppData = JSON.parse(appDataJson);
 
-  // Convert files to Sandpack format (NO leading slash for Sandpack)
+  // Convert files to Sandpack format - React template needs / prefix
   const sandpackFiles: Record<string, { code: string }> = {};
   
   appData.files.forEach(file => {
@@ -42,58 +42,58 @@ export default function PowerfulPreview({ appDataJson }: PowerfulPreviewProps) {
       sandpackPath = 'App.tsx';
     }
     
+    // Add leading / for Sandpack react template
+    if (!sandpackPath.startsWith('/') && !sandpackPath.startsWith('public/')) {
+      sandpackPath = '/' + sandpackPath;
+    }
+    
     // Sandpack file format uses objects with 'code' property
     sandpackFiles[sandpackPath] = { code: file.content };
   });
 
-  // Ensure we have App.tsx
-  if (!sandpackFiles['App.tsx']) {
-    console.error('No App.tsx found in files:', Object.keys(sandpackFiles));
+  // Ensure we have /App.tsx
+  if (!sandpackFiles['/App.tsx']) {
+    console.error('No /App.tsx found in files:', Object.keys(sandpackFiles));
     console.log('Original file paths:', appData.files.map(f => f.path));
   }
 
   // Add index.js - Sandpack format
-  if (!sandpackFiles['index.js'] && !sandpackFiles['index.tsx']) {
-    sandpackFiles['index.js'] = {
-      code: `import React, { StrictMode } from "react";
+  if (!sandpackFiles['/index.js'] && !sandpackFiles['/index.tsx']) {
+    sandpackFiles['/index.js'] = {
+      code: `import React from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
-
 import App from "./App";
 
 const root = createRoot(document.getElementById("root"));
-root.render(
-  <StrictMode>
-    <App />
-  </StrictMode>
-);`
+root.render(<App />);`
     };
   }
 
   // Add styles.css - Sandpack format
-  if (!sandpackFiles['styles.css']) {
-    sandpackFiles['styles.css'] = {
-      code: `body {
-  font-family: sans-serif;
-  -webkit-font-smoothing: auto;
-  -moz-font-smoothing: auto;
-  -moz-osx-font-smoothing: grayscale;
-  font-smoothing: auto;
-  text-rendering: optimizeLegibility;
-  font-smooth: always;
-  -webkit-tap-highlight-color: transparent;
-  -webkit-touch-callout: none;
+  if (!sandpackFiles['/styles.css']) {
+    sandpackFiles['/styles.css'] = {
+      code: `* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-h1 {
-  font-size: 1.5rem;
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
 }`
     };
   }
 
-  // Add public/index.html with Tailwind CDN - Sandpack format
-  if (!sandpackFiles['public/index.html']) {
-    sandpackFiles['public/index.html'] = {
+  // Add public/index.html with Tailwind CDN
+  if (!sandpackFiles['/public/index.html']) {
+    sandpackFiles['/public/index.html'] = {
       code: `<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -118,28 +118,29 @@ h1 {
   };
 
   console.log('Sandpack files:', Object.keys(sandpackFiles));
-  console.log('App.tsx exists:', !!sandpackFiles['App.tsx']);
+  console.log('/App.tsx exists:', !!sandpackFiles['/App.tsx']);
   console.log('Dependencies:', dependencies);
   
   // Log first 200 chars of App.tsx to verify content
-  if (sandpackFiles['App.tsx']) {
-    console.log('App.tsx content preview:', sandpackFiles['App.tsx'].code.substring(0, 200));
+  if (sandpackFiles['/App.tsx']) {
+    console.log('App.tsx content preview:', sandpackFiles['/App.tsx'].code.substring(0, 200));
   }
 
   return (
     <div className="h-full w-full">
       <SandpackProvider
-        template="static"
+        template="react"
         theme="dark"
         files={sandpackFiles}
         customSetup={{
           dependencies,
-          environment: 'create-react-app',
+          entry: '/index.js',
         }}
         options={{
           autorun: true,
           autoReload: true,
           recompileMode: 'immediate',
+          externalResources: ['https://cdn.tailwindcss.com'],
         }}
       >
         <SandpackLayout className="h-full">
