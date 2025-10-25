@@ -37,9 +37,9 @@ export default function PowerfulPreview({ appDataJson }: PowerfulPreviewProps) {
       sandpackPath = sandpackPath.substring(4); // Remove 'src/' (4 characters)
     }
     
-    // Ensure we map to App.js (not .tsx) since Sandpack react template expects .js
+    // Keep as App.tsx for TypeScript support
     if (sandpackPath === 'App.tsx' || sandpackPath === 'app/page.tsx' || sandpackPath === 'page.tsx') {
-      sandpackPath = 'App.js'; // Use .js for compatibility
+      sandpackPath = 'App.tsx';
     }
     
     // Add leading / for Sandpack react template
@@ -51,21 +51,21 @@ export default function PowerfulPreview({ appDataJson }: PowerfulPreviewProps) {
     sandpackFiles[sandpackPath] = { code: file.content };
   });
 
-  // Ensure we have /App.js
-  if (!sandpackFiles['/App.js']) {
-    console.error('No /App.js found in files:', Object.keys(sandpackFiles));
+  // Ensure we have /App.tsx
+  if (!sandpackFiles['/App.tsx']) {
+    console.error('No /App.tsx found in files:', Object.keys(sandpackFiles));
     console.log('Original file paths:', appData.files.map(f => f.path));
   }
 
-  // Add index.js - Sandpack format
-  if (!sandpackFiles['/index.js'] && !sandpackFiles['/index.tsx']) {
-    sandpackFiles['/index.js'] = {
+  // Add index.tsx for TypeScript support
+  if (!sandpackFiles['/index.tsx'] && !sandpackFiles['/index.js']) {
+    sandpackFiles['/index.tsx'] = {
       code: `import React from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 import App from "./App";
 
-const root = createRoot(document.getElementById("root"));
+const root = createRoot(document.getElementById("root")!);
 root.render(<App />);`
     };
   }
@@ -118,18 +118,18 @@ h1, h2, h3, h4, h5, h6 {
   };
 
   console.log('Sandpack files:', Object.keys(sandpackFiles));
-  console.log('/App.js exists:', !!sandpackFiles['/App.js']);
+  console.log('/App.tsx exists:', !!sandpackFiles['/App.tsx']);
   console.log('Dependencies:', dependencies);
   
-  // Log first 200 chars of App.js to verify content
-  if (sandpackFiles['/App.js']) {
-    console.log('App.js content preview:', sandpackFiles['/App.js'].code.substring(0, 200));
+  // Log first 200 chars of App.tsx to verify content
+  if (sandpackFiles['/App.tsx']) {
+    console.log('App.tsx content preview:', sandpackFiles['/App.tsx'].code.substring(0, 200));
   }
 
   return (
     <div className="h-full w-full">
       <SandpackProvider
-        template="react"
+        template="react-ts"
         theme="dark"
         files={sandpackFiles}
         customSetup={{
