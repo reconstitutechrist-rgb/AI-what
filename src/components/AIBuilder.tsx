@@ -264,13 +264,20 @@ export default function AIBuilder() {
     const questionIndicators = [
       'what', 'how', 'why', 'when', 'where', 'who', 'which',
       'explain', 'tell me', 'can you', 'could you', 'would you',
-      'should i', 'is it', 'are there', 'do i', 'does',
-      '?', 'help me understand', 'difference between'
+      'should i', 'is it', 'are there', 'do i', 'does', 'did',
+      '?', 'help me understand', 'difference between',
+      'show me', 'give me', 'i want to know', 'i need help',
+      'wondering', 'curious', 'question', 'asking',
+      'vs', 'versus', 'better than', 'best way',
+      'recommend', 'suggestion', 'advice', 'opinion',
+      'means', 'mean by', 'definition', 'tutorial'
     ];
     
     const buildIndicators = [
       'build', 'create', 'make', 'generate', 'design',
-      'develop', 'code', 'write', 'implement', 'add feature'
+      'develop', 'code', 'write', 'implement', 'add feature',
+      'app that', 'component for', 'page with', 'website',
+      'application', 'project', 'build me', 'make me', 'create me'
     ];
     
     const input = userInput.toLowerCase();
