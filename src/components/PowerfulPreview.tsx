@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { SandpackProvider, SandpackPreview } from '@codesandbox/sandpack-react';
+import { SandpackProvider, SandpackPreview, SandpackLayout } from '@codesandbox/sandpack-react';
 
 interface AppFile {
   path: string;
@@ -49,14 +49,19 @@ export default function PowerfulPreview({ appDataJson }: PowerfulPreviewProps) {
     sandpackFiles[sandpackPath] = file.content;
   });
 
+  // Ensure we have App.tsx
+  if (!sandpackFiles['/App.tsx']) {
+    console.error('No App.tsx found in files:', Object.keys(sandpackFiles));
+  }
+
   // Add index.js if not present
   if (!sandpackFiles['/index.js'] && !sandpackFiles['/index.tsx']) {
     sandpackFiles['/index.js'] = `import React from 'react';
-import ReactDOM from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
 import App from './App';
 import './styles.css';
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+const root = createRoot(document.getElementById('root'));
 root.render(<App />);`;
   }
 
@@ -74,28 +79,15 @@ body {
 }`;
   }
 
-  // Add public/index.html if needed
-  if (!sandpackFiles['/public/index.html']) {
-    sandpackFiles['/public/index.html'] = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${appData.name}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body>
-  <div id="root"></div>
-</body>
-</html>`;
-  }
-
   // Merge user dependencies with required ones
   const dependencies = {
     react: '^18.2.0',
     'react-dom': '^18.2.0',
     ...appData.dependencies,
   };
+
+  console.log('Sandpack files:', Object.keys(sandpackFiles));
+  console.log('Dependencies:', dependencies);
 
   return (
     <div className="h-full w-full">
@@ -105,21 +97,15 @@ body {
         files={sandpackFiles}
         customSetup={{
           dependencies: dependencies,
-          entry: '/index.js',
-        }}
-        options={{
-          classes: {
-            'sp-wrapper': 'h-full',
-            'sp-layout': 'h-full',
-            'sp-preview': 'h-full',
-          },
         }}
       >
-        <SandpackPreview 
-          showOpenInCodeSandbox={false}
-          showRefreshButton={true}
-          style={{ height: '100%' }}
-        />
+        <SandpackLayout className="h-full">
+          <SandpackPreview 
+            showOpenInCodeSandbox={false}
+            showRefreshButton={true}
+            style={{ height: '100%', width: '100%' }}
+          />
+        </SandpackLayout>
         
         {appData.appType === 'FULL_STACK' && (
           <div className="absolute top-4 left-4 bg-yellow-500/90 text-yellow-900 px-4 py-2 rounded-lg text-sm font-medium shadow-lg z-50">
