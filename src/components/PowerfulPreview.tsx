@@ -127,7 +127,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full flex flex-col">
       <SandpackProvider
         template="react-ts"
         theme="dark"
@@ -142,7 +142,7 @@ h1, h2, h3, h4, h5, h6 {
           externalResources: ['https://cdn.tailwindcss.com'],
         }}
       >
-        <SandpackLayout className="h-full">
+        <SandpackLayout className="flex-1 min-h-0">
           <SandpackPreview 
             showOpenInCodeSandbox={false}
             showRefreshButton={true}

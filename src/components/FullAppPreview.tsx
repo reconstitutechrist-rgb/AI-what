@@ -56,7 +56,7 @@ export default function FullAppPreview({ appDataJson }: FullAppPreviewProps) {
   return (
     <div className={`flex flex-col bg-slate-900 rounded-lg border border-white/10 overflow-hidden ${
       isFullscreen 
-        ? 'fixed inset-0 z-50 rounded-none' 
+        ? 'fixed inset-0 z-50 rounded-none h-screen' 
         : 'h-full'
     }`}>
       {/* Header with tabs */}
@@ -111,9 +111,9 @@ export default function FullAppPreview({ appDataJson }: FullAppPreviewProps) {
       </div>
 
       {/* Content area */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden">
         {activeTab === 'preview' ? (
-          <div className="h-full">
+          <div className="h-full w-full">
             <PowerfulPreview appDataJson={appDataJson} />
           </div>
         ) : (
