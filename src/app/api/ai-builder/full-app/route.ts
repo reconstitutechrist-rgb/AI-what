@@ -602,6 +602,16 @@ REMEMBER:
       if (file.path.endsWith('.tsx') || file.path.endsWith('.ts') || file.path.endsWith('.jsx') || file.path.endsWith('.js')) {
         let code = file.content;
         
+        // CRITICAL FIX: Replace all apostrophes with escaped versions in template literals
+        // This prevents syntax errors from contractions like "it's", "don't", etc.
+        // Match template literals and replace apostrophes inside them
+        const templateLiteralRegex = /`([^`]*)`/g;
+        code = code.replace(templateLiteralRegex, (match, content) => {
+          // Replace apostrophes with escaped version
+          const fixed = content.replace(/'/g, "\\'");
+          return `\`${fixed}\``;
+        });
+        
         // Strategy: Find unclosed template literals by parsing more carefully
         // Split by lines and track state
         const lines = code.split('\n');
