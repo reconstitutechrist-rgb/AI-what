@@ -55,8 +55,8 @@ Analyze the user's request and determine the appropriate architecture:
 - Preview shows "Download to run locally" message
 
 IMPORTANT FOR COMPLEX/LONG APPS:
-- You have up to 8,192 output tokens available (model limit)
-- This is approximately 600-800 lines of well-structured code
+- You have up to 16,384 output tokens available (doubled limit for complex apps)
+- This is approximately 1200-1600 lines of well-structured code
 - **CRITICAL**: ALWAYS finish the code completely - NEVER let it cut off mid-line
 - If approaching token limit, simplify the implementation to fit
 - Build complete, working version with CORE features only
@@ -64,7 +64,7 @@ IMPORTANT FOR COMPLEX/LONG APPS:
 - Include note in description for features to add in follow-up requests
 - Example: "Core blog system complete. Can add: comments, likes, search" etc.
 - Prioritize COMPLETE working code over exhaustive features
-- Better to have 400 lines of complete code than 800 lines cut off mid-function
+- Better to have 800 lines of complete code than 1600 lines cut off mid-function
 
 🎨 FRONTEND-ONLY APPS (Preview Sandbox):
 For simple UI apps without backend needs:
@@ -514,11 +514,11 @@ REMEMBER:
     console.log('Generating full app with Claude Sonnet 4.5...');
 
     // Use streaming for better handling of long responses
-    // Claude Sonnet 4.5 supports up to 8192 output tokens (current model limit)
-    // For very large apps, we'll use max capacity
+    // Claude Sonnet 4 supports up to 200K tokens, we use 16K for complex apps
+    // Increased from 8K to 16K to prevent truncation of complex applications
     const stream = await anthropic.messages.stream({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 8192, // Maximum output tokens for this model
+      max_tokens: 16384, // Doubled from 8192 to handle complex apps without truncation
       temperature: 0.7,
       system: systemPrompt,
       messages: messages
@@ -538,9 +538,45 @@ REMEMBER:
     console.log('Generated response length:', responseText.length, 'chars');
     console.log('Estimated tokens:', Math.round(tokenCount));
     
-    // Check if response might be truncated
-    if (Math.round(tokenCount) > 7500) {
-      console.warn('⚠️ Response approaching token limit - may be truncated!');
+    // Check if response might be truncated (now at 16K limit)
+    if (Math.round(tokenCount) > 15000) {
+      console.warn('⚠️ Response approaching 16K token limit - may be truncated!');
+    }
+    
+    // Function to detect if code was truncated mid-structure
+    function isCodeTruncated(text: string): boolean {
+      // Check if response ends with ===END===
+      if (text.includes('===END===')) {
+        return false; // Properly terminated
+      }
+      
+      // Check for incomplete structures at the end
+      const lastChars = text.slice(-200).trim();
+      
+      // Signs of truncation:
+      // - Ends with incomplete object/array (missing closing brace)
+      // - Ends mid-line without semicolon/brace/bracket
+      // - Doesn't end with proper delimiter
+      const endsCleanly = /[}\]];?\s*$/.test(lastChars) || 
+                         /===SETUP===[\s\S]*$/.test(text) ||
+                         /===DEPENDENCIES===[\s\S]*$/.test(text);
+      
+      if (!endsCleanly) {
+        console.warn('🔴 Code appears truncated - no clean ending');
+        return true;
+      }
+      
+      return false;
+    }
+    
+    // Detect truncation and potentially retry
+    const isTruncated = isCodeTruncated(responseText);
+    if (isTruncated) {
+      console.warn('⚠️ TRUNCATION DETECTED - Code was cut off mid-generation');
+      console.warn('Recommendation: Simplify the app or break into multiple features');
+      
+      // Could auto-retry here with simplified prompt, but for now just warn
+      // This allows user to see the issue and refine their request
     }
     
     console.log('Response preview (first 500 chars):', responseText.substring(0, 500));
