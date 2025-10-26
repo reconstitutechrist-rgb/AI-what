@@ -127,7 +127,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   return (
-    <div className="w-full h-full" style={{ minHeight: '600px' }}>
+    <div className="w-full h-full flex flex-col" style={{ minHeight: '600px', height: '100%' }}>
       <SandpackProvider
         template="react-ts"
         theme="dark"
@@ -142,7 +142,7 @@ h1, h2, h3, h4, h5, h6 {
           externalResources: ['https://cdn.tailwindcss.com'],
         }}
       >
-        <SandpackLayout style={{ height: '100%', width: '100%' }}>
+        <SandpackLayout style={{ height: '100%', width: '100%', minHeight: '600px', flex: 1 }}>
           <SandpackPreview 
             showOpenInCodeSandbox={false}
             showRefreshButton={true}
@@ -154,7 +154,7 @@ h1, h2, h3, h4, h5, h6 {
                 Reset
               </button>
             }
-            style={{ height: '100%', width: '100%' }}
+            style={{ height: '100%', width: '100%', minHeight: '600px' }}
           />
         </SandpackLayout>
         
