@@ -70,8 +70,8 @@ IMPORTANT FOR COMPLEX/LONG APPS:
 For simple UI apps without backend needs:
 
 - **CRITICAL**: src/App.tsx MUST be PLAIN JSX (NO TypeScript syntax)
-- **CRITICAL LAYOUT**: Root container MUST have `min-h-screen` to fill viewport
-  * ALWAYS use: `<div className="min-h-screen bg-[color] p-4">` or similar
+- **CRITICAL LAYOUT**: Root container MUST have \`min-h-screen\` to fill viewport
+  * ALWAYS use: \`<div className="min-h-screen bg-[color] p-4">\` or similar
   * This prevents cramped layouts with empty space below content
   * App should feel full-screen, not tiny in corner
 - **CRITICAL STRING HANDLING**:
