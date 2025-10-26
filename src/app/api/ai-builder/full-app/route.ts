@@ -71,12 +71,15 @@ For simple UI apps without backend needs:
 
 - **CRITICAL**: src/App.tsx MUST be PLAIN JSX (NO TypeScript syntax)
 - **CRITICAL STRING HANDLING**:
-  * Use double quotes "text", NEVER single quotes/apostrophes 'text'
+  * Use template literals for dynamic content: \`className="text-\${color}"\`
+  * Inside template literals: Single quotes are fine - \`\${active ? 'ring-4' : ''}\`
+  * Regular strings: Use double quotes "text" by default
+  * Apostrophes in content: Totally fine - "It's a beautiful day"
+  * NEVER manually escape quotes with backslashes - JavaScript handles this automatically
   * For long text: Create const variables BEFORE return statement
   * Example: const msg = "Part 1 here. " + "Part 2 here."; then use {msg} in JSX
   * NEVER concatenate JSX tags: NEVER do return div-tag quote-plus-quote paragraph-tag
   * Normal JSX structure - only TEXT content goes in string variables
-  * Write "it is" not "it's", "you are" not "you're" (avoid apostrophes)
 - NO interfaces, types, type annotations, or "as" assertions in App.tsx
 - All components inline within App.tsx file
 - Only import React hooks (useState, useEffect, etc.)
@@ -647,47 +650,25 @@ REMEMBER:
     function sanitizeCode(code: string): string {
       let sanitized = code;
       
-      // Fix 1: Close unterminated string literals at end of file
+      // Strategy: Remove incomplete/broken last line if truncation detected
       const lines = sanitized.split('\n');
       const lastLine = lines[lines.length - 1].trim();
       
-      // Check if last line has unclosed double quote
-      const doubleQuoteCount = (lastLine.match(/(?<!\\)"/g) || []).length;
-      if (doubleQuoteCount % 2 !== 0) {
-        console.log('Fixing unterminated string at end of file');
-        lines[lines.length - 1] = lines[lines.length - 1] + '">'; // Close string and likely JSX tag
-      }
-      
-      // Check if last line has unclosed single quote
-      const singleQuoteCount = (lastLine.match(/(?<!\\)'/g) || []).length;
-      if (singleQuoteCount % 2 !== 0) {
-        console.log('Fixing unterminated single quote at end of file');
-        lines[lines.length - 1] = lines[lines.length - 1] + '\'>';
-      }
-      
-      // Fix 2: Close unterminated JSX tags
-      // If last line starts with < but doesn't end with > or />, complete it
-      if (lastLine.startsWith('<') && !lastLine.endsWith('>') && !lastLine.endsWith('/>')) {
-        console.log('Fixing incomplete JSX tag at end of file');
-        lines[lines.length - 1] = lines[lines.length - 1] + '>';
-      }
-      
-      sanitized = lines.join('\n');
-      
-      // Fix 3: Remove clearly broken last line if it's just a fragment
-      const finalLines = sanitized.split('\n');
-      const finalLastLine = finalLines[finalLines.length - 1].trim();
-      
-      // If last line is very short and looks incomplete, remove it
-      if (finalLastLine.length > 0 && finalLastLine.length < 10 && 
-          !finalLastLine.endsWith(';') && 
-          !finalLastLine.endsWith('}') && 
-          !finalLastLine.endsWith('>') &&
-          !finalLastLine.includes('export') &&
-          !finalLastLine.includes('import')) {
-        console.log('Removing broken fragment at end:', finalLastLine);
-        finalLines.pop();
-        sanitized = finalLines.join('\n');
+      // If last line is very short and looks incomplete, remove it entirely
+      // This is safer than trying to "fix" it with assumptions
+      if (lastLine.length > 0 && lastLine.length < 15 && 
+          !lastLine.endsWith(';') && 
+          !lastLine.endsWith('}') && 
+          !lastLine.endsWith('>') &&
+          !lastLine.endsWith('/>') &&
+          !lastLine.includes('export') &&
+          !lastLine.includes('import') &&
+          !lastLine.includes('const') &&
+          !lastLine.includes('let') &&
+          !lastLine.includes('var')) {
+        console.log('Removing incomplete fragment at end:', lastLine);
+        lines.pop();
+        sanitized = lines.join('\n');
       }
       
       return sanitized;
@@ -698,16 +679,6 @@ REMEMBER:
       if (file.path.endsWith('.tsx') || file.path.endsWith('.ts') || file.path.endsWith('.jsx') || file.path.endsWith('.js')) {
         // Apply comprehensive sanitization first
         let code = sanitizeCode(file.content);
-        
-        // CRITICAL FIX: Replace all apostrophes with escaped versions in template literals
-        // This prevents syntax errors from contractions like "it's", "don't", etc.
-        // Match template literals and replace apostrophes inside them
-        const templateLiteralRegex = /`([^`]*)`/g;
-        code = code.replace(templateLiteralRegex, (match, content) => {
-          // Replace apostrophes with escaped version
-          const fixed = content.replace(/'/g, "\\'");
-          return `\`${fixed}\``;
-        });
         
         // Strategy: Find unclosed template literals by parsing more carefully
         // Split by lines and track state
