@@ -69,10 +69,13 @@ IMPORTANT FOR COMPLEX/LONG APPS:
 For simple UI apps without backend needs:
 
 - **CRITICAL**: src/App.tsx MUST be PLAIN JSX (NO TypeScript syntax)
-- **CRITICAL**: Use double quotes "text" for all strings, NEVER single quotes/apostrophes 'text'
-- **CRITICAL**: Keep template literals SHORT (max 200 chars). For long text, use string concatenation with + operator
-- **CRITICAL**: Example of CORRECT long text: "Part 1 text here. " + "Part 2 text here. " + "Part 3 text here."
-- **CRITICAL**: In template literals, write "it is" instead of "it's", "you are" instead of "you're", etc.
+- **CRITICAL STRING HANDLING**:
+  * Use double quotes "text", NEVER single quotes/apostrophes 'text'
+  * For long text: Create const variables BEFORE return statement
+  * Example: const msg = "Part 1 here. " + "Part 2 here."; then use {msg} in JSX
+  * NEVER concatenate JSX tags: NEVER do return div-tag quote-plus-quote paragraph-tag
+  * Normal JSX structure - only TEXT content goes in string variables
+  * Write "it is" not "it's", "you are" not "you're" (avoid apostrophes)
 - NO interfaces, types, type annotations, or "as" assertions in App.tsx
 - All components inline within App.tsx file
 - Only import React hooks (useState, useEffect, etc.)
