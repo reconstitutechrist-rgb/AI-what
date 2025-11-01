@@ -3,7 +3,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import CodePreview from './CodePreview';
 import FullAppPreview from './FullAppPreview';
+import DiffPreview from './DiffPreview';
 import { exportAppAsZip, downloadBlob, parseAppFiles, getDeploymentInstructions, type DeploymentInstructions } from '../utils/exportApp';
+import { applyDiff } from '../utils/applyDiff';
 
 // Base44-inspired layout with conversation-first design + your dark colors
 
@@ -43,6 +45,22 @@ interface PendingChange {
   timestamp: string;
 }
 
+interface PendingDiff {
+  id: string;
+  summary: string;
+  files: Array<{
+    path: string;
+    action: 'MODIFY' | 'CREATE' | 'DELETE';
+    changes: Array<{
+      type: 'ADD_IMPORT' | 'INSERT_AFTER' | 'INSERT_BEFORE' | 'REPLACE' | 'DELETE' | 'APPEND';
+      searchFor?: string;
+      content?: string;
+      replaceWith?: string;
+    }>;
+  }>;
+  timestamp: string;
+}
+
 export default function AIBuilder() {
   // Core state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -71,6 +89,8 @@ export default function AIBuilder() {
   
   // Change approval system
   const [pendingChange, setPendingChange] = useState<PendingChange | null>(null);
+  const [pendingDiff, setPendingDiff] = useState<PendingDiff | null>(null);
+  const [showDiffPreview, setShowDiffPreview] = useState(false);
   
   // Deployment and export
   const [showDeploymentModal, setShowDeploymentModal] = useState(false);
@@ -359,20 +379,30 @@ export default function AIBuilder() {
     }, 3000); // Update every 3 seconds
 
     try {
+      // Determine if this is a modification and whether to use diff system
+      const isModification = currentComponent !== null;
+      const useDiffSystem = isModification && !isQuestion;
+      
       // Route to appropriate endpoint based on intent
-      const endpoint = isQuestion ? '/api/chat' : '/api/ai-builder/full-app';
+      const endpoint = isQuestion ? '/api/chat' : 
+                       useDiffSystem ? '/api/ai-builder/modify' : '/api/ai-builder/full-app';
       
       // Prepare the request body
       const requestBody: any = isQuestion ? {
         // For Q&A: just prompt and history
         prompt: userInput,
         conversationHistory: chatMessages.slice(-5)
+      } : useDiffSystem ? {
+        // For modifications: use diff endpoint
+        prompt: userInput,
+        currentAppState: currentComponent ? JSON.parse(currentComponent.code) : null,
+        conversationHistory: chatMessages.slice(-5)
       } : {
-        // For app building: include modification context
+        // For new apps: use full-app endpoint
         prompt: userInput,
         conversationHistory: chatMessages.slice(-5),
-        isModification: currentComponent !== null,
-        currentAppName: currentComponent?.name
+        isModification: false,
+        currentAppName: null
       };
 
       // Add image if uploaded
@@ -394,6 +424,26 @@ export default function AIBuilder() {
 
       if (data.error) {
         throw new Error(data.error);
+      }
+
+      // Handle diff response (from modify endpoint)
+      if (data.changeType === 'MODIFICATION' && data.files) {
+        setPendingDiff({
+          id: Date.now().toString(),
+          summary: data.summary,
+          files: data.files,
+          timestamp: new Date().toISOString()
+        });
+        setShowDiffPreview(true);
+        
+        const diffMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: `🔍 **Changes Ready for Review**\n\n${data.summary}\n\nPlease review the proposed changes before applying.`,
+          timestamp: new Date().toISOString()
+        };
+        setChatMessages(prev => [...prev, diffMessage]);
+        return; // Exit early, wait for user approval
       }
 
       // Handle chat Q&A response
@@ -640,6 +690,101 @@ export default function AIBuilder() {
     setChatMessages(prev => [...prev, rejectionMessage]);
     setPendingChange(null);
     setShowApprovalModal(false);
+  };
+
+  const approveDiff = () => {
+    if (!pendingDiff || !currentComponent) return;
+
+    try {
+      // Parse current app to get files
+      const currentAppData = JSON.parse(currentComponent.code);
+      const currentFiles = currentAppData.files.map((f: any) => ({
+        path: f.path,
+        content: f.content
+      }));
+
+      // Apply diff
+      const result = applyDiff(currentFiles, pendingDiff.files);
+
+      if (!result.success) {
+        throw new Error(result.errors.join(', '));
+      }
+
+      // Create updated app with modified files
+      const updatedAppData = {
+        ...currentAppData,
+        files: result.modifiedFiles.map(f => ({
+          path: f.path,
+          content: f.content
+        }))
+      };
+
+      // Save current state to undo stack
+      const previousVersion: AppVersion = {
+        id: Date.now().toString(),
+        versionNumber: (currentComponent.versions?.length || 0) + 1,
+        code: currentComponent.code,
+        description: currentComponent.description,
+        timestamp: currentComponent.timestamp,
+        changeType: 'MINOR_CHANGE'
+      };
+      setUndoStack(prev => [...prev, previousVersion]);
+      setRedoStack([]);
+
+      // Create updated component
+      let updatedComponent: GeneratedComponent = {
+        ...currentComponent,
+        code: JSON.stringify(updatedAppData, null, 2),
+        description: pendingDiff.summary,
+        timestamp: new Date().toISOString()
+      };
+
+      // Save as new version
+      updatedComponent = saveVersion(updatedComponent, 'MINOR_CHANGE', pendingDiff.summary);
+
+      setCurrentComponent(updatedComponent);
+      setComponents(prev =>
+        prev.map(comp => comp.id === currentComponent.id ? updatedComponent : comp)
+      );
+
+      // Add success message
+      const successMessage: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `✅ Changes applied successfully!\n\n${pendingDiff.summary}`,
+        timestamp: new Date().toISOString(),
+        componentCode: JSON.stringify(updatedAppData, null, 2),
+        componentPreview: true
+      };
+
+      setChatMessages(prev => [...prev, successMessage]);
+      setActiveTab('preview');
+
+    } catch (error) {
+      const errorMessage: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `❌ Error applying changes: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        timestamp: new Date().toISOString()
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setPendingDiff(null);
+      setShowDiffPreview(false);
+    }
+  };
+
+  const rejectDiff = () => {
+    const rejectionMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: `❌ Changes rejected. Your app remains unchanged. Feel free to request different modifications!`,
+      timestamp: new Date().toISOString()
+    };
+
+    setChatMessages(prev => [...prev, rejectionMessage]);
+    setPendingDiff(null);
+    setShowDiffPreview(false);
   };
 
   const revertToVersion = (version: AppVersion) => {
@@ -1691,6 +1836,51 @@ export default function AIBuilder() {
               >
                 Got it!
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Diff Preview Modal */}
+      {showDiffPreview && pendingDiff && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4"
+          onClick={() => {}}
+        >
+          <div
+            className="bg-slate-900 rounded-2xl border border-blue-500/30 max-w-4xl w-full max-h-[85vh] overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-5 border-b border-blue-500/30 bg-blue-500/10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                    <span className="text-3xl">🔍</span>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Review Changes</h3>
+                    <p className="text-sm text-blue-200/80">Smart targeted modifications</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setPendingDiff(null);
+                    setShowDiffPreview(false);
+                  }}
+                  className="p-2 rounded-lg hover:bg-white/10 transition-all"
+                >
+                  <span className="text-slate-400 text-xl">✕</span>
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 overflow-y-auto max-h-[70vh]">
+              <DiffPreview
+                summary={pendingDiff.summary}
+                files={pendingDiff.files}
+                onApprove={approveDiff}
+                onReject={rejectDiff}
+              />
             </div>
           </div>
         </div>
