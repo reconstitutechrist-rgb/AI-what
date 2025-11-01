@@ -106,6 +106,14 @@ export default function AIBuilder() {
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [compareVersions, setCompareVersions] = useState<{ v1: AppVersion | null; v2: AppVersion | null }>({ v1: null, v2: null });
 
+  // Stage plan tracking for multi-stage modifications
+  const [currentStagePlan, setCurrentStagePlan] = useState<{
+    currentStage: number;
+    totalStages: number;
+    stageDescription: string;
+    nextStages: string[];
+  } | null>(null);
+
   // Ref for auto-scrolling chat
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -280,6 +288,76 @@ export default function AIBuilder() {
   const sendMessage = async () => {
     if (!userInput.trim() || isGenerating) return;
 
+    // Check if user recently consented to staging (prevent redundant detection)
+    const recentlyConsented = chatMessages.slice(-10).some((msg, idx, arr) => {
+      if (msg.content.includes('Complex Modification Detected')) {
+        const laterMessages = arr.slice(idx + 1);
+        return laterMessages.some(m => 
+          m.role === 'user' && 
+          m.content.toLowerCase().includes('proceed')
+        );
+      }
+      return false;
+    });
+
+    // Handle stage checkpoint responses
+    const lastMsg = chatMessages[chatMessages.length - 1];
+    const isAtStageCheckpoint = lastMsg?.role === 'assistant' &&
+      lastMsg?.content.includes('Stage Complete') && 
+      lastMsg?.content.includes('Happy with this stage');
+
+    if (isAtStageCheckpoint && currentStagePlan) {
+      const userResponse = userInput.toLowerCase().trim();
+      
+      // User approves current stage
+      if (userResponse === 'yes' || userResponse.includes('looks good') || 
+          userResponse === 'continue' || userResponse.includes('next')) {
+        
+        const nextStage = currentStagePlan.currentStage + 1;
+        
+        if (nextStage <= currentStagePlan.totalStages) {
+          const proceedMessage: ChatMessage = {
+            id: Date.now().toString(),
+            role: 'system',
+            content: `✅ Proceeding to Stage ${nextStage}/${currentStagePlan.totalStages}`,
+            timestamp: new Date().toISOString()
+          };
+          setChatMessages(prev => [...prev, proceedMessage]);
+          
+          // Generate next stage request
+          const nextStageDesc = currentStagePlan.nextStages[nextStage - currentStagePlan.currentStage - 1] || 'Continue implementation';
+          setUserInput(`Continue with Stage ${nextStage}: ${nextStageDesc}`);
+          // Don't return - let it continue to send the message
+        } else {
+          // All stages complete
+          const completeMessage: ChatMessage = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `🎉 **All Stages Complete!**\n\nYour feature has been fully implemented across ${currentStagePlan.totalStages} stages. Everything is working together now!\n\nFeel free to test it out and request any adjustments.`,
+            timestamp: new Date().toISOString()
+          };
+          setChatMessages(prev => [...prev, completeMessage]);
+          setCurrentStagePlan(null);
+          setUserInput('');
+          return;
+        }
+      }
+      // User wants to cancel staged implementation
+      else if (userResponse === 'cancel' || userResponse === 'stop') {
+        setCurrentStagePlan(null);
+        const cancelMsg: ChatMessage = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: `❌ Staged implementation cancelled. Your app remains in its current state (with Stage ${currentStagePlan.currentStage} applied). Feel free to request different modifications!`,
+          timestamp: new Date().toISOString()
+        };
+        setChatMessages(prev => [...prev, cancelMsg]);
+        setUserInput('');
+        return;
+      }
+      // User wants adjustments - let it continue to modification flow
+    }
+
     // Detect complex modifications that need staged implementation
     const complexModificationIndicators = [
       'add authentication', 'add auth', 'login system', 'user accounts', 'signup',
@@ -298,8 +376,8 @@ export default function AIBuilder() {
         userInput.toLowerCase().includes(indicator)
       );
 
-    // If complex modification detected, show staging explanation
-    if (isComplexModification) {
+    // If complex modification detected AND user hasn't recently consented, show staging explanation
+    if (isComplexModification && !recentlyConsented) {
       const stagingMessage: ChatMessage = {
         id: Date.now().toString(),
         role: 'assistant',
@@ -463,20 +541,32 @@ Reply **'proceed'** to continue with staged implementation, or **'cancel'** to t
       const endpoint = isQuestion ? '/api/chat' : 
                        useDiffSystem ? '/api/ai-builder/modify' : '/api/ai-builder/full-app';
       
-      // Prepare the request body
+      // Prepare the request body with enhanced conversation history for staging
+      const getEnhancedHistory = () => {
+        const recentMessages = chatMessages.slice(-10);
+        const stagingMessages = chatMessages.filter(m => 
+          m.content.includes('Complex Modification Detected') ||
+          m.content.includes('Implementation Plan Ready') ||
+          m.content.includes('Stage')
+        ).slice(-5);
+        const combined = [...stagingMessages, ...recentMessages];
+        const unique = Array.from(new Map(combined.map(m => [m.id, m])).values());
+        return unique.slice(-15);
+      };
+
       const requestBody: any = isQuestion ? {
         // For Q&A: just prompt and history
         prompt: userInput,
         conversationHistory: chatMessages.slice(-5)
       } : useDiffSystem ? {
-        // For modifications: use diff endpoint
+        // For modifications: use diff endpoint with enhanced history
         prompt: userInput,
         currentAppState: currentComponent ? JSON.parse(currentComponent.code) : null,
-        conversationHistory: chatMessages.slice(-5)
+        conversationHistory: getEnhancedHistory()
       } : {
         // For new apps: use full-app endpoint
         prompt: userInput,
-        conversationHistory: chatMessages.slice(-5),
+        conversationHistory: chatMessages.slice(-10),
         isModification: false,
         currentAppName: null
       };
@@ -505,6 +595,9 @@ Reply **'proceed'** to continue with staged implementation, or **'cancel'** to t
       // Handle staged modification response (with stage plan)
       if (data.changeType === 'MODIFICATION' && data.stagePlan && data.files) {
         const stagePlan = data.stagePlan;
+        
+        // Store stage plan for checkpoint handling
+        setCurrentStagePlan(stagePlan);
         
         // Show stage plan explanation
         const stagePlanMessage: ChatMessage = {

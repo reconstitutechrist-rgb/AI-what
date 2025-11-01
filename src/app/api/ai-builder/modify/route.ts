@@ -20,10 +20,18 @@ interface FileDiff {
   changes: DiffChange[];
 }
 
+interface StagePlan {
+  currentStage: number;
+  totalStages: number;
+  stageDescription: string;
+  nextStages: string[];
+}
+
 interface DiffResponse {
   changeType: 'MODIFICATION';
   summary: string;
   files: FileDiff[];
+  stagePlan?: StagePlan;
 }
 
 export async function POST(request: Request) {
