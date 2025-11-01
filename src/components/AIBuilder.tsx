@@ -280,6 +280,76 @@ export default function AIBuilder() {
   const sendMessage = async () => {
     if (!userInput.trim() || isGenerating) return;
 
+    // Detect complex modifications that need staged implementation
+    const complexModificationIndicators = [
+      'add authentication', 'add auth', 'login system', 'user accounts', 'signup',
+      'add database', 'add backend', 'add api', 'connect to database',
+      'add payment', 'stripe', 'checkout system',
+      'completely change', 'redesign everything', 'rebuild',
+      'add real-time', 'add websockets', 'add chat', 'live updates',
+      'add notifications', 'push notifications',
+      'add email', 'send emails', 'email system',
+      'add file upload', 'image upload', 'file storage'
+    ];
+
+    const isComplexModification = currentComponent && 
+      !isGenerating &&
+      complexModificationIndicators.some(indicator => 
+        userInput.toLowerCase().includes(indicator)
+      );
+
+    // If complex modification detected, show staging explanation
+    if (isComplexModification) {
+      const stagingMessage: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `⚠️ **Complex Modification Detected**
+
+Your request: "${userInput}"
+
+**Why Staged Implementation?**
+This feature requires substantial changes. Implementing in stages ensures:
+✅ Your current app's styling and features are preserved
+✅ Each piece works correctly before moving on
+✅ You can guide the direction at each step
+✅ No accidental changes to existing functionality
+
+**How It Works:**
+1. I'll plan the implementation in 2-4 stages
+2. Show you what Stage 1 will add (you'll approve via diff preview)
+3. After Stage 1 is applied, you can review and request adjustments
+4. Then we proceed to Stage 2, and so on
+
+**Important:** Your app won't lose any existing features - I'll only ADD what you requested.
+
+Reply **'proceed'** to continue with staged implementation, or **'cancel'** to try a different approach.`,
+        timestamp: new Date().toISOString()
+      };
+      
+      setChatMessages(prev => [...prev, stagingMessage]);
+      setUserInput('');
+      return; // Wait for user consent
+    }
+
+    // Check if user is responding to staging consent
+    const lastMessage = chatMessages[chatMessages.length - 1];
+    const isConsentingToStaging = userInput.toLowerCase().trim() === 'proceed' && 
+      lastMessage?.content.includes('Complex Modification Detected');
+
+    // If user is canceling staged modification
+    if (userInput.toLowerCase().trim() === 'cancel' && 
+        lastMessage?.content.includes('Complex Modification Detected')) {
+      const cancelMessage: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: "No problem! Feel free to request a simpler modification or try a different approach. I'm here to help!",
+        timestamp: new Date().toISOString()
+      };
+      setChatMessages(prev => [...prev, cancelMessage]);
+      setUserInput('');
+      return;
+    }
+
     // Detect if this is a question or an app build request
     const questionIndicators = [
       'what', 'how', 'why', 'when', 'where', 'who', 'which',
@@ -432,7 +502,46 @@ export default function AIBuilder() {
         throw new Error(data.error);
       }
 
-      // Handle diff response (from modify endpoint)
+      // Handle staged modification response (with stage plan)
+      if (data.changeType === 'MODIFICATION' && data.stagePlan && data.files) {
+        const stagePlan = data.stagePlan;
+        
+        // Show stage plan explanation
+        const stagePlanMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: `📋 **Implementation Plan Ready**
+
+${data.summary}
+
+**This Stage (${stagePlan.currentStage}/${stagePlan.totalStages}):** ${stagePlan.stageDescription}
+
+**Upcoming Stages:**
+${stagePlan.nextStages.map((s: string, i: number) => `  ${stagePlan.currentStage + i + 1}. ${s}`).join('\n')}
+
+**What This Preserves:**
+✅ Your current styling and colors
+✅ All existing features
+✅ Current app architecture
+
+I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and approve to continue.`,
+          timestamp: new Date().toISOString()
+        };
+        
+        setChatMessages(prev => [...prev, stagePlanMessage]);
+        
+        // Show diff preview for this stage
+        setPendingDiff({
+          id: Date.now().toString(),
+          summary: data.summary,
+          files: data.files,
+          timestamp: new Date().toISOString()
+        });
+        setShowDiffPreview(true);
+        return; // Wait for user approval
+      }
+
+      // Handle regular diff response (from modify endpoint)
       if (data.changeType === 'MODIFICATION' && data.files) {
         setPendingDiff({
           id: Date.now().toString(),
@@ -753,11 +862,16 @@ export default function AIBuilder() {
         prev.map(comp => comp.id === currentComponent.id ? updatedComponent : comp)
       );
 
-      // Add success message
+      // Check if this was a staged modification
+      const isStaged = pendingDiff.summary.includes('Stage');
+      
+      // Add success message with checkpoint if staged
       const successMessage: ChatMessage = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: `✅ Changes applied successfully!\n\n${pendingDiff.summary}`,
+        content: isStaged 
+          ? `✅ **Stage Complete!**\n\n${pendingDiff.summary}\n\nCheck the preview to see the changes in action.\n\n**Happy with this stage?**\n• Reply **'yes'** or **'looks good'** → Move to next stage\n• Reply **'change [something]'** → I'll adjust it\n\n(Take your time to review - we'll only proceed when you're satisfied!)`
+          : `✅ Changes applied successfully!\n\n${pendingDiff.summary}`,
         timestamp: new Date().toISOString(),
         componentCode: JSON.stringify(updatedAppData, null, 2),
         componentPreview: true

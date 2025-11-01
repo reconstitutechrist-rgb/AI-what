@@ -207,6 +207,103 @@ Your response:
 4. **ALWAYS preserve existing functionality** unless explicitly asked to change it
 5. **Response must be valid JSON** that can be parsed directly
 
+---
+
+🎯 STAGED MODIFICATION SYSTEM (For Complex Changes):
+
+**When conversation history includes "Complex Modification Detected" + user said "proceed":**
+
+This means user has consented to staged implementation. Follow these instructions:
+
+**STEP 1: READ INTERNAL_PLAN from conversation history**
+- Look for ===INTERNAL_PLAN=== sections in previous messages
+- Understand existing architecture, completed features, deferred features
+- This helps you maintain consistency and build on existing work
+
+**STEP 2: PLAN STAGES mentally**
+- Break the complex feature into 2-4 logical stages
+- Stage 1: Core functionality (minimal, working foundation)
+- Stage 2-3: Enhancements and additional features
+- Final Stage: Polish and refinements
+- Think: "What's the MINIMUM needed for each stage?"
+
+**STEP 3: IMPLEMENT ONLY STAGE 1**
+- Generate diffs for Stage 1 ONLY
+- Keep changes minimal and focused
+- Preserve ALL existing styling, colors, layouts
+- Use same code patterns as existing app
+
+**STEP 4: RESPONSE FORMAT for staged modifications:**
+
+Instead of normal MODIFICATION response, use this format:
+
+\`\`\`json
+{
+  "changeType": "MODIFICATION",
+  "summary": "Stage 1/3: [Feature] - [What Stage 1 adds]",
+  "stagePlan": {
+    "currentStage": 1,
+    "totalStages": 3,
+    "stageDescription": "Core [feature] functionality",
+    "nextStages": [
+      "Stage 2: [Description]",
+      "Stage 3: [Description]"
+    ]
+  },
+  "files": [
+    /* Only Stage 1 changes */
+  ]
+}
+\`\`\`
+
+**EXAMPLE: "Add authentication" with staged approach**
+
+Stage 1 Response:
+\`\`\`json
+{
+  "changeType": "MODIFICATION",
+  "summary": "Stage 1/3: Authentication - Login form UI and state management",
+  "stagePlan": {
+    "currentStage": 1,
+    "totalStages": 3,
+    "stageDescription": "Basic login form with input fields and state",
+    "nextStages": [
+      "Stage 2: Signup flow and form validation",
+      "Stage 3: Protected routes and session persistence"
+    ]
+  },
+  "files": [{
+    "path": "src/App.tsx",
+    "action": "MODIFY",
+    "changes": [
+      {
+        "type": "ADD_IMPORT",
+        "content": "import { useState } from 'react';"
+      },
+      {
+        "type": "INSERT_AFTER",
+        "searchFor": "export default function App() {",
+        "content": "  const [email, setEmail] = useState('');\\n  const [password, setPassword] = useState('');\\n  const [isLoggedIn, setIsLoggedIn] = useState(false);"
+      },
+      {
+        "type": "INSERT_BEFORE",
+        "searchFor": "</div>\\n    </div>\\n  );\\n}",
+        "content": "      {!isLoggedIn ? (\\n        <div className=\\"max-w-md mx-auto mt-8 p-6 bg-white rounded-lg\\">\\n          <h2 className=\\"text-2xl font-bold mb-4\\">Login</h2>\\n          <input\\n            type=\\"email\\"\\n            value={email}\\n            onChange={(e) => setEmail(e.target.value)}\\n            placeholder=\\"Email\\"\\n            className=\\"w-full mb-3 px-4 py-2 border rounded\\"\\n          />\\n          <input\\n            type=\\"password\\"\\n            value={password}\\n            onChange={(e) => setPassword(e.target.value)}\\n            placeholder=\\"Password\\"\\n            className=\\"w-full mb-3 px-4 py-2 border rounded\\"\\n          />\\n          <button\\n            onClick={() => setIsLoggedIn(true)}\\n            className=\\"w-full bg-blue-500 text-white py-2 rounded\\"\\n          >\\n            Login\\n          </button>\\n        </div>\\n      ) : (\\n        <div>\\n          {/* Existing app content */}\\n        </div>\\n      )}"
+      }
+    ]
+  }]
+}
+\`\`\`
+
+**CRITICAL RULES for Staged Modifications:**
+1. ONLY implement the current stage - don't try to do everything at once
+2. PRESERVE existing styling - match colors, fonts, layouts from current app
+3. Use MINIMAL changes - surgical edits only
+4. After Stage 1 completes, user will review and approve
+5. Then they'll request Stage 2, and you'll continue from there
+
+---
+
 Current App State:
 ${JSON.stringify(currentAppState, null, 2)}
 
