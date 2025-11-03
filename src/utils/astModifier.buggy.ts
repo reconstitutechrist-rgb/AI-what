@@ -5,7 +5,6 @@ import type {
   ImportSpec,
   WrapperSpec,
   StateVariableSpec,
-  PropModification,
   ModificationResult,
   ASTModifierOptions,
   NodePosition,
