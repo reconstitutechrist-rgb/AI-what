@@ -287,6 +287,27 @@ Example use case: When adding features that require new dependencies
 }
 \`\`\`
 
+**AST_MODIFY_CLASSNAME** - Safely modify className attribute
+
+When to use: Dark mode, dynamic styling, conditional classes
+Example use case: "add dark mode", "make button change color when active"
+
+\`\`\`json
+{
+  "type": "AST_MODIFY_CLASSNAME",
+  "targetElement": "div",
+  "staticClasses": ["container", "mx-auto"],
+  "template": {
+    "variable": "darkMode",
+    "trueValue": "dark",
+    "falseValue": "",
+    "operator": "?"
+  }
+}
+\`\`\`
+
+Result: \`<div className={\`container mx-auto \${darkMode ? 'dark' : ''}\`}>\`
+
 **🎯 WHEN TO USE AST OPERATIONS:**
 
 Use AST operations for:
@@ -294,12 +315,13 @@ Use AST operations for:
 - ✅ Adding React hooks (useState, useEffect, etc.)
 - ✅ Managing imports (especially with deduplication)
 - ✅ Structural JSX changes that need precision
+- ✅ **className modifications (ALWAYS use AST for this!)**
 
 Use string-based operations for:
-- ✅ Changing text, colors, styling
-- ✅ Updating className values
-- ✅ Simple prop changes
+- ✅ Changing text content
+- ✅ Simple prop changes (non-className)
 - ✅ Adding/removing small code snippets
+- ❌ NOT for className changes (use AST_MODIFY_CLASSNAME)
 
 **Example: Adding Authentication**
 

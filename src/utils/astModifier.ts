@@ -5,6 +5,7 @@ import type {
   ImportSpec,
   WrapperSpec,
   StateVariableSpec,
+  ModifyClassNameSpec,
   PropModification,
   ModificationResult,
   ASTModifierOptions,
@@ -365,6 +366,138 @@ export class ASTModifier {
       priority: 800,
       description: `Add state variable ${spec.name}`
     });
+    
+    return this;
+  }
+
+  /**
+   * Modify className attribute of a JSX element
+   */
+  modifyClassName(elementNode: Parser.SyntaxNode, spec: ModifyClassNameSpec): this {
+    if (!this.tree) return this;
+    
+    // Find the className attribute
+    let classNameAttr: Parser.SyntaxNode | null = null;
+    let classNameValue: Parser.SyntaxNode | null = null;
+    
+    // Look for jsx_attribute nodes
+    for (const child of elementNode.children) {
+      if (child.type === 'jsx_opening_element') {
+        for (const attrChild of child.children) {
+          if (attrChild.type === 'jsx_attribute') {
+            const attrName = attrChild.childForFieldName('name');
+            if (attrName && attrName.text === 'className') {
+              classNameAttr = attrChild;
+              classNameValue = attrChild.childForFieldName('value');
+              break;
+            }
+          }
+        }
+      }
+    }
+    
+    // Extract existing static classes
+    const existingClasses: string[] = [];
+    if (classNameValue) {
+      const valueText = classNameValue.text;
+      
+      // Parse different className formats
+      if (valueText.startsWith('"') || valueText.startsWith("'")) {
+        // String literal: className="container mx-auto"
+        const cleaned = valueText.slice(1, -1); // Remove quotes
+        existingClasses.push(...cleaned.split(/\s+/).filter(c => c.length > 0));
+      } else if (valueText.startsWith('{')) {
+        // JSX expression: Try to extract static classes
+        // For template literals like {`container ${...}`}
+        const templateMatch = valueText.match(/`([^$]*)/);
+        if (templateMatch) {
+          const staticPart = templateMatch[1].trim();
+          if (staticPart) {
+            existingClasses.push(...staticPart.split(/\s+/).filter(c => c.length > 0));
+          }
+        }
+      }
+    }
+    
+    // Combine with spec classes
+    const allStaticClasses = [
+      ...existingClasses,
+      ...(spec.staticClasses || [])
+    ];
+    
+    // Remove duplicates while preserving order
+    const uniqueClasses = Array.from(new Set(allStaticClasses));
+    
+    // Generate new className value
+    let newClassNameValue: string;
+    
+    if (spec.rawTemplate) {
+      // Use raw template if provided
+      newClassNameValue = `{\`${uniqueClasses.join(' ')} ${spec.rawTemplate}\`}`;
+    } else if (spec.template) {
+      // Build template from spec
+      const { variable, trueValue, falseValue = '', operator = '?' } = spec.template;
+      
+      const staticPart = uniqueClasses.join(' ');
+      const dynamicPart = operator === '?'
+        ? `\${${variable} ? '${trueValue}' : '${falseValue}'}`
+        : `\${${variable} && '${trueValue}'}`;
+      
+      // Build template literal
+      if (staticPart) {
+        newClassNameValue = `{\`${staticPart} ${dynamicPart}\`}`;
+      } else {
+        newClassNameValue = `{${dynamicPart}}`;
+      }
+    } else if (uniqueClasses.length > 0) {
+      // Just static classes
+      newClassNameValue = `"${uniqueClasses.join(' ')}"`;
+    } else {
+      // No classes - don't modify
+      return this;
+    }
+    
+    if (classNameAttr && classNameValue) {
+      // Replace existing className value
+      this.modifications.push({
+        type: 'replace',
+        start: classNameValue.startIndex,
+        end: classNameValue.endIndex,
+        newCode: newClassNameValue,
+        priority: 700,
+        description: `Modify className attribute`
+      });
+    } else if (classNameAttr) {
+      // className exists but no value - add value
+      this.modifications.push({
+        type: 'insert',
+        start: classNameAttr.endIndex,
+        end: classNameAttr.endIndex,
+        newCode: `=${newClassNameValue}`,
+        priority: 700,
+        description: `Add className value`
+      });
+    } else {
+      // No className attribute - add it
+      // Find where to insert (after tag name in opening element)
+      for (const child of elementNode.children) {
+        if (child.type === 'jsx_opening_element') {
+          // Find the tag name
+          const identifier = child.childForFieldName('name');
+          if (identifier) {
+            this.modifications.push({
+              type: 'insert',
+              start: identifier.endIndex,
+              end: identifier.endIndex,
+              newCode: ` className=${newClassNameValue}`,
+              priority: 700,
+              description: `Add className attribute`
+            });
+            break;
+          }
+        }
+      }
+    }
     
     return this;
   }

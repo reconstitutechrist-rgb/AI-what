@@ -33,10 +33,24 @@ export interface ASTAddImportOperation {
   namespaceImport?: string;
 }
 
+export interface ASTModifyClassNameOperation {
+  type: 'AST_MODIFY_CLASSNAME';
+  targetElement: string;        // JSX element to find
+  staticClasses?: string[];     // Static classes to preserve/add
+  template?: {
+    variable: string;           // Variable name (e.g., 'darkMode')
+    trueValue: string;          // Value when true (e.g., 'dark')
+    falseValue?: string;        // Value when false (default: '')
+    operator?: '?' | '&&';      // Operator to use (default: '?')
+  };
+  rawTemplate?: string;         // Or raw template string (advanced)
+}
+
 export type ASTOperation = 
   | ASTWrapElementOperation
   | ASTAddStateOperation
-  | ASTAddImportOperation;
+  | ASTAddImportOperation
+  | ASTModifyClassNameOperation;
 
 /**
  * Result of executing an AST operation
@@ -164,6 +178,44 @@ export async function executeASTOperation(
             success: true,
             code: result.code,
             operation: `Added import from ${operation.source}`
+          };
+        } else {
+          return {
+            success: false,
+            errors: result.errors
+          };
+        }
+      }
+      
+      case 'AST_MODIFY_CLASSNAME': {
+        // Find the target JSX element
+        const element = parser.findComponent(tree, operation.targetElement);
+        
+        if (!element) {
+          return {
+            success: false,
+            errors: [`Could not find JSX element: ${operation.targetElement}`]
+          };
+        }
+        
+        // Build className spec
+        const classNameSpec = {
+          staticClasses: operation.staticClasses,
+          template: operation.template,
+          rawTemplate: operation.rawTemplate
+        };
+        
+        // Apply className modification
+        modifier.modifyClassName(element, classNameSpec);
+        
+        // Generate modified code
+        const result = await modifier.generate();
+        
+        if (result.success) {
+          return {
+            success: true,
+            code: result.code,
+            operation: `Modified className on ${operation.targetElement}`
           };
         } else {
           return {

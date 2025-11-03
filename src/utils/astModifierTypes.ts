@@ -46,6 +46,25 @@ export interface StateVariableSpec {
 }
 
 /**
+ * Template for dynamic className
+ */
+export interface ClassNameTemplate {
+  variable: string;            // Variable name (e.g., 'darkMode')
+  trueValue: string;           // Value when true (e.g., 'dark')
+  falseValue?: string;         // Value when false (default: '')
+  operator?: '?' | '&&';       // Operator to use (default: '?')
+}
+
+/**
+ * className modification specification
+ */
+export interface ModifyClassNameSpec {
+  staticClasses?: string[];    // Static classes to preserve/add
+  template?: ClassNameTemplate; // Dynamic template to add
+  rawTemplate?: string;        // Or raw template string (advanced)
+}
+
+/**
  * Prop modification specification
  */
 export interface PropModification {
