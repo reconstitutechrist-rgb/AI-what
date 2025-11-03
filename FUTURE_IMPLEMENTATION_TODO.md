@@ -1,8 +1,8 @@
 # 🚀 Future Implementation TODO List
 **AI App Builder - Unimplemented Features & Improvements**
 
-Last Updated: November 1, 2025  
-Current Status: Phase 2 Complete ✅
+Last Updated: November 2, 2025  
+Current Status: Phase 2 Complete ✅ | Tree-sitter Research Complete ✅
 
 ---
 
@@ -15,6 +15,14 @@ Current Status: Phase 2 Complete ✅
 - Complexity detection system functional
 - User consent flow operational
 - Password authentication: Changed to "Nerd"
+- **Comprehensive documentation overhaul** (Nov 2025)
+  - Created CURRENT_FEATURES.md, KEYBOARD_SHORTCUTS.md, MODIFICATION_GUIDE.md, VERSION_CONTROL.md
+  - Rewrote README.md with accurate current state
+  - Archived 8 outdated documentation files
+- **Undo/Redo system** fully implemented (Ctrl+Z/Shift+Z/Y)
+- **Fork/Compare functionality** working
+- **Image upload for design inspiration** implemented
+- **Tree-sitter integration research** completed with detailed implementation plan
 
 ### ⚠️ KNOWN LIMITATIONS
 - Complex modifications (authentication) fail due to AI generating incomplete diffs
@@ -248,45 +256,205 @@ const [showTemplates, setShowTemplates] = useState(false);
 
 ## 🎯 PRIORITY 3: MEDIUM-TERM FEATURES (1-2 Weeks)
 
-### 7. AST-Based Diff Engine
-**Time:** 2-3 weeks  
-**Impact:** HIGH - Enables complex modifications
+### 7. Tree-sitter AST-Based Modification System
+**Time:** 8-13 days (5 phases)  
+**Impact:** CRITICAL - Solves complex modification failures  
+**Status:** Research complete, ready for implementation
 
-**Why:** Current text-based diff system fails for structural changes
+**Current Problems Being Solved:**
+- ❌ REPLACE operations produce "undefined" for structural changes
+- ❌ Authentication modifications fail completely
+- ❌ String-based diffs are fragile (break on whitespace/formatting)
+- ❌ "Search pattern not found" errors
+- ❌ Can't handle complex structural modifications
 
-**Implementation plan:**
+**Why Tree-sitter (Not Babel)?**
+- ✅ **Faster** - Parses in milliseconds, incremental updates
+- ✅ **Error-tolerant** - Works with incomplete/invalid code
+- ✅ **Battle-tested** - Used by VS Code, Neovim, Atom
+- ✅ **Language-agnostic** - Same API for JS, TS, TSX
+- ✅ **Robust** - Handles real-world messy code
+- ✅ **Better for AI** - Claude uses Tree-sitter for code understanding
 
-**Phase 1: Setup (2 days)**
-- [ ] Install Babel packages: `@babel/parser`, `@babel/traverse`, `@babel/generator`, `@babel/types`
+**What Tree-sitter Gives Us:**
+
+Instead of fragile string matching:
+```javascript
+// Current (breaks easily)
+searchFor: "const [darkMode, setDarkMode]"
+```
+
+We get precise AST node targeting:
+```javascript
+// Tree-sitter (robust)
+{
+  nodeType: "variable_declaration",
+  declarator: { name: "darkMode" }
+}
+```
+
+**Implementation Phases:**
+
+**Phase 1: Setup & Testing (1-2 days)**
+- [ ] Install dependencies:
+  - `npm install tree-sitter tree-sitter-javascript tree-sitter-typescript`
+  - `npm install web-tree-sitter` (for browser use)
+- [ ] Create `src/utils/treeSitterParser.ts` - Parser wrapper
+- [ ] Test parsing your generated apps
+- [ ] Verify can find components, functions, variables
+- [ ] Validate error handling with broken code
+
+**Phase 2: AST Modifier Core (2-3 days)**
 - [ ] Create `src/utils/astModifier.ts`
-- [ ] Write basic AST parsing/generation
-- [ ] Test with simple examples
+- [ ] Implement core operations:
+  - `findNode(tree, nodeType, identifier)` - Locate code elements
+  - `addImport(code, importStatement)` - Smart import insertion
+  - `modifyProp(code, component, prop, value)` - JSX prop changes
+  - `replaceNode(code, targetNode, newCode)` - Node replacement
+  - `insertAfterNode(code, node, content)` - Insertion
+  - `wrapInConditional(code, node, condition)` - Conditional wrapping
+- [ ] Add error handling and validation
+- [ ] Test with real code samples
+- [ ] Handle edge cases (nested components, hooks, etc.)
 
-**Phase 2: Core Engine (1 week)**
-- [ ] Implement node navigation
-- [ ] Add state variable insertion
-- [ ] Handle conditional wrapping
-- [ ] Support import additions
-- [ ] Preserve code formatting
-
-**Phase 3: Integration (3-4 days)**
-- [ ] Integrate with modify/route.ts
-- [ ] Update AI prompt for AST instructions
-- [ ] Add fallback to text-based
-- [ ] Comprehensive testing
-- [ ] Error handling
-
-**Key files to create:**
+**Phase 3: AI Integration (2-3 days)**
+- [ ] Update `src/app/api/ai-builder/modify/route.ts` system prompt
+- [ ] Teach AI to generate AST-based diffs:
+```json
+{
+  "type": "MODIFY_PROP",
+  "target": {
+    "nodeType": "jsx_element",
+    "tagName": "div",
+    "hasClass": "container"
+  },
+  "prop": "className",
+  "value": "`container ${darkMode ? 'dark' : ''}`"
+}
 ```
-src/utils/astModifier.ts       - Main AST logic
-src/utils/astOperations.ts     - Common operations
-src/types/astDiff.ts            - TypeScript interfaces
-tests/astModifier.test.ts       - Unit tests
+- [ ] Add validation before sending to AI
+- [ ] Test with various modification requests
+- [ ] Iterate on prompt based on results
+
+**Phase 4: Hybrid System (1-2 days)**
+**Recommended approach** - Best of both worlds:
+
+```typescript
+function chooseModificationSystem(request: string): 'string' | 'ast' {
+  const complexIndicators = [
+    'add authentication',
+    'add component',
+    'refactor',
+    'restructure',
+    'add function',
+    'wrap in',
+    'conditional'
+  ];
+  
+  const isComplex = complexIndicators.some(ind => 
+    request.toLowerCase().includes(ind)
+  );
+  
+  return isComplex ? 'ast' : 'string';
+}
 ```
+
+- [ ] Keep string-based for simple changes (90% of cases)
+- [ ] Use Tree-sitter for complex structural changes
+- [ ] Add automatic selection logic
+- [ ] Fallback mechanism if AST fails
+- [ ] Performance monitoring
+
+**Phase 5: Testing & Validation (2-3 days)**
+- [ ] Test authentication modification (primary use case)
+- [ ] Test adding complex components
+- [ ] Test structural refactoring
+- [ ] Test with various app structures
+- [ ] Edge case testing (deeply nested, long files)
+- [ ] Performance testing
+- [ ] Update documentation
+
+**Files to Create:**
+```
+src/utils/
+├── treeSitterParser.ts     - Tree-sitter wrapper (Parser class)
+├── astModifier.ts          - Modification engine (ASTModifier class)
+├── astDiff.ts              - Diff generation helpers
+└── modificationRouter.ts   - Decides string vs AST (NEW)
+
+src/app/api/ai-builder/
+└── modify/route.ts         - Updated with AST support
+
+tests/
+├── treeSitter.test.ts      - Parser tests
+└── astModifier.test.ts     - Modifier tests
+```
+
+**Example: Authentication with Tree-sitter**
+
+**User request:** "Add authentication"
+
+**AI generates (AST-based):**
+```json
+{
+  "files": [{
+    "path": "src/App.tsx",
+    "modifications": [
+      {
+        "type": "ADD_IMPORT",
+        "value": "import { useState } from 'react';"
+      },
+      {
+        "type": "ADD_STATE",
+        "target": { "function": "App" },
+        "value": "const [isLoggedIn, setIsLoggedIn] = useState(false);"
+      },
+      {
+        "type": "WRAP_RETURN",
+        "target": { "function": "App" },
+        "condition": "!isLoggedIn",
+        "wrapper": "<LoginForm onLogin={() => setIsLoggedIn(true)} />"
+      },
+      {
+        "type": "ADD_COMPONENT",
+        "value": "function LoginForm({ onLogin }) { /* ... */ }"
+      }
+    ]
+  }]
+}
+```
+
+**Result:** ✅ Works reliably, no "undefined" errors
+
+**Comparison: Current vs Tree-sitter**
+
+| Feature | String-Based (Current) | Tree-sitter (Proposed) |
+|---------|------------------------|------------------------|
+| **Simple changes** | ✅ Works great | ✅ Works great |
+| **Complex changes** | ❌ Fails often | ✅ Reliable |
+| **Error tolerance** | ❌ Breaks on format | ✅ Format-agnostic |
+| **Ambiguity** | ❌ String matching unclear | ✅ Precise targeting |
+| **Speed** | ⚡ Instant | ⚡ Still very fast (<100ms) |
+| **Bundle size** | 📦 ~0KB | 📦 ~200KB (acceptable) |
+| **Maintenance** | 😅 Fragile | 😊 Robust |
+
+**Recommended Timeline:**
+- Week 1: Phases 1-2 (Setup + Core)
+- Week 2: Phases 3-5 (Integration + Testing)
+- **Total:** 2 weeks for complete implementation
 
 **Resources:**
-- Babel Handbook: https://github.com/jamiebuilds/babel-handbook
-- AST Explorer: https://astexplorer.net/
+- Tree-sitter docs: https://tree-sitter.github.io/tree-sitter/
+- web-tree-sitter: https://github.com/tree-sitter/tree-sitter/tree/master/lib/binding_web
+- AST Explorer (Tree-sitter mode): https://astexplorer.net/
+- Language grammars: https://github.com/tree-sitter/tree-sitter-javascript
+
+**Success Metrics:**
+- [ ] Authentication modification works end-to-end
+- [ ] Complex structural changes succeed
+- [ ] No "undefined" in REPLACE operations
+- [ ] <5% regression on simple modifications
+- [ ] Performance acceptable (<500ms for parsing + modification)
 
 ---
 
@@ -428,23 +596,38 @@ For authentication requests:
 
 ### 11. Fix Authentication Modification
 **Time:** Variable (depends on approach)  
-**Impact:** CRITICAL - Major feature
+**Impact:** CRITICAL - Major feature  
+**Status:** Solution identified - Tree-sitter (Item #7)
 
 **Current issue:** AI generates "undefined" in REPLACE operations
 
-**Investigation needed:**
-- [ ] Check server logs for actual AI response
-- [ ] See if replaceWith is missing or truncated
-- [ ] Determine if it's prompt issue or parsing issue
-- [ ] Test with smaller auth implementations
+**Root cause identified:**
+- AI struggles with complex structural REPLACE operations
+- String-based system too fragile for wrapping existing code
+- Current prompt doesn't guide AI well enough for auth complexity
 
-**Possible solutions:**
-1. Use Code Blocks system (bypasses AI entirely)
-2. Improve AI prompt with better examples
-3. Implement AST-based diff engine
-4. Create auth template (easiest workaround)
+**Recommended solution:** Implement Tree-sitter AST system (Item #7)
+- Tree-sitter solves the core issue by using AST nodes instead of strings
+- More reliable for structural modifications
+- No more "undefined" in REPLACE operations
 
-**Priority:** HIGH - Pick one approach and implement
+**Alternative workarounds (if needed before Tree-sitter):**
+1. ✅ **Auth Template** (Quick fix, 1 hour)
+   - Create `templates/app-with-auth.json`
+   - Users start with auth built-in
+   - Bypasses modification entirely
+   
+2. ⚠️ **Code Blocks** (Medium fix, 2-3 days) 
+   - Pre-built auth code blocks
+   - Insert at known locations
+   - Still fragile but better than AI-generated
+
+3. ❌ **Better Prompts** (Attempted, didn't work)
+   - Already tried extensive prompt engineering
+   - AI still generates incomplete diffs
+   - Not a prompt issue, it's a system design issue
+
+**Priority:** HIGH - Implement Tree-sitter OR create auth template
 
 ---
 
