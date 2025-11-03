@@ -329,6 +329,111 @@ Example use case: "add dark mode", "make button change color when active"
 
 Result: \`<div className={\`container mx-auto \${darkMode ? 'dark' : ''}\`}>\`
 
+**AST_INSERT_JSX** - Insert JSX elements without pattern matching
+
+When to use: Adding buttons, forms, UI elements, sections
+Example use case: "add a button", "insert a loading spinner", "add user profile section"
+
+Positions available:
+- \`before\` - Insert before the target element
+- \`after\` - Insert after the target element  
+- \`inside_start\` - Insert as first child inside target element
+- \`inside_end\` - Insert as last child inside target element
+
+\`\`\`json
+{
+  "type": "AST_INSERT_JSX",
+  "targetElement": "div",
+  "jsx": "<button onClick={() => handleLogout()}>Logout</button>",
+  "position": "inside_end"
+}
+\`\`\`
+
+**Why use this instead of INSERT_AFTER?**
+- ✅ No pattern matching - finds elements via AST structure
+- ✅ Won't fail when code changes
+- ✅ Smart positioning (respects indentation)
+- ✅ Reliable across staged modifications
+
+**AST_ADD_USEEFFECT** - Add useEffect hooks reliably
+
+When to use: Side effects, API calls, subscriptions, localStorage
+Example use case: "fetch data on mount", "save to localStorage", "subscribe to events"
+
+Features:
+- Auto-imports useEffect from React
+- Smart positioning (places after existing hooks)
+- Dependency array support
+- Optional cleanup function
+
+\`\`\`json
+{
+  "type": "AST_ADD_USEEFFECT",
+  "body": "fetchUserData(userId);",
+  "dependencies": ["userId"]
+}
+\`\`\`
+
+With cleanup:
+\`\`\`json
+{
+  "type": "AST_ADD_USEEFFECT",
+  "body": "const timer = setInterval(() => { checkStatus(); }, 1000);",
+  "dependencies": [],
+  "cleanup": "clearInterval(timer);"
+}
+\`\`\`
+
+Run once on mount (empty dependency array):
+\`\`\`json
+{
+  "type": "AST_ADD_USEEFFECT",
+  "body": "console.log('Component mounted');",
+  "dependencies": []
+}
+\`\`\`
+
+**AST_MODIFY_PROP** - Modify component props safely
+
+When to use: Change event handlers, update prop values, add/remove props
+Example use case: "change onClick handler", "add disabled prop", "update button text"
+
+Actions available:
+- \`add\` - Add a new prop
+- \`update\` - Change existing prop value
+- \`remove\` - Delete a prop
+
+\`\`\`json
+{
+  "type": "AST_MODIFY_PROP",
+  "targetElement": "button",
+  "propName": "onClick",
+  "propValue": "handleNewClick",
+  "action": "update"
+}
+\`\`\`
+
+Add a new prop:
+\`\`\`json
+{
+  "type": "AST_MODIFY_PROP",
+  "targetElement": "button",
+  "propName": "disabled",
+  "propValue": "isLoading",
+  "action": "add"
+}
+\`\`\`
+
+Remove a prop:
+\`\`\`json
+{
+  "type": "AST_MODIFY_PROP",
+  "targetElement": "button",
+  "propName": "onClick",
+  "action": "remove"
+}
+\`\`\`
+
 **🎯 WHEN TO USE AST OPERATIONS:**
 
 Use AST operations for:
@@ -337,12 +442,17 @@ Use AST operations for:
 - ✅ Managing imports (especially with deduplication)
 - ✅ Structural JSX changes that need precision
 - ✅ **className modifications (ALWAYS use AST for this!)**
+- ✅ **Inserting JSX elements (use AST_INSERT_JSX, not INSERT_AFTER)**
+- ✅ **Adding useEffect hooks (use AST_ADD_USEEFFECT, not manual insertion)**
+- ✅ **Modifying props (use AST_MODIFY_PROP, not REPLACE)**
 
 Use string-based operations for:
-- ✅ Changing text content
-- ✅ Simple prop changes (non-className)
-- ✅ Adding/removing small code snippets
+- ✅ Changing text content (simple text replacements)
+- ✅ Minor code tweaks
+- ❌ NOT for JSX insertion (use AST_INSERT_JSX)
 - ❌ NOT for className changes (use AST_MODIFY_CLASSNAME)
+- ❌ NOT for adding hooks (use AST_ADD_USEEFFECT)
+- ❌ NOT for prop changes (use AST_MODIFY_PROP)
 
 **Example: Adding Authentication**
 

@@ -100,15 +100,6 @@ export interface ModifyPropSpec {
 }
 
 /**
- * Prop modification specification
- */
-export interface PropModification {
-  name: string;
-  value: string;
-  action: 'add' | 'update' | 'remove';
-}
-
-/**
  * Result of a modification operation
  */
 export interface ModificationResult {

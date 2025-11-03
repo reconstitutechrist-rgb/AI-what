@@ -9,7 +9,6 @@ import type {
   InsertJSXSpec,
   UseEffectSpec,
   ModifyPropSpec,
-  PropModification,
   ModificationResult,
   ASTModifierOptions,
   NodePosition,
