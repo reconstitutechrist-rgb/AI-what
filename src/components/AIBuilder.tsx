@@ -5,7 +5,6 @@ import CodePreview from './CodePreview';
 import FullAppPreview from './FullAppPreview';
 import DiffPreview from './DiffPreview';
 import { exportAppAsZip, downloadBlob, parseAppFiles, getDeploymentInstructions, type DeploymentInstructions } from '../utils/exportApp';
-import { applyDiff } from '../utils/applyDiff';
 
 // Base44-inspired layout with conversation-first design + your dark colors
 
@@ -911,11 +910,20 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
         content: f.content
       }));
 
-      // Apply diff
-      const result = await applyDiff(currentFiles, pendingDiff.files);
+      // Apply diff via server-side API (where tree-sitter can run)
+      const response = await fetch('/api/ai-builder/apply-diff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentFiles,
+          diffs: pendingDiff.files
+        })
+      });
+
+      const result = await response.json();
 
       if (!result.success) {
-        throw new Error(result.errors.join(', '));
+        throw new Error(result.errors?.join(', ') || 'Failed to apply diff');
       }
 
       // Create updated app with modified files
