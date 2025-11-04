@@ -641,7 +641,13 @@ REMEMBER:
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 16384, // Doubled from 8192 to handle complex apps without truncation
       temperature: 0.7,
-      system: systemPrompt,
+      system: [
+        {
+          type: 'text',
+          text: systemPrompt,
+          cache_control: { type: 'ephemeral' }
+        }
+      ],
       messages: messages
     });
 

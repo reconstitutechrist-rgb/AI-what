@@ -1070,7 +1070,13 @@ Now generate the minimal diff to accomplish the user's request.`;
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4096, // Much smaller than full-app since we're only sending diffs
       temperature: 0.7,
-      system: systemPrompt,
+      system: [
+        {
+          type: 'text',
+          text: systemPrompt,
+          cache_control: { type: 'ephemeral' }
+        }
+      ],
       messages: messages
     });
 

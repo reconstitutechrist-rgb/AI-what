@@ -82,7 +82,13 @@ CRITICAL:
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4096,
       temperature: 0.3, // Lower temperature for more structured output
-      system: systemPrompt,
+      system: [
+        {
+          type: 'text',
+          text: systemPrompt,
+          cache_control: { type: 'ephemeral' }
+        }
+      ],
       messages: messages
     });
 
