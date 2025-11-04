@@ -74,6 +74,12 @@ export interface ASTAddAuthenticationOperation {
   includeEmailField?: boolean;           // Include email field (default: true)
 }
 
+export interface ASTAddRefOperation {
+  type: 'AST_ADD_REF';
+  name: string;              // Ref variable name (e.g., 'inputRef')
+  initialValue: string;      // Initial value (e.g., 'null' or 'undefined')
+}
+
 export type ASTOperation = 
   | ASTWrapElementOperation
   | ASTAddStateOperation
@@ -82,7 +88,8 @@ export type ASTOperation =
   | ASTInsertJSXOperation
   | ASTAddUseEffectOperation
   | ASTModifyPropOperation
-  | ASTAddAuthenticationOperation;
+  | ASTAddAuthenticationOperation
+  | ASTAddRefOperation;
 
 /**
  * Result of executing an AST operation
@@ -351,6 +358,33 @@ export async function executeASTOperation(
             success: true,
             code: result.code,
             operation: `Modified prop ${operation.propName} on ${operation.targetElement}`
+          };
+        } else {
+          return {
+            success: false,
+            errors: result.errors
+          };
+        }
+      }
+      
+      case 'AST_ADD_REF': {
+        // Build ref spec
+        const refSpec = {
+          name: operation.name,
+          initialValue: operation.initialValue
+        };
+        
+        // Add ref
+        modifier.addRef(refSpec);
+        
+        // Generate modified code
+        const result = await modifier.generate();
+        
+        if (result.success) {
+          return {
+            success: true,
+            code: result.code,
+            operation: `Added ref variable: ${operation.name}`
           };
         } else {
           return {

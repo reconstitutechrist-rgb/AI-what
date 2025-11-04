@@ -91,6 +91,14 @@ export interface UseEffectSpec {
 }
 
 /**
+ * useRef hook specification
+ */
+export interface UseRefSpec {
+  name: string;                // Ref variable name (e.g., 'inputRef')
+  initialValue: string;        // Initial value (e.g., 'null' or 'undefined')
+}
+
+/**
  * Prop modification specification
  */
 export interface ModifyPropSpec {

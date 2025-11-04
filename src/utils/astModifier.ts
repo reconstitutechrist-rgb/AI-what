@@ -8,6 +8,7 @@ import type {
   ModifyClassNameSpec,
   InsertJSXSpec,
   UseEffectSpec,
+  UseRefSpec,
   ModifyPropSpec,
   FunctionSpec,
   ConditionalWrapSpec,
@@ -666,6 +667,67 @@ export class ASTModifier {
       newCode: effectCode,
       priority: 750,
       description: 'Add useEffect hook'
+    });
+    
+    return this;
+  }
+
+  /**
+   * Add a useRef hook
+   */
+  addRef(spec: UseRefSpec): this {
+    if (!this.tree) return this;
+    
+    // Ensure useRef is imported
+    this.addImport({
+      source: 'react',
+      namedImports: ['useRef']
+    });
+    
+    // Find the function body to insert into
+    const functionNode = this.parser.findDefaultExportedFunction(this.tree);
+    if (!functionNode) {
+      console.warn('Could not find function to add useRef to');
+      return this;
+    }
+    
+    // Find the function body
+    let bodyNode = functionNode.childForFieldName('body');
+    if (!bodyNode) {
+      for (const child of functionNode.children) {
+        if (child.type === 'statement_block') {
+          bodyNode = child;
+          break;
+        }
+      }
+    }
+    
+    if (!bodyNode) {
+      console.warn('Could not find function body');
+      return this;
+    }
+    
+    // Find insertion point (after opening brace, similar to state variables)
+    const openBrace = bodyNode.children.find(c => c.type === '{');
+    if (!openBrace) return this;
+    
+    let insertPosition = openBrace.endIndex;
+    
+    // Check if there's already a newline after the brace
+    const hasNewlineAfterBrace = this.originalCode[insertPosition] === '\n';
+    
+    // Generate ref variable code with proper formatting
+    const refCode = hasNewlineAfterBrace
+      ? `${this.options.indentation}const ${spec.name} = useRef(${spec.initialValue});\n`
+      : `\n${this.options.indentation}const ${spec.name} = useRef(${spec.initialValue});\n`;
+    
+    this.modifications.push({
+      type: 'insert',
+      start: insertPosition,
+      end: insertPosition,
+      newCode: refCode,
+      priority: 800, // Same priority as state variables
+      description: `Add ref variable ${spec.name}`
     });
     
     return this;
