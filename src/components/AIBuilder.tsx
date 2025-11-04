@@ -81,7 +81,6 @@ export default function AIBuilder() {
   
   // Version history
   const [showVersionHistory, setShowVersionHistory] = useState(false);
-  const [selectedVersion, setSelectedVersion] = useState<AppVersion | null>(null);
   
   // Tab controls
   const [activeTab, setActiveTab] = useState<'chat' | 'preview' | 'code'>('chat');
@@ -236,40 +235,32 @@ export default function AIBuilder() {
 
   // Handle image upload
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('🖼️ Image upload button clicked');
     const file = e.target.files?.[0];
     if (!file) {
-      console.log('❌ No file selected');
       return;
     }
 
-    console.log('📁 File selected:', file.name, file.type, `${(file.size / 1024).toFixed(2)}KB`);
-
     // Check if file is an image
     if (!file.type.startsWith('image/')) {
-      console.log('❌ Invalid file type:', file.type);
       alert('Please upload an image file');
       return;
     }
 
     // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      console.log('❌ File too large:', (file.size / 1024 / 1024).toFixed(2), 'MB');
       alert('Image size must be less than 5MB');
       return;
     }
 
-    console.log('✅ File validation passed, setting imageFile state');
     setImageFile(file);
 
     // Convert to base64 for preview
     const reader = new FileReader();
     reader.onloadend = () => {
-      console.log('✅ Image converted to base64, length:', (reader.result as string).length);
       setUploadedImage(reader.result as string);
     };
     reader.onerror = () => {
-      console.error('❌ Error reading file:', reader.error);
+      console.error('Error reading file:', reader.error);
     };
     reader.readAsDataURL(file);
   };
@@ -323,10 +314,10 @@ export default function AIBuilder() {
           };
           setChatMessages(prev => [...prev, proceedMessage]);
           
-          // Generate next stage request
+          // Generate next stage request and let user trigger send again
           const nextStageDesc = currentStagePlan.nextStages[nextStage - currentStagePlan.currentStage - 1] || 'Continue implementation';
           setUserInput(`Continue with Stage ${nextStage}: ${nextStageDesc}`);
-          // Don't return - let it continue to send the message
+          return; // Return and let the user manually submit the next stage
         } else {
           // All stages complete
           const completeMessage: ChatMessage = {
@@ -674,11 +665,6 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
         setChatMessages(prev => [...prev, chatResponse]);
       } else {
         // Handle full-app response
-        console.log('=== Full App Response ===');
-        console.log('App name:', data.name);
-        console.log('Files:', data.files?.length);
-        console.log('Change type:', data.changeType);
-        
         // Check if this is a modification to existing app
         const isModification = currentComponent !== null;
         const changeType = data.changeType || 'NEW_APP';
@@ -906,6 +892,7 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
     setChatMessages(prev => [...prev, rejectionMessage]);
     setPendingChange(null);
     setShowApprovalModal(false);
+    setActiveTab('chat');
   };
 
   const approveDiff = async () => {
@@ -1016,6 +1003,7 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
     setChatMessages(prev => [...prev, rejectionMessage]);
     setPendingDiff(null);
     setShowDiffPreview(false);
+    setActiveTab('chat');
   };
 
   const revertToVersion = (version: AppVersion) => {
@@ -1058,7 +1046,6 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
 
     setChatMessages(prev => [...prev, revertMessage]);
     setShowVersionHistory(false);
-    setSelectedVersion(null);
     setActiveTab('preview');
   };
 
@@ -1182,10 +1169,16 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
   const deleteComponent = (id: string) => {
     setComponents(prev => prev.filter(comp => comp.id !== id));
     
-    // If deleting the currently loaded component, clear it
+    // If deleting the currently loaded component, reset to welcome message
     if (currentComponent?.id === id) {
       setCurrentComponent(null);
-      setChatMessages([]);
+      setChatMessages([{
+        id: 'welcome',
+        role: 'system',
+        content: "👋 Hi! I'm your AI App Builder. Tell me what app you want to create, and I'll build it for you through conversation.\n\n✨ **Intelligent Modification System**:\n• **New apps** → Built from scratch instantly\n• **Small changes** → Surgical edits (only changes what you ask) 🎯\n• **Shows you changes** → Review before applying ✅\n• **Token efficient** → 95% fewer tokens for modifications 💰\n\n🔒 **Smart Protection**:\n• Every change saved to version history\n• One-click undo/redo anytime\n• Never lose your work\n\n💡 **Pro Tip**: For modifications, be specific (\"change button to blue\") instead of vague (\"make it better\").\n\nWhat would you like to build today?",
+        timestamp: new Date().toISOString()
+      }]);
+      setActiveTab('chat');
     }
   };
 
