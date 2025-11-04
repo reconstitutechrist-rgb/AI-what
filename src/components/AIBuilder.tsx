@@ -69,6 +69,9 @@ export default function AIBuilder() {
   const [currentComponent, setCurrentComponent] = useState<GeneratedComponent | null>(null);
   const [isClient, setIsClient] = useState(false);
   
+  // Plan/Act Mode Toggle
+  const [currentMode, setCurrentMode] = useState<'PLAN' | 'ACT'>('PLAN');
+  
   // Image upload for AI-inspired designs
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -532,13 +535,19 @@ Reply **'proceed'** to continue with staged implementation, or **'cancel'** to t
     }, 3000); // Update every 3 seconds
 
     try {
-      // Determine if this is a modification and whether to use diff system
-      const isModification = currentComponent !== null;
+      // Determine whether to use diff system
       const useDiffSystem = isModification && !isQuestion;
       
-      // Route to appropriate endpoint based on intent
-      const endpoint = isQuestion ? '/api/chat' : 
-                       useDiffSystem ? '/api/ai-builder/modify' : '/api/ai-builder/full-app';
+      // Route based on Plan/Act mode
+      let endpoint: string;
+      if (currentMode === 'PLAN') {
+        // In PLAN mode, always use chat endpoint for conversational responses
+        endpoint = '/api/chat';
+      } else {
+        // In ACT mode, use normal routing logic
+        endpoint = isQuestion ? '/api/chat' : 
+                   useDiffSystem ? '/api/ai-builder/modify' : '/api/ai-builder/full-app';
+      }
       
       // Prepare the request body with enhanced conversation history for staging
       const getEnhancedHistory = () => {
@@ -550,22 +559,22 @@ Reply **'proceed'** to continue with staged implementation, or **'cancel'** to t
         ).slice(-5);
         const combined = [...stagingMessages, ...recentMessages];
         const unique = Array.from(new Map(combined.map(m => [m.id, m])).values());
-        return unique.slice(-15);
+        return unique.slice(-50);
       };
 
       const requestBody: any = isQuestion ? {
-        // For Q&A: just prompt and history
+        // For Q&A: just prompt and history (increased from 5 to 30 for better memory)
         prompt: userInput,
-        conversationHistory: chatMessages.slice(-5)
+        conversationHistory: chatMessages.slice(-30)
       } : useDiffSystem ? {
-        // For modifications: use diff endpoint with enhanced history
+        // For modifications: use diff endpoint with enhanced history (increased from 15 to 50)
         prompt: userInput,
         currentAppState: currentComponent ? JSON.parse(currentComponent.code) : null,
         conversationHistory: getEnhancedHistory()
       } : {
-        // For new apps: use full-app endpoint
+        // For new apps: use full-app endpoint (increased from 10 to 50 for better memory)
         prompt: userInput,
-        conversationHistory: chatMessages.slice(-10),
+        conversationHistory: chatMessages.slice(-50),
         isModification: false,
         currentAppName: null
       };
@@ -773,6 +782,9 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
             }
             
             setActiveTab('preview');
+            
+            // Auto-reset to PLAN mode after implementation
+            setCurrentMode('PLAN');
           }
         }
       }
@@ -871,6 +883,9 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
 
       setChatMessages(prev => [...prev, approvalMessage]);
       setActiveTab('preview');
+      
+      // Auto-reset to PLAN mode after approving changes
+      setCurrentMode('PLAN');
       
     } catch (error) {
       console.error('Error applying changes:', error);
@@ -976,6 +991,9 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
 
       setChatMessages(prev => [...prev, successMessage]);
       setActiveTab('preview');
+      
+      // Auto-reset to PLAN mode after applying diff
+      setCurrentMode('PLAN');
 
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
@@ -1301,12 +1319,45 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
             <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden flex flex-col h-[calc(100vh-200px)]">
               {/* Chat Header */}
               <div className="px-6 py-4 border-b border-white/10 bg-black/20">
-                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                  <span>💬</span>
-                  <span>Conversation</span>
-                </h2>
-                <p className="text-sm text-slate-400 mt-1">
-                  Tell me what to build or how to improve it
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <span>💬</span>
+                    <span>Conversation</span>
+                  </h2>
+                  
+                  {/* Plan/Act Mode Toggle */}
+                  <div className="flex gap-2 bg-slate-900/50 p-1 rounded-lg border border-white/10">
+                    <button
+                      onClick={() => setCurrentMode('PLAN')}
+                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                        currentMode === 'PLAN'
+                          ? 'bg-purple-600 text-white shadow-lg'
+                          : 'text-slate-400 hover:text-white hover:bg-white/5'
+                      }`}
+                      title="Plan Mode: AI discusses and explains (no code changes)"
+                    >
+                      💭 Plan
+                    </button>
+                    <button
+                      onClick={() => setCurrentMode('ACT')}
+                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                        currentMode === 'ACT'
+                          ? 'bg-blue-600 text-white shadow-lg'
+                          : 'text-slate-400 hover:text-white hover:bg-white/5'
+                      }`}
+                      title="Act Mode: AI can modify code"
+                    >
+                      ⚡ Act
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Mode Description */}
+                <p className="text-sm text-slate-400">
+                  {currentMode === 'PLAN' 
+                    ? '💭 Plan Mode: AI will discuss and explain (no code changes)'
+                    : '⚡ Act Mode: AI can modify your app'
+                  }
                 </p>
               </div>
 
