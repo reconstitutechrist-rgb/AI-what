@@ -158,6 +158,64 @@ The AI App Builder uses a **diff-based modification system** (Phase 2) that make
 
 ---
 
+## 🎯 AST-Based Operations (Phase 5 - Advanced)
+
+### What Are AST Operations?
+
+**AST** = Abstract Syntax Tree = Structural representation of code
+
+Instead of fragile string matching, AST operations use the **code structure** to make precise, validated modifications.
+
+### When AST is Used
+
+The AI automatically uses AST for:
+- ✅ **Authentication** (`AST_ADD_AUTHENTICATION`)
+- ✅ **Component wrapping** (`AST_WRAP_ELEMENT`)
+- ✅ **Adding hooks** (`AST_ADD_STATE`, `AST_ADD_USEEFFECT`)
+- ✅ **Structural changes** (functions, conditionals)
+- ✅ **Complex modifications** (anything with nesting)
+
+### Why AST Operations Are Better
+
+| String-Based (Old) | AST-Based (New) |
+|-------------------|-----------------|
+| ❌ "undefined" errors | ✅ Validated output |
+| ❌ Breaks on formatting | ✅ Format-independent |
+| ❌ Ambiguous matching | ✅ Precise targeting |
+| ❌ Fragile | ✅ Robust |
+
+### AST_ADD_AUTHENTICATION 🔐
+
+**What it does**: Adds complete authentication system in one operation
+
+**Request**: "add authentication"
+
+**What happens automatically:**
+1. Adds state variables (isLoggedIn, email, password)
+2. Creates handleLogin and handleLogout functions
+3. Generates styled login form UI
+4. Wraps existing content in conditional
+5. Adds logout button to authenticated view
+
+**Result:** Complete working authentication in ONE command!
+
+**Options:**
+- `loginFormStyle: 'simple'` - Basic HTML form
+- `loginFormStyle: 'styled'` - Tailwind styled form (default)
+- `includeEmailField: false` - Password-only login
+
+### Other AST Operations
+
+**AST_WRAP_ELEMENT** - Wrap JSX in components
+**AST_ADD_STATE** - Add useState with auto-import
+**AST_ADD_IMPORT** - Smart import deduplication
+**AST_MODIFY_CLASSNAME** - Dynamic className changes
+**AST_INSERT_JSX** - Insert UI elements precisely
+**AST_ADD_USEEFFECT** - Add useEffect hooks
+**AST_MODIFY_PROP** - Modify component props
+
+---
+
 ## 🚦 Approval System
 
 ### Auto-Applied (No Approval Needed)

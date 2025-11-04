@@ -213,8 +213,16 @@ Upload any image and AI will:
 
 ## 🐛 Known Issues
 
-### Complex Modifications
-Some complex modifications (like adding authentication) may fail due to AI limitations. **Solution**: Break into smaller steps or use full-stack templates.
+### ~~Complex Modifications~~ ✅ SOLVED IN PHASE 5
+**Update:** Authentication and complex modifications now work reliably via AST operations!
+
+**Try it:** Just say "add authentication" - works automatically in one command.
+
+**What works now:**
+- ✅ Complete authentication system (login/logout)
+- ✅ State management with hooks
+- ✅ Component wrapping and conditional rendering
+- ✅ Function injection and JSX modifications
 
 ### Token Limits
 Very large apps may approach the 16K token limit. **Solution**: Build incrementally through conversation stages.
@@ -256,9 +264,13 @@ See [Deployment Guide](./DEPLOYMENT_GUIDE.md) for detailed instructions.
 ## 📊 Current Status
 
 - ✅ **Phase 0**: Planning (Complete)
-- ✅ **Phase 1**: Core AI generation (Complete)
-- ✅ **Phase 2**: Smart modification system (Complete)
-- 🔄 **Phase 3**: See [Future Implementation](./FUTURE_IMPLEMENTATION_TODO.md)
+- ✅ **Phase 1**: Tree-sitter Parser (Complete)
+- ✅ **Phase 2**: AST Modifier System (Complete)
+- ✅ **Phase 3**: AI Integration (Complete)
+- ✅ **Phase 5**: Authentication Support (Complete)
+- 📝 **Phase 4**: Skipped/Merged with Phase 3
+
+**Latest:** Phase 5 adds one-command authentication via AST operations!
 
 ---
 

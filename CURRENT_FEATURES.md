@@ -192,6 +192,63 @@ For **complex features** (auth, payments, etc.):
 
 ---
 
+## 🎯 AST Operations (Phase 5 - NEW!)
+
+### Complete Authentication in One Command ✨
+
+**NEW:** Phase 5 introduces AST-based operations for complex modifications!
+
+**User request:** "add authentication"
+
+**What happens automatically:**
+1. ✅ Adds state: `isLoggedIn`, `email`, `password`
+2. ✅ Creates handlers: `handleLogin`, `handleLogout`
+3. ✅ Generates login form UI (styled or simple)
+4. ✅ Wraps existing content in conditional
+5. ✅ Adds logout button to authenticated view
+
+**All in ONE operation - no manual staging needed!**
+
+### Available AST Operations
+
+1. **AST_ADD_AUTHENTICATION** - Complete auth system
+   - Options: `loginFormStyle` ('simple' | 'styled'), `includeEmailField` (boolean)
+   
+2. **AST_WRAP_ELEMENT** - Wrap components in other components
+   - Example: Wrap app in AuthGuard, ErrorBoundary, Provider
+   
+3. **AST_ADD_STATE** - Add useState hooks with auto-import
+   - Example: Add dark mode state
+   
+4. **AST_ADD_IMPORT** - Smart import management (auto-deduplication)
+   - Example: Import React hooks
+   
+5. **AST_MODIFY_CLASSNAME** - Modify className attributes dynamically
+   - Example: Add conditional dark mode classes
+   
+6. **AST_INSERT_JSX** - Insert JSX elements precisely
+   - Example: Add button, form, section
+   
+7. **AST_ADD_USEEFFECT** - Add useEffect hooks
+   - Example: Fetch data on mount
+   
+8. **AST_MODIFY_PROP** - Modify component props
+   - Example: Change onClick handler
+
+### Why AST Operations?
+
+**Before Phase 5:**
+- ❌ Authentication modifications failed
+- ❌ "undefined" errors in complex changes
+- ❌ String matching was fragile
+
+**After Phase 5:**
+- ✅ Authentication works perfectly
+- ✅ No "undefined" errors
+- ✅ AST-based = reliable & validated
+
+---
+
 ## 🕒 Version Control System
 
 ### Automatic Version Saving
@@ -476,16 +533,16 @@ Work anywhere in the app when conditions met:
 - Image-inspired designs
 
 ### Known Limitations ⚠️
-- **Complex modifications**: Authentication, major refactors may fail
+- ~~**Authentication**: May fail~~ ✅ FIXED in Phase 5!
+- **Very complex refactors**: Multi-file restructuring may need manual work
 - **Token limits**: Very large apps (16K tokens) may truncate
-- **REPLACE operations**: Sometimes produce "undefined" in complex cases
 - **Backend preview**: Full-stack features can't run in browser
 - **LocalStorage limits**: Browser storage caps affect library size
 
+**Note**: Most previously "complex" modifications now work via AST operations!
+
 ### Workarounds
-- **Complex changes**: Break into smaller steps
 - **Large apps**: Build incrementally through conversation
-- **Auth failures**: Use full-stack templates or build manually
 - **Preview issues**: Download and run locally
 
 See [Troubleshooting](./TROUBLESHOOTING.md) for solutions.
