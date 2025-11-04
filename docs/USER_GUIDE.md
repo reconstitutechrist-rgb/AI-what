@@ -1,4 +1,4 @@
-# 📚 Black Box AI APP - User Guide
+# 📚 AI-APP-BUILDER - User Guide
 
 **Your Complete Guide to Building Apps with AI**
 
@@ -9,7 +9,7 @@ Version: 2.0 (Conversation-First System)
 
 ## 🎯 What Is This?
 
-Black Box AI APP is an **AI-powered application builder** that creates complete, working apps through conversation. Simply describe what you want to build, and the AI generates production-ready code with live preview.
+AI-APP-BUILDER is an **AI-powered application builder** that creates complete, working apps through conversation. Simply describe what you want to build, and the AI generates production-ready code with live preview.
 
 **What makes it special:**
 - 🤖 **Conversational interface** - No coding required
