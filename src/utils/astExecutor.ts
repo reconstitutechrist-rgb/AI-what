@@ -87,6 +87,14 @@ export interface ASTAddMemoOperation {
   dependencies: string[];    // Dependency array (e.g., ['items', 'searchTerm'])
 }
 
+export interface ASTAddCallbackOperation {
+  type: 'AST_ADD_CALLBACK';
+  name: string;              // Callback function name (e.g., 'handleClick')
+  params?: string[];         // Parameters (e.g., ['id', 'event'])
+  body: string;              // Function body code
+  dependencies: string[];    // Dependency array (e.g., ['items', 'setItems'])
+}
+
 export type ASTOperation = 
   | ASTWrapElementOperation
   | ASTAddStateOperation
@@ -97,7 +105,8 @@ export type ASTOperation =
   | ASTModifyPropOperation
   | ASTAddAuthenticationOperation
   | ASTAddRefOperation
-  | ASTAddMemoOperation;
+  | ASTAddMemoOperation
+  | ASTAddCallbackOperation;
 
 /**
  * Result of executing an AST operation
@@ -421,6 +430,35 @@ export async function executeASTOperation(
             success: true,
             code: result.code,
             operation: `Added memoized variable: ${operation.name}`
+          };
+        } else {
+          return {
+            success: false,
+            errors: result.errors
+          };
+        }
+      }
+      
+      case 'AST_ADD_CALLBACK': {
+        // Build callback spec
+        const callbackSpec = {
+          name: operation.name,
+          params: operation.params,
+          body: operation.body,
+          dependencies: operation.dependencies
+        };
+        
+        // Add callback
+        modifier.addCallback(callbackSpec);
+        
+        // Generate modified code
+        const result = await modifier.generate();
+        
+        if (result.success) {
+          return {
+            success: true,
+            code: result.code,
+            operation: `Added callback function: ${operation.name}`
           };
         } else {
           return {

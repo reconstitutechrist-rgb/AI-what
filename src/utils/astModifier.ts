@@ -10,6 +10,7 @@ import type {
   UseEffectSpec,
   UseRefSpec,
   UseMemoSpec,
+  UseCallbackSpec,
   ModifyPropSpec,
   FunctionSpec,
   ConditionalWrapSpec,
@@ -799,6 +800,76 @@ export class ASTModifier {
       newCode: memoCode,
       priority: 790, // Slightly lower than state/ref but higher than functions
       description: `Add memoized variable ${spec.name}`
+    });
+    
+    return this;
+  }
+
+  /**
+   * Add a useCallback hook
+   */
+  addCallback(spec: UseCallbackSpec): this {
+    if (!this.tree) return this;
+    
+    // Ensure useCallback is imported
+    this.addImport({
+      source: 'react',
+      namedImports: ['useCallback']
+    });
+    
+    // Find the function body to insert into
+    const functionNode = this.parser.findDefaultExportedFunction(this.tree);
+    if (!functionNode) {
+      console.warn('Could not find function to add useCallback to');
+      return this;
+    }
+    
+    // Find the function body
+    let bodyNode = functionNode.childForFieldName('body');
+    if (!bodyNode) {
+      for (const child of functionNode.children) {
+        if (child.type === 'statement_block') {
+          bodyNode = child;
+          break;
+        }
+      }
+    }
+    
+    if (!bodyNode) {
+      console.warn('Could not find function body');
+      return this;
+    }
+    
+    // Find insertion point (after state/ref/memo hooks, before functions)
+    let insertPosition = bodyNode.startIndex + 1; // After opening brace
+    
+    // Try to find last hook call (useState, useRef, useMemo, or useCallback)
+    const bodyText = bodyNode.text;
+    const hookMatches = [...bodyText.matchAll(/use(State|Ref|Memo|Callback)/g)];
+    if (hookMatches.length > 0) {
+      const lastHook = hookMatches[hookMatches.length - 1];
+      if (lastHook.index !== undefined) {
+        // Find the end of this statement (semicolon)
+        const afterHook = bodyText.substring(lastHook.index);
+        const semicolonMatch = afterHook.match(/;/);
+        if (semicolonMatch && semicolonMatch.index !== undefined) {
+          insertPosition = bodyNode.startIndex + lastHook.index + semicolonMatch.index + 1;
+        }
+      }
+    }
+    
+    // Build useCallback code
+    const params = spec.params ? spec.params.join(', ') : '';
+    const deps = `[${spec.dependencies.join(', ')}]`;
+    const callbackCode = `\n${this.options.indentation}const ${spec.name} = useCallback((${params}) => {\n${this.options.indentation}${this.options.indentation}${spec.body}\n${this.options.indentation}}, ${deps});\n`;
+    
+    this.modifications.push({
+      type: 'insert',
+      start: insertPosition,
+      end: insertPosition,
+      newCode: callbackCode,
+      priority: 780, // Lower than memo (790) but higher than regular functions (700)
+      description: `Add callback function ${spec.name}`
     });
     
     return this;

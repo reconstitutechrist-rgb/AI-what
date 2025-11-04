@@ -108,6 +108,16 @@ export interface UseMemoSpec {
 }
 
 /**
+ * useCallback hook specification
+ */
+export interface UseCallbackSpec {
+  name: string;                // Callback function name (e.g., 'handleClick')
+  params?: string[];           // Parameters (e.g., ['id', 'event'])
+  body: string;                // Function body code
+  dependencies: string[];      // Dependency array (e.g., ['items', 'setItems'])
+}
+
+/**
  * Prop modification specification
  */
 export interface ModifyPropSpec {
