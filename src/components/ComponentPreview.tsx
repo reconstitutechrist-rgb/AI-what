@@ -280,7 +280,7 @@ export default function ComponentPreview({
             };
             
             // Replace icon components with emoji/symbols
-            jsx = jsx.replace(/<([A-Z][a-z]+(?:[A-Z][a-z]+)*)([^>]*?)\/>/g, (match, compName, attrs) => {
+            jsx = jsx.replace(/<([A-Z][a-z]*(?:[A-Z][a-z]*)*)([^>]*?)\/>/g, (match, compName, attrs) => {
               const emoji = iconMap[compName];
               
               if (emoji) {
@@ -451,7 +451,7 @@ export default function ComponentPreview({
 
       setPreviewContent(errorHtml);
     }
-  }, [code, theme, mode, props, livePreview, themeColors]);
+  }, [code, theme, mode, props, livePreview, themeColors, extractJSX, convertJsxToHtml]);
 
   return (
     <div className="h-full flex flex-col bg-white/5 rounded-lg border border-white/10">
