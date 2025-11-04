@@ -100,6 +100,26 @@ export interface ModifyPropSpec {
 }
 
 /**
+ * Function specification
+ */
+export interface FunctionSpec {
+  name: string;                // Function name (e.g., 'handleLogin')
+  params?: string[];           // Parameters (e.g., ['e', 'data'])
+  body: string;                // Function body code
+  isArrow?: boolean;           // Use arrow function syntax (default: true)
+  isAsync?: boolean;           // Make function async (default: false)
+}
+
+/**
+ * Conditional wrap specification
+ */
+export interface ConditionalWrapSpec {
+  condition: string;           // Condition to check (e.g., 'isLoggedIn')
+  type: 'if-return' | 'ternary' | 'conditional-render'; // Wrap style
+  fallback?: string;           // Fallback JSX when condition is false
+}
+
+/**
  * Result of a modification operation
  */
 export interface ModificationResult {

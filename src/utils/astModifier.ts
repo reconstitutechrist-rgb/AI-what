@@ -9,6 +9,8 @@ import type {
   InsertJSXSpec,
   UseEffectSpec,
   ModifyPropSpec,
+  FunctionSpec,
+  ConditionalWrapSpec,
   ModificationResult,
   ASTModifierOptions,
   NodePosition,
@@ -767,6 +769,232 @@ export class ASTModifier {
             description: `Remove prop ${spec.name}`
           });
         }
+        break;
+    }
+    
+    return this;
+  }
+
+  /**
+   * Add a function to the component
+   */
+  addFunction(spec: FunctionSpec): this {
+    if (!this.tree) return this;
+    
+    // Find the function body to insert into
+    const functionNode = this.parser.findDefaultExportedFunction(this.tree);
+    if (!functionNode) {
+      console.warn('Could not find function to add handler to');
+      return this;
+    }
+    
+    // Find the function body
+    let bodyNode = functionNode.childForFieldName('body');
+    if (!bodyNode) {
+      for (const child of functionNode.children) {
+        if (child.type === 'statement_block') {
+          bodyNode = child;
+          break;
+        }
+      }
+    }
+    
+    if (!bodyNode) {
+      console.warn('Could not find function body');
+      return this;
+    }
+    
+    // Find insertion point (after hooks, before return statement)
+    let insertPosition = bodyNode.startIndex + 1;
+    
+    // Try to find last hook or function declaration
+    const bodyText = bodyNode.text;
+    const declarationMatches = [...bodyText.matchAll(/(?:const|function|use)\s+\w+/g)];
+    if (declarationMatches.length > 0) {
+      const lastDecl = declarationMatches[declarationMatches.length - 1];
+      if (lastDecl.index !== undefined) {
+        // Find end of this statement/declaration
+        const afterDecl = bodyText.substring(lastDecl.index);
+        const endMatch = afterDecl.match(/[;}]\s*\n/);
+        if (endMatch && endMatch.index !== undefined) {
+          insertPosition = bodyNode.startIndex + lastDecl.index + endMatch.index + endMatch[0].length;
+        }
+      }
+    }
+    
+    // Build function code
+    const isArrow = spec.isArrow !== false; // Default to arrow function
+    const isAsync = spec.isAsync === true;
+    const asyncKeyword = isAsync ? 'async ' : '';
+    const params = spec.params ? spec.params.join(', ') : '';
+    
+    let functionCode: string;
+    if (isArrow) {
+      // Arrow function: const handleLogin = async (e) => { ... }
+      functionCode = `\n${this.options.indentation}const ${spec.name} = ${asyncKeyword}(${params}) => {\n${this.options.indentation}${this.options.indentation}${spec.body}\n${this.options.indentation}};\n`;
+    } else {
+      // Regular function: function handleLogin(e) { ... }
+      functionCode = `\n${this.options.indentation}${asyncKeyword}function ${spec.name}(${params}) {\n${this.options.indentation}${this.options.indentation}${spec.body}\n${this.options.indentation}}\n`;
+    }
+    
+    this.modifications.push({
+      type: 'insert',
+      start: insertPosition,
+      end: insertPosition,
+      newCode: functionCode,
+      priority: 700,
+      description: `Add function ${spec.name}`
+    });
+    
+    return this;
+  }
+
+  /**
+   * Wrap existing return statement in conditional
+   */
+  wrapInConditional(spec: ConditionalWrapSpec): this {
+    if (!this.tree) return this;
+    
+    // Find the function's return statement
+    const functionNode = this.parser.findDefaultExportedFunction(this.tree);
+    if (!functionNode) {
+      console.warn('Could not find function to wrap return statement');
+      return this;
+    }
+    
+    // Find the body
+    let bodyNode = functionNode.childForFieldName('body');
+    if (!bodyNode) {
+      for (const child of functionNode.children) {
+        if (child.type === 'statement_block') {
+          bodyNode = child;
+          break;
+        }
+      }
+    }
+    
+    if (!bodyNode) {
+      console.warn('Could not find function body');
+      return this;
+    }
+    
+    // Find the return statement
+    let returnNode: Parser.SyntaxNode | null = null;
+    for (const child of bodyNode.children) {
+      if (child.type === 'return_statement') {
+        returnNode = child;
+        break;
+      }
+    }
+    
+    if (!returnNode) {
+      console.warn('Could not find return statement to wrap');
+      return this;
+    }
+    
+    // Get the base indentation
+    const returnLineStart = this.originalCode.lastIndexOf('\n', returnNode.startIndex - 1) + 1;
+    const returnColumn = returnNode.startIndex - returnLineStart;
+    const baseIndentation = ' '.repeat(returnColumn);
+    
+    // Build the conditional wrapper based on type
+    let newCode: string;
+    
+    switch (spec.type) {
+      case 'if-return':
+        // if (!condition) return <Fallback />; 
+        // return <Original />;
+        if (!spec.fallback) {
+          console.warn('Fallback required for if-return conditional wrap');
+          return this;
+        }
+        newCode = `${baseIndentation}if (!${spec.condition}) {\n${baseIndentation}${this.options.indentation}return ${spec.fallback};\n${baseIndentation}}\n\n${baseIndentation}`;
+        
+        this.modifications.push({
+          type: 'insert',
+          start: returnNode.startIndex,
+          end: returnNode.startIndex,
+          newCode,
+          priority: 550,
+          description: `Add conditional before return`
+        });
+        break;
+      
+      case 'conditional-render':
+        // return !condition ? <Fallback /> : <Original />;
+        if (!spec.fallback) {
+          console.warn('Fallback required for conditional-render');
+          return this;
+        }
+        
+        // Find the JSX being returned
+        const returnKeyword = returnNode.children.find(c => c.text === 'return');
+        if (!returnKeyword) {
+          console.warn('Could not find return keyword');
+          return this;
+        }
+        
+        // Find the JSX expression (skip whitespace and parentheses)
+        let jsxStart = returnKeyword.endIndex;
+        while (jsxStart < returnNode.endIndex && (this.originalCode[jsxStart] === ' ' || this.originalCode[jsxStart] === '(' || this.originalCode[jsxStart] === '\n')) {
+          jsxStart++;
+        }
+        
+        // Find the end of JSX (before closing paren or semicolon)
+        let jsxEnd = returnNode.endIndex - 1;
+        while (jsxEnd > jsxStart && (this.originalCode[jsxEnd] === ';' || this.originalCode[jsxEnd] === ')' || this.originalCode[jsxEnd] === ' ' || this.originalCode[jsxEnd] === '\n')) {
+          jsxEnd--;
+        }
+        jsxEnd++; // Include the last character
+        
+        const originalJSX = this.originalCode.substring(jsxStart, jsxEnd).trim();
+        const wrappedJSX = `!${spec.condition} ? ${spec.fallback} : ${originalJSX}`;
+        
+        this.modifications.push({
+          type: 'replace',
+          start: jsxStart,
+          end: jsxEnd,
+          newCode: wrappedJSX,
+          priority: 550,
+          description: `Wrap return in conditional`
+        });
+        break;
+      
+      case 'ternary':
+        // Same as conditional-render
+        if (!spec.fallback) {
+          console.warn('Fallback required for ternary');
+          return this;
+        }
+        
+        const returnKwd = returnNode.children.find(c => c.text === 'return');
+        if (!returnKwd) {
+          console.warn('Could not find return keyword');
+          return this;
+        }
+        
+        let jsxStartPos = returnKwd.endIndex;
+        while (jsxStartPos < returnNode.endIndex && (this.originalCode[jsxStartPos] === ' ' || this.originalCode[jsxStartPos] === '(' || this.originalCode[jsxStartPos] === '\n')) {
+          jsxStartPos++;
+        }
+        
+        let jsxEndPos = returnNode.endIndex - 1;
+        while (jsxEndPos > jsxStartPos && (this.originalCode[jsxEndPos] === ';' || this.originalCode[jsxEndPos] === ')' || this.originalCode[jsxEndPos] === ' ' || this.originalCode[jsxEndPos] === '\n')) {
+          jsxEndPos--;
+        }
+        jsxEndPos++;
+        
+        const origJSX = this.originalCode.substring(jsxStartPos, jsxEndPos).trim();
+        const wrappedJsx = `${spec.condition} ? ${origJSX} : ${spec.fallback}`;
+        
+        this.modifications.push({
+          type: 'replace',
+          start: jsxStartPos,
+          end: jsxEndPos,
+          newCode: wrappedJsx,
+          priority: 550,
+          description: `Wrap return in ternary`
+        });
         break;
     }
     

@@ -68,6 +68,12 @@ export interface ASTModifyPropOperation {
   action: 'add' | 'update' | 'remove';
 }
 
+export interface ASTAddAuthenticationOperation {
+  type: 'AST_ADD_AUTHENTICATION';
+  loginFormStyle?: 'simple' | 'styled';  // Style of login form
+  includeEmailField?: boolean;           // Include email field (default: true)
+}
+
 export type ASTOperation = 
   | ASTWrapElementOperation
   | ASTAddStateOperation
@@ -75,7 +81,8 @@ export type ASTOperation =
   | ASTModifyClassNameOperation
   | ASTInsertJSXOperation
   | ASTAddUseEffectOperation
-  | ASTModifyPropOperation;
+  | ASTModifyPropOperation
+  | ASTAddAuthenticationOperation;
 
 /**
  * Result of executing an AST operation
@@ -344,6 +351,134 @@ export async function executeASTOperation(
             success: true,
             code: result.code,
             operation: `Modified prop ${operation.propName} on ${operation.targetElement}`
+          };
+        } else {
+          return {
+            success: false,
+            errors: result.errors
+          };
+        }
+      }
+      
+      case 'AST_ADD_AUTHENTICATION': {
+        // Composed operation that adds complete authentication
+        const includeEmail = operation.includeEmailField !== false;
+        const style = operation.loginFormStyle || 'styled';
+        
+        // Step 1: Add state for authentication
+        modifier.addStateVariable({
+          name: 'isLoggedIn',
+          setter: 'setIsLoggedIn',
+          initialValue: 'false'
+        });
+        
+        // Step 2: Add state for credentials (if email included)
+        if (includeEmail) {
+          modifier.addStateVariable({
+            name: 'email',
+            setter: 'setEmail',
+            initialValue: "''"
+          });
+        }
+        
+        modifier.addStateVariable({
+          name: 'password',
+          setter: 'setPassword',
+          initialValue: "''"
+        });
+        
+        // Step 3: Add login handler function
+        const loginBody = includeEmail
+          ? `if (email && password) {\n      setIsLoggedIn(true);\n    }`
+          : `if (password) {\n      setIsLoggedIn(true);\n    }`;
+        
+        modifier.addFunction({
+          name: 'handleLogin',
+          params: ['e'],
+          body: `e.preventDefault();\n    ${loginBody}`,
+          isArrow: true
+        });
+        
+        // Step 4: Add logout handler function
+        modifier.addFunction({
+          name: 'handleLogout',
+          params: [],
+          body: `setIsLoggedIn(false);\n    ${includeEmail ? 'setEmail(\'\');\n    ' : ''}setPassword('');`,
+          isArrow: true
+        });
+        
+        // Step 5: Build login form JSX based on style
+        let loginFormJSX: string;
+        if (style === 'simple') {
+          loginFormJSX = `<div>
+        <h2>Login</h2>
+        <form onSubmit={handleLogin}>
+          ${includeEmail ? '<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required />' : ''}
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" required />
+          <button type="submit">Login</button>
+        </form>
+      </div>`;
+        } else {
+          // Styled form
+          loginFormJSX = `<div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+          <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
+          <form onSubmit={handleLogin} className="space-y-4">
+            ${includeEmail ? '<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />' : ''}
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+            <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors">Login</button>
+          </form>
+        </div>
+      </div>`;
+        }
+        
+        // Step 6: Wrap existing return in conditional
+        modifier.wrapInConditional({
+          condition: 'isLoggedIn',
+          type: 'if-return',
+          fallback: loginFormJSX
+        });
+        
+        // Step 7: Find the main return element and add logout button
+        // This will be inside the authenticated section
+        const mainElement = parser.findDefaultExportedFunction(tree);
+        if (mainElement) {
+          // Find the return statement and its JSX
+          for (const child of mainElement.children) {
+            if (child.type === 'statement_block') {
+              for (const stmt of child.children) {
+                if (stmt.type === 'return_statement') {
+                  // Find the JSX element being returned
+                  for (const returnChild of stmt.children) {
+                    if (returnChild.type === 'jsx_element' || returnChild.type === 'jsx_fragment') {
+                      // Insert logout button at the start of this element
+                      const logoutButton = style === 'simple'
+                        ? '<button onClick={handleLogout}>Logout</button>'
+                        : '<button onClick={handleLogout} className="mb-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors">Logout</button>';
+                      
+                      modifier.insertJSX(returnChild, {
+                        jsx: logoutButton,
+                        position: 'inside_start'
+                      });
+                      break;
+                    }
+                  }
+                  break;
+                }
+              }
+              break;
+            }
+          }
+        }
+        
+        // Generate modified code
+        const result = await modifier.generate();
+        
+        if (result.success) {
+          return {
+            success: true,
+            code: result.code,
+            operation: 'Added authentication system with login/logout'
           };
         } else {
           return {

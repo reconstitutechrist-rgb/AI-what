@@ -10,7 +10,7 @@ const anthropic = new Anthropic({
 interface DiffChange {
   type: 'ADD_IMPORT' | 'INSERT_AFTER' | 'INSERT_BEFORE' | 'REPLACE' | 'DELETE' | 'APPEND' 
       | 'AST_WRAP_ELEMENT' | 'AST_ADD_STATE' | 'AST_ADD_IMPORT' | 'AST_MODIFY_CLASSNAME'
-      | 'AST_INSERT_JSX' | 'AST_ADD_USEEFFECT' | 'AST_MODIFY_PROP';
+      | 'AST_INSERT_JSX' | 'AST_ADD_USEEFFECT' | 'AST_MODIFY_PROP' | 'AST_ADD_AUTHENTICATION';
   line?: number;
   searchFor?: string;
   content?: string;
@@ -433,6 +433,92 @@ Remove a prop:
   "action": "remove"
 }
 \`\`\`
+
+**AST_ADD_AUTHENTICATION** - Complete authentication system in one operation
+
+When to use: User explicitly asks to "add authentication", "add login", "add user authentication"
+Example use case: "add authentication", "add login/logout", "add user auth"
+
+**⭐ THIS IS THE BEST WAY TO ADD AUTHENTICATION - Use this instead of manual staging!**
+
+This composed operation automatically:
+- ✅ Adds isLoggedIn, email, password state
+- ✅ Creates handleLogin and handleLogout functions
+- ✅ Builds complete login form UI
+- ✅ Wraps existing content in conditional
+- ✅ Adds logout button to authenticated section
+- ✅ All in ONE operation, no manual staging needed!
+
+Options:
+- \`loginFormStyle\`: "simple" or "styled" (default: "styled")
+- \`includeEmailField\`: true or false (default: true)
+
+\`\`\`json
+{
+  "type": "AST_ADD_AUTHENTICATION",
+  "loginFormStyle": "styled",
+  "includeEmailField": true
+}
+\`\`\`
+
+Simple style (minimal):
+\`\`\`json
+{
+  "type": "AST_ADD_AUTHENTICATION",
+  "loginFormStyle": "simple",
+  "includeEmailField": false
+}
+\`\`\`
+
+**What it generates:**
+
+With styled form (default):
+- Professional login form with Tailwind CSS
+- Email + password inputs (or just password if includeEmailField=false)
+- Full-screen centered layout
+- Styled logout button in app
+- Conditional rendering (login form when logged out, app when logged in)
+
+With simple form:
+- Basic HTML form
+- Minimal styling
+- Simple logout button
+- Same authentication logic, just less styling
+
+**Complete Example - Adding Authentication:**
+
+User request: "add authentication"
+
+Your response:
+\`\`\`json
+{
+  "changeType": "MODIFICATION",
+  "summary": "Added complete authentication system with login/logout",
+  "files": [
+    {
+      "path": "src/App.tsx",
+      "action": "MODIFY",
+      "changes": [
+        {
+          "type": "AST_ADD_AUTHENTICATION",
+          "loginFormStyle": "styled",
+          "includeEmailField": true
+        }
+      ]
+    }
+  ]
+}
+\`\`\`
+
+**That's it!** One operation does everything. No staging, no multiple steps.
+
+**Why this is better than manual staging:**
+- ❌ OLD WAY: 5-10 separate INSERT/REPLACE operations, prone to errors
+- ✅ NEW WAY: 1 operation, guaranteed to work
+- ❌ OLD WAY: Had to wrap return in conditional manually (often broke)
+- ✅ NEW WAY: AST handles conditional wrapping perfectly
+- ❌ OLD WAY: Pattern matching failed across stages
+- ✅ NEW WAY: Uses AST structure, no pattern matching
 
 **🎯 WHEN TO USE AST OPERATIONS:**
 
