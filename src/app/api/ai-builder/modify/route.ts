@@ -1077,7 +1077,7 @@ Now generate the minimal diff to accomplish the user's request.`;
 
     // Use streaming for better handling with timeout
     const stream = await anthropic.messages.stream({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4096, // Much smaller than full-app since we're only sending diffs
       temperature: 0.7,
       system: [
