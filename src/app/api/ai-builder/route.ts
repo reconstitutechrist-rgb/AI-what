@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { validateGeneratedCode, autoFixCode, type ValidationError } from '@/utils/codeValidator';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -165,7 +166,58 @@ CRITICAL RULES:
       aiResponse.code = JSON.stringify(aiResponse.code);
     }
 
-    return NextResponse.json(aiResponse);
+    // ============================================================================
+    // VALIDATION LAYER - Validate generated component code
+    // ============================================================================
+    console.log('🔍 Validating generated component...');
+    
+    // Assume TypeScript component (this route generates .tsx components)
+    const validation = validateGeneratedCode(aiResponse.code, 'Component.tsx');
+    
+    let validationWarnings;
+    
+    if (!validation.valid) {
+      console.log(`⚠️ Found ${validation.errors.length} error(s) in generated component`);
+      
+      // Log each error
+      validation.errors.forEach(err => {
+        console.log(`  - Line ${err.line}: ${err.message}`);
+      });
+      
+      // Attempt auto-fix
+      const fixedCode = autoFixCode(aiResponse.code, validation.errors);
+      if (fixedCode !== aiResponse.code) {
+        console.log(`✅ Auto-fixed errors in component`);
+        aiResponse.code = fixedCode;
+        
+        // Re-validate after fix
+        const revalidation = validateGeneratedCode(fixedCode, 'Component.tsx');
+        if (!revalidation.valid) {
+          // Some errors couldn't be auto-fixed
+          validationWarnings = {
+            hasWarnings: true,
+            message: `Code validation detected ${revalidation.errors.length} potential issue(s). The component has been generated but may need manual review.`,
+            errors: revalidation.errors
+          };
+        } else {
+          console.log(`✅ Component validated successfully after auto-fix`);
+        }
+      } else {
+        // No auto-fix possible
+        validationWarnings = {
+          hasWarnings: true,
+          message: `Code validation detected ${validation.errors.length} potential issue(s). The component has been generated but may need manual review.`,
+          errors: validation.errors
+        };
+      }
+    } else {
+      console.log(`✅ Component validated successfully - no errors found`);
+    }
+
+    return NextResponse.json({
+      ...aiResponse,
+      ...(validationWarnings && { validationWarnings })
+    });
   } catch (error) {
     console.error('Error in AI builder route:', error);
     console.error('Error details:', JSON.stringify(error, null, 2));
