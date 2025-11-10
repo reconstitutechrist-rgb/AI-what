@@ -133,7 +133,9 @@ CRITICAL RULES:
     perfTracker.checkpoint('prompt_built');
 
     const modelName = 'claude-sonnet-4-5-20250929';
-    const completion = await anthropic.messages.create({
+    
+    // Use streaming for better responsiveness and timeout handling
+    const stream = await anthropic.messages.stream({
       model: modelName,
       max_tokens: 4096,
       temperature: 0.7,
@@ -147,20 +149,45 @@ CRITICAL RULES:
       messages: messages,
     });
     
+    perfTracker.checkpoint('ai_request_sent');
+
+    // Collect the full response with timeout
+    let responseText = '';
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let cachedTokens = 0;
+    const timeout = 45000; // 45 seconds
+    const startTime = Date.now();
+    
+    try {
+      for await (const chunk of stream) {
+        if (Date.now() - startTime > timeout) {
+          throw new Error('AI response timeout - the component generation was taking too long. Please try a simpler request or try again.');
+        }
+        if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+          responseText += chunk.delta.text;
+        }
+        // Capture token usage from final message
+        if (chunk.type === 'message_stop') {
+          const finalMessage = await stream.finalMessage();
+          inputTokens = finalMessage.usage.input_tokens || 0;
+          outputTokens = finalMessage.usage.output_tokens || 0;
+          // @ts-ignore - cache_read_input_tokens might not be in types yet
+          cachedTokens = finalMessage.usage.cache_read_input_tokens || 0;
+        }
+      }
+    } catch (streamError) {
+      console.error('Streaming error:', streamError);
+      analytics.logRequestError(requestId, streamError as Error, 'ai_error');
+      throw new Error(streamError instanceof Error ? streamError.message : 'Failed to receive AI response');
+    }
+    
     perfTracker.checkpoint('ai_response_received');
     
     // Log token usage
-    if (completion.usage) {
-      analytics.logTokenUsage(
-        requestId,
-        completion.usage.input_tokens || 0,
-        completion.usage.output_tokens || 0,
-        // @ts-ignore - cache_read_input_tokens might not be in types yet
-        completion.usage.cache_read_input_tokens || 0
-      );
+    if (inputTokens > 0 || outputTokens > 0) {
+      analytics.logTokenUsage(requestId, inputTokens, outputTokens, cachedTokens);
     }
-
-    const responseText = completion.content[0].type === 'text' ? completion.content[0].text : '';
     if (!responseText) {
       throw new Error('No response from Claude');
     }
