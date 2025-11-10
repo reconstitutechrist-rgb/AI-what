@@ -244,7 +244,7 @@ Created `src/prompts/` directory structure:
 
 ## 🔄 In Progress
 
-Currently between phases - Phase 4 complete. Ready to begin Phase 5 (Architectural Improvements), Phase 6 (Testing), or Phase 7 (Documentation).
+**Phase 5: Architectural Improvements** - In Progress (Phase 5.1 Complete)
 
 ---
 
@@ -260,13 +260,30 @@ See "Completed Tasks" section above for full details.
 
 See "Completed Tasks" section above for full details.
 
-### Phase 5: Architectural Improvements (6-8 hours) - Optional
+### Phase 5: Architectural Improvements (6-8 hours) - Optional ⏳ IN PROGRESS
 **Expected Impact**: Reduced pattern matching failures
+**Time Spent**: ~3 hours (Phase 5.1)
+**Status**: Phase 5.1 Complete - 3 new AST operations implemented
 
-- [ ] 5.1 Implement Three New AST Operations (3 hours)
-  - AST_REPLACE_FUNCTION_BODY
-  - AST_DELETE_ELEMENT
-  - AST_MERGE_IMPORTS
+#### 5.1 Implement Three New AST Operations ✅ COMPLETE (3 hours)
+- [x] **AST_REPLACE_FUNCTION_BODY** - Replace function body content
+  - Finds functions by name (declarations and arrow functions)
+  - Replaces entire function body while preserving signature
+  - Maintains proper indentation
+- [x] **AST_DELETE_ELEMENT** - Delete JSX elements or code blocks
+  - Deletes elements by type, identifier, or content match
+  - Handles JSX elements with className/id filtering
+  - Cleans up surrounding whitespace automatically
+- [x] **AST_MERGE_IMPORTS** - Merge duplicate imports
+  - Three strategies: combine, deduplicate, organize
+  - Merges default, named, and namespace imports
+  - Removes duplicate import statements
+- [x] Type definitions added to `astModifierTypes.ts`
+- [x] Implementation in `ASTModifier` class (536 lines added)
+- [x] Integration in `astExecutor.ts` with execution handlers
+- [x] Helper methods for function finding and element matching
+- **Commit**: `4d7b648`
+
 - [ ] 5.2 Add Retry Logic with Specific Fixes (2 hours)
 - [ ] 5.3 Implement Response Streaming (2 hours)
 - [ ] 5.4 Create Prompt Version Control (1 hour)
