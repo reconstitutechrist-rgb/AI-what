@@ -3,17 +3,32 @@
  * Provides test doubles for Anthropic API without making real API calls
  */
 
-export class MockMessageStream {
-  private responses: any[];
-  private currentIndex = 0;
+// Shared mock state that tests can control
+let mockResponseText = '{}';
+let mockShouldError = false;
+let mockErrorMessage = '';
 
-  constructor(responses: any[]) {
-    this.responses = responses;
+/**
+ * Mock Message Stream - simulates Anthropic's streaming API
+ */
+class MockMessageStream {
+  private chunks: any[];
+
+  constructor(responseText: string) {
+    this.chunks = [
+      {
+        type: 'content_block_delta',
+        delta: { type: 'text_delta', text: responseText },
+      },
+      {
+        type: 'message_stop',
+      },
+    ];
   }
 
   async *[Symbol.asyncIterator]() {
-    for (const response of this.responses) {
-      yield response;
+    for (const chunk of this.chunks) {
+      yield chunk;
     }
   }
 
@@ -28,50 +43,48 @@ export class MockMessageStream {
   }
 }
 
-export class MockMessages {
-  private mockResponse: string | null = null;
-  private shouldError = false;
-  private errorMessage = '';
-
-  setMockResponse(response: string) {
-    this.mockResponse = response;
-    this.shouldError = false;
-  }
-
-  setMockError(message: string) {
-    this.shouldError = true;
-    this.errorMessage = message;
-  }
-
-  stream(params: any) {
-    if (this.shouldError) {
-      throw new Error(this.errorMessage);
+/**
+ * Mock Messages API
+ */
+const mockMessages = {
+  stream: jest.fn((params: any) => {
+    if (mockShouldError) {
+      throw new Error(mockErrorMessage);
     }
+    return new MockMessageStream(mockResponseText);
+  }),
+};
 
-    const responseText = this.mockResponse || '{}';
-    
-    // Simulate streaming chunks
-    const chunks = [
-      {
-        type: 'content_block_delta',
-        delta: { type: 'text_delta', text: responseText },
-      },
-      {
-        type: 'message_stop',
-      },
-    ];
-
-    return new MockMessageStream(chunks);
-  }
-}
-
-export default class Anthropic {
-  messages: MockMessages;
-
+/**
+ * Mock Anthropic Class
+ */
+class MockAnthropic {
+  messages = mockMessages;
+  
   constructor(config: any) {
-    this.messages = new MockMessages();
+    // Constructor mock
   }
 }
 
-// Export singleton for test control
-export const mockAnthropicInstance = new Anthropic({ apiKey: 'test' });
+/**
+ * Helper functions for tests to control mock behavior
+ */
+export const setMockResponse = (response: string) => {
+  mockResponseText = response;
+  mockShouldError = false;
+};
+
+export const setMockError = (message: string) => {
+  mockShouldError = true;
+  mockErrorMessage = message;
+};
+
+export const resetMock = () => {
+  mockResponseText = '{}';
+  mockShouldError = false;
+  mockErrorMessage = '';
+  mockMessages.stream.mockClear();
+};
+
+// Default export (what gets imported as Anthropic)
+export default MockAnthropic;

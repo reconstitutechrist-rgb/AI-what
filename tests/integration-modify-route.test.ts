@@ -10,12 +10,13 @@ import { POST } from '../src/app/api/ai-builder/modify/route';
 // Mock the Anthropic SDK
 jest.mock('@anthropic-ai/sdk');
 
-// Import mock after mocking
-import Anthropic from '@anthropic-ai/sdk';
+// Import mock helpers from the mock file
+import { setMockResponse, setMockError, resetMock } from '../__mocks__/@anthropic-ai/sdk';
 
 describe('Modify Route Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetMock();
     process.env.ANTHROPIC_API_KEY = 'test-api-key';
   });
   
@@ -44,7 +45,7 @@ describe('Modify Route Integration Tests', () => {
       }]
     });
     
-    mockAnthropicInstance.messages.setMockResponse(mockResponse);
+    setMockResponse(mockResponse);
     
     const testRequest = createMockRequest({
       prompt: 'Add a counter button',
