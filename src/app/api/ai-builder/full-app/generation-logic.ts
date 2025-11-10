@@ -171,11 +171,11 @@ export async function generateFullApp(
   let totalErrors = 0;
   let autoFixedCount = 0;
   
-  files.forEach(file => {
+  for (const file of files) {
     if (file.path.endsWith('.tsx') || file.path.endsWith('.ts') || 
         file.path.endsWith('.jsx') || file.path.endsWith('.js')) {
       
-      const validation = validateGeneratedCode(file.content, file.path);
+      const validation = await validateGeneratedCode(file.content, file.path);
       
       if (!validation.valid) {
         console.log(`⚠️ Found ${validation.errors.length} error(s) in ${file.path}`);
@@ -187,7 +187,7 @@ export async function generateFullApp(
           file.content = fixedCode;
           autoFixedCount += validation.errors.filter(e => e.type === 'UNCLOSED_STRING').length;
           
-          const revalidation = validateGeneratedCode(fixedCode, file.path);
+          const revalidation = await validateGeneratedCode(fixedCode, file.path);
           if (!revalidation.valid) {
             validationErrors.push({
               file: file.path,
@@ -202,7 +202,7 @@ export async function generateFullApp(
         }
       }
     }
-  });
+  }
   
   if (totalErrors > 0) {
     console.log(`📊 Validation Summary:`);

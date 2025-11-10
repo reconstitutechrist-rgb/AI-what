@@ -158,13 +158,13 @@ export async function generateModifications(
   let errorsFound = 0;
   
   // Validate code snippets in each file's changes
-  diffResponse.files.forEach((fileDiff: any) => {
+  for (const fileDiff of diffResponse.files) {
     // Only validate .tsx/.ts/.jsx/.js files
     if (!fileDiff.path.match(/\.(tsx|ts|jsx|js)$/)) {
-      return;
+      continue;
     }
     
-    fileDiff.changes.forEach((change: any, index: number) => {
+    for (const [index, change] of fileDiff.changes.entries()) {
       // Collect code snippets to validate
       const snippetsToValidate: Array<{ field: string; code: string }> = [];
       
@@ -173,9 +173,9 @@ export async function generateModifications(
       if (change.jsx) snippetsToValidate.push({ field: 'jsx', code: change.jsx });
       if (change.body) snippetsToValidate.push({ field: 'body', code: change.body });
       
-      snippetsToValidate.forEach(({ field, code }) => {
+      for (const { field, code } of snippetsToValidate) {
         totalSnippets++;
-        const validation = validateGeneratedCode(code, fileDiff.path);
+        const validation = await validateGeneratedCode(code, fileDiff.path);
         
         if (!validation.valid) {
           console.log(`⚠️ Found ${validation.errors.length} error(s) in ${fileDiff.path} change #${index + 1} (${field})`);
@@ -203,9 +203,9 @@ export async function generateModifications(
         } else {
           validatedSnippets++;
         }
-      });
-    });
-  });
+      }
+    }
+  }
   
   // Log validation summary
   if (totalSnippets > 0) {

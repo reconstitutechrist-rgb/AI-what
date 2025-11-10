@@ -342,7 +342,7 @@ test('Should handle escaped quotes correctly', () => {
 
 console.log('\n📝 Testing validateGeneratedCode (integration)...\n');
 
-test('Should run all validators and combine errors', () => {
+test('Should run all validators and combine errors', async () => {
   const code = `
     export default function App() {
       function Helper() {
@@ -351,13 +351,13 @@ test('Should run all validators and combine errors', () => {
       return <Component><Helper /></div>;
     }
   `;
-  const result = validateGeneratedCode(code, 'src/App.tsx');
+  const result = await validateGeneratedCode(code, 'src/App.tsx');
   assertEqual(result.valid, false, 'Code should be invalid');
   // Should have errors for: nested function, unclosed string, unbalanced JSX
   assertEqual(result.errors.length >= 2, true, 'Should have multiple errors');
 });
 
-test('Should validate clean code as valid', () => {
+test('Should validate clean code as valid', async () => {
   const code = `
     export default function App() {
       const [count, setCount] = useState(0);
@@ -372,7 +372,7 @@ test('Should validate clean code as valid', () => {
       );
     }
   `;
-  const result = validateGeneratedCode(code, 'src/App.tsx');
+  const result = await validateGeneratedCode(code, 'src/App.tsx');
   assertEqual(result.valid, true, 'Clean code should be valid');
   assertArrayLength(result.errors, 0, 'Should have 0 errors');
 });

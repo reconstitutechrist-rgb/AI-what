@@ -1,12 +1,17 @@
 /**
- * Code Validator
+ * Code Validator - AST-based validation
  * 
- * Validates AI-generated code for common syntax errors before returning to users.
- * Catches issues that would cause runtime errors or build failures.
+ * Uses Tree-sitter for comprehensive syntax validation.
+ * Catches ALL syntax errors including template literals, JSX issues, etc.
+ * 
+ * Phase 2 (original): Regex-based validation
+ * Phase 6.2+: AST-based validation using Tree-sitter
  */
 
+import { getDefaultParser } from './treeSitterParser';
+
 export interface ValidationError {
-  type: 'NESTED_FUNCTION' | 'UNBALANCED_JSX' | 'TYPESCRIPT_IN_JSX' | 'UNCLOSED_STRING' | 'SYNTAX_ERROR';
+  type: 'NESTED_FUNCTION' | 'UNBALANCED_JSX' | 'TYPESCRIPT_IN_JSX' | 'UNCLOSED_STRING' | 'SYNTAX_ERROR' | 'AST_PARSE_ERROR';
   message: string;
   line?: number;
   column?: number;
@@ -349,19 +354,136 @@ export function hasUnclosedStrings(code: string): ValidationError[] {
 }
 
 /**
- * Main validation function - runs all validators
+ * Main validation function - AST-based comprehensive validation
+ * 
+ * Uses Tree-sitter to catch ALL syntax errors including:
+ * - Template literal syntax errors
+ * - JSX tag mismatches
+ * - Unclosed strings, brackets, parentheses
+ * - Invalid JavaScript/TypeScript syntax
+ * - Everything else
  */
-export function validateGeneratedCode(
+export async function validateGeneratedCode(
+  code: string,
+  filePath: string = 'src/App.tsx'
+): Promise<ValidationResult> {
+  const allErrors: ValidationError[] = [];
+  
+  try {
+    // Get Tree-sitter parser
+    const parser = getDefaultParser();
+    
+    // Parse code into AST
+    const tree = await parser.parse(code);
+    
+    if (!tree || !tree.rootNode) {
+      return {
+        valid: false,
+        errors: [{
+          type: 'AST_PARSE_ERROR',
+          message: 'Failed to parse code - parser returned null',
+          severity: 'error',
+          line: 0,
+          column: 0
+        }]
+      };
+    }
+    
+    // Check if AST has any syntax errors
+    if (parser.hasErrors(tree)) {
+      const astErrors = parser.getErrors(tree);
+      
+      // Convert AST errors to ValidationErrors
+      for (const error of astErrors) {
+        allErrors.push({
+          type: 'SYNTAX_ERROR',
+          message: `Syntax error detected: ${error.nodeType}`,
+          line: error.line,
+          column: error.column,
+          severity: 'error',
+          code: error.text,
+          fix: 'Review syntax at this location - likely missing bracket, quote, or invalid syntax'
+        });
+      }
+    }
+    
+    // Still run semantic validators for additional checks
+    // These catch logical issues that AST doesn't flag
+    allErrors.push(...hasNestedFunctionDeclarations(code));
+    
+  } catch (error) {
+    // Fallback if Tree-sitter fails
+    console.error('AST validation failed, falling back to regex validation:', error);
+    
+    // Run legacy validators as fallback
+    allErrors.push(...hasNestedFunctionDeclarations(code));
+    allErrors.push(...hasBalancedJSXTags(code));
+    allErrors.push(...hasTypeScriptInJSX(code, filePath));
+    allErrors.push(...hasUnclosedStrings(code));
+  }
+  
+  return {
+    valid: allErrors.length === 0,
+    errors: allErrors
+  };
+}
+
+/**
+ * Synchronous version for backward compatibility
+ * Note: Less reliable as it can't use async parser initialization
+ */
+export function validateGeneratedCodeSync(
   code: string,
   filePath: string = 'src/App.tsx'
 ): ValidationResult {
   const allErrors: ValidationError[] = [];
   
-  // Run all validators
-  allErrors.push(...hasNestedFunctionDeclarations(code));
-  allErrors.push(...hasBalancedJSXTags(code));
-  allErrors.push(...hasTypeScriptInJSX(code, filePath));
-  allErrors.push(...hasUnclosedStrings(code));
+  try {
+    const parser = getDefaultParser();
+    
+    // Check if parser is initialized
+    if (!parser.isInitialized()) {
+      console.warn('Parser not initialized, using fallback validation');
+      throw new Error('Parser not initialized');
+    }
+    
+    const tree = parser.parseSync(code);
+    
+    if (!tree || !tree.rootNode) {
+      return {
+        valid: false,
+        errors: [{
+          type: 'AST_PARSE_ERROR',
+          message: 'Failed to parse code',
+          severity: 'error'
+        }]
+      };
+    }
+    
+    if (parser.hasErrors(tree)) {
+      const astErrors = parser.getErrors(tree);
+      
+      for (const error of astErrors) {
+        allErrors.push({
+          type: 'SYNTAX_ERROR',
+          message: `Syntax error: ${error.nodeType}`,
+          line: error.line,
+          column: error.column,
+          severity: 'error',
+          code: error.text
+        });
+      }
+    }
+    
+    allErrors.push(...hasNestedFunctionDeclarations(code));
+    
+  } catch (error) {
+    // Fallback to legacy validators
+    allErrors.push(...hasNestedFunctionDeclarations(code));
+    allErrors.push(...hasBalancedJSXTags(code));
+    allErrors.push(...hasTypeScriptInJSX(code, filePath));
+    allErrors.push(...hasUnclosedStrings(code));
+  }
   
   return {
     valid: allErrors.length === 0,
