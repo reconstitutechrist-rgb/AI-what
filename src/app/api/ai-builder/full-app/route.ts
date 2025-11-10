@@ -3,6 +3,16 @@ import Anthropic from '@anthropic-ai/sdk';
 import { validateGeneratedCode, autoFixCode, type ValidationError } from '@/utils/codeValidator';
 import { buildFullAppPrompt } from '@/prompts/builder';
 import { analytics, generateRequestId, categorizeError, PerformanceTracker } from '@/utils/analytics';
+import { 
+  generateRetryStrategy, 
+  type RetryContext, 
+  DEFAULT_RETRY_CONFIG 
+} from '@/utils/retryLogic';
+import { 
+  generateFullApp, 
+  type GenerationContext, 
+  type GenerationError 
+} from './generation-logic';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -135,167 +145,125 @@ MODIFICATION MODE for "${currentAppName}":
       messages.push({ role: 'user', content: prompt });
     }
 
-    console.log('Generating full app with Claude Sonnet 4.5...');
-
+    // ============================================================================
+    // PHASE 5.2: RETRY LOGIC WITH SPECIFIC FIXES
+    // ============================================================================
     const modelName = 'claude-sonnet-4-5-20250929';
-    const stream = await anthropic.messages.stream({
-      model: modelName,
-      max_tokens: 16384,
-      temperature: 0.7,
-      system: [
-        {
-          type: 'text',
-          text: systemPrompt,
-          cache_control: { type: 'ephemeral' }
-        }
-      ],
-      messages: messages
-    });
+    const maxRetries = DEFAULT_RETRY_CONFIG.maxAttempts;
     
-    perfTracker.checkpoint('ai_request_sent');
-
-    let responseText = '';
-    let inputTokens = 0;
-    let outputTokens = 0;
-    let cachedTokens = 0;
+    let result: any;
+    let lastError: GenerationError | null = null;
+    let attemptNumber = 1;
     
-    try {
-      for await (const chunk of stream) {
-        if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-          responseText += chunk.delta.text;
-        }
-        // Capture token usage from final message
-        if (chunk.type === 'message_stop') {
-          const finalMessage = await stream.finalMessage();
-          inputTokens = finalMessage.usage.input_tokens || 0;
-          outputTokens = finalMessage.usage.output_tokens || 0;
-          // @ts-ignore - cache_read_input_tokens might not be in types yet
-          cachedTokens = finalMessage.usage.cache_read_input_tokens || 0;
-        }
-      }
-    } catch (streamError) {
-      console.error('Streaming error:', streamError);
-      analytics.logRequestError(requestId, streamError as Error, 'ai_error');
-      throw new Error(streamError instanceof Error ? streamError.message : 'Failed to receive AI response');
-    }
-    
-    perfTracker.checkpoint('ai_response_received');
-    
-    // Log token usage
-    if (inputTokens > 0 || outputTokens > 0) {
-      analytics.logTokenUsage(requestId, inputTokens, outputTokens, cachedTokens);
-    }
-      
-    console.log('Generated response length:', responseText.length, 'chars');
-    console.log('Estimated output tokens:', outputTokens);
-    
-    if (outputTokens > 15000) {
-      console.warn('⚠️ Response approaching 16K token limit - may be truncated!');
-    }
-    
-    if (!responseText) {
-      throw new Error('No response from Claude');
-    }
-
-    // Parse delimiter-based response
-    const nameMatch = responseText.match(/===NAME===\s*([\s\S]*?)\s*===/);
-    const descriptionMatch = responseText.match(/===DESCRIPTION===\s*([\s\S]*?)\s*===/);
-    const appTypeMatch = responseText.match(/===APP_TYPE===\s*([\s\S]*?)\s*===/);
-    const changeTypeMatch = responseText.match(/===CHANGE_TYPE===\s*([\s\S]*?)\s*===/);
-    const changeSummaryMatch = responseText.match(/===CHANGE_SUMMARY===\s*([\s\S]*?)\s*===/);
-    const dependenciesMatch = responseText.match(/===DEPENDENCIES===\s*([\s\S]*?)\s*===/);
-    const setupMatch = responseText.match(/===SETUP===\s*([\s\S]*?)\s*===END===/);
-    if (!nameMatch || !descriptionMatch) {
-      console.error('Failed to parse response');
-      
-      analytics.logRequestError(requestId, 'Failed to parse delimiter-based response', 'parsing_error', {
-        modelUsed: modelName,
-        responseLength: responseText.length,
-      });
-      
-      return NextResponse.json({
-        error: 'Invalid response format from Claude',
-        debug: {
-          responseLength: responseText.length,
-          preview: responseText.substring(0, 1000)
-        }
-      }, { status: 500 });
-    }
-    
-    const name = nameMatch[1].trim().split('\n')[0].trim();
-    const descriptionText = descriptionMatch[1].trim().split('\n')[0].trim();
-    const appType = appTypeMatch ? appTypeMatch[1].trim().split('\n')[0].trim() : 'FRONTEND_ONLY';
-
-    // Extract files
-    const fileMatches = responseText.matchAll(/===FILE:([\s\S]*?)===\s*([\s\S]*?)(?====FILE:|===DEPENDENCIES===|===SETUP===|===END===|$)/g);
-    const files: Array<{ path: string; content: string; description: string }> = [];
-    
-    for (const match of fileMatches) {
-      const path = match[1].trim();
-      const content = match[2].trim();
-      files.push({
-        path,
-        content,
-        description: `${path.split('/').pop()} file`
-      });
-    }
-    
-    console.log('Parsed files:', files.length);
-    perfTracker.checkpoint('response_parsed');
-
-    // Validation layer
-    console.log('🔍 Validating generated code...');
-    
-    const validationErrors: Array<{ file: string; errors: ValidationError[] }> = [];
-    let totalErrors = 0;
-    let autoFixedCount = 0;
-    
-    files.forEach(file => {
-      if (file.path.endsWith('.tsx') || file.path.endsWith('.ts') || 
-          file.path.endsWith('.jsx') || file.path.endsWith('.js')) {
+    for (attemptNumber = 1; attemptNumber <= maxRetries; attemptNumber++) {
+      try {
+        // Build generation context
+        const generationContext: GenerationContext = {
+          anthropic,
+          systemPrompt,
+          messages,
+          modelName,
+          correctionPrompt: undefined, // Will be set below if retry
+        };
         
-        const validation = validateGeneratedCode(file.content, file.path);
-        
-        if (!validation.valid) {
-          console.log(`⚠️ Found ${validation.errors.length} error(s) in ${file.path}`);
-          totalErrors += validation.errors.length;
+        // If this is a retry, add correction prompt
+        if (attemptNumber > 1 && lastError) {
+          const retryContext: RetryContext = {
+            attemptNumber: attemptNumber - 1,
+            previousError: lastError.message,
+            errorCategory: lastError.category,
+            originalResponse: lastError.originalResponse,
+            validationDetails: lastError.validationDetails,
+          };
           
-          const fixedCode = autoFixCode(file.content, validation.errors);
-          if (fixedCode !== file.content) {
-            console.log(`✅ Auto-fixed errors in ${file.path}`);
-            file.content = fixedCode;
-            autoFixedCount += validation.errors.filter(e => e.type === 'UNCLOSED_STRING').length;
-            
-            const revalidation = validateGeneratedCode(fixedCode, file.path);
-            if (!revalidation.valid) {
-              validationErrors.push({
-                file: file.path,
-                errors: revalidation.errors
-              });
-            }
-          } else {
-            validationErrors.push({
-              file: file.path,
-              errors: validation.errors
-            });
+          const retryStrategy = generateRetryStrategy(retryContext, DEFAULT_RETRY_CONFIG);
+          
+          if (!retryStrategy.shouldRetry) {
+            console.log(`❌ Retry not allowed for error category: ${lastError.category}`);
+            throw lastError;
+          }
+          
+          console.log(`🔄 Retry attempt ${attemptNumber}/${maxRetries} - ${lastError.category}`);
+          generationContext.correctionPrompt = retryStrategy.correctionPrompt;
+          
+          // Wait if retry delay specified
+          if (retryStrategy.retryDelay && retryStrategy.retryDelay > 0) {
+            await new Promise(resolve => setTimeout(resolve, retryStrategy.retryDelay));
           }
         }
+        
+        perfTracker.checkpoint('ai_request_sent');
+        
+        // Generate full app with retry support
+        result = await generateFullApp(generationContext, attemptNumber);
+        
+        perfTracker.checkpoint('ai_response_received');
+        
+        // Log token usage
+        if (result.inputTokens > 0 || result.outputTokens > 0) {
+          analytics.logTokenUsage(requestId, result.inputTokens, result.outputTokens, result.cachedTokens);
+        }
+        
+        perfTracker.checkpoint('response_parsed');
+        perfTracker.checkpoint('validation_complete');
+        
+        // Success! Break out of retry loop
+        console.log(attemptNumber > 1 
+          ? `✅ Retry attempt ${attemptNumber} succeeded!` 
+          : '✅ Generation successful on first attempt'
+        );
+        break;
+        
+      } catch (error) {
+        lastError = error as GenerationError;
+        
+        console.error(`❌ Attempt ${attemptNumber}/${maxRetries} failed:`, lastError.message);
+        
+        // If this was the last attempt, throw the error
+        if (attemptNumber >= maxRetries) {
+          console.error(`❌ All ${maxRetries} retry attempts exhausted`);
+          
+          // Log final error to analytics
+          analytics.logRequestError(requestId, lastError, lastError.category || 'unknown_error', {
+            modelUsed: modelName,
+            responseLength: lastError.originalResponse?.length || 0,
+            metadata: {
+              attemptsUsed: attemptNumber,
+            },
+          });
+          
+          // Return user-friendly error based on category
+          if (lastError.category === 'parsing_error') {
+            return NextResponse.json({
+              error: 'Invalid response format from Claude',
+              debug: {
+                responseLength: lastError.originalResponse?.length || 0,
+                preview: lastError.originalResponse?.substring(0, 1000),
+                attempts: attemptNumber,
+              }
+            }, { status: 500 });
+          }
+          
+          throw lastError;
+        }
+        
+        // Otherwise, continue to next retry attempt
       }
-    });
-    
-    if (totalErrors > 0) {
-      console.log(`📊 Validation Summary:`);
-      console.log(`   Total errors found: ${totalErrors}`);
-      console.log(`   Auto-fixed: ${autoFixedCount}`);
-      console.log(`   Remaining: ${totalErrors - autoFixedCount}`);
-      
-      // Log validation to analytics
-      analytics.logValidation(requestId, totalErrors, autoFixedCount);
-    } else {
-      console.log(`✅ All code validated successfully`);
     }
     
-    perfTracker.checkpoint('validation_complete');
+    // Extract results from successful generation
+    const name = result.name;
+    const descriptionText = result.description;
+    const appType = result.appType;
+    const changeType = result.changeType;
+    const changeSummary = result.changeSummary;
+    const files = result.files;
+    const dependencies = result.dependencies;
+    const setupInstructions = result.setupInstructions;
+    const responseText = result.responseText;
+    const validationErrors = result.validationErrors;
+    const totalErrors = result.totalErrors;
+    const autoFixedCount = result.autoFixedCount;
     
     const validationWarnings = validationErrors.length > 0 ? {
       hasWarnings: true,
@@ -303,30 +271,15 @@ MODIFICATION MODE for "${currentAppName}":
       details: validationErrors
     } : undefined;
     
-    // Parse dependencies
-    const dependencies: Record<string, string> = {};
-    if (dependenciesMatch) {
-      const depsText = dependenciesMatch[1].trim();
-      const depsLines = depsText.split('\n');
-      for (const line of depsLines) {
-        const [pkg, version] = line.split(':').map(s => s.trim());
-        if (pkg && version) {
-          dependencies[pkg] = version;
-        }
-      }
-    }
-
-    const changeType = changeTypeMatch ? changeTypeMatch[1].trim().split('\n')[0].trim() : 'NEW_APP';
-    
     const appData = {
-      name: name,
+      name,
       description: descriptionText,
-      appType: appType,
-      changeType: changeType,
-      changeSummary: changeSummaryMatch ? changeSummaryMatch[1].trim() : '',
+      appType,
+      changeType,
+      changeSummary,
       files,
       dependencies,
-      setupInstructions: setupMatch ? setupMatch[1].trim() : 'Run npm install && npm run dev',
+      setupInstructions,
       ...(validationWarnings && { validationWarnings })
     };
     
@@ -348,6 +301,8 @@ MODIFICATION MODE for "${currentAppName}":
         hasImage: hasImage,
         filesGenerated: files.length,
         hasDependencies: Object.keys(dependencies).length > 0,
+        retryAttempts: attemptNumber,
+        retriedSuccessfully: attemptNumber > 1,
       },
     });
     

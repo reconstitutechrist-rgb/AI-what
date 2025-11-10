@@ -45,6 +45,7 @@ export const DEFAULT_RETRY_CONFIG: RetryConfig = {
     'parsing_error',
     'validation_error',
     'ai_error',
+    'timeout_error',
   ],
   includeOriginalPrompt: true,
 };
@@ -391,7 +392,7 @@ export function isPatternMatchingError(error: string, errorCategory: ErrorCatego
     'no match',
     'unable to locate',
     'search pattern',
-    'searchFor',
+    'searchfor',
   ];
   
   const errorLower = error.toLowerCase();

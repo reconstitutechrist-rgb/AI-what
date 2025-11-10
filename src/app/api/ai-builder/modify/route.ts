@@ -10,6 +10,11 @@ import {
   DEFAULT_RETRY_CONFIG,
   type RetryConfig 
 } from '@/utils/retryLogic';
+import { 
+  generateModifications, 
+  type GenerationContext, 
+  type GenerationError 
+} from './generation-logic';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -189,8 +194,6 @@ ${JSON.stringify(currentAppState, null, 2)}`;
     
     perfTracker.checkpoint('prompt_built');
 
-    console.log('Generating modifications with Claude Sonnet 4.5...');
-
     // Extract current file contents for AI reference
     let fileContentsSection = '';
     if (currentAppState && currentAppState.files && Array.isArray(currentAppState.files)) {
@@ -225,182 +228,120 @@ ${JSON.stringify(currentAppState, null, 2)}`;
     
     messages.push({ role: 'user', content: enhancedPrompt });
 
-    // Use streaming for better handling with timeout
+    // ============================================================================
+    // PHASE 5.2: RETRY LOGIC WITH SPECIFIC FIXES
+    // ============================================================================
     const modelName = 'claude-sonnet-4-5-20250929';
-    const stream = await anthropic.messages.stream({
-      model: modelName,
-      max_tokens: 4096,
-      temperature: 0.7,
-      system: [
-        {
-          type: 'text',
-          text: systemPrompt,
-          cache_control: { type: 'ephemeral' }
-        }
-      ],
-      messages: messages
-    });
+    const maxRetries = DEFAULT_RETRY_CONFIG.maxAttempts;
     
-    perfTracker.checkpoint('ai_request_sent');
-
-    // Collect the full response with timeout
-    let responseText = '';
-    let inputTokens = 0;
-    let outputTokens = 0;
-    let cachedTokens = 0;
-    const timeout = 45000; // 45 seconds
-    const startTime = Date.now();
+    let result: any;
+    let lastError: GenerationError | null = null;
+    let attemptNumber = 1;
     
-    try {
-      for await (const chunk of stream) {
-        if (Date.now() - startTime > timeout) {
-          throw new Error('AI response timeout - the modification was taking too long. Please try a simpler request or try again.');
-        }
-        if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-          responseText += chunk.delta.text;
-        }
-        // Capture token usage from final message
-        if (chunk.type === 'message_stop') {
-          const finalMessage = await stream.finalMessage();
-          inputTokens = finalMessage.usage.input_tokens || 0;
-          outputTokens = finalMessage.usage.output_tokens || 0;
-          // @ts-ignore - cache_read_input_tokens might not be in types yet
-          cachedTokens = finalMessage.usage.cache_read_input_tokens || 0;
-        }
-      }
-    } catch (streamError) {
-      console.error('Streaming error:', streamError);
-      analytics.logRequestError(requestId, streamError as Error, 'ai_error');
-      throw new Error(streamError instanceof Error ? streamError.message : 'Failed to receive AI response');
-    }
-    
-    perfTracker.checkpoint('ai_response_received');
-    
-    // Log token usage
-    if (inputTokens > 0 || outputTokens > 0) {
-      analytics.logTokenUsage(requestId, inputTokens, outputTokens, cachedTokens);
-    }
-      
-    console.log('Modification response length:', responseText.length, 'chars');
-    console.log('Response preview:', responseText.substring(0, 500));
-    
-    if (!responseText) {
-      throw new Error('No response from Claude');
-    }
-
-    // Parse JSON response
-    let diffResponse: DiffResponse;
-    
-    try {
-      // Try to extract JSON if wrapped in markdown code blocks
-      const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/);
-      const jsonString = jsonMatch ? jsonMatch[1] : responseText;
-      
-      diffResponse = JSON.parse(jsonString.trim());
-      
-      // Validate response structure
-      if (!diffResponse.changeType || !diffResponse.summary || !diffResponse.files) {
-        throw new Error('Invalid diff response structure');
-      }
-      
-      console.log('Parsed diff response:', {
-        changeType: diffResponse.changeType,
-        summary: diffResponse.summary,
-        filesCount: diffResponse.files.length
-      });
-      
-    } catch (parseError) {
-      console.error('Failed to parse diff response:', parseError);
-      console.error('Response text:', responseText);
-      
-      analytics.logRequestError(requestId, parseError as Error, 'parsing_error', {
-        modelUsed: modelName,
-        responseLength: responseText.length,
-      });
-      
-      return NextResponse.json({
-        error: 'The AI had trouble understanding how to modify your app. This can happen with complex changes. Try breaking your request into smaller steps, or use simpler language.',
-        suggestion: 'Try asking for one change at a time, like "add a button" or "change the color to blue".',
-        technicalDetails: {
-          responsePreview: responseText.substring(0, 500),
-          parseError: parseError instanceof Error ? parseError.message : 'Unknown error'
-        }
-      }, { status: 500 });
-    }
-
-    // ============================================================================
-    // VALIDATION LAYER - Validate code snippets in diff instructions
-    // ============================================================================
-    console.log('🔍 Validating code snippets in modification instructions...');
-    
-    const validationErrors: Array<{ file: string; change: number; errors: ValidationError[] }> = [];
-    let totalSnippets = 0;
-    let validatedSnippets = 0;
-    let errorsFound = 0;
-    
-    // Validate code snippets in each file's changes
-    diffResponse.files.forEach(fileDiff => {
-      // Only validate .tsx/.ts/.jsx/.js files
-      if (!fileDiff.path.match(/\.(tsx|ts|jsx|js)$/)) {
-        return;
-      }
-      
-      fileDiff.changes.forEach((change, index) => {
-        // Collect code snippets to validate
-        const snippetsToValidate: Array<{ field: string; code: string }> = [];
+    for (attemptNumber = 1; attemptNumber <= maxRetries; attemptNumber++) {
+      try {
+        // Build generation context
+        const generationContext: GenerationContext = {
+          anthropic,
+          systemPrompt,
+          messages,
+          modelName,
+          currentAppState,
+          correctionPrompt: lastError ? undefined : undefined, // Will be set below if retry
+        };
         
-        if (change.content) snippetsToValidate.push({ field: 'content', code: change.content });
-        if (change.replaceWith) snippetsToValidate.push({ field: 'replaceWith', code: change.replaceWith });
-        if (change.jsx) snippetsToValidate.push({ field: 'jsx', code: change.jsx });
-        if (change.body) snippetsToValidate.push({ field: 'body', code: change.body });
-        
-        snippetsToValidate.forEach(({ field, code }) => {
-          totalSnippets++;
-          const validation = validateGeneratedCode(code, fileDiff.path);
+        // If this is a retry, add correction prompt
+        if (attemptNumber > 1 && lastError) {
+          const retryContext: RetryContext = {
+            attemptNumber: attemptNumber - 1,
+            previousError: lastError.message,
+            errorCategory: lastError.category,
+            originalResponse: lastError.originalResponse,
+            validationDetails: lastError.validationDetails,
+          };
           
-          if (!validation.valid) {
-            console.log(`⚠️ Found ${validation.errors.length} error(s) in ${fileDiff.path} change #${index + 1} (${field})`);
-            errorsFound += validation.errors.length;
-            
-            // Attempt auto-fix
-            const fixedCode = autoFixCode(code, validation.errors);
-            if (fixedCode !== code) {
-              console.log(`✅ Auto-fixed errors in ${field}`);
-              // Update the change with fixed code
-              if (field === 'content') change.content = fixedCode;
-              else if (field === 'replaceWith') change.replaceWith = fixedCode;
-              else if (field === 'jsx') change.jsx = fixedCode;
-              else if (field === 'body') change.body = fixedCode;
-              
-              validatedSnippets++;
-            } else {
-              // Couldn't auto-fix, add to errors
-              validationErrors.push({
-                file: fileDiff.path,
-                change: index + 1,
-                errors: validation.errors
-              });
-            }
-          } else {
-            validatedSnippets++;
+          const retryStrategy = generateRetryStrategy(retryContext, DEFAULT_RETRY_CONFIG);
+          
+          if (!retryStrategy.shouldRetry) {
+            console.log(`❌ Retry not allowed for error category: ${lastError.category}`);
+            throw lastError;
           }
-        });
-      });
-    });
-    
-    // Log validation summary
-    if (totalSnippets > 0) {
-      console.log(`📊 Validation Summary:`);
-      console.log(`   Code snippets checked: ${totalSnippets}`);
-      console.log(`   Errors found: ${errorsFound}`);
-      console.log(`   Successfully validated/fixed: ${validatedSnippets}`);
-      console.log(`   Remaining issues: ${validationErrors.length}`);
-      
-      // Log validation to analytics
-      analytics.logValidation(requestId, errorsFound, errorsFound - validationErrors.length);
+          
+          console.log(`🔄 Retry attempt ${attemptNumber}/${maxRetries} - ${lastError.category}`);
+          generationContext.correctionPrompt = retryStrategy.correctionPrompt;
+          
+          // Wait if retry delay specified
+          if (retryStrategy.retryDelay && retryStrategy.retryDelay > 0) {
+            await new Promise(resolve => setTimeout(resolve, retryStrategy.retryDelay));
+          }
+        }
+        
+        perfTracker.checkpoint('ai_request_sent');
+        
+        // Generate modifications with retry support
+        result = await generateModifications(generationContext, attemptNumber);
+        
+        perfTracker.checkpoint('ai_response_received');
+        
+        // Log token usage
+        if (result.inputTokens > 0 || result.outputTokens > 0) {
+          analytics.logTokenUsage(requestId, result.inputTokens, result.outputTokens, result.cachedTokens);
+        }
+        
+        perfTracker.checkpoint('validation_complete');
+        
+        // Success! Break out of retry loop
+        console.log(attemptNumber > 1 
+          ? `✅ Retry attempt ${attemptNumber} succeeded!` 
+          : '✅ Generation successful on first attempt'
+        );
+        break;
+        
+      } catch (error) {
+        lastError = error as GenerationError;
+        
+        console.error(`❌ Attempt ${attemptNumber}/${maxRetries} failed:`, lastError.message);
+        
+        // If this was the last attempt, throw the error
+        if (attemptNumber >= maxRetries) {
+          console.error(`❌ All ${maxRetries} retry attempts exhausted`);
+          
+          // Log final error to analytics
+          analytics.logRequestError(requestId, lastError, lastError.category || 'unknown_error', {
+            modelUsed: modelName,
+            responseLength: lastError.originalResponse?.length || 0,
+            metadata: {
+              attemptsUsed: attemptNumber,
+            },
+          });
+          
+          // Return user-friendly error based on category
+          if (lastError.category === 'parsing_error') {
+            return NextResponse.json({
+              error: 'The AI had trouble understanding how to modify your app. This can happen with complex changes. Try breaking your request into smaller steps, or use simpler language.',
+              suggestion: 'Try asking for one change at a time, like "add a button" or "change the color to blue".',
+              technicalDetails: {
+                responsePreview: lastError.originalResponse?.substring(0, 500),
+                parseError: lastError.message,
+                attempts: attemptNumber,
+              }
+            }, { status: 500 });
+          }
+          
+          throw lastError;
+        }
+        
+        // Otherwise, continue to next retry attempt
+      }
     }
     
-    perfTracker.checkpoint('validation_complete');
+    // Extract results from successful generation
+    const diffResponse = result.diffResponse;
+    const responseText = result.responseText;
+    const validationErrors = result.validationErrors;
+    const totalSnippets = result.totalSnippets;
+    const validatedSnippets = result.validatedSnippets;
+    const errorsFound = result.errorsFound;
     
     // Add validation warnings if errors remain
     const validationWarnings = validationErrors.length > 0 ? {
@@ -423,6 +364,8 @@ ${JSON.stringify(currentAppState, null, 2)}`;
         filesModified: diffResponse.files.length,
         totalChanges: diffResponse.files.reduce((sum, f) => sum + f.changes.length, 0),
         hasStaging: !!diffResponse.stagePlan,
+        retryAttempts: attemptNumber,
+        retriedSuccessfully: attemptNumber > 1,
       },
     });
     
