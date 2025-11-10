@@ -3,60 +3,48 @@
  * Phase 6.2: Testing & Validation
  * 
  * Tests complete request flows including retry logic, validation, and analytics
- * 
- * NOTE: These are integration tests that test the full route flow with mocked
- * AI responses. They verify:
- * - Request parsing and validation
- * - AI generation with retry scenarios
- * - Error categorization and recovery
- * - Analytics tracking
- * - Response formatting
  */
 
 import { POST } from '../src/app/api/ai-builder/modify/route';
-import { analytics } from '../src/utils/analytics';
-import type { GenerationContext } from '../src/app/api/ai-builder/modify/generation-logic';
 
-/**
- * Mock Anthropic SDK
- * 
- * We need to mock the Anthropic SDK to test without making actual API calls
- */
+// Mock the Anthropic SDK
 jest.mock('@anthropic-ai/sdk');
 
-/**
- * Test Setup
- * 
- * These tests require:
- * 1. Mocked Anthropic API responses
- * 2. Test request objects
- * 3. Analytics reset between tests
- */
+// Import mock after mocking
+import Anthropic from '@anthropic-ai/sdk';
 
 describe('Modify Route Integration Tests', () => {
-  // Store original env
-  const originalEnv = process.env;
-  
   beforeEach(() => {
-    // Reset environment
-    process.env = { ...originalEnv };
-    process.env.ANTHROPIC_API_KEY = 'test-api-key';
-    
-    // Reset analytics between tests
     jest.clearAllMocks();
-  });
-  
-  afterEach(() => {
-    // Restore environment
-    process.env = originalEnv;
+    process.env.ANTHROPIC_API_KEY = 'test-api-key';
   });
   
   /**
    * Test 1: Successful modification on first attempt
    */
   test('Should successfully generate modifications on first attempt', async () => {
-    // TODO: This test needs proper mocking infrastructure
-    // For now, we'll document the test structure
+    // Setup mock response
+    const mockResponse = JSON.stringify({
+      changeType: 'MODIFICATION',
+      summary: 'Added counter button',
+      files: [{
+        path: 'src/App.tsx',
+        action: 'MODIFY',
+        changes: [
+          {
+            type: 'ADD_IMPORT',
+            content: "import { useState } from 'react';"
+          },
+          {
+            type: 'INSERT_AFTER',
+            searchFor: 'export default function App() {',
+            content: '  const [count, setCount] = useState(0);'
+          }
+        ]
+      }]
+    });
+    
+    mockAnthropicInstance.messages.setMockResponse(mockResponse);
     
     const testRequest = createMockRequest({
       prompt: 'Add a counter button',
@@ -68,20 +56,13 @@ describe('Modify Route Integration Tests', () => {
       }
     });
     
-    // Mock successful AI response
-    // mockAnthropicResponse(validDiffResponse);
+    const response = await POST(testRequest);
+    const data = await response.json();
     
-    // const response = await POST(testRequest);
-    // const data = await response.json();
-    
-    // expect(response.status).toBe(200);
-    // expect(data.changeType).toBe('MODIFICATION');
-    // expect(data.files).toHaveLength(1);
-    
-    // Verify analytics tracked success
-    // expect(analytics.logRequestComplete).toHaveBeenCalled();
-    
-    console.log('✅ Test structure documented - needs mocking infrastructure');
+    expect(response.status).toBe(200);
+    expect(data.changeType).toBe('MODIFICATION');
+    expect(data.files).toHaveLength(1);
+    expect(data.files[0].changes).toHaveLength(2);
   });
   
   /**
