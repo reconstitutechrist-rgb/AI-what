@@ -1594,10 +1594,10 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
                 {chatMessages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in-up`}
                   >
                     <div
-                      className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                      className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-lg transition-all duration-300 hover:shadow-xl ${
                         message.role === 'user'
                           ? 'bg-blue-600 text-white'
                           : message.role === 'system'
