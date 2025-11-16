@@ -1494,16 +1494,16 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Header */}
-      <header className="border-b border-white/10 bg-black/20 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-white/10 bg-black/30 backdrop-blur-xl sticky top-0 z-50 shadow-lg shadow-black/20">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all hover:scale-110">
                 <span className="text-2xl">✨</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">AI App Builder</h1>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">AI App Builder</h1>
                 <p className="text-xs text-slate-400">Build complete apps through conversation</p>
               </div>
             </div>
@@ -1513,7 +1513,7 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
               {currentComponent && currentComponent.versions && currentComponent.versions.length > 0 && (
                 <button
                   onClick={() => setShowVersionHistory(!showVersionHistory)}
-                  className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-sm text-slate-300 hover:text-white flex items-center gap-2"
+                  className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all duration-300 text-sm text-slate-300 hover:text-white flex items-center gap-2 hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-blue-500/20"
                 >
                   <span>🕒</span>
                   <span className="hidden sm:inline">History</span>
@@ -1524,7 +1524,7 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
               )}
               <button
                 onClick={() => setShowLibrary(!showLibrary)}
-                className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-sm text-slate-300 hover:text-white flex items-center gap-2"
+                className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all duration-300 text-sm text-slate-300 hover:text-white flex items-center gap-2 hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-purple-500/20"
               >
                 <span>📂</span>
                 <span className="hidden sm:inline">My Apps</span>
@@ -1544,9 +1544,9 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Chat/Conversation Panel - Left Side */}
           <div className="lg:col-span-5">
-            <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden flex flex-col h-[calc(100vh-200px)]">
+            <div className="glass-panel rounded-2xl border border-white/10 overflow-hidden flex flex-col h-[calc(100vh-200px)] shadow-2xl shadow-black/40">
               {/* Chat Header */}
-              <div className="px-6 py-4 border-b border-white/10 bg-black/20">
+              <div className="px-6 py-4 border-b border-white/10 bg-black/30 backdrop-blur-sm">
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                     <span>💬</span>
@@ -1687,13 +1687,13 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
                     onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                     placeholder="Describe what you want to build or change..."
                     disabled={isGenerating}
-                    className="flex-1 px-4 py-3 rounded-xl bg-slate-900/80 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                    className="flex-1 px-4 py-3 rounded-xl bg-slate-900/80 border border-white/20 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 transition-all duration-300 focus:shadow-lg focus:shadow-blue-500/20"
                   />
                   <button
                     onClick={sendMessage}
                     disabled={isGenerating || (!userInput.trim() && !uploadedImage)}
                     data-send-button="true"
-                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium hover:shadow-lg hover:shadow-blue-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
+                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white font-medium shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95 hover:from-blue-500 hover:via-purple-500 hover:to-pink-500"
                   >
                     {isGenerating ? '⏳' : '🚀'}
                   </button>
@@ -1704,9 +1704,9 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
 
           {/* Preview/Code Panel - Right Side */}
           <div className="lg:col-span-7">
-            <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden">
+            <div className="glass-panel rounded-2xl border border-white/10 overflow-hidden shadow-2xl shadow-black/40">
               {/* Tabs */}
-              <div className="flex items-center gap-2 px-6 py-4 border-b border-white/10 bg-black/20">
+              <div className="flex items-center gap-2 px-6 py-4 border-b border-white/10 bg-black/30 backdrop-blur-sm">
                 <button
                   onClick={() => setActiveTab('preview')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
