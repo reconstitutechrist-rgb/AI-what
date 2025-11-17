@@ -1678,6 +1678,8 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
                       accept="image/*"
                       onChange={handleImageUpload}
                       className="hidden"
+                      id="image-upload"
+                      name="image-upload"
                     />
                   </label>
 
@@ -1689,6 +1691,9 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
                     placeholder="Describe what you want to build or change..."
                     disabled={isGenerating}
                     className="flex-1 px-4 py-3 rounded-xl glass-panel border border-white/20 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500/60 disabled:opacity-50 transition-all duration-300 focus:shadow-xl focus:shadow-blue-500/30 focus:scale-[1.01] hover:border-white/30"
+                    id="user-message"
+                    name="user-message"
+                    autoComplete="off"
                   />
                   <button
                     onClick={sendMessage}
@@ -1865,6 +1870,9 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search apps..."
                 className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                id="app-search"
+                name="app-search"
+                autoComplete="off"
               />
             </div>
 
