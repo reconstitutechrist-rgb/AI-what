@@ -22,7 +22,7 @@ export default function RootLayout({
     <html lang="en" className="h-full">
       <body className={`${inter.className} h-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900`}>
         <AuthGuard>
-          <div className="min-h-full">
+          <div className="min-h-screen">
             {children}
           </div>
         </AuthGuard>
