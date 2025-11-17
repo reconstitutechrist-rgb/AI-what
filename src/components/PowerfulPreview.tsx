@@ -20,9 +20,10 @@ interface FullAppData {
 
 interface PowerfulPreviewProps {
   appDataJson: string;
+  isFullscreen?: boolean;
 }
 
-export default function PowerfulPreview({ appDataJson }: PowerfulPreviewProps) {
+export default function PowerfulPreview({ appDataJson, isFullscreen = false }: PowerfulPreviewProps) {
   const appData: FullAppData = JSON.parse(appDataJson);
 
   // Convert files to Sandpack format - React template needs / prefix
@@ -127,7 +128,10 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   return (
-    <div className="w-full h-full flex flex-col" style={{ minHeight: '600px', height: '100%' }}>
+    <div className="w-full h-full flex flex-col" style={{ 
+      minHeight: isFullscreen ? '100vh' : '600px', 
+      height: isFullscreen ? '100vh' : '100%' 
+    }}>
       <SandpackProvider
         template="react-ts"
         theme="dark"
@@ -142,7 +146,12 @@ h1, h2, h3, h4, h5, h6 {
           externalResources: ['https://cdn.tailwindcss.com'],
         }}
       >
-        <SandpackLayout style={{ height: '100%', width: '100%', minHeight: '600px', flex: 1 }}>
+        <SandpackLayout style={{ 
+          height: '100%', 
+          width: '100%', 
+          minHeight: isFullscreen ? '100vh' : '600px', 
+          flex: 1 
+        }}>
           <SandpackPreview 
             showOpenInCodeSandbox={false}
             showRefreshButton={true}
@@ -154,7 +163,11 @@ h1, h2, h3, h4, h5, h6 {
                 Reset
               </button>
             }
-            style={{ height: '100%', width: '100%', minHeight: '600px' }}
+            style={{ 
+              height: '100%', 
+              width: '100%', 
+              minHeight: isFullscreen ? '100vh' : '600px' 
+            }}
           />
         </SandpackLayout>
         
