@@ -8,6 +8,14 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 
 /**
  * Subscribe to database table changes
+ * 
+ * NOTE: The `as any` type assertions below are necessary due to a limitation in
+ * Supabase's TypeScript definitions for the realtime client. The .on() method's
+ * type overloads don't correctly recognize 'postgres_changes' as a valid event type
+ * when used with the channel configuration object pattern. This is a known issue
+ * and the assertions provide the correct runtime behavior while bypassing the
+ * incorrect TypeScript errors.
+ * 
  * @example
  * const channel = subscribeToTable('generated_apps', '*', (payload) => {
  *   console.log('Change received!', payload);
@@ -21,6 +29,7 @@ export function subscribeToTable(
 ) {
   const supabase = createBrowserClient();
   
+  // Type assertion required - see function JSDoc for explanation
   let subscription = supabase
     .channel(`table-${table}`)
     .on(

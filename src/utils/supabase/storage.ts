@@ -1,9 +1,9 @@
 import { createClient as createBrowserClient } from './client';
-import { createClient as createServerClient } from './server';
 
 /**
  * Storage utility for managing files in Supabase Storage
  * Supports user uploads, generated apps, and app assets
+ * Note: All functions use the browser client for client-side operations
  */
 
 // Storage bucket names
