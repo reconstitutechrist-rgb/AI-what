@@ -8,8 +8,9 @@ This document provides comprehensive instructions for setting up and using Supab
 3. [Authentication](#authentication)
 4. [Storage](#storage)
 5. [Real-time Features](#real-time-features)
-6. [Deployment](#deployment)
-7. [Usage Examples](#usage-examples)
+6. [Usage Examples](#usage-examples)
+7. [Testing](#testing)
+8. [Troubleshooting](#troubleshooting)
 
 ## Configuration
 
