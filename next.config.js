@@ -2,9 +2,9 @@
 module.exports = {
   reactStrictMode: true,
   
-  // IMPORTANT: Disable Turbopack to maintain webpack compatibility
-  // Required for tree-sitter native bindings
-  turbo: false,
+  // NOTE: Turbopack is disabled by default in production builds
+  // For development, Turbopack can be enabled with `next dev --turbo`
+  // but is not required for tree-sitter compatibility
   
   webpack: (config, { isServer }) => {
     // Fix for tree-sitter native bindings
