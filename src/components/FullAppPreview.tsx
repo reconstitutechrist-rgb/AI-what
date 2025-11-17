@@ -83,21 +83,13 @@ export default function FullAppPreview({ appDataJson }: FullAppPreviewProps) {
           <div className="flex gap-2">
             <button
               onClick={() => setActiveTab('preview')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                activeTab === 'preview'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:text-white'
-              }`}
+              className="px-4 py-2 rounded-lg font-medium transition-all bg-slate-800 text-slate-400 hover:text-white"
             >
               👁️ Live Preview
             </button>
             <button
               onClick={() => setActiveTab('code')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                activeTab === 'code'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:text-white'
-              }`}
+              className="px-4 py-2 rounded-lg font-medium transition-all bg-blue-600 text-white"
             >
               💻 Code
             </button>
