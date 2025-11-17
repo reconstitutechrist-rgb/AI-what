@@ -68,10 +68,10 @@ export default function FullAppPreview({ appDataJson }: FullAppPreviewProps) {
   const currentFile = appData.files?.find(f => f.path === selectedFile);
 
   return (
-    <div className={`flex flex-col bg-slate-900 overflow-hidden ${
+    <div className={`flex flex-col overflow-hidden ${
       isFullscreen 
-        ? 'fixed inset-0 z-[100]' 
-        : 'h-full rounded-lg border border-white/10'
+        ? 'fixed inset-0 w-screen h-screen z-[9999] bg-black' 
+        : 'h-full rounded-lg border border-white/10 bg-slate-900'
     }`}>
       {/* Header with tabs - conditionally hide in fullscreen preview mode */}
       {!(isFullscreen && activeTab === 'preview') && (
@@ -139,7 +139,7 @@ export default function FullAppPreview({ appDataJson }: FullAppPreviewProps) {
       )}
 
       {/* Content area */}
-      <div className={`${isFullscreen ? 'h-full w-full' : 'flex-1'} overflow-hidden`}>
+      <div className={`${isFullscreen ? 'h-screen w-screen' : 'flex-1'} overflow-hidden`}>
         {activeTab === 'preview' ? (
           <div className="h-full w-full">
             <PowerfulPreview appDataJson={appDataJson} isFullscreen={isFullscreen} />
