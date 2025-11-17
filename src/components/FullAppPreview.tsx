@@ -195,9 +195,17 @@ export default function FullAppPreview({ appDataJson }: FullAppPreviewProps) {
     </div>
   );
 
-  // Normal (non-fullscreen) content - just shows the preview without tabs
+  // Normal (non-fullscreen) content - shows the preview with a fullscreen button
   const normalContent = (
-    <div className="h-full w-full">
+    <div className="h-full w-full relative">
+      <button
+        onClick={() => setIsFullscreen(true)}
+        className="absolute top-4 right-4 z-[100] px-4 py-2 rounded-lg bg-black/80 hover:bg-black text-white backdrop-blur-sm transition-all flex items-center gap-2 shadow-xl border border-white/20"
+        title="Enter Fullscreen"
+      >
+        <span className="text-lg">⤢</span>
+        <span className="text-sm font-medium">Fullscreen</span>
+      </button>
       <PowerfulPreview appDataJson={appDataJson} isFullscreen={false} />
     </div>
   );
