@@ -1,8 +1,23 @@
 import { createBrowserClient } from '@supabase/ssr';
 
 export function createClient() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  // Debug logging
+  if (typeof window !== 'undefined') {
+    console.log('[Supabase Client] URL exists:', !!url);
+    console.log('[Supabase Client] Key exists:', !!key);
+  }
+  
+  if (!url || !key) {
+    throw new Error(
+      `Missing Supabase environment variables.\n` +
+      `URL: ${url ? 'Set' : 'MISSING'}\n` +
+      `Key: ${key ? 'Set' : 'MISSING'}\n` +
+      `Make sure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set in Vercel.`
+    );
+  }
+  
+  return createBrowserClient(url, key);
 }
