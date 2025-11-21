@@ -2,12 +2,16 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { signIn } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -15,17 +19,13 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-      });
+      const { error } = await signIn(email, password);
 
-      if (response.ok) {
+      if (error) {
+        setError(error.message || 'Failed to sign in');
+      } else {
         router.push('/');
         router.refresh();
-      } else {
-        setError('Incorrect password');
       }
     } catch (err) {
       setError('Something went wrong');
@@ -45,12 +45,29 @@ export default function LoginPage() {
               AI App Builder
             </h1>
             <p className="text-slate-400">
-              Enter password to access
+              Sign in to your account
             </p>
           </div>
 
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                disabled={loading}
+                required
+                className="w-full px-4 py-3 rounded-xl bg-slate-900/80 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                autoFocus
+              />
+            </div>
+
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
                 Password
@@ -60,10 +77,10 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter site password"
+                placeholder="Enter your password"
                 disabled={loading}
+                required
                 className="w-full px-4 py-3 rounded-xl bg-slate-900/80 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                autoFocus
               />
             </div>
 
@@ -75,16 +92,29 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading || !password}
+              disabled={loading || !email || !password}
               className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium hover:shadow-lg hover:shadow-blue-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Verifying...' : 'Access App'}
+              {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
 
+          {/* Sign Up Link */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-slate-400">
+              Don't have an account?{' '}
+              <Link 
+                href="/signup" 
+                className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+              >
+                Sign up
+              </Link>
+            </p>
+          </div>
+
           {/* Footer */}
           <div className="mt-6 text-center text-xs text-slate-500">
-            🔒 Protected Site
+            🔒 Secure authentication with Supabase
           </div>
         </div>
       </div>

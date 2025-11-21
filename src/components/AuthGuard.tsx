@@ -2,44 +2,32 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { user, loading } = useAuth();
   const [isChecking, setIsChecking] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Skip auth check for login page
-    if (pathname === '/login') {
+    // Skip auth check for public pages
+    if (pathname === '/login' || pathname === '/signup' || pathname.startsWith('/api/auth/callback')) {
       setIsChecking(false);
-      setIsAuthenticated(true);
       return;
     }
 
-    // Check if user has auth cookie
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/auth/check', {
-          credentials: 'include'
-        });
-        
-        if (response.ok) {
-          setIsAuthenticated(true);
-        } else {
-          router.push('/login');
-        }
-      } catch (error) {
+    // Wait for auth context to finish loading
+    if (!loading) {
+      if (!user) {
         router.push('/login');
-      } finally {
-        setIsChecking(false);
       }
-    };
+      setIsChecking(false);
+    }
+  }, [pathname, router, user, loading]);
 
-    checkAuth();
-  }, [pathname, router]);
-
-  if (isChecking) {
+  // Show loading state while checking auth
+  if (isChecking || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
@@ -50,7 +38,13 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isAuthenticated && pathname !== '/login') {
+  // Allow access to login/signup pages without auth
+  if (pathname === '/login' || pathname === '/signup' || pathname.startsWith('/api/auth/callback')) {
+    return <>{children}</>;
+  }
+
+  // Require authentication for all other pages
+  if (!user) {
     return null;
   }
 
