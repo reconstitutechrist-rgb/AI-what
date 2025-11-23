@@ -92,13 +92,15 @@ src/types/storage.ts (NEW)
 
 ---
 
-#### 1.2 Build Storage Service Layer
+#### 1.2 Build Storage Service Layer with Dependency Injection
 - [ ] Create `src/services/StorageService.ts` (NEW)
-  - [ ] Class-based architecture with dependency injection
+  - [ ] Class-based architecture with **dependency injection** (client passed via constructor)
+  - [ ] Constructor accepts `SupabaseClient` (NO hardcoded client creation)
   - [ ] `upload()` method with validation and retry logic
   - [ ] `list()` method with pagination support
   - [ ] `delete()` method with ownership verification
   - [ ] `getUrl()` method (public or signed)
+  - [ ] `getUserId()` helper to extract user ID from injected client
   - [ ] Private helper methods:
     - [ ] `validateFile()` - Size, type, extension checks
     - [ ] `generatePath()` - User-scoped path generation
@@ -112,18 +114,46 @@ src/types/storage.ts (NEW)
 ```
 src/services/StorageService.ts (NEW)
   - StorageService class
+  - Dependency injection pattern (client required in constructor)
   - Full CRUD operations
   - Validation logic
   - Retry logic (3 attempts, exponential backoff)
   - Error handling
-  - User-scoped security
+  - User-scoped security (derived from injected client)
+```
+
+**Critical Implementation Detail:**
+```typescript
+// ✅ CORRECT - Client is injected, not created
+export class StorageService {
+  private client: SupabaseClient;
+  
+  constructor(client: SupabaseClient) {  // Required parameter
+    this.client = client;
+  }
+  
+  private async getUserId(): Promise<string> {
+    const { data: { user } } = await this.client.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+    return user.id;
+  }
+}
+
+// ❌ WRONG - DO NOT hardcode client creation
+export class StorageService {
+  constructor() {
+    this.client = createBrowserClient(); // BREAKS in server context!
+  }
+}
 ```
 
 **Architecture Benefits:**
-- **Testable**: Can mock Supabase client
+- **Universal Compatibility**: Works in both browser (client components) and server (API routes, server components)
+- **Testable**: Can inject mock Supabase client for unit tests
+- **Secure**: Server-side code always uses authenticated session from request
 - **Maintainable**: Business logic separated from infrastructure
 - **Extensible**: Easy to add new operations
-- **Reusable**: Shared across all components
+- **Reusable**: Shared across all components and contexts
 - **Type-safe**: Full TypeScript integration
 - **Resilient**: Built-in retry and error recovery
 
@@ -301,7 +331,10 @@ src/components/storage/ (NEW DIRECTORY)
     const [storageFiles, setStorageFiles] = useState<FileMetadata[]>([]);
     const [loadingFiles, setLoadingFiles] = useState(false);
     const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
-    const [storageService] = useState(() => new StorageService(user?.id));
+    
+    // ✅ CORRECT - Inject browser client
+    const supabase = createClient(); // from @/utils/supabase/client
+    const [storageService] = useState(() => new StorageService(supabase));
     ```
   - [ ] Import storage components
   - [ ] Add file management functions
@@ -696,6 +729,54 @@ deleteFile(userId); // ❌ TypeScript error - can't use UserId as FilePath
 
 ---
 
+### Why Dependency Injection for StorageService?
+**Decision:** Require `SupabaseClient` to be passed into `StorageService` constructor instead of creating it internally
+
+**Rationale:**
+- **Universal Compatibility**: Works in both browser and server environments
+  - Browser (Client Components): Pass in browser client from `createClient()`
+  - Server (API Routes, Server Components): Pass in server client from `createClient()` with cookies
+- **Security**: Server-side code always uses authenticated session from incoming request
+  - Prevents accessing wrong user's files
+  - No cookie/session confusion
+- **Testability**: Can inject mock client for unit tests
+  - No need to mock global Supabase initialization
+  - Fast, isolated tests without real API calls
+- **Separation of Concerns**: Service contains business logic, not infrastructure setup
+- **Flexibility**: Same service works across all Next.js contexts
+
+**Example:**
+```typescript
+// Client Component
+'use client';
+import { createClient } from '@/utils/supabase/client';
+
+const supabase = createClient();  // Browser client
+const service = new StorageService(supabase);
+
+// Server Component / API Route
+import { createClient } from '@/utils/supabase/server';
+
+const supabase = await createClient();  // Server client (reads cookies)
+const service = new StorageService(supabase);
+
+// Unit Test
+const mockClient = createMockSupabaseClient();
+const service = new StorageService(mockClient);
+```
+
+**Alternatives Considered:**
+1. Optional client parameter with fallback to `createBrowserClient()` ❌
+   - Breaks in server context
+   - Can't access request cookies
+   - Authentication fails in API routes
+2. Separate `BrowserStorageService` and `ServerStorageService` classes ❌
+   - Code duplication
+   - Harder to maintain
+   - More complex API
+
+---
+
 ### Why Comprehensive Testing?
 **Decision:** 90%+ test coverage requirement
 
@@ -804,6 +885,14 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ---
 
 ## 📝 Change Log
+
+### 2025-11-23 - Architecture Update (Dependency Injection)
+- Updated Phase 1.2 to emphasize dependency injection pattern
+- Added critical implementation details for StorageService constructor
+- Added new technical decision section explaining dependency injection rationale
+- Updated AIBuilder.tsx integration example to show correct client injection
+- Clarified universal compatibility (browser + server contexts)
+- Added examples for client components, server components, and tests
 
 ### 2025-11-23 - Plan Created
 - Initial strategic plan developed
