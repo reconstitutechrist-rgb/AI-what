@@ -19,69 +19,119 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const supabaseRef = useRef<SupabaseClient | null>(null);
 
   // Initialize Supabase client only on client-side
   const getSupabase = () => {
     if (!supabaseRef.current) {
-      supabaseRef.current = createClient();
+      try {
+        supabaseRef.current = createClient();
+      } catch (err) {
+        console.error("Supabase initialization failed:", err);
+        throw err;
+      }
     }
     return supabaseRef.current;
   };
 
   useEffect(() => {
-    const supabase = getSupabase();
-    
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    try {
+      const supabase = getSupabase();
+      
+      // Get initial session
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }).catch(err => {
+        console.error("Error getting session:", err);
+        setLoading(false);
+      });
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+      // Listen for auth changes
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user ?? null);
+        setLoading(false);
+      });
 
-    return () => subscription.unsubscribe();
+      return () => subscription.unsubscribe();
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Failed to initialize authentication';
+      console.error("Auth initialization error:", message);
+      setError(message);
+      setLoading(false);
+    }
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const supabase = getSupabase();
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    try {
+      const supabase = getSupabase();
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      return { error };
+    } catch (e) {
+      return { error: e };
+    }
   };
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    const supabase = getSupabase();
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
+    try {
+      const supabase = getSupabase();
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
         },
-      },
-    });
-    return { error };
+      });
+      return { error };
+    } catch (e) {
+      return { error: e };
+    }
   };
 
   const signOut = async () => {
-    const supabase = getSupabase();
-    await supabase.auth.signOut();
+    try {
+      const supabase = getSupabase();
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error("Error signing out:", e);
+    }
   };
 
   const refreshSession = async () => {
-    const supabase = getSupabase();
-    const { data } = await supabase.auth.getSession();
-    setUser(data.session?.user ?? null);
+    try {
+      const supabase = getSupabase();
+      const { data } = await supabase.auth.getSession();
+      setUser(data.session?.user ?? null);
+    } catch (e) {
+      console.error("Error refreshing session:", e);
+    }
   };
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white p-4">
+        <div className="max-w-md w-full bg-red-500/10 border border-red-500/20 rounded-xl p-6 shadow-xl">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center text-xl">⚠️</div>
+            <h2 className="text-xl font-bold text-red-400">Configuration Error</h2>
+          </div>
+          <p className="text-sm text-slate-300 whitespace-pre-wrap mb-4">{error}</p>
+          <div className="text-xs text-slate-500 bg-black/20 p-3 rounded-lg">
+            <p className="font-semibold mb-1">How to fix:</p>
+            <p>Add the required environment variables to your Vercel project settings or .env.local file.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, refreshSession }}>

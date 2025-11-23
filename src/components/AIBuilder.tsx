@@ -5,6 +5,9 @@ import CodePreview from './CodePreview';
 import FullAppPreview from './FullAppPreview';
 import DiffPreview from './DiffPreview';
 import { exportAppAsZip, downloadBlob, parseAppFiles, getDeploymentInstructions, type DeploymentInstructions } from '../utils/exportApp';
+import { createClient } from '@/utils/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import type { Database } from '@/types/supabase';
 
 // Base44-inspired layout with conversation-first design + your dark colors
 
@@ -60,7 +63,47 @@ interface PendingDiff {
   timestamp: string;
 }
 
+// Type alias for database generated_apps row
+type DbGeneratedApp = Database['public']['Tables']['generated_apps']['Row'];
+type DbGeneratedAppInsert = Database['public']['Tables']['generated_apps']['Insert'];
+
+// Helper functions to convert between GeneratedComponent and database format
+function componentToDb(component: GeneratedComponent, userId: string): DbGeneratedAppInsert {
+  return {
+    id: component.id,
+    user_id: userId,
+    title: component.name,
+    description: component.description,
+    code: component.code,
+    metadata: {
+      isFavorite: component.isFavorite,
+      conversationHistory: component.conversationHistory,
+      versions: component.versions || [],
+      timestamp: component.timestamp
+    } as unknown as Database['public']['Tables']['generated_apps']['Row']['metadata'],
+    is_public: false,
+    version: (component.versions?.length || 0) + 1
+  };
+}
+
+function dbToComponent(dbApp: DbGeneratedApp): GeneratedComponent {
+  const metadata = dbApp.metadata as any || {};
+  return {
+    id: dbApp.id,
+    name: dbApp.title,
+    code: dbApp.code,
+    description: dbApp.description || '',
+    timestamp: metadata.timestamp || dbApp.created_at,
+    isFavorite: metadata.isFavorite || false,
+    conversationHistory: metadata.conversationHistory || [],
+    versions: metadata.versions || []
+  };
+}
+
 export default function AIBuilder() {
+  // Authentication
+  const { user, loading: authLoading } = useAuth();
+  
   // Core state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [userInput, setUserInput] = useState('');
@@ -83,6 +126,8 @@ export default function AIBuilder() {
   const [components, setComponents] = useState<GeneratedComponent[]>([]);
   const [showLibrary, setShowLibrary] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loadingApps, setLoadingApps] = useState(true);
+  const [dbSyncError, setDbSyncError] = useState<string | null>(null);
   
   // Version history
   const [showVersionHistory, setShowVersionHistory] = useState(false);
@@ -264,19 +309,130 @@ export default function AIBuilder() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undoStack, redoStack, currentComponent]);
 
-  // Load components from localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('ai_components');
-      if (stored) {
-        try {
-          setComponents(JSON.parse(stored));
-        } catch (e) {
-          console.error('Error loading components:', e);
-        }
-      }
+  // Database operations
+  const saveComponentToDb = async (component: GeneratedComponent) => {
+    if (!user) {
+      // User not authenticated - skip database save
+      return { success: true };
     }
-  }, []);
+
+    try {
+      const supabase = createClient();
+      const dbData = componentToDb(component, user.id);
+      
+      const { error } = await supabase
+        .from('generated_apps')
+        .upsert(dbData, { onConflict: 'id' });
+      
+      if (error) {
+        console.error('Error saving to database:', error);
+        setDbSyncError(`Failed to save "${component.name}" to database`);
+        return { success: false, error };
+      }
+      
+      // Clear any previous errors
+      setDbSyncError(null);
+      return { success: true };
+    } catch (error) {
+      console.error('Error in saveComponentToDb:', error);
+      setDbSyncError('Failed to save to database');
+      return { success: false, error };
+    }
+  };
+
+  const deleteComponentFromDb = async (componentId: string) => {
+    if (!user) {
+      // User not authenticated - skip database delete
+      return { success: true };
+    }
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('generated_apps')
+        .delete()
+        .eq('id', componentId)
+        .eq('user_id', user.id); // Ensure user can only delete their own apps
+      
+      if (error) {
+        console.error('Error deleting from database:', error);
+        setDbSyncError('Failed to delete from database');
+        return { success: false, error };
+      }
+      
+      // Clear any previous errors
+      setDbSyncError(null);
+      return { success: true };
+    } catch (error) {
+      console.error('Error in deleteComponentFromDb:', error);
+      setDbSyncError('Failed to delete from database');
+      return { success: false, error };
+    }
+  };
+
+  // Load components from Supabase database (with localStorage fallback)
+  useEffect(() => {
+    const loadApps = async () => {
+      // Wait for auth to finish loading
+      if (authLoading) return;
+      
+      setLoadingApps(true);
+      setDbSyncError(null);
+      
+      try {
+        if (user) {
+          // User is authenticated - load from database
+          const supabase = createClient();
+          const { data: dbApps, error } = await supabase
+            .from('generated_apps')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+          
+          if (error) {
+            console.error('Error loading apps from database:', error);
+            setDbSyncError('Failed to load apps from database');
+            
+            // Fallback to localStorage
+            if (typeof window !== 'undefined') {
+              const stored = localStorage.getItem('ai_components');
+              if (stored) {
+                setComponents(JSON.parse(stored));
+              }
+            }
+          } else {
+            // Convert database apps to component format
+            const loadedComponents = (dbApps || []).map(dbToComponent);
+            setComponents(loadedComponents);
+            
+            // Also cache in localStorage for offline access
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('ai_components', JSON.stringify(loadedComponents));
+            }
+          }
+        } else {
+          // User not authenticated - load from localStorage only
+          if (typeof window !== 'undefined') {
+            const stored = localStorage.getItem('ai_components');
+            if (stored) {
+              try {
+                setComponents(JSON.parse(stored));
+              } catch (e) {
+                console.error('Error loading components from localStorage:', e);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error in loadApps:', error);
+        setDbSyncError('Failed to load apps');
+      } finally {
+        setLoadingApps(false);
+      }
+    };
+    
+    loadApps();
+  }, [user, authLoading]);
 
   // Save components to localStorage
   useEffect(() => {
@@ -1011,6 +1167,9 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
               setComponents(prev => [newComponent, ...prev].slice(0, 50));
             }
             
+            // Save to database
+            saveComponentToDb(newComponent);
+            
             setActiveTab('preview');
           }
         }
@@ -1097,6 +1256,9 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
       setComponents(prev => 
         prev.map(comp => comp.id === currentComponent.id ? updatedComponent : comp)
       );
+
+      // Save to database
+      saveComponentToDb(updatedComponent);
 
       // Add approval confirmation message
       const approvalMessage: ChatMessage = {
@@ -1197,6 +1359,9 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
       setComponents(prev =>
         prev.map(comp => comp.id === currentComponent.id ? updatedComponent : comp)
       );
+
+      // Save to database
+      saveComponentToDb(updatedComponent);
 
       // Check if this was a staged modification
       const isStaged = pendingDiff.summary.includes('Stage');
@@ -1405,14 +1570,25 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
   };
 
   const toggleFavorite = (id: string) => {
+    const component = components.find(c => c.id === id);
+    if (!component) return;
+    
+    const updatedComponent = { ...component, isFavorite: !component.isFavorite };
+    
     setComponents(prev =>
       prev.map(comp =>
-        comp.id === id ? { ...comp, isFavorite: !comp.isFavorite } : comp
+        comp.id === id ? updatedComponent : comp
       )
     );
+    
+    // Save to database
+    saveComponentToDb(updatedComponent);
   };
 
   const deleteComponent = (id: string) => {
+    // Delete from database first
+    deleteComponentFromDb(id);
+    
     setComponents(prev => prev.filter(comp => comp.id !== id));
     
     // If deleting the currently loaded component, reset to welcome message
