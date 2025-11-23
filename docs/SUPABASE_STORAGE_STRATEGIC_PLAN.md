@@ -1,0 +1,817 @@
+# Supabase Storage Strategic Implementation Plan
+
+**Status:** 🟡 In Progress  
+**Started:** November 23, 2025  
+**Approach:** Long-term Foundation Over Short-term Gains  
+**Estimated Effort:** 16-21 hours of focused work
+
+---
+
+## 📋 Executive Summary
+
+### Current State
+- ❌ Storage utilities exist but **completely unused** (0/8 functions integrated)
+- ❌ No testing infrastructure for storage functionality
+- ❌ Critical bugs in environment variable handling (server.ts)
+- ❌ Weak type safety (allows typos and invalid bucket names)
+- ❌ No error handling strategy
+- ❌ Documentation claims completion but features not integrated
+
+### Strategic Vision
+Build a **production-grade content management platform** with:
+- ✅ Enterprise-level reliability and security
+- ✅ Comprehensive type safety preventing entire classes of bugs
+- ✅ Robust testing infrastructure catching regressions
+- ✅ Exceptional user experience with accessibility
+- ✅ Extensible architecture for future features
+- ✅ Maintainable codebase with clear documentation
+
+### Why This Approach
+Instead of quick fixes, we're building a **solid foundation** that:
+- Prevents bugs at compile time (type system)
+- Catches issues before users see them (testing)
+- Scales gracefully (service layer architecture)
+- Enables confident changes (comprehensive tests)
+- Welcomes future developers (documentation)
+
+---
+
+## 🎯 Strategic Objectives
+
+| Objective | Current | Target | Impact |
+|-----------|---------|--------|--------|
+| Type Safety | Weak (string types) | Strong (branded types) | Prevents 80% of bugs |
+| Test Coverage | 0% | 90%+ | Catches regressions |
+| Error Handling | Basic | Resilient (retry logic) | Better UX |
+| Code Organization | Scattered | Service layer | Maintainable |
+| Documentation | Incomplete | Comprehensive | Knowledge transfer |
+
+---
+
+## 📐 Implementation Phases
+
+### 🏛️ PHASE 1: Architectural Foundation
+**Priority:** CRITICAL  
+**Duration:** 3-4 hours  
+**Goal:** Build robust, type-safe foundation that scales
+
+#### 1.1 Establish Comprehensive Type System
+- [ ] Create `src/types/storage.ts` with complete type definitions
+  - [ ] Branded types (FilePath, FileId, UserId, SignedUrl)
+  - [ ] FileMetadata interface with all fields
+  - [ ] UploadConfig with validation rules
+  - [ ] StorageResult<T> for consistent error handling
+  - [ ] StorageError with detailed error codes
+  - [ ] StorageErrorCode enum (8 error types)
+  - [ ] PaginationOptions and PaginatedResult
+- [ ] Update `src/utils/supabase/storage.ts` to use new types
+  - [ ] Replace `bucket: string` with `bucket: BucketName`
+  - [ ] Add return type annotations to all 8 functions
+  - [ ] Add JSDoc comments for documentation
+
+**Deliverables:**
+```
+src/types/storage.ts (NEW)
+  - BrandedString type helper
+  - BucketName type
+  - FilePath, FileId, UserId branded types
+  - FileMetadata interface (complete)
+  - UploadConfig interface
+  - StorageResult<T> union type
+  - StorageError interface
+  - StorageErrorCode enum
+  - PaginationOptions interface
+  - PaginatedResult<T> interface
+```
+
+**Why This Matters:**
+- Compile-time safety prevents typos in bucket names
+- Branded types prevent mixing incompatible strings
+- Comprehensive error handling enables better UX
+- Return types enable IDE autocomplete
+
+---
+
+#### 1.2 Build Storage Service Layer
+- [ ] Create `src/services/StorageService.ts` (NEW)
+  - [ ] Class-based architecture with dependency injection
+  - [ ] `upload()` method with validation and retry logic
+  - [ ] `list()` method with pagination support
+  - [ ] `delete()` method with ownership verification
+  - [ ] `getUrl()` method (public or signed)
+  - [ ] Private helper methods:
+    - [ ] `validateFile()` - Size, type, extension checks
+    - [ ] `generatePath()` - User-scoped path generation
+    - [ ] `uploadWithRetry()` - Exponential backoff retry
+    - [ ] `getMetadata()` - Fetch file metadata
+    - [ ] `isRetryableError()` - Error classification
+    - [ ] `handleError()` - Consistent error mapping
+    - [ ] `sleep()` - Async delay for retries
+
+**Deliverables:**
+```
+src/services/StorageService.ts (NEW)
+  - StorageService class
+  - Full CRUD operations
+  - Validation logic
+  - Retry logic (3 attempts, exponential backoff)
+  - Error handling
+  - User-scoped security
+```
+
+**Architecture Benefits:**
+- **Testable**: Can mock Supabase client
+- **Maintainable**: Business logic separated from infrastructure
+- **Extensible**: Easy to add new operations
+- **Reusable**: Shared across all components
+- **Type-safe**: Full TypeScript integration
+- **Resilient**: Built-in retry and error recovery
+
+---
+
+### 🧪 PHASE 2: Comprehensive Testing Infrastructure
+**Priority:** CRITICAL  
+**Duration:** 4-5 hours  
+**Goal:** Build test suite that catches regressions and validates behavior
+
+#### 2.1 Unit Tests for Storage Service
+- [ ] Create `src/services/__tests__/StorageService.test.ts` (NEW)
+  - [ ] Mock Supabase client setup
+  - [ ] Upload tests:
+    - [ ] ✅ Valid file upload succeeds
+    - [ ] ❌ File too large rejected
+    - [ ] ❌ Invalid file type rejected
+    - [ ] ❌ Invalid extension rejected
+    - [ ] 🔄 Network error triggers retry
+    - [ ] 🔄 Retry succeeds on 3rd attempt
+  - [ ] List tests:
+    - [ ] ✅ Lists only user's files
+    - [ ] ✅ Pagination works correctly
+    - [ ] ✅ Sorting works (name, size, date)
+    - [ ] ❌ Empty list handled
+  - [ ] Delete tests:
+    - [ ] ✅ User can delete own files
+    - [ ] ❌ Cannot delete other user's files
+    - [ ] ❌ File not found handled
+  - [ ] URL tests:
+    - [ ] ✅ Public URL generation
+    - [ ] ✅ Signed URL generation
+    - [ ] ✅ Expiration time respected
+
+**Deliverables:**
+```
+src/services/__tests__/StorageService.test.ts (NEW)
+  - 20+ test cases
+  - Mock Supabase client
+  - Edge case coverage
+  - Error scenario testing
+```
+
+**Test Coverage Target:** 90%+ of StorageService
+
+---
+
+#### 2.2 Integration Tests
+- [ ] Create `src/__tests__/integration/storage-flow.test.ts` (NEW)
+  - [ ] Full upload-list-delete workflow
+  - [ ] Concurrent upload handling
+  - [ ] Storage quota enforcement
+  - [ ] Permission boundaries
+
+**Deliverables:**
+```
+src/__tests__/integration/storage-flow.test.ts (NEW)
+  - End-to-end workflows
+  - Real Supabase interaction (test DB)
+  - Race condition testing
+```
+
+---
+
+#### 2.3 Update Supabase Test Route
+- [ ] Modify `src/app/api/supabase-test/route.ts`
+  - [ ] Add storage bucket existence checks
+  - [ ] Test all 3 buckets (user-uploads, generated-apps, app-assets)
+  - [ ] Verify RLS policies
+  - [ ] Check bucket accessibility
+  - [ ] Update response with storage test results
+  - [ ] Provide actionable error messages
+
+**Deliverables:**
+```
+src/app/api/supabase-test/route.ts (MODIFIED)
+  - New storageBuckets test section
+  - Per-bucket status reporting
+  - Setup instructions for missing buckets
+```
+
+**Why Testing Matters:**
+- Catches bugs before they reach users
+- Enables confident refactoring
+- Documents expected behavior
+- Reduces debugging time
+- Improves code quality
+- Prevents regressions
+
+---
+
+### 🎨 PHASE 3: Production-Grade UI Components
+**Priority:** HIGH  
+**Duration:** 5-6 hours  
+**Goal:** Build delightful, accessible, performant file management UI
+
+#### 3.1 Create Modular Storage Components
+- [ ] Create component structure:
+  ```
+  src/components/storage/
+    ├── FileUploader.tsx (NEW)
+    ├── FileGrid.tsx (NEW)
+    ├── FileCard.tsx (NEW)
+    ├── StorageStats.tsx (NEW)
+    ├── FileFilters.tsx (NEW)
+    ├── FileActions.tsx (NEW)
+    └── index.ts (NEW)
+  ```
+
+**Component Details:**
+
+##### FileUploader.tsx
+- [ ] Drag & drop zone with visual feedback
+- [ ] File input fallback
+- [ ] Progress tracking per file
+- [ ] Validation feedback (size, type)
+- [ ] Multiple file upload support
+- [ ] Preview before upload
+- [ ] Cancel upload functionality
+
+##### FileGrid.tsx
+- [ ] Responsive grid layout (1/2/4 columns)
+- [ ] Virtual scrolling for performance
+- [ ] Lazy loading of thumbnails
+- [ ] Selection mode (single/multiple)
+- [ ] Sort controls (name, size, date)
+- [ ] Empty state messaging
+
+##### FileCard.tsx
+- [ ] File preview (images, icons for others)
+- [ ] File metadata display (name, size, date)
+- [ ] Action buttons (download, share, delete)
+- [ ] Context menu on right-click
+- [ ] Keyboard navigation support
+- [ ] Loading states
+
+##### StorageStats.tsx
+- [ ] Usage visualization (progress bar)
+- [ ] Breakdown by file type
+- [ ] Total files count
+- [ ] Quota warnings
+- [ ] Upgrade prompts (future)
+
+##### FileFilters.tsx
+- [ ] Search by filename
+- [ ] Filter by type (images, documents, etc.)
+- [ ] Filter by date range
+- [ ] Sort options
+- [ ] Clear all filters
+
+##### FileActions.tsx
+- [ ] Bulk operations (delete, download)
+- [ ] Share link generation
+- [ ] Move to folder (future)
+- [ ] Rename file
+- [ ] Copy link
+
+**Deliverables:**
+```
+src/components/storage/ (NEW DIRECTORY)
+  - 6 modular components
+  - Fully typed with TypeScript
+  - Accessible (ARIA labels, keyboard nav)
+  - Responsive design
+  - Loading and error states
+```
+
+---
+
+#### 3.2 Integrate into AIBuilder
+- [ ] Modify `src/components/AIBuilder.tsx`
+  - [ ] Add storage-related state
+    ```typescript
+    const [contentTab, setContentTab] = useState<'apps' | 'files'>('apps');
+    const [storageFiles, setStorageFiles] = useState<FileMetadata[]>([]);
+    const [loadingFiles, setLoadingFiles] = useState(false);
+    const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
+    const [storageService] = useState(() => new StorageService(user?.id));
+    ```
+  - [ ] Import storage components
+  - [ ] Add file management functions
+    ```typescript
+    const loadFiles = async () => { /* ... */ }
+    const handleUpload = async (file: File) => { /* ... */ }
+    const handleDelete = async (fileId: FileId) => { /* ... */ }
+    const handleDownload = async (file: FileMetadata) => { /* ... */ }
+    ```
+  - [ ] Update "My Apps" modal UI
+    - [ ] Add tab switcher (Apps / Files)
+    - [ ] Integrate FileUploader component
+    - [ ] Integrate FileGrid component
+    - [ ] Add StorageStats component
+    - [ ] Add FileFilters component
+  - [ ] Add useEffect hooks
+    ```typescript
+    useEffect(() => {
+      if (showLibrary && contentTab === 'files' && user) {
+        loadFiles();
+      }
+    }, [showLibrary, contentTab, user]);
+    ```
+
+**Deliverables:**
+```
+src/components/AIBuilder.tsx (MODIFIED)
+  - Tab navigation (Apps / Files)
+  - Storage service integration
+  - File management functions
+  - Component composition
+```
+
+**UI/UX Principles:**
+- **Responsive**: Works on mobile, tablet, desktop
+- **Accessible**: ARIA labels, keyboard navigation, screen reader support
+- **Performant**: Virtual scrolling, lazy loading, optimistic updates
+- **Delightful**: Smooth animations, clear feedback, helpful empty states
+- **Error-tolerant**: Graceful degradation, retry mechanisms
+
+---
+
+### 📊 PHASE 4: Monitoring & Analytics
+**Priority:** MEDIUM  
+**Duration:** 2-3 hours  
+**Goal:** Understand storage usage and catch issues proactively
+
+#### 4.1 Storage Analytics Service
+- [ ] Create `src/services/StorageAnalytics.ts` (NEW)
+  - [ ] Track upload events (file size, type, duration)
+  - [ ] Track download events
+  - [ ] Track delete events
+  - [ ] Track errors (with error codes)
+  - [ ] Track quota warnings
+  - [ ] Integration with existing analytics table
+
+**Deliverables:**
+```
+src/services/StorageAnalytics.ts (NEW)
+  - trackUpload()
+  - trackDownload()
+  - trackDelete()
+  - trackError()
+  - trackQuotaWarning()
+```
+
+---
+
+#### 4.2 Error Logging & Monitoring
+- [ ] Integrate with error tracking service (future: Sentry)
+- [ ] Add console logging with levels (debug, info, warn, error)
+- [ ] Create error dashboard query in Supabase
+- [ ] Set up alerts for critical errors
+
+**Deliverables:**
+```
+- Error logging infrastructure
+- Analytics queries
+- Alert configuration
+```
+
+---
+
+#### 4.3 Performance Monitoring
+- [ ] Add performance marks for upload/download times
+- [ ] Track component render times
+- [ ] Monitor storage API latency
+- [ ] Set up performance budgets
+
+**Why Monitoring Matters:**
+- Proactive issue detection
+- User behavior insights
+- Performance optimization targets
+- Error pattern identification
+
+---
+
+### 📚 PHASE 5: Documentation & Knowledge Transfer
+**Priority:** MEDIUM  
+**Duration:** 2-3 hours  
+**Goal:** Enable future developers to understand and extend the system
+
+#### 5.1 Architecture Decision Records (ADRs)
+- [ ] Create `docs/adr/` directory
+- [ ] Write `001-storage-service-layer.md`
+  - [ ] Context: Why service layer?
+  - [ ] Decision: Class-based architecture
+  - [ ] Consequences: Pros and cons
+  - [ ] Alternatives considered
+- [ ] Write `002-type-system-design.md`
+  - [ ] Branded types rationale
+  - [ ] Error handling approach
+  - [ ] Type safety benefits
+- [ ] Write `003-component-architecture.md`
+  - [ ] Modular component design
+  - [ ] Composition patterns
+  - [ ] Accessibility considerations
+
+**Deliverables:**
+```
+docs/adr/ (NEW DIRECTORY)
+  ├── 001-storage-service-layer.md
+  ├── 002-type-system-design.md
+  └── 003-component-architecture.md
+```
+
+---
+
+#### 5.2 API Documentation
+- [ ] Create `docs/STORAGE_API.md`
+  - [ ] StorageService API reference
+  - [ ] Component API reference
+  - [ ] Usage examples
+  - [ ] Error handling guide
+  - [ ] Best practices
+
+**Deliverables:**
+```
+docs/STORAGE_API.md (NEW)
+  - Complete API reference
+  - Code examples
+  - Common patterns
+  - Troubleshooting guide
+```
+
+---
+
+#### 5.3 Update Existing Documentation
+- [ ] Update `SUPABASE_INTEGRATION_SUMMARY.md`
+  - [ ] Change status from "✅ Complete" to "✅ Complete & Integrated"
+  - [ ] Add storage usage statistics
+  - [ ] Document new components
+  - [ ] Update checklist
+- [ ] Update `docs/SUPABASE_QUICK_START.md`
+  - [ ] Add file management examples
+  - [ ] Add StorageService usage guide
+  - [ ] Add troubleshooting section
+- [ ] Update main `README.md`
+  - [ ] Mention file management feature
+  - [ ] Link to storage documentation
+
+**Deliverables:**
+```
+SUPABASE_INTEGRATION_SUMMARY.md (UPDATED)
+docs/SUPABASE_QUICK_START.md (UPDATED)
+README.md (UPDATED)
+```
+
+---
+
+#### 5.4 Code Comments & JSDoc
+- [ ] Add comprehensive JSDoc to all public methods
+- [ ] Add inline comments for complex logic
+- [ ] Add type documentation
+- [ ] Add usage examples in comments
+
+**Why Documentation Matters:**
+- Reduces onboarding time for new developers
+- Prevents knowledge silos
+- Makes codebase self-explanatory
+- Enables confident changes
+- Improves maintainability
+
+---
+
+## 🚀 Long-Term Roadmap
+
+### Next Quarter (Q1 2026)
+- [ ] **Thumbnail Generation**
+  - Auto-generate thumbnails for images
+  - Preview generation for PDFs
+  - Video thumbnail extraction
+- [ ] **Background Upload Queue**
+  - Upload in background with service worker
+  - Resume interrupted uploads
+  - Batch upload optimization
+- [ ] **File Versioning**
+  - Track file versions
+  - Restore previous versions
+  - Compare versions
+- [ ] **Shared File Links**
+  - Generate shareable links
+  - Set expiration times
+  - Track link analytics
+
+### Next 6 Months (H1 2026)
+- [ ] **Collaborative Features**
+  - File comments
+  - @mentions
+  - Activity feed
+- [ ] **Advanced Search**
+  - Full-text search
+  - Metadata search
+  - Saved searches
+- [ ] **Webhooks**
+  - File upload events
+  - Delete notifications
+  - Quota warnings
+- [ ] **CDN Integration**
+  - Global edge caching
+  - Automatic optimization
+  - Faster downloads
+
+### Next Year (2026)
+- [ ] **AI-Powered Features**
+  - Auto-tagging with AI
+  - Smart organization
+  - Content recommendations
+- [ ] **Real-time Collaboration**
+  - Live file editing
+  - Presence indicators
+  - Collaborative annotations
+- [ ] **Plugin System**
+  - Custom file type handlers
+  - Third-party integrations
+  - Extension marketplace
+- [ ] **Multi-Cloud Backend**
+  - AWS S3 integration
+  - Google Cloud Storage
+  - Azure Blob Storage
+  - Automatic failover
+
+---
+
+## ✅ Progress Tracking
+
+### Overall Progress
+- [ ] Phase 1: Architectural Foundation (0/2 tasks)
+- [ ] Phase 2: Testing Infrastructure (0/3 tasks)
+- [ ] Phase 3: Production UI (0/2 tasks)
+- [ ] Phase 4: Monitoring (0/3 tasks)
+- [ ] Phase 5: Documentation (0/4 tasks)
+
+**Total:** 0/14 major tasks completed (0%)
+
+### Detailed Checklist
+
+#### Phase 1: Foundation ✅ (0/14 subtasks)
+- [ ] Create `src/types/storage.ts`
+- [ ] Define branded types
+- [ ] Create FileMetadata interface
+- [ ] Create UploadConfig interface
+- [ ] Create StorageResult type
+- [ ] Create StorageError interface
+- [ ] Create StorageErrorCode enum
+- [ ] Create pagination types
+- [ ] Create `src/services/StorageService.ts`
+- [ ] Implement upload() method
+- [ ] Implement list() method
+- [ ] Implement delete() method
+- [ ] Implement getUrl() method
+- [ ] Implement helper methods
+
+#### Phase 2: Testing ✅ (0/12 subtasks)
+- [ ] Create StorageService.test.ts
+- [ ] Write upload tests (6 cases)
+- [ ] Write list tests (4 cases)
+- [ ] Write delete tests (3 cases)
+- [ ] Write URL tests (3 cases)
+- [ ] Create integration test file
+- [ ] Write workflow tests
+- [ ] Write concurrency tests
+- [ ] Update supabase-test route
+- [ ] Add bucket existence checks
+- [ ] Test all 3 buckets
+- [ ] Add actionable error messages
+
+#### Phase 3: UI ✅ (0/13 subtasks)
+- [ ] Create components/storage/ directory
+- [ ] Create FileUploader.tsx
+- [ ] Create FileGrid.tsx
+- [ ] Create FileCard.tsx
+- [ ] Create StorageStats.tsx
+- [ ] Create FileFilters.tsx
+- [ ] Create FileActions.tsx
+- [ ] Update AIBuilder.tsx imports
+- [ ] Add storage state
+- [ ] Add file management functions
+- [ ] Update modal UI with tabs
+- [ ] Integrate components
+- [ ] Add useEffect hooks
+
+#### Phase 4: Monitoring ✅ (0/4 subtasks)
+- [ ] Create StorageAnalytics.ts
+- [ ] Implement event tracking
+- [ ] Set up error logging
+- [ ] Add performance monitoring
+
+#### Phase 5: Documentation ✅ (0/7 subtasks)
+- [ ] Create ADR directory
+- [ ] Write 3 ADR documents
+- [ ] Create STORAGE_API.md
+- [ ] Update SUPABASE_INTEGRATION_SUMMARY.md
+- [ ] Update SUPABASE_QUICK_START.md
+- [ ] Update README.md
+- [ ] Add JSDoc comments
+
+---
+
+## 🎓 Technical Decisions & Rationale
+
+### Why Service Layer Architecture?
+**Decision:** Implement `StorageService` class instead of utility functions
+
+**Rationale:**
+- **Testable**: Can inject mock Supabase client
+- **Stateful**: Can maintain user context and configuration
+- **Extensible**: Easy to add methods without scattered changes
+- **Encapsulated**: Business logic separated from infrastructure
+- **Type-safe**: Full TypeScript integration with generics
+
+**Alternatives Considered:**
+1. Direct Supabase calls in components ❌
+   - Not testable
+   - Scattered logic
+   - Hard to mock
+2. Utility functions ❌
+   - Doesn't scale
+   - Can't share state
+   - Hard to mock
+
+---
+
+### Why Branded Types?
+**Decision:** Use branded types for FilePath, FileId, etc.
+
+**Rationale:**
+- **Prevents mixing**: Can't accidentally use UserId where FilePath is expected
+- **Compile-time safety**: TypeScript catches errors before runtime
+- **Self-documenting**: Type names make code clearer
+- **Zero runtime cost**: Erased during compilation
+
+**Example:**
+```typescript
+type FilePath = string & { __brand: 'FilePath' };
+type UserId = string & { __brand: 'UserId' };
+
+function deleteFile(path: FilePath) { /* ... */ }
+
+const userId: UserId = "user-123";
+deleteFile(userId); // ❌ TypeScript error - can't use UserId as FilePath
+```
+
+---
+
+### Why Retry Logic?
+**Decision:** Built-in retry with exponential backoff
+
+**Rationale:**
+- **Resilience**: Network glitches don't fail user operations
+- **User experience**: "It just works" for temporary issues
+- **Best practice**: Industry standard for network operations
+- **Configurable**: Can adjust retry count and backoff
+
+**Implementation:**
+- 3 retry attempts
+- Exponential backoff: 1s, 2s, 4s
+- Only retries on retryable errors (500, 408, 429)
+- Doesn't retry permission errors (403) or not found (404)
+
+---
+
+### Why Component Modularity?
+**Decision:** Separate components instead of monolithic modal
+
+**Rationale:**
+- **Reusable**: Can use FileUploader in multiple places
+- **Testable**: Test each component in isolation
+- **Maintainable**: Changes isolated to specific component
+- **Accessible**: Focus on accessibility per component
+- **Performance**: Lazy load components as needed
+
+---
+
+### Why Comprehensive Testing?
+**Decision:** 90%+ test coverage requirement
+
+**Rationale:**
+- **Confidence**: Refactor without fear of breaking things
+- **Documentation**: Tests show how code should be used
+- **Regression prevention**: Catch bugs before users
+- **Quality**: Forces thinking about edge cases
+- **Speed**: Faster debugging with failing tests
+
+---
+
+## 📊 Success Metrics
+
+### Code Quality
+- [ ] **Type Coverage:** 100% (no `any` types)
+- [ ] **Test Coverage:** 90%+ for services, 70%+ for components
+- [ ] **ESLint Errors:** 0
+- [ ] **TypeScript Errors:** 0
+- [ ] **Accessibility:** WCAG 2.1 AA compliant
+
+### Performance
+- [ ] **Upload Time:** < 5s for 10MB file
+- [ ] **List Load Time:** < 1s for 100 files
+- [ ] **Delete Operation:** < 500ms
+- [ ] **UI Responsiveness:** 60 FPS during interactions
+
+### User Experience
+- [ ] **Error Messages:** Clear, actionable, helpful
+- [ ] **Loading States:** Always visible during async operations
+- [ ] **Empty States:** Engaging and instructive
+- [ ] **Keyboard Navigation:** Full accessibility
+
+### Reliability
+- [ ] **Uptime:** 99.9% (dependent on Supabase)
+- [ ] **Error Rate:** < 0.1% of operations
+- [ ] **Retry Success Rate:** > 90% on retryable errors
+
+---
+
+## 🔧 Environment Setup
+
+### Required Environment Variables
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+### Required Supabase Configuration
+1. **Storage Buckets:**
+   - `user-uploads` (Private, 10MB limit)
+   - `generated-apps` (Private, 50MB limit)
+   - `app-assets` (Public, 5MB limit)
+
+2. **RLS Policies:**
+   - Users can only access their own files
+   - Path scoped by user ID: `{user_id}/{filename}`
+
+3. **Database Tables:**
+   - `analytics_events` for tracking storage operations
+
+### Development Tools
+- Node.js 18+
+- npm or pnpm
+- TypeScript 5+
+- Jest for testing
+- ESLint for linting
+
+---
+
+## 🚨 Critical Reminders
+
+### Before Starting Implementation
+1. **Backup Code:** Commit all changes to git
+2. **Verify Environment:** Check `.env.local` has Supabase credentials
+3. **Test Current State:** Run `npm run dev` to ensure app works
+4. **Read Plan:** Understand full scope before coding
+
+### During Implementation
+1. **One Phase at a Time:** Complete Phase 1 before Phase 2
+2. **Test Incrementally:** Write tests alongside code, not after
+3. **Commit Often:** Small, focused commits with clear messages
+4. **Ask Questions:** Clarify before implementing if unsure
+
+### After Implementation
+1. **Run All Tests:** Ensure 100% pass rate
+2. **Manual Testing:** Use the UI yourself
+3. **Review Checklist:** Mark all completed tasks
+4. **Update Documentation:** Keep this plan current
+
+---
+
+## 📞 Support & Resources
+
+### Documentation
+- [Supabase Storage Docs](https://supabase.com/docs/guides/storage)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+- [React Testing Library](https://testing-library.com/react)
+- [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
+
+### Code References
+- Current storage utilities: `src/utils/supabase/storage.ts`
+- Existing database integration: `src/components/AIBuilder.tsx`
+- Type definitions: `src/types/supabase.ts`
+
+---
+
+## 📝 Change Log
+
+### 2025-11-23 - Plan Created
+- Initial strategic plan developed
+- Long-term approach prioritized over quick wins
+- 5-phase implementation roadmap established
+- Success metrics defined
+- Documentation structure planned
+
+---
+
+**Next Action:** Begin Phase 1.1 - Create comprehensive type system in `src/types/storage.ts`
