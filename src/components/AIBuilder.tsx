@@ -22,7 +22,8 @@ import { StorageService } from '@/services/StorageService';
 import type { 
   FileMetadata, 
   StorageStats as StorageStatsType,
-  FileId 
+  FileId,
+  UserId
 } from '@/types/storage';
 
 // Base44-inspired layout with conversation-first design + your dark colors
@@ -473,6 +474,13 @@ export default function AIBuilder() {
       localStorage.setItem('ai_components', JSON.stringify(components));
     }
   }, [components]);
+
+  // Load files when user authenticates or when storage tab is active
+  useEffect(() => {
+    if (user && showLibrary && contentTab === 'files') {
+      loadFiles();
+    }
+  }, [user, showLibrary, contentTab]);
 
   // Handle image upload
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1685,11 +1693,239 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
     URL.revokeObjectURL(url);
   };
 
+  // File management functions
+  const loadFiles = async () => {
+    if (!user) {
+      setStorageFiles([]);
+      return;
+    }
+
+    setLoadingFiles(true);
+    try {
+      const result = await storageService.list('user-uploads', {
+        limit: 100,
+        offset: 0,
+        sortBy: {
+          column: fileSortBy,
+          order: fileSortOrder
+        }
+      });
+
+      if (result.success && result.data) {
+        setStorageFiles(result.data.items);
+        
+        // Calculate storage stats
+        const totalSize = result.data.items.reduce((sum, file) => sum + file.size, 0);
+        const byType: Record<string, { fileCount: number; totalSize: number }> = {};
+        
+        result.data.items.forEach(file => {
+          const ext = file.name.split('.').pop()?.toLowerCase() || 'unknown';
+          if (!byType[ext]) {
+            byType[ext] = { fileCount: 0, totalSize: 0 };
+          }
+          byType[ext].fileCount++;
+          byType[ext].totalSize += file.size;
+        });
+
+        setStorageStats({
+          userId: user.id as UserId,
+          totalFiles: result.data.items.length,
+          totalSize,
+          byBucket: {
+            'user-uploads': {
+              fileCount: result.data.items.length,
+              totalSize
+            },
+            'generated-apps': {
+              fileCount: 0,
+              totalSize: 0
+            },
+            'app-assets': {
+              fileCount: 0,
+              totalSize: 0
+            }
+          },
+          byType,
+          quota: 100 * 1024 * 1024, // 100MB limit
+          quotaUsagePercent: (totalSize / (100 * 1024 * 1024)) * 100
+        });
+      } else {
+        console.error('Failed to load files:', result.error);
+      }
+    } catch (error) {
+      console.error('Error loading files:', error);
+    } finally {
+      setLoadingFiles(false);
+    }
+  };
+
+  const handleFileUpload = async (files: File[]) => {
+    if (!user || files.length === 0) return;
+
+    // Track uploading files
+    const newUploadingFiles = new Set(uploadingFiles);
+    files.forEach(file => newUploadingFiles.add(file.name));
+    setUploadingFiles(newUploadingFiles);
+
+    try {
+      // Upload files sequentially
+      for (const file of files) {
+        const result = await storageService.upload('user-uploads', file, {
+          maxSize: 10 * 1024 * 1024,
+          allowedTypes: [],
+          allowedExtensions: []
+        });
+
+        if (!result.success) {
+          alert(`Failed to upload ${file.name}: ${result.error?.message || 'Unknown error'}`);
+        }
+      }
+
+      // Reload files after upload
+      await loadFiles();
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      alert('Failed to upload files. Please try again.');
+    } finally {
+      // Clear uploading state
+      setUploadingFiles(new Set());
+    }
+  };
+
+  const handleFileDelete = async (fileId: FileId) => {
+    if (!user) return;
+
+    const file = storageFiles.find(f => f.id === fileId);
+    if (!file) return;
+
+    if (!confirm(`Delete "${file.name}"?`)) return;
+
+    // Track deleting file
+    setDeletingFiles(prev => new Set([...prev, fileId]));
+
+    try {
+      const result = await storageService.delete(file.bucket, fileId);
+
+      if (result.success) {
+        // Remove from local state
+        setStorageFiles(prev => prev.filter(f => f.id !== fileId));
+        // Update stats
+        await loadFiles();
+      } else {
+        alert(`Failed to delete file: ${result.error?.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      alert('Failed to delete file. Please try again.');
+    } finally {
+      setDeletingFiles(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(fileId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleFileDownload = async (file: FileMetadata) => {
+    if (!user) return;
+
+    try {
+      const result = await storageService.download(file.bucket, file.path);
+
+      if (result.success && result.data) {
+        // Create download link
+        const url = URL.createObjectURL(result.data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        alert(`Failed to download file: ${result.error?.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      alert('Failed to download file. Please try again.');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!user || selectedFiles.size === 0) return;
+
+    if (!confirm(`Delete ${selectedFiles.size} selected files?`)) return;
+
+    const fileIds = Array.from(selectedFiles);
+    setDeletingFiles(new Set(fileIds));
+
+    try {
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const fileId of fileIds) {
+        const file = storageFiles.find(f => f.id === fileId);
+        if (!file) continue;
+        
+        const result = await storageService.delete(file.bucket, fileId as FileId);
+        if (result.success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      }
+
+      if (failCount > 0) {
+        alert(`Deleted ${successCount} files, ${failCount} failed`);
+      }
+
+      // Clear selection and reload
+      setSelectedFiles(new Set());
+      await loadFiles();
+    } catch (error) {
+      console.error('Error bulk deleting:', error);
+      alert('Failed to delete files. Please try again.');
+    } finally {
+      setDeletingFiles(new Set());
+    }
+  };
+
+  const handleFileSelect = (fileId: string) => {
+    setSelectedFiles(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(fileId)) {
+        newSet.delete(fileId);
+      } else {
+        newSet.add(fileId);
+      }
+      return newSet;
+    });
+  };
+
   const filteredComponents = components.filter(comp =>
     searchQuery === '' ||
     comp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     comp.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Filter files based on search and filters
+  const filteredFiles = storageFiles.filter(file => {
+    // Search filter
+    if (fileSearchQuery && !file.name.toLowerCase().includes(fileSearchQuery.toLowerCase())) {
+      return false;
+    }
+
+    // Type filter
+    if (fileTypeFilter !== 'all') {
+      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+      if (fileTypeFilter === 'images' && !['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+        return false;
+      }
+      if (fileTypeFilter === 'documents' && !['pdf', 'doc', 'docx', 'txt', 'md'].includes(ext)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 
   // Prevent hydration errors by only rendering after client mount
   if (!isClient) {
@@ -2049,9 +2285,9 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
                   <span>📂</span>
-                  <span>My Apps</span>
+                  <span>My Content</span>
                   <span className="text-sm font-normal text-slate-400">
-                    ({components.length})
+                    ({contentTab === 'apps' ? components.length : storageFiles.length})
                   </span>
                 </h2>
                 <button
@@ -2062,22 +2298,61 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
                 </button>
               </div>
 
+              {/* Tabs */}
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => setContentTab('apps')}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    contentTab === 'apps'
+                      ? 'bg-purple-600 text-white shadow-lg'
+                      : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
+                  }`}
+                >
+                  🚀 Apps ({components.length})
+                </button>
+                <button
+                  onClick={() => setContentTab('files')}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    contentTab === 'files'
+                      ? 'bg-purple-600 text-white shadow-lg'
+                      : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
+                  }`}
+                >
+                  📁 Files ({storageFiles.length})
+                </button>
+              </div>
+
               {/* Search */}
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search apps..."
-                className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                id="app-search"
-                name="app-search"
-                autoComplete="off"
-              />
+              {contentTab === 'apps' ? (
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search apps..."
+                  className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  id="app-search"
+                  name="app-search"
+                  autoComplete="off"
+                />
+              ) : (
+                <FileFilters
+                  searchQuery={fileSearchQuery}
+                  onSearchChange={setFileSearchQuery}
+                  typeFilter={fileTypeFilter}
+                  onTypeFilterChange={setFileTypeFilter}
+                  sortBy={fileSortBy}
+                  onSortByChange={setFileSortBy}
+                  sortOrder={fileSortOrder}
+                  onSortOrderChange={setFileSortOrder}
+                />
+              )}
             </div>
 
             {/* Library Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              {filteredComponents.length === 0 ? (
+              {contentTab === 'apps' ? (
+                // Apps Tab Content
+                filteredComponents.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-6xl mb-4">📭</div>
                   <p className="text-slate-400">
@@ -2141,6 +2416,72 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
                     </div>
                   ))}
                 </div>
+              )
+              ) : (
+                // Files Tab Content
+                <>
+                  {!user ? (
+                    <div className="flex flex-col items-center justify-center py-16 px-4">
+                      <div className="text-6xl mb-4">🔒</div>
+                      <h3 className="text-xl font-semibold text-white mb-2">
+                        Sign In Required
+                      </h3>
+                      <p className="text-slate-400 text-center max-w-md">
+                        Please sign in to access file storage
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* File Uploader */}
+                      <FileUploader
+                        onUpload={handleFileUpload}
+                        maxFileSize={10 * 1024 * 1024}
+                        allowedTypes={[]}
+                        allowedExtensions={[]}
+                        disabled={!user}
+                      />
+
+                      {/* Storage Stats */}
+                      {storageStats && (
+                        <StorageStats stats={storageStats} />
+                      )}
+
+                      {/* File Grid */}
+                      <FileGrid
+                        files={filteredFiles}
+                        selectedFiles={selectedFiles}
+                        onSelectFile={(file) => handleFileSelect(file.id)}
+                        onDownload={handleFileDownload}
+                        onDelete={(file) => handleFileDelete(file.id as FileId)}
+                        loadingFileIds={deletingFiles}
+                        isLoading={loadingFiles}
+                      />
+
+                      {/* Bulk Actions */}
+                      {selectedFiles.size > 0 && (
+                        <div className="fixed bottom-6 right-6 bg-slate-800 rounded-xl border border-white/20 shadow-2xl p-4">
+                          <div className="flex items-center gap-3">
+                            <span className="text-white text-sm">
+                              {selectedFiles.size} selected
+                            </span>
+                            <button
+                              onClick={handleBulkDelete}
+                              className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-all"
+                            >
+                              🗑️ Delete Selected
+                            </button>
+                            <button
+                              onClick={() => setSelectedFiles(new Set())}
+                              className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium transition-all"
+                            >
+                              Clear Selection
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
