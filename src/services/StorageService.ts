@@ -47,6 +47,7 @@ import {
   getFileExtension,
   isRetryableError as isRetryableErrorUtil,
 } from '@/types/storage';
+import { StorageAnalyticsService, generateOperationId } from './StorageAnalytics';
 
 /**
  * Configuration for each storage bucket
@@ -100,15 +101,30 @@ export class StorageService {
   private client: SupabaseClient<Database>;
 
   /**
+   * Optional analytics service for tracking operations
+   */
+  private analytics?: StorageAnalyticsService;
+
+  /**
    * Create a new StorageService instance
    * 
    * @param client - Supabase client (browser or server)
+   * @param analytics - Optional analytics service for tracking operations
    * 
    * @example Browser context
    * ```typescript
    * import { createClient } from '@/utils/supabase/client';
    * const supabase = createClient();
    * const storage = new StorageService(supabase);
+   * ```
+   * 
+   * @example With analytics
+   * ```typescript
+   * import { createClient } from '@/utils/supabase/client';
+   * import { StorageAnalyticsService } from './StorageAnalytics';
+   * const supabase = createClient();
+   * const analytics = new StorageAnalyticsService(supabase);
+   * const storage = new StorageService(supabase, analytics);
    * ```
    * 
    * @example Server context
@@ -118,8 +134,9 @@ export class StorageService {
    * const storage = new StorageService(supabase);
    * ```
    */
-  constructor(client: SupabaseClient<Database>) {
+  constructor(client: SupabaseClient<Database>, analytics?: StorageAnalyticsService) {
     this.client = client;
+    this.analytics = analytics;
   }
 
   // ==========================================================================
@@ -145,6 +162,12 @@ export class StorageService {
     file: File,
     config?: UploadConfig
   ): Promise<StorageResult<FileMetadata>> {
+    const operationId = generateOperationId('upload');
+    const startTime = Date.now();
+
+    // Start performance tracking
+    this.analytics?.startPerformanceTracking(operationId);
+
     try {
       // Get current user ID
       const userId = await this.getUserId();
@@ -153,15 +176,28 @@ export class StorageService {
       const validation = this.validateFile(file, bucket, config);
       if (!validation.isValid) {
         const firstError = validation.errors[0];
+        const error = createStorageError(
+          firstError.code,
+          firstError.message,
+          { validationErrors: validation.errors }
+        );
+
+        // Track validation error
+        await this.analytics?.trackError({
+          operationId,
+          bucket,
+          error,
+          isRetryable: false,
+          context: { fileName: file.name, fileSize: file.size },
+        });
+
         return {
           success: false,
-          error: createStorageError(
-            firstError.code,
-            firstError.message,
-            { validationErrors: validation.errors }
-          ),
+          error,
         };
       }
+
+      this.analytics?.addPerformanceCheckpoint(operationId, 'validation_complete');
 
       // Generate user-scoped path
       const path = this.generatePath(userId, file.name);
@@ -171,27 +207,79 @@ export class StorageService {
         bucket,
         path,
         file,
-        config
+        config,
+        operationId
       );
 
       if (!uploadResult.success) {
+        // Track upload error (already tracked in uploadWithRetry, but track final failure)
+        const duration = Date.now() - startTime;
+        await this.analytics?.trackUpload({
+          operationId,
+          bucket,
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          fileExtension: getFileExtension(file.name),
+          success: false,
+          duration,
+        });
+
         return {
           success: false,
           error: uploadResult.error,
         };
       }
 
+      this.analytics?.addPerformanceCheckpoint(operationId, 'upload_complete');
+
       // Get metadata for uploaded file
       const metadata = await this.getMetadata(bucket, path, userId);
+
+      // Track successful upload
+      const duration = Date.now() - startTime;
+      await this.analytics?.trackUpload({
+        operationId,
+        bucket,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        fileExtension: getFileExtension(file.name),
+        success: true,
+        duration,
+      });
 
       return {
         success: true,
         data: metadata,
       };
     } catch (error) {
+      const storageError = this.handleError(error, StorageErrorCode.UPLOAD_FAILED);
+      const duration = Date.now() - startTime;
+
+      // Track error
+      await this.analytics?.trackError({
+        operationId,
+        bucket,
+        error: storageError,
+        isRetryable: isRetryableErrorUtil(storageError),
+        context: { fileName: file.name, fileSize: file.size },
+      });
+
+      await this.analytics?.trackUpload({
+        operationId,
+        bucket,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        fileExtension: getFileExtension(file.name),
+        success: false,
+        duration,
+      });
+
       return {
         success: false,
-        error: this.handleError(error, StorageErrorCode.UPLOAD_FAILED),
+        error: storageError,
       };
     }
   }
@@ -212,6 +300,9 @@ export class StorageService {
     bucket: BucketName,
     options?: PaginationOptions
   ): Promise<StorageResult<PaginatedResult<FileMetadata>>> {
+    const operationId = generateOperationId('list');
+    const startTime = Date.now();
+
     try {
       // Get current user ID
       const userId = await this.getUserId();
@@ -231,9 +322,24 @@ export class StorageService {
         });
 
       if (error) {
+        const storageError = this.handleError(error, StorageErrorCode.UNKNOWN_ERROR);
+        const duration = Date.now() - startTime;
+
+        // Track error
+        await this.analytics?.trackList({
+          operationId,
+          bucket,
+          filesReturned: 0,
+          success: false,
+          duration,
+          offset,
+          limit,
+          sortBy: sortBy.column,
+        });
+
         return {
           success: false,
-          error: this.handleError(error, StorageErrorCode.UNKNOWN_ERROR),
+          error: storageError,
         };
       }
 
@@ -258,6 +364,19 @@ export class StorageService {
       const hasMore = items.length === limit;
       const nextOffset = hasMore ? offset + limit : undefined;
 
+      // Track successful list operation
+      const duration = Date.now() - startTime;
+      await this.analytics?.trackList({
+        operationId,
+        bucket,
+        filesReturned: items.length,
+        success: true,
+        duration,
+        offset,
+        limit,
+        sortBy: sortBy.column,
+      });
+
       return {
         success: true,
         data: {
@@ -273,9 +392,20 @@ export class StorageService {
         },
       };
     } catch (error) {
+      const storageError = this.handleError(error, StorageErrorCode.UNKNOWN_ERROR);
+      const duration = Date.now() - startTime;
+
+      await this.analytics?.trackList({
+        operationId,
+        bucket,
+        filesReturned: 0,
+        success: false,
+        duration,
+      });
+
       return {
         success: false,
-        error: this.handleError(error, StorageErrorCode.UNKNOWN_ERROR),
+        error: storageError,
       };
     }
   }
@@ -295,19 +425,34 @@ export class StorageService {
     bucket: BucketName,
     fileId: FileId
   ): Promise<StorageResult<void>> {
+    const operationId = generateOperationId('delete');
+    const startTime = Date.now();
+    const fileName = fileId.split('/').pop() || fileId;
+
     try {
       // Get current user ID
       const userId = await this.getUserId();
 
       // Verify ownership (file path should start with user ID)
       if (!fileId.startsWith(userId)) {
+        const error = createStorageError(
+          StorageErrorCode.PERMISSION_DENIED,
+          'You do not have permission to delete this file',
+          { fileId, userId }
+        );
+
+        await this.analytics?.trackDelete({
+          operationId,
+          bucket,
+          fileId,
+          fileName,
+          success: false,
+          duration: Date.now() - startTime,
+        });
+
         return {
           success: false,
-          error: createStorageError(
-            StorageErrorCode.PERMISSION_DENIED,
-            'You do not have permission to delete this file',
-            { fileId, userId }
-          ),
+          error,
         };
       }
 
@@ -316,21 +461,56 @@ export class StorageService {
         .from(bucket)
         .remove([fileId]);
 
+      const duration = Date.now() - startTime;
+
       if (error) {
+        const storageError = this.handleError(error, StorageErrorCode.DELETE_FAILED);
+
+        await this.analytics?.trackDelete({
+          operationId,
+          bucket,
+          fileId,
+          fileName,
+          success: false,
+          duration,
+        });
+
         return {
           success: false,
-          error: this.handleError(error, StorageErrorCode.DELETE_FAILED),
+          error: storageError,
         };
       }
+
+      // Track successful delete
+      await this.analytics?.trackDelete({
+        operationId,
+        bucket,
+        fileId,
+        fileName,
+        success: true,
+        duration,
+      });
 
       return {
         success: true,
         data: undefined,
       };
     } catch (error) {
+      const storageError = this.handleError(error, StorageErrorCode.DELETE_FAILED);
+      const duration = Date.now() - startTime;
+
+      await this.analytics?.trackDelete({
+        operationId,
+        bucket,
+        fileId,
+        fileName,
+        success: false,
+        duration,
+      });
+
       return {
         success: false,
-        error: this.handleError(error, StorageErrorCode.DELETE_FAILED),
+        error: storageError,
       };
     }
   }
@@ -417,19 +597,35 @@ export class StorageService {
     bucket: BucketName,
     path: FilePath
   ): Promise<StorageResult<Blob>> {
+    const operationId = generateOperationId('download');
+    const startTime = Date.now();
+    const fileName = path.split('/').pop() || path;
+
     try {
       // Get current user ID for ownership verification
       const userId = await this.getUserId();
 
       // Verify ownership
       if (!path.startsWith(userId)) {
+        const error = createStorageError(
+          StorageErrorCode.PERMISSION_DENIED,
+          'You do not have permission to access this file',
+          { path, userId }
+        );
+
+        await this.analytics?.trackDownload({
+          operationId,
+          bucket,
+          fileId: path as unknown as FileId,
+          fileName,
+          fileSize: 0,
+          success: false,
+          duration: Date.now() - startTime,
+        });
+
         return {
           success: false,
-          error: createStorageError(
-            StorageErrorCode.PERMISSION_DENIED,
-            'You do not have permission to access this file',
-            { path, userId }
-          ),
+          error,
         };
       }
 
@@ -437,21 +633,59 @@ export class StorageService {
         .from(bucket)
         .download(path);
 
+      const duration = Date.now() - startTime;
+
       if (error) {
+        const storageError = this.handleError(error, StorageErrorCode.DOWNLOAD_FAILED);
+
+        await this.analytics?.trackDownload({
+          operationId,
+          bucket,
+          fileId: path as unknown as FileId,
+          fileName,
+          fileSize: 0,
+          success: false,
+          duration,
+        });
+
         return {
           success: false,
-          error: this.handleError(error, StorageErrorCode.DOWNLOAD_FAILED),
+          error: storageError,
         };
       }
+
+      // Track successful download
+      await this.analytics?.trackDownload({
+        operationId,
+        bucket,
+        fileId: path as unknown as FileId,
+        fileName,
+        fileSize: data.size,
+        success: true,
+        duration,
+      });
 
       return {
         success: true,
         data,
       };
     } catch (error) {
+      const storageError = this.handleError(error, StorageErrorCode.DOWNLOAD_FAILED);
+      const duration = Date.now() - startTime;
+
+      await this.analytics?.trackDownload({
+        operationId,
+        bucket,
+        fileId: path as unknown as FileId,
+        fileName,
+        fileSize: 0,
+        success: false,
+        duration,
+      });
+
       return {
         success: false,
-        error: this.handleError(error, StorageErrorCode.DOWNLOAD_FAILED),
+        error: storageError,
       };
     }
   }
@@ -571,7 +805,8 @@ export class StorageService {
     bucket: BucketName,
     path: FilePath,
     file: File,
-    config?: UploadConfig
+    config?: UploadConfig,
+    operationId?: string
   ): Promise<StorageResult<void>> {
     let lastError: StorageError | null = null;
 
@@ -587,6 +822,18 @@ export class StorageService {
 
         if (error) {
           lastError = this.handleError(error, StorageErrorCode.UPLOAD_FAILED);
+          
+          // Track retry attempt
+          if (operationId) {
+            await this.analytics?.trackError({
+              operationId,
+              bucket,
+              error: lastError,
+              isRetryable: isRetryableErrorUtil(lastError),
+              retryAttempt: attempt,
+              context: { fileName: file.name, fileSize: file.size },
+            });
+          }
           
           // Check if error is retryable
           if (!isRetryableErrorUtil(lastError)) {
@@ -605,6 +852,18 @@ export class StorageService {
         }
       } catch (error) {
         lastError = this.handleError(error, StorageErrorCode.UPLOAD_FAILED);
+        
+        // Track retry attempt
+        if (operationId) {
+          await this.analytics?.trackError({
+            operationId,
+            bucket,
+            error: lastError,
+            isRetryable: isRetryableErrorUtil(lastError),
+            retryAttempt: attempt,
+            context: { fileName: file.name, fileSize: file.size },
+          });
+        }
         
         if (!isRetryableErrorUtil(lastError) || attempt === RETRY_CONFIG.maxAttempts) {
           return { success: false, error: lastError };

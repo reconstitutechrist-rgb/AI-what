@@ -19,6 +19,7 @@ import {
   StorageStats 
 } from './storage';
 import { StorageService } from '@/services/StorageService';
+import { StorageAnalyticsService } from '@/services/StorageAnalytics';
 import type { 
   FileMetadata, 
   StorageStats as StorageStatsType,
@@ -212,7 +213,8 @@ export default function AIBuilder() {
   // Initialize StorageService with browser client (dependency injection pattern)
   const [storageService] = useState(() => {
     const supabase = createClient();
-    return new StorageService(supabase);
+    const analytics = new StorageAnalyticsService(supabase);
+    return new StorageService(supabase, analytics);
   });
 
   // Ref for auto-scrolling chat
