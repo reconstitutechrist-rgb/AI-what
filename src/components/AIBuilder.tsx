@@ -210,7 +210,7 @@ export default function AIBuilder() {
   const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
   const [deletingFiles, setDeletingFiles] = useState<Set<string>>(new Set());
 
-  // Initialize StorageService with browser client (dependency injection pattern)
+  // Initialize StorageService with browser client and analytics (dependency injection pattern)
   const [storageService] = useState(() => {
     const supabase = createClient();
     const analytics = new StorageAnalyticsService(supabase);
