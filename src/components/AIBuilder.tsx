@@ -419,7 +419,7 @@ export default function AIBuilder() {
       
       try {
         if (user) {
-          // User is authenticated - load from database
+          // User is authenticated - load from BOTH database AND localStorage, then merge
           const supabase = createClient();
           const { data: dbApps, error } = await supabase
             .from('generated_apps')
@@ -440,12 +440,44 @@ export default function AIBuilder() {
             }
           } else {
             // Convert database apps to component format
-            const loadedComponents = (dbApps || []).map(dbToComponent);
-            setComponents(loadedComponents);
+            const dbComponents = (dbApps || []).map(dbToComponent);
             
-            // Also cache in localStorage for offline access
+            // Load from localStorage
+            let localComponents: GeneratedComponent[] = [];
             if (typeof window !== 'undefined') {
-              localStorage.setItem('ai_components', JSON.stringify(loadedComponents));
+              const stored = localStorage.getItem('ai_components');
+              if (stored) {
+                try {
+                  localComponents = JSON.parse(stored);
+                } catch (e) {
+                  console.error('Error parsing localStorage:', e);
+                }
+              }
+            }
+            
+            // MERGE: Use Map to deduplicate by ID
+            const mergedMap = new Map<string, GeneratedComponent>();
+            
+            // Add localStorage components first (may include apps not yet synced to DB)
+            localComponents.forEach(comp => {
+              mergedMap.set(comp.id, comp);
+            });
+            
+            // Add/overwrite with database components (database is source of truth for synced apps)
+            dbComponents.forEach(comp => {
+              mergedMap.set(comp.id, comp);
+            });
+            
+            // Convert back to array and sort by timestamp (newest first)
+            const mergedComponents = Array.from(mergedMap.values()).sort((a, b) => 
+              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            );
+            
+            setComponents(mergedComponents);
+            
+            // Cache merged result in localStorage
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('ai_components', JSON.stringify(mergedComponents));
             }
           }
         } else {
