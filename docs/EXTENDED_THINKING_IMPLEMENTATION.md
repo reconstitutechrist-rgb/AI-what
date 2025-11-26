@@ -242,11 +242,11 @@ if (chunk.type === 'message_stop') {
 
 ## Implementation Checklist
 
-- [ ] Update `/api/ai-builder/route.ts` - temp=1, thinking budget=8000, timeout=60s
-- [ ] Update `/api/ai-builder/modify/generation-logic.ts` - temp=1, thinking budget=10000
-- [ ] Update `/api/ai-builder/full-app/generation-logic.ts` - temp=1, thinking budget=16000
-- [ ] Update `/api/chat/route.ts` - temp=1, thinking budget=5000
-- [ ] Update `/api/ai-builder/plan-phases/route.ts` - temp=1, thinking budget=10000
+- [x] Update `/api/ai-builder/route.ts` - temp=1, thinking budget=8000, timeout=60s
+- [x] Update `/api/ai-builder/modify/generation-logic.ts` - temp=1, thinking budget=10000, timeout=60s
+- [x] Update `/api/ai-builder/full-app/generation-logic.ts` - temp=1, thinking budget=16000, timeout=90s
+- [x] Update `/api/chat/route.ts` - temp=1, thinking budget=5000
+- [x] Update `/api/ai-builder/plan-phases/route.ts` - temp=1, thinking budget=10000
 - [ ] Test component generation
 - [ ] Test code modifications
 - [ ] Test full app generation

@@ -104,7 +104,11 @@ You are NOT generating full apps in this mode - just having a helpful conversati
     const completion = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4096,
-      temperature: 0.7,
+      temperature: 1,  // Required for extended thinking
+      thinking: {
+        type: 'enabled',
+        budget_tokens: 5000
+      },
       system: [
         {
           type: 'text',
@@ -115,8 +119,10 @@ You are NOT generating full apps in this mode - just having a helpful conversati
       messages: messages
     });
 
-    const responseText = completion.content[0].type === 'text' 
-      ? completion.content[0].text 
+    // Find the text response (skip thinking blocks)
+    const textBlock = completion.content.find(block => block.type === 'text');
+    const responseText = textBlock && textBlock.type === 'text' 
+      ? textBlock.text 
       : '';
       
     if (!responseText) {

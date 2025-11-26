@@ -64,7 +64,11 @@ export async function generateFullApp(
   const stream = await anthropic.messages.stream({
     model: modelName,
     max_tokens: 16384,
-    temperature: 0.7,
+    temperature: 1,  // Required for extended thinking
+    thinking: {
+      type: 'enabled',
+      budget_tokens: 16000
+    },
     system: [
       {
         type: 'text',
@@ -75,14 +79,21 @@ export async function generateFullApp(
     messages: enhancedMessages
   });
   
-  // Collect response
+  // Collect response with timeout
   let responseText = '';
   let inputTokens = 0;
   let outputTokens = 0;
   let cachedTokens = 0;
+  const timeout = 90000; // 90 seconds (increased for extended thinking on full apps)
+  const startTime = Date.now();
   
   try {
     for await (const chunk of stream) {
+      if (Date.now() - startTime > timeout) {
+        const error = new Error('AI response timeout - the full app generation was taking too long. Please try a simpler request or try again.') as GenerationError;
+        error.category = 'timeout_error';
+        throw error;
+      }
       if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
         responseText += chunk.delta.text;
       }

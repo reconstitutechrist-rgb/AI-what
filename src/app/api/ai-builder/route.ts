@@ -138,7 +138,11 @@ CRITICAL RULES:
     const stream = await anthropic.messages.stream({
       model: modelName,
       max_tokens: 4096,
-      temperature: 0.7,
+      temperature: 1,  // Required for extended thinking
+      thinking: {
+        type: 'enabled',
+        budget_tokens: 8000
+      },
       system: [
         {
           type: 'text',
@@ -156,7 +160,7 @@ CRITICAL RULES:
     let inputTokens = 0;
     let outputTokens = 0;
     let cachedTokens = 0;
-    const timeout = 45000; // 45 seconds
+    const timeout = 60000; // 60 seconds (increased for extended thinking)
     const startTime = Date.now();
     
     try {

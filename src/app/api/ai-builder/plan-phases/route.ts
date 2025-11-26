@@ -81,7 +81,11 @@ CRITICAL:
     const completion = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4096,
-      temperature: 0.3, // Lower temperature for more structured output
+      temperature: 1,  // Required for extended thinking
+      thinking: {
+        type: 'enabled',
+        budget_tokens: 10000
+      },
       system: [
         {
           type: 'text',
@@ -92,8 +96,10 @@ CRITICAL:
       messages: messages
     });
 
-    const responseText = completion.content[0].type === 'text' 
-      ? completion.content[0].text 
+    // Find the text response (skip thinking blocks)
+    const textBlock = completion.content.find(block => block.type === 'text');
+    const responseText = textBlock && textBlock.type === 'text' 
+      ? textBlock.text 
       : '';
       
     if (!responseText) {
