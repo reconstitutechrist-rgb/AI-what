@@ -3,6 +3,10 @@ import Anthropic from '@anthropic-ai/sdk';
 import { validateGeneratedCode, autoFixCode, type ValidationError } from '@/utils/codeValidator';
 import { analytics, generateRequestId, categorizeError, PerformanceTracker } from '@/utils/analytics';
 
+// Vercel serverless function config
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });

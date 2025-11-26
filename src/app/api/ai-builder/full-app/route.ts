@@ -15,6 +15,10 @@ import {
   type PhaseContext
 } from './generation-logic';
 
+// Vercel serverless function config
+export const maxDuration = 60; // 60 seconds max
+export const dynamic = 'force-dynamic';
+
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
