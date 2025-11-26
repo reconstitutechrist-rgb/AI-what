@@ -1345,9 +1345,13 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
           // Create or update the app
           if (data.files && data.files.length > 0) {
             // NEW: Check if this was a phased build completion
+            // Compute the updated plan ONCE and reuse it
+            let updatedPlan: typeof newAppStagePlan = null;
+            let allPhasesComplete = false;
+            
             if (newAppStagePlan) {
               const currentPhaseNum = newAppStagePlan.currentPhase;
-              const updatedPlan = {
+              updatedPlan = {
                 ...newAppStagePlan,
                 phases: newAppStagePlan.phases.map(p => 
                   p.number === currentPhaseNum ? { ...p, status: 'complete' as const } : p
@@ -1369,7 +1373,8 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
                   setChatMessages(prev => [...prev, nextPhaseMessage]);
                 }, 1000);
               } else {
-                // All phases complete!
+                // All phases complete - will clear stagePlan in component
+                allPhasesComplete = true;
                 setTimeout(() => {
                   const completionMessage: ChatMessage = {
                     id: (Date.now() + 10).toString(),
@@ -1406,13 +1411,8 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
               isFavorite: isModification ? currentComponent.isFavorite : false,
               conversationHistory: [...chatMessages, userMessage, aiAppMessage],
               versions: isModification ? currentComponent.versions : [],
-              // FIX: Persist phase build plan state with the component
-              stagePlan: newAppStagePlan ? {
-                ...newAppStagePlan,
-                phases: newAppStagePlan.phases.map(p => 
-                  p.number === newAppStagePlan.currentPhase ? { ...p, status: 'complete' as const } : p
-                )
-              } : null
+              // FIX: Use the already-computed updatedPlan, or null if all phases complete
+              stagePlan: allPhasesComplete ? null : updatedPlan
             };
             
             // Save version for this change
