@@ -1150,38 +1150,47 @@ Reply **'proceed'** to continue with staged implementation, or **'cancel'** to t
       // Build request body based on endpoint and mode
       let requestBody: any;
       
+      // Parse current app state once if available (for code visibility across all endpoints)
+      const parsedCurrentAppState = currentComponent ? JSON.parse(currentComponent.code) : null;
+      
       if (currentMode === 'PLAN') {
         // In PLAN mode, always send to chat endpoint with PLAN mode flag
+        // Include currentAppState so AI can see the code it has generated
         requestBody = {
           prompt: userInput,
           conversationHistory: chatMessages.slice(-30),
           includeCodeInResponse: isRequestingCode,
-          mode: 'PLAN'
+          mode: 'PLAN',
+          currentAppState: parsedCurrentAppState
         };
       } else if (isQuestion) {
         // ACT mode Q&A
+        // Include currentAppState so AI can see the code when answering questions
         requestBody = {
           prompt: userInput,
           conversationHistory: chatMessages.slice(-30),
           includeCodeInResponse: isRequestingCode,
-          mode: 'ACT'
+          mode: 'ACT',
+          currentAppState: parsedCurrentAppState
         };
       } else if (useDiffSystem) {
         // ACT mode modifications
         requestBody = {
           prompt: userInput,
-          currentAppState: currentComponent ? JSON.parse(currentComponent.code) : null,
+          currentAppState: parsedCurrentAppState,
           conversationHistory: getEnhancedHistory(),
           includeCodeInResponse: isRequestingCode
         };
       } else {
         // ACT mode new apps
+        // Include currentAppState so AI can see existing code when building new features
         requestBody = {
           prompt: userInput,
           conversationHistory: chatMessages.slice(-50),
           isModification: false,
-          currentAppName: null,
-          includeCodeInResponse: isRequestingCode
+          currentAppName: currentComponent?.name || null,
+          includeCodeInResponse: isRequestingCode,
+          currentAppState: parsedCurrentAppState
         };
       }
 

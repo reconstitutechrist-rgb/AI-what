@@ -66,7 +66,32 @@ export async function POST(request: Request) {
     // Old prompt: ~8,500 tokens | New prompt: ~2,800 tokens | Reduction: 67%
     // ============================================================================
     
+    // Build current app context section if we have an existing app loaded
+    let currentAppContext = '';
+    if (currentAppState && currentAppState.files && Array.isArray(currentAppState.files)) {
+      currentAppContext = `
+
+===CURRENT APP CONTEXT===
+The user has an existing app loaded. Here is the current state:
+
+App Name: ${currentAppState.name || 'Unnamed App'}
+App Type: ${currentAppState.appType || 'Unknown'}
+Files in the app:
+${currentAppState.files.map((f: any) => `- ${f.path}`).join('\n')}
+
+FILE CONTENTS:
+${currentAppState.files.map((f: any) => `
+--- ${f.path} ---
+${f.content}
+--- END ${f.path} ---
+`).join('\n')}
+===END CURRENT APP CONTEXT===
+
+When building new features or making changes, reference the actual code above. Preserve existing functionality unless explicitly asked to change it.`;
+    }
+    
     const baseInstructions = `You are an expert FULL-STACK Next.js application architect. Generate complete, production-ready applications with both frontend AND backend capabilities.
+${currentAppContext ? '\nIMPORTANT: The user has an existing app loaded. See CURRENT APP CONTEXT at the end of this prompt. When adding features, integrate with the existing code structure.' : ''}
 
 APPLICATION TYPE DETECTION:
 - FRONTEND_ONLY: UI components, calculators, games (preview sandbox)
@@ -91,7 +116,7 @@ MODIFICATION MODE for "${currentAppName}":
 - PRESERVE all existing UI/styling/functionality not mentioned
 - Use EXACT delimiter format (===NAME===, ===FILE:===, etc.)
 - Think: "What's the MINIMUM change needed?"
-` : ''}`;
+` : ''}${currentAppContext}`;
 
     // Build compressed prompt using modular sections from src/prompts/
     const systemPrompt = buildFullAppPrompt(baseInstructions, hasImage, isModification);
