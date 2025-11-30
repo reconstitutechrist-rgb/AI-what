@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import CodePreview from './CodePreview';
 import FullAppPreview from './FullAppPreview';
 import DiffPreview from './DiffPreview';
+import AppConceptWizard from './AppConceptWizard';
+import type { AppConcept, ImplementationPlan, BuildPhase } from '../types/appConcept';
 import { exportAppAsZip, downloadBlob, parseAppFiles, getDeploymentInstructions, type DeploymentInstructions } from '../utils/exportApp';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -281,6 +283,11 @@ export default function AIBuilder() {
   // Staging consent modal for new apps
   const [showNewAppStagingModal, setShowNewAppStagingModal] = useState(false);
   const [pendingNewAppRequest, setPendingNewAppRequest] = useState<string>('');
+
+  // App Concept Wizard state
+  const [showConceptWizard, setShowConceptWizard] = useState(false);
+  const [appConcept, setAppConcept] = useState<AppConcept | null>(null);
+  const [implementationPlan, setImplementationPlan] = useState<ImplementationPlan | null>(null);
 
   // Storage state
   const [contentTab, setContentTab] = useState<'apps' | 'files'>('apps');
@@ -741,6 +748,186 @@ export default function AIBuilder() {
       fileInputRef.current.value = '';
     }
   };
+
+  // ============================================================================
+  // APP CONCEPT WIZARD HANDLERS
+  // ============================================================================
+
+  /**
+   * Generate implementation plan from app concept
+   */
+  const generateImplementationPlan = useCallback((concept: AppConcept) => {
+    const phases: BuildPhase[] = [];
+    let phaseNumber = 1;
+
+    // Phase 1: Foundation & Layout
+    phases.push({
+      id: `phase-${phaseNumber}`,
+      phaseNumber,
+      name: 'Foundation & Layout',
+      description: `Set up the base structure with ${concept.uiPreferences.layout} layout, ${concept.uiPreferences.style} style, and ${concept.uiPreferences.colorScheme} color scheme`,
+      objectives: [
+        'Create main layout structure',
+        'Set up navigation',
+        'Implement responsive design',
+        'Apply theme and styling'
+      ],
+      prompt: `Create a ${concept.uiPreferences.layout} layout for "${concept.name}" with ${concept.uiPreferences.style} styling and ${concept.uiPreferences.colorScheme} color scheme. Primary color: ${concept.uiPreferences.primaryColor || '#3B82F6'}. The app is for: ${concept.targetUsers}.`,
+      dependencies: [],
+      features: [],
+      estimatedComplexity: 'moderate',
+      status: 'pending'
+    });
+    phaseNumber++;
+
+    // Phase 2: Core Features (High Priority)
+    const highPriorityFeatures = concept.coreFeatures.filter(f => f.priority === 'high');
+    if (highPriorityFeatures.length > 0) {
+      phases.push({
+        id: `phase-${phaseNumber}`,
+        phaseNumber,
+        name: 'Core Features',
+        description: 'Implement high-priority features',
+        objectives: highPriorityFeatures.map(f => f.name),
+        prompt: `Add these core features to "${concept.name}": ${highPriorityFeatures.map(f => `${f.name} - ${f.description}`).join('; ')}`,
+        dependencies: [`phase-${phaseNumber - 1}`],
+        features: highPriorityFeatures.map(f => f.id),
+        estimatedComplexity: 'complex',
+        status: 'pending'
+      });
+      phaseNumber++;
+    }
+
+    // Phase 3: Technical Requirements
+    const techRequirements: string[] = [];
+    if (concept.technical.needsAuth) {
+      techRequirements.push(`${concept.technical.authType || 'simple'} authentication`);
+    }
+    if (concept.technical.needsDatabase) {
+      techRequirements.push('database storage');
+    }
+    if (concept.technical.needsAPI) {
+      techRequirements.push('API integration');
+    }
+    if (concept.technical.needsFileUpload) {
+      techRequirements.push('file upload');
+    }
+    if (concept.technical.needsRealtime) {
+      techRequirements.push('real-time updates');
+    }
+
+    if (techRequirements.length > 0) {
+      phases.push({
+        id: `phase-${phaseNumber}`,
+        phaseNumber,
+        name: 'Technical Features',
+        description: `Implement ${techRequirements.join(', ')}`,
+        objectives: techRequirements,
+        prompt: `Add technical features to "${concept.name}": ${techRequirements.join(', ')}`,
+        dependencies: [`phase-${phaseNumber - 1}`],
+        features: [],
+        estimatedComplexity: 'complex',
+        status: 'pending'
+      });
+      phaseNumber++;
+    }
+
+    // Phase 4: Secondary Features (Medium Priority)
+    const mediumPriorityFeatures = concept.coreFeatures.filter(f => f.priority === 'medium');
+    if (mediumPriorityFeatures.length > 0) {
+      phases.push({
+        id: `phase-${phaseNumber}`,
+        phaseNumber,
+        name: 'Secondary Features',
+        description: 'Implement medium-priority features',
+        objectives: mediumPriorityFeatures.map(f => f.name),
+        prompt: `Add these secondary features to "${concept.name}": ${mediumPriorityFeatures.map(f => `${f.name} - ${f.description}`).join('; ')}`,
+        dependencies: [`phase-${phaseNumber - 1}`],
+        features: mediumPriorityFeatures.map(f => f.id),
+        estimatedComplexity: 'moderate',
+        status: 'pending'
+      });
+      phaseNumber++;
+    }
+
+    // Phase 5: Optional Features (Low Priority)
+    const lowPriorityFeatures = concept.coreFeatures.filter(f => f.priority === 'low');
+    if (lowPriorityFeatures.length > 0) {
+      phases.push({
+        id: `phase-${phaseNumber}`,
+        phaseNumber,
+        name: 'Optional Enhancements',
+        description: 'Implement nice-to-have features',
+        objectives: lowPriorityFeatures.map(f => f.name),
+        prompt: `Add these optional features to "${concept.name}": ${lowPriorityFeatures.map(f => `${f.name} - ${f.description}`).join('; ')}`,
+        dependencies: [`phase-${phaseNumber - 1}`],
+        features: lowPriorityFeatures.map(f => f.id),
+        estimatedComplexity: 'simple',
+        status: 'pending'
+      });
+    }
+
+    const plan: ImplementationPlan = {
+      concept,
+      phases,
+      estimatedSteps: phases.length,
+      createdAt: new Date().toISOString()
+    };
+
+    setImplementationPlan(plan);
+
+    // Add system message about the plan
+    const planMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: `🎯 **Implementation Plan Created for "${concept.name}"**\n\n` +
+        `I've analyzed your app concept and created a ${phases.length}-phase build plan:\n\n` +
+        phases.map((p, i) => `**Phase ${p.phaseNumber}: ${p.name}**\n${p.description}`).join('\n\n') +
+        `\n\n💡 **Ready to start building?** Switch to **⚡ ACT Mode** and type "build phase 1" or "start building" to begin!\n\n` +
+        `You can also ask me to modify the plan or discuss any phase in detail.`,
+      timestamp: new Date().toISOString()
+    };
+    setChatMessages(prev => [...prev, planMessage]);
+
+    // Convert to the existing StagePlan format for compatibility
+    const stagePlan: StagePlan = {
+      totalPhases: phases.length,
+      currentPhase: 0,
+      phases: phases.map(p => ({
+        number: p.phaseNumber,
+        name: p.name,
+        description: p.description,
+        features: p.objectives,
+        status: 'pending' as PhaseStatus
+      }))
+    };
+    setNewAppStagePlan(stagePlan);
+  }, []);
+
+  /**
+   * Handle wizard completion
+   */
+  const handleConceptComplete = useCallback((concept: AppConcept) => {
+    setAppConcept(concept);
+    setShowConceptWizard(false);
+
+    // Add welcome message about the new concept
+    const welcomeMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: `✨ **App Concept Created: "${concept.name}"**\n\n` +
+        `**Description:** ${concept.description}\n\n` +
+        `**Target Users:** ${concept.targetUsers}\n\n` +
+        `**Features:** ${concept.coreFeatures.length} defined\n\n` +
+        `**Design:** ${concept.uiPreferences.style} style, ${concept.uiPreferences.colorScheme} mode, ${concept.uiPreferences.layout} layout\n\n` +
+        `I'm now generating your implementation plan...`,
+      timestamp: new Date().toISOString()
+    };
+    setChatMessages(prev => [...prev, welcomeMessage]);
+
+    // Generate implementation plan
+    generateImplementationPlan(concept);
+  }, [generateImplementationPlan]);
 
   const sendMessage = async () => {
     if (!userInput.trim() || isGenerating) return;
@@ -2193,6 +2380,14 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
 
             {/* Actions */}
             <div className="flex items-center gap-3">
+              {/* Plan App Button - Opens Wizard */}
+              <button
+                onClick={() => setShowConceptWizard(true)}
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 transition-all duration-300 text-sm text-white font-medium flex items-center gap-2 hover:scale-110 active:scale-95 shadow-lg hover:shadow-xl hover:shadow-purple-500/40 group"
+              >
+                <span className="group-hover:scale-125 transition-transform duration-300">🚀</span>
+                <span className="hidden sm:inline">Plan App</span>
+              </button>
               {currentComponent && currentComponent.versions && currentComponent.versions.length > 0 && (
                 <button
                   onClick={() => setShowVersionHistory(!showVersionHistory)}
@@ -3532,6 +3727,14 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
             </div>
           </div>
         </div>
+      )}
+
+      {/* App Concept Wizard Modal */}
+      {showConceptWizard && (
+        <AppConceptWizard
+          onComplete={handleConceptComplete}
+          onCancel={() => setShowConceptWizard(false)}
+        />
       )}
     </div>
   );
