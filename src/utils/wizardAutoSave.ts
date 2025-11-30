@@ -8,7 +8,7 @@ export const WIZARD_DRAFT_KEYS = {
   FEATURES: 'wizard_draft_features',
   DESIGN: 'wizard_draft_design',
   TECHNICAL: 'wizard_draft_technical',
-  CONVERSATIONAL: 'conversational_wizard'
+  CONVERSATIONAL: 'wizard_conversational'
 } as const;
 
 interface DraftMetadata {
@@ -136,14 +136,17 @@ export function formatDraftAge(timestamp: string): string {
 export class AutoSaver<T> {
   private key: string;
   private debounceMs: number;
+  private autoSaveIntervalMs: number;
   private timeoutId: ReturnType<typeof setTimeout> | null = null;
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private getDataFn: (() => T) | null = null;
   private onSaveCallback: (() => void) | null = null;
 
-  constructor(key: string, debounceMs: number = 1000) {
-    this.key = `wizard_draft_${key}`;
+  constructor(key: string, debounceMs: number = 1000, autoSaveIntervalMs: number = 60000) {
+    // Don't add prefix if key already starts with wizard_
+    this.key = key.startsWith('wizard_') ? key : `wizard_draft_${key}`;
     this.debounceMs = debounceMs;
+    this.autoSaveIntervalMs = autoSaveIntervalMs;
   }
 
   /**
@@ -161,7 +164,7 @@ export class AutoSaver<T> {
       // Save immediately
       this.save(this.getDataFn());
 
-      // Set up interval for periodic saving (every 30 seconds)
+      // Set up interval for periodic saving (configurable, default 60s)
       if (this.intervalId) {
         clearInterval(this.intervalId);
       }
@@ -169,7 +172,7 @@ export class AutoSaver<T> {
         if (this.getDataFn) {
           this.save(this.getDataFn());
         }
-      }, 30000);
+      }, this.autoSaveIntervalMs);
     } else {
       // Legacy API: debounced single data save
       if (this.timeoutId) {
@@ -259,9 +262,10 @@ export class AutoSaver<T> {
  */
 export function createAutoSaver<T>(
   key: string,
-  debounceMs: number = 1000
+  debounceMs: number = 1000,
+  autoSaveIntervalMs: number = 60000
 ): AutoSaver<T> {
-  return new AutoSaver<T>(key, debounceMs);
+  return new AutoSaver<T>(key, debounceMs, autoSaveIntervalMs);
 }
 
 /**

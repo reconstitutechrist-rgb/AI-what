@@ -101,16 +101,6 @@ export default function ConversationalAppWizard({ onComplete, onCancel }: Conver
     };
   }, []);
 
-  // Auto-save when state changes
-  useEffect(() => {
-    if (!showDraftPrompt && messages.length > 0) {
-      autoSaver.current.save({
-        wizardState,
-        messages,
-      });
-    }
-  }, [wizardState, messages, showDraftPrompt]);
-
   // Update preview when UI prefs change
   useEffect(() => {
     setPreviewKey(prev => prev + 1);
