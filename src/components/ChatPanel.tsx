@@ -183,7 +183,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         {stagePlan && stagePlan.phases && stagePlan.phases.length > 0 && (
           <PhaseProgressCard
             phases={stagePlan.phases}
-            currentPhase={stagePlan.currentPhase - 1}
+            currentPhase={Math.max(0, stagePlan.currentPhase - 1)}
             onBuildPhase={onBuildPhase}
           />
         )}
