@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useCallback, useMemo, useState, useRef, useEffect } from 'react';
-import { ResizablePanelContext, type ResizablePanelProps } from './ResizablePanel';
-import { ResizableHandleContext } from './ResizableHandle';
+import { ResizablePanelContext, type ResizablePanelProps, RESIZABLE_PANEL_TYPE } from './ResizablePanel';
+import { ResizableHandleContext, RESIZABLE_HANDLE_TYPE } from './ResizableHandle';
 import { useResizable } from '@/hooks/useResizable';
 import { loadPanelLayout, savePanelLayout, mergePersistedLayout } from '@/utils/panelPersistence';
 
@@ -24,23 +24,44 @@ interface PanelData {
   collapsedSize?: number;
 }
 
+// Type guard to check if element is a ResizablePanel
+function isResizablePanel(child: React.ReactElement): boolean {
+  const type = child.type as any;
+  // Check for symbol first (most reliable)
+  if (type?.__RESIZABLE_TYPE__ === RESIZABLE_PANEL_TYPE) return true;
+  // Check displayName as fallback
+  if (type?.displayName === 'ResizablePanel') return true;
+  // Check props as last fallback
+  const props = child.props as Partial<ResizablePanelProps>;
+  return props.defaultSize !== undefined || props.minSize !== undefined || props.maxSize !== undefined;
+}
+
+// Type guard to check if element is a ResizableHandle
+function isResizableHandle(child: React.ReactElement): boolean {
+  const type = child.type as any;
+  // Check for symbol first (most reliable)
+  if (type?.__RESIZABLE_TYPE__ === RESIZABLE_HANDLE_TYPE) return true;
+  // Check displayName as fallback
+  if (type?.displayName === 'ResizableHandle') return true;
+  // Check props as last fallback
+  const props = child.props as Record<string, unknown>;
+  return props.hitAreaMargins !== undefined;
+}
+
 // Extract panel data from children
 function extractPanelData(children: React.ReactNode): PanelData[] {
   const panels: PanelData[] = [];
   
   React.Children.forEach(children, (child) => {
-    if (React.isValidElement(child)) {
-      // Check if it's a ResizablePanel by looking for the expected props
-      const props = child.props as Partial<ResizablePanelProps> & { children?: React.ReactNode };
-      if (props.defaultSize !== undefined || props.minSize !== undefined || props.maxSize !== undefined) {
-        panels.push({
-          defaultSize: props.defaultSize,
-          minSize: props.minSize,
-          maxSize: props.maxSize,
-          collapsible: props.collapsible,
-          collapsedSize: props.collapsedSize,
-        });
-      }
+    if (React.isValidElement(child) && isResizablePanel(child)) {
+      const props = child.props as Partial<ResizablePanelProps>;
+      panels.push({
+        defaultSize: props.defaultSize,
+        minSize: props.minSize,
+        maxSize: props.maxSize,
+        collapsible: props.collapsible,
+        collapsedSize: props.collapsedSize,
+      });
     }
   });
   
@@ -184,13 +205,8 @@ export function ResizablePanelGroup({
     return React.Children.map(children, (child) => {
       if (!React.isValidElement(child)) return child;
       
-      const childProps = child.props as Record<string, unknown>;
-      
-      // Check if it's a ResizablePanel
-      if (childProps.defaultSize !== undefined || 
-          childProps.minSize !== undefined || 
-          childProps.maxSize !== undefined ||
-          childProps.collapsible !== undefined) {
+      // Check if it's a ResizablePanel using type guard
+      if (isResizablePanel(child)) {
         const currentIndex = panelIndex;
         const size = sizes[currentIndex] ?? 50;
         const isCollapsed = collapsedPanels.has(currentIndex);
@@ -224,10 +240,8 @@ export function ResizablePanelGroup({
         );
       }
       
-      // Check if it's a ResizableHandle
-      if (childProps.hitAreaMargins !== undefined || 
-          child.type?.toString().includes('ResizableHandle') ||
-          (childProps.className as string)?.includes('resize-handle')) {
+      // Check if it's a ResizableHandle using type guard
+      if (isResizableHandle(child)) {
         const currentHandleIndex = handleIndex;
         
         const contextValue = {

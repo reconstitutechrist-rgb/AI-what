@@ -2,6 +2,12 @@
 
 import React, { useCallback, useRef } from 'react';
 
+// Constants
+const DOUBLE_CLICK_THRESHOLD_MS = 300;
+
+// Symbol for component identification
+export const RESIZABLE_HANDLE_TYPE = Symbol.for('ResizableHandle');
+
 export interface ResizableHandleProps {
   className?: string;
   hitAreaMargins?: { coarse: number; fine: number };
@@ -65,7 +71,7 @@ export function ResizableHandle({
     
     // Check for double-click
     const now = Date.now();
-    if (now - lastClickTimeRef.current < 300) {
+    if (now - lastClickTimeRef.current < DOUBLE_CLICK_THRESHOLD_MS) {
       // Double-click detected
       const handler = onDoubleClickProp || contextOnDoubleClick;
       if (handler) {
@@ -171,5 +177,9 @@ export function ResizableHandle({
     </div>
   );
 }
+
+// Attach type symbol for identification
+ResizableHandle.displayName = 'ResizableHandle';
+(ResizableHandle as any).__RESIZABLE_TYPE__ = RESIZABLE_HANDLE_TYPE;
 
 export default ResizableHandle;

@@ -2,6 +2,9 @@
 
 import React from 'react';
 
+// Symbol for component identification
+export const RESIZABLE_PANEL_TYPE = Symbol.for('ResizablePanel');
+
 export interface ResizablePanelProps {
   children: React.ReactNode;
   defaultSize?: number; // Percentage (0-100)
@@ -84,6 +87,10 @@ export function ResizablePanel({
     </div>
   );
 }
+
+// Attach type symbol for identification
+ResizablePanel.displayName = 'ResizablePanel';
+(ResizablePanel as any).__RESIZABLE_TYPE__ = RESIZABLE_PANEL_TYPE;
 
 /**
  * Hook to access panel context from within a ResizablePanel

@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { loadPanelLayout, savePanelLayout, normalizeSizes } from '@/utils/panelPersistence';
 
 export interface ResizeState {
   sizes: number[];
@@ -42,44 +43,6 @@ function getPositionFromEvent(
   return 0;
 }
 
-// Normalize sizes to percentages that add up to 100
-function normalizeSizes(sizes: number[]): number[] {
-  const total = sizes.reduce((sum, size) => sum + size, 0);
-  if (total === 0) return sizes.map(() => 100 / sizes.length);
-  return sizes.map(size => (size / total) * 100);
-}
-
-// Load sizes from localStorage
-function loadPersistedSizes(key: string): number[] | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const stored = localStorage.getItem(`resizable-panel-${key}`);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.every(n => typeof n === 'number')) {
-        return parsed;
-      }
-    }
-  } catch {
-    // Ignore parsing errors
-  }
-  return null;
-}
-
-// Save sizes to localStorage (debounced)
-let saveTimeout: ReturnType<typeof setTimeout> | null = null;
-function persistSizes(key: string, sizes: number[]): void {
-  if (typeof window === 'undefined') return;
-  if (saveTimeout) clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(() => {
-    try {
-      localStorage.setItem(`resizable-panel-${key}`, JSON.stringify(sizes));
-    } catch {
-      // Ignore storage errors
-    }
-  }, 300);
-}
-
 export function useResizable({
   direction,
   defaultSizes = [50, 50],
@@ -88,9 +51,22 @@ export function useResizable({
   onLayoutChange,
   persistenceKey,
 }: UseResizableOptions): UseResizableReturn {
+  // Per-instance save timeout to avoid race conditions between multiple hook instances
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // Per-instance debounced save function
+  const persistSizesDebounced = useCallback((key: string, sizesToSave: number[]) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      savePanelLayout(sizesToSave, { key });
+    }, 100); // Short delay since savePanelLayout already debounces
+  }, []);
+  
   // Initialize sizes from persistence or defaults
   const initialSizes = persistenceKey 
-    ? loadPersistedSizes(persistenceKey) || defaultSizes 
+    ? loadPanelLayout({ key: persistenceKey }) || defaultSizes 
     : defaultSizes;
   
   const [sizes, setSizesState] = useState<number[]>(normalizeSizes(initialSizes));
@@ -107,9 +83,9 @@ export function useResizable({
     setSizesState(normalized);
     onLayoutChange?.(normalized);
     if (persistenceKey) {
-      persistSizes(persistenceKey, normalized);
+      persistSizesDebounced(persistenceKey, normalized);
     }
-  }, [onLayoutChange, persistenceKey]);
+  }, [onLayoutChange, persistenceKey, persistSizesDebounced]);
 
   // Start resize operation
   const startResize = useCallback((
@@ -234,10 +210,10 @@ export function useResizable({
       setActiveIndex(null);
       onLayoutChange?.(sizes);
       if (persistenceKey) {
-        persistSizes(persistenceKey, sizes);
+        persistSizesDebounced(persistenceKey, sizes);
       }
     }
-  }, [isDragging, sizes, onLayoutChange, persistenceKey]);
+  }, [isDragging, sizes, onLayoutChange, persistenceKey, persistSizesDebounced]);
 
   // Collapse a panel (store current size and minimize)
   const collapsePanel = useCallback((index: number) => {
