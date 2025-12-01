@@ -167,17 +167,17 @@ export function ResizablePanelGroup({
     persistenceKey: actualPersistenceKey,
   });
 
-  // Update sizes when initialSizes change (after persistence load)
+  // Update sizes when initialSizes change (after persistence load) - only on initial load
+  // Using a ref to track if we've already synced to avoid resetting during drag
+  const hasSyncedRef = useRef(false);
+  
   useEffect(() => {
-    if (isInitialized && initialSizes.length === panelData.length) {
-      // Only set if different from current sizes
-      const sizesMatch = sizes.length === initialSizes.length && 
-        sizes.every((s, i) => Math.abs(s - initialSizes[i]) < 0.1);
-      if (!sizesMatch) {
-        setSizes(initialSizes);
-      }
+    // Only sync once when initialized, not during drag operations
+    if (isInitialized && !hasSyncedRef.current && initialSizes.length === panelData.length) {
+      hasSyncedRef.current = true;
+      setSizes(initialSizes);
     }
-  }, [initialSizes, isInitialized, panelData.length, sizes, setSizes]);
+  }, [initialSizes, isInitialized, panelData.length, setSizes]);
 
   // Track collapsed state per panel
   const [collapsedPanels, setCollapsedPanels] = useState<Set<number>>(new Set());

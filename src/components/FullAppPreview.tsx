@@ -142,9 +142,19 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
             onClick={async () => {
               setIsCapturing(true);
               setCaptureError('');
+              
+              // Set a timeout to prevent getting stuck
+              const timeoutId = setTimeout(() => {
+                setIsCapturing(false);
+                setCaptureError('Capture timed out. The preview may still be loading.');
+                setTimeout(() => setCaptureError(''), 5000);
+              }, 10000); // 10 second timeout
+              
               try {
                 await captureApi?.capture();
+                // Note: isCapturing will be set to false in onScreenshot callback
               } catch (error: any) {
+                clearTimeout(timeoutId);
                 setIsCapturing(false);
                 const errorMsg = error?.message || 'Unknown error occurred';
                 setCaptureError(errorMsg);
@@ -280,9 +290,19 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
         onClick={async () => {
           setIsCapturing(true);
           setCaptureError('');
+          
+          // Set a timeout to prevent getting stuck
+          const timeoutId = setTimeout(() => {
+            setIsCapturing(false);
+            setCaptureError('Capture timed out. The preview may still be loading.');
+            setTimeout(() => setCaptureError(''), 5000);
+          }, 10000); // 10 second timeout
+          
           try {
             await captureApi?.capture();
+            // Note: isCapturing will be set to false in onScreenshot callback
           } catch (error: any) {
+            clearTimeout(timeoutId);
             setIsCapturing(false);
             const errorMsg = error?.message || 'Unknown error occurred';
             setCaptureError(errorMsg);
