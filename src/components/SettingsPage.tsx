@@ -6,7 +6,6 @@ import type {
   SettingsSection, 
   SettingsPageProps,
   EditorTheme,
-  TabSize,
   PreviewSize,
   UIDensity,
 } from '@/types/settings';
@@ -460,7 +459,13 @@ export function SettingsPage({ isOpen, onClose, initialSection = 'general' }: Se
             />
             <Select<string>
               value={String(settings.editor.tabSize)}
-              onChange={(value) => updateEditorSettings({ tabSize: Number(value) as TabSize })}
+              onChange={(value) => {
+                const numValue = Number(value);
+                // Validate that the value is a valid TabSize (2 or 4)
+                if (numValue === 2 || numValue === 4) {
+                  updateEditorSettings({ tabSize: numValue });
+                }
+              }}
               options={[
                 { value: '2', label: '2 spaces' },
                 { value: '4', label: '4 spaces' },

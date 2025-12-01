@@ -188,16 +188,37 @@ export function downloadSettings(settings: AppSettings): void {
 }
 
 /**
+ * Check if a property name is safe (not a prototype pollution vector)
+ */
+function isSafePropertyName(name: string): boolean {
+  const dangerousKeys = ['__proto__', 'constructor', 'prototype'];
+  return !dangerousKeys.includes(name);
+}
+
+/**
  * Get a specific setting value using dot notation path
  */
 export function getSetting<T>(settings: AppSettings, path: string): T | undefined {
   const parts = path.split('.');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let current: any = settings;
+  
+  // Guard against prototype pollution
+  if (!parts.every(isSafePropertyName)) {
+    console.warn('Attempted to access a potentially dangerous property path:', path);
+    return undefined;
+  }
+  
+  let current: Record<string, unknown> = settings as unknown as Record<string, unknown>;
   
   for (const part of parts) {
     if (current === undefined || current === null) return undefined;
-    current = current[part];
+    const nextValue = current[part];
+    if (typeof nextValue === 'object' && nextValue !== null) {
+      current = nextValue as Record<string, unknown>;
+    } else if (parts.indexOf(part) === parts.length - 1) {
+      return nextValue as T;
+    } else {
+      return undefined;
+    }
   }
   
   return current as T;
@@ -205,22 +226,45 @@ export function getSetting<T>(settings: AppSettings, path: string): T | undefine
 
 /**
  * Update a specific setting value using dot notation path
+ * This function only allows updates to known setting paths to prevent prototype pollution
  */
 export function updateSetting<T>(settings: AppSettings, path: string, value: T): AppSettings {
   const parts = path.split('.');
-  const newSettings = JSON.parse(JSON.stringify(settings)) as AppSettings;
   
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let current: any = newSettings;
-  
-  for (let i = 0; i < parts.length - 1; i++) {
-    if (!(parts[i] in current)) {
-      current[parts[i]] = {};
+  // Guard against prototype pollution - check all parts before any operations
+  const dangerousKeys = ['__proto__', 'constructor', 'prototype'];
+  for (const part of parts) {
+    if (dangerousKeys.includes(part)) {
+      console.warn('Attempted to set a potentially dangerous property path:', path);
+      return settings;
     }
-    current = current[parts[i]];
   }
   
-  current[parts[parts.length - 1]] = value;
+  // Validate path structure (only allow known top-level keys)
+  const validTopLevelKeys = ['general', 'editor', 'ai', 'preview', 'build', 'appearance', 'shortcuts', 'account', 'version', 'lastUpdated'];
+  if (parts.length === 0 || !validTopLevelKeys.includes(parts[0])) {
+    console.warn('Invalid setting path:', path);
+    return settings;
+  }
+  
+  // Deep clone settings to avoid mutation
+  const newSettings = JSON.parse(JSON.stringify(settings)) as AppSettings;
+  
+  // Use type-safe approach based on first key
+  const topKey = parts[0] as keyof AppSettings;
+  
+  if (parts.length === 1) {
+    // Setting top-level value directly
+    (newSettings as unknown as Record<string, unknown>)[topKey] = value;
+  } else if (parts.length === 2) {
+    // Setting nested value one level deep
+    const section = newSettings[topKey];
+    if (typeof section === 'object' && section !== null && !Array.isArray(section)) {
+      (section as unknown as Record<string, unknown>)[parts[1]] = value;
+    }
+  }
+  // For deeper nesting, we would need more specific handling
+  // but current settings structure doesn't require more than 2 levels
   
   return newSettings;
 }
