@@ -6,6 +6,7 @@ import FullAppPreview from './FullAppPreview';
 import DiffPreview from './DiffPreview';
 import AppConceptWizard from './AppConceptWizard';
 import ConversationalAppWizard from './ConversationalAppWizard';
+import ThemeToggle from './ThemeToggle';
 import { ToastProvider } from './Toast';
 import type { AppConcept, ImplementationPlan, BuildPhase } from '../types/appConcept';
 import { exportAppAsZip, downloadBlob, parseAppFiles, getDeploymentInstructions, type DeploymentInstructions } from '../utils/exportApp';
@@ -2440,6 +2441,9 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
                   </span>
                 )}
               </button>
+              
+              {/* Theme Toggle */}
+              <ThemeToggle size="md" showDropdown={true} />
             </div>
           </div>
         </div>
