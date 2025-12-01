@@ -6,7 +6,8 @@
       "Bash(taskkill:*)",
       "Bash(dir:*)",
       "Bash(wmic:*)",
-      "Bash(if exist \"c:\\AI-app\\.next\" rmdir /s /q \"c:\\AI-app\\.next\")"
+      "Bash(if exist \"c:\\AI-app\\.next\" rmdir /s /q \"c:\\AI-app\\.next\")",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []

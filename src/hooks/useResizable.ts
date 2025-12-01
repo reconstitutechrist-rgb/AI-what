@@ -24,7 +24,7 @@ export interface UseResizableReturn {
   startResize: (index: number, event: React.MouseEvent | React.TouchEvent | React.KeyboardEvent) => void;
   handleResize: (event: MouseEvent | TouchEvent) => void;
   stopResize: () => void;
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
   collapsePanel: (index: number) => void;
   expandPanel: (index: number) => void;
 }
@@ -76,6 +76,10 @@ export function useResizable({
   const startPositionRef = useRef<number>(0);
   const startSizesRef = useRef<number[]>([]);
   const collapsedSizesRef = useRef<Map<number, number>>(new Map());
+
+  // Use refs for drag state to avoid stale closure issues in event handlers
+  const isDraggingRef = useRef(false);
+  const activeIndexRef = useRef<number | null>(null);
 
   // Set sizes and trigger callbacks
   const setSizes = useCallback((newSizes: number[]) => {
@@ -139,20 +143,25 @@ export function useResizable({
     }
 
     event.preventDefault();
+    // Set both state and refs - refs are used in event handlers to avoid stale closures
     setIsDragging(true);
     setActiveIndex(index);
+    isDraggingRef.current = true;
+    activeIndexRef.current = index;
     startPositionRef.current = getPositionFromEvent(event, direction);
     startSizesRef.current = [...sizes];
   }, [sizes, setSizes, direction, minSizes, maxSizes]);
 
-  // Handle resize during drag
+  // Handle resize during drag - uses refs to avoid stale closure issues
   const handleResize = useCallback((event: MouseEvent | TouchEvent) => {
-    if (!isDragging || activeIndex === null || !containerRef.current) return;
+    // Use refs instead of state to get current values in event handlers
+    const currentActiveIndex = activeIndexRef.current;
+    if (!isDraggingRef.current || currentActiveIndex === null || !containerRef.current) return;
 
     const container = containerRef.current;
     const containerRect = container.getBoundingClientRect();
-    const containerSize = direction === 'horizontal' 
-      ? containerRect.width 
+    const containerSize = direction === 'horizontal'
+      ? containerRect.width
       : containerRect.height;
 
     const currentPosition = getPositionFromEvent(event, direction);
@@ -160,16 +169,16 @@ export function useResizable({
     const deltaPercent = (delta / containerSize) * 100;
 
     const newSizes = [...startSizesRef.current];
-    
+
     // Calculate new sizes for the two adjacent panels
-    let newLeftSize = newSizes[activeIndex] + deltaPercent;
-    let newRightSize = (newSizes[activeIndex + 1] || 0) - deltaPercent;
+    let newLeftSize = newSizes[currentActiveIndex] + deltaPercent;
+    let newRightSize = (newSizes[currentActiveIndex + 1] || 0) - deltaPercent;
 
     // Apply min/max constraints
-    const minLeft = minSizes[activeIndex] || 5;
-    const maxLeft = maxSizes[activeIndex] || 95;
-    const minRight = minSizes[activeIndex + 1] || 5;
-    const maxRight = maxSizes[activeIndex + 1] || 95;
+    const minLeft = minSizes[currentActiveIndex] || 5;
+    const maxLeft = maxSizes[currentActiveIndex] || 95;
+    const minRight = minSizes[currentActiveIndex + 1] || 5;
+    const maxRight = maxSizes[currentActiveIndex + 1] || 95;
 
     // Constrain left panel
     if (newLeftSize < minLeft) {
@@ -197,23 +206,25 @@ export function useResizable({
     newLeftSize = Math.max(minLeft, Math.min(maxLeft, newLeftSize));
     newRightSize = Math.max(minRight, Math.min(maxRight, newRightSize));
 
-    newSizes[activeIndex] = newLeftSize;
-    newSizes[activeIndex + 1] = newRightSize;
+    newSizes[currentActiveIndex] = newLeftSize;
+    newSizes[currentActiveIndex + 1] = newRightSize;
 
     setSizesState(newSizes);
-  }, [isDragging, activeIndex, direction, minSizes, maxSizes]);
+  }, [direction, minSizes, maxSizes]);
 
   // Stop resize operation
   const stopResize = useCallback(() => {
-    if (isDragging) {
+    if (isDraggingRef.current) {
       setIsDragging(false);
       setActiveIndex(null);
+      isDraggingRef.current = false;
+      activeIndexRef.current = null;
       onLayoutChange?.(sizes);
       if (persistenceKey) {
         persistSizesDebounced(persistenceKey, sizes);
       }
     }
-  }, [isDragging, sizes, onLayoutChange, persistenceKey, persistSizesDebounced]);
+  }, [sizes, onLayoutChange, persistenceKey, persistSizesDebounced]);
 
   // Collapse a panel (store current size and minimize)
   const collapsePanel = useCallback((index: number) => {
@@ -302,7 +313,7 @@ export function useResizable({
     startResize,
     handleResize,
     stopResize,
-    containerRef: containerRef as React.RefObject<HTMLDivElement>,
+    containerRef,
     collapsePanel,
     expandPanel,
   };
