@@ -53,6 +53,16 @@ export interface UseVersionControlReturn {
 }
 
 /**
+ * Generate a unique ID with fallback for older environments
+ */
+function generateId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return generateId();
+  }
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+}
+
+/**
  * Hook for managing version control functionality
  * 
  * @param options - Configuration options
@@ -107,7 +117,7 @@ export function useVersionControl(options: UseVersionControlOptions): UseVersion
     const versions = component.versions || [];
     
     const newVersion: AppVersion = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       versionNumber: versions.length + 1,
       code: component.code,
       description: description,
@@ -132,7 +142,7 @@ export function useVersionControl(options: UseVersionControlOptions): UseVersion
 
     // Save current state to redo stack
     const currentVersion: AppVersion = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       versionNumber: (currentComponent.versions?.length || 0) + 1,
       code: currentComponent.code,
       description: currentComponent.description,
@@ -164,7 +174,7 @@ export function useVersionControl(options: UseVersionControlOptions): UseVersion
 
     // Save current state to undo stack
     const currentVersion: AppVersion = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       versionNumber: (currentComponent.versions?.length || 0) + 1,
       code: currentComponent.code,
       description: currentComponent.description,
@@ -193,7 +203,7 @@ export function useVersionControl(options: UseVersionControlOptions): UseVersion
 
     // Save current state to undo stack before reverting
     const currentVersion: AppVersion = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       versionNumber: (currentComponent.versions?.length || 0) + 1,
       code: currentComponent.code,
       description: currentComponent.description,
@@ -229,7 +239,7 @@ export function useVersionControl(options: UseVersionControlOptions): UseVersion
     const descriptionSuffix = version ? ` (forked from v${version.versionNumber})` : ' (forked)';
 
     const forkedApp: GeneratedComponent = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: `${sourceApp.name} - Fork`,
       code: codeToFork,
       description: sourceApp.description + descriptionSuffix,
@@ -237,7 +247,7 @@ export function useVersionControl(options: UseVersionControlOptions): UseVersion
       isFavorite: false,
       conversationHistory: [],
       versions: [{
-        id: crypto.randomUUID(),
+        id: generateId(),
         versionNumber: 1,
         code: codeToFork,
         description: `Forked from ${sourceApp.name}`,

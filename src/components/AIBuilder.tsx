@@ -75,10 +75,14 @@ import { StorageAnalyticsService } from '@/services/StorageAnalytics';
 
 /**
  * Generate a unique ID for messages and components
- * Uses crypto.randomUUID() for robust ID generation that avoids collisions
+ * Uses crypto.randomUUID() with fallback for older environments
  */
 function generateId(): string {
-  return crypto.randomUUID();
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback for environments without crypto.randomUUID
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 }
 
 /**
