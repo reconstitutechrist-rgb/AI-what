@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import PowerfulPreview, { CaptureAPI } from './PowerfulPreview';
+import PowerfulPreview from './PowerfulPreview';
 
 interface AppFile {
   path: string;
@@ -21,18 +21,13 @@ interface FullAppData {
 
 interface FullAppPreviewProps {
   appDataJson: string;
-  onScreenshot?: (dataUrl: string) => void;
 }
 
-export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPreviewProps) {
+export default function FullAppPreview({ appDataJson }: FullAppPreviewProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'preview' | 'code'>('preview');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  const [captureApi, setCaptureApi] = useState<CaptureAPI | null>(null);
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [captureSuccess, setCaptureSuccess] = useState(false);
-  const [captureError, setCaptureError] = useState<string>('');
 
   // Detect client-side rendering for portal
   useEffect(() => {
@@ -118,65 +113,16 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
         </div>
       )}
 
-      {/* Floating exit button and capture button when in fullscreen preview mode */}
+      {/* Floating exit button when in fullscreen preview mode */}
       {activeTab === 'preview' && (
-        <>
-          {captureError && (
-            <div className="fixed top-20 right-4 z-[110] max-w-md px-4 py-3 rounded-lg bg-red-600/90 text-white backdrop-blur-sm shadow-xl border border-red-500/30">
-              <div className="flex items-start gap-2">
-                <span className="text-lg">⚠️</span>
-                <div className="flex-1">
-                  <p className="text-sm font-medium mb-1">Capture Failed</p>
-                  <p className="text-xs opacity-90">{captureError}</p>
-                </div>
-                <button
-                  onClick={() => setCaptureError('')}
-                  className="text-white/70 hover:text-white text-xl leading-none"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          )}
-          <button
-            onClick={async () => {
-              setIsCapturing(true);
-              setCaptureError('');
-              
-              // Set a timeout to prevent getting stuck
-              const timeoutId = setTimeout(() => {
-                setIsCapturing(false);
-                setCaptureError('Capture timed out. The preview may still be loading.');
-                setTimeout(() => setCaptureError(''), 5000);
-              }, 10000); // 10 second timeout
-              
-              try {
-                await captureApi?.capture();
-                // Note: isCapturing will be set to false in onScreenshot callback
-              } catch (error: any) {
-                clearTimeout(timeoutId);
-                setIsCapturing(false);
-                const errorMsg = error?.message || 'Unknown error occurred';
-                setCaptureError(errorMsg);
-                setTimeout(() => setCaptureError(''), 5000);
-              }
-            }}
-            disabled={isCapturing || !captureApi}
-            className="fixed top-4 right-44 z-[110] px-4 py-2 rounded-lg bg-purple-600/90 hover:bg-purple-700 disabled:bg-purple-800/50 disabled:opacity-50 text-white backdrop-blur-sm transition-all flex items-center gap-2 shadow-xl border border-purple-500/30"
-            title={!captureApi ? 'Preview loading...' : 'Capture preview for AI debugging'}
-          >
-            <span className="text-lg">{isCapturing ? '⏳' : captureSuccess ? '✅' : '📸'}</span>
-            <span className="text-sm font-medium">Capture</span>
-          </button>
-          <button
-            onClick={() => setIsFullscreen(false)}
-            className="fixed top-4 right-4 z-[110] px-4 py-2 rounded-lg bg-black/80 hover:bg-black text-white backdrop-blur-sm transition-all flex items-center gap-2 shadow-xl border border-white/20"
-            title="Exit Fullscreen"
-          >
-            <span className="text-lg">⤓</span>
-            <span className="text-sm font-medium">Exit Fullscreen</span>
-          </button>
-        </>
+        <button
+          onClick={() => setIsFullscreen(false)}
+          className="fixed top-4 right-4 z-[110] px-4 py-2 rounded-lg bg-black/80 hover:bg-black text-white backdrop-blur-sm transition-all flex items-center gap-2 shadow-xl border border-white/20"
+          title="Exit Fullscreen"
+        >
+          <span className="text-lg">⤓</span>
+          <span className="text-sm font-medium">Exit Fullscreen</span>
+        </button>
       )}
 
       {/* Content area */}
@@ -186,20 +132,6 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
             <PowerfulPreview 
               appDataJson={appDataJson} 
               isFullscreen={true}
-              onMountCaptureApi={setCaptureApi}
-              onScreenshot={(dataUrl, diagnostics) => {
-                setIsCapturing(false);
-                if (dataUrl) {
-                  setCaptureSuccess(true);
-                  setCaptureError('');
-                  setTimeout(() => setCaptureSuccess(false), 2000);
-                  onScreenshot?.(dataUrl);
-                } else {
-                  const errorMsg = diagnostics ? `Capture failed: ${diagnostics}` : 'Capture failed';
-                  setCaptureError(errorMsg);
-                  setTimeout(() => setCaptureError(''), 5000);
-                }
-              }}
             />
           </div>
         ) : (
@@ -266,56 +198,9 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
     </div>
   );
 
-  // Normal (non-fullscreen) content - shows the preview with a fullscreen button and capture button
+  // Normal (non-fullscreen) content - shows the preview with a fullscreen button
   const normalContent = (
     <div className="h-full w-full relative">
-      {captureError && (
-        <div className="absolute top-20 right-4 z-[100] max-w-md px-4 py-3 rounded-lg bg-red-600/90 text-white backdrop-blur-sm shadow-xl border border-red-500/30">
-          <div className="flex items-start gap-2">
-            <span className="text-lg">⚠️</span>
-            <div className="flex-1">
-              <p className="text-sm font-medium mb-1">Capture Failed</p>
-              <p className="text-xs opacity-90">{captureError}</p>
-            </div>
-            <button
-              onClick={() => setCaptureError('')}
-              className="text-white/70 hover:text-white text-xl leading-none"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-      )}
-      <button
-        onClick={async () => {
-          setIsCapturing(true);
-          setCaptureError('');
-          
-          // Set a timeout to prevent getting stuck
-          const timeoutId = setTimeout(() => {
-            setIsCapturing(false);
-            setCaptureError('Capture timed out. The preview may still be loading.');
-            setTimeout(() => setCaptureError(''), 5000);
-          }, 10000); // 10 second timeout
-          
-          try {
-            await captureApi?.capture();
-            // Note: isCapturing will be set to false in onScreenshot callback
-          } catch (error: any) {
-            clearTimeout(timeoutId);
-            setIsCapturing(false);
-            const errorMsg = error?.message || 'Unknown error occurred';
-            setCaptureError(errorMsg);
-            setTimeout(() => setCaptureError(''), 5000);
-          }
-        }}
-        disabled={isCapturing || !captureApi}
-        className="absolute top-4 right-32 z-[100] px-4 py-2 rounded-lg bg-purple-600/90 hover:bg-purple-700 disabled:bg-purple-800/50 disabled:opacity-50 text-white backdrop-blur-sm transition-all flex items-center gap-2 shadow-xl border border-purple-500/30"
-        title={!captureApi ? 'Preview loading...' : 'Capture preview for AI debugging'}
-      >
-        <span className="text-lg">{isCapturing ? '⏳' : captureSuccess ? '✅' : '📸'}</span>
-        <span className="text-sm font-medium">Capture</span>
-      </button>
       <button
         onClick={() => setIsFullscreen(true)}
         className="absolute top-4 right-4 z-[100] px-4 py-2 rounded-lg bg-black/80 hover:bg-black text-white backdrop-blur-sm transition-all flex items-center gap-2 shadow-xl border border-white/20"
@@ -327,17 +212,6 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
       <PowerfulPreview 
         appDataJson={appDataJson} 
         isFullscreen={false}
-        onMountCaptureApi={setCaptureApi}
-        onScreenshot={(dataUrl, diagnostics) => {
-          setIsCapturing(false);
-          if (dataUrl) {
-            setCaptureSuccess(true);
-            setTimeout(() => setCaptureSuccess(false), 2000);
-            onScreenshot?.(dataUrl);
-          } else {
-            console.error('Capture failed:', diagnostics);
-          }
-        }}
       />
     </div>
   );
