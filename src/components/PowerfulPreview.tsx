@@ -105,7 +105,7 @@ h1, h2, h3, h4, h5, h6 {
     };
   }
 
-  // Add public/index.html with Tailwind CDN and inline capture script
+  // Add public/index.html with Tailwind CDN - capture done from parent via DOM serialization
   sandpackFiles['/public/index.html'] = {
     code: `<!DOCTYPE html>
 <html lang="en">
@@ -114,45 +114,82 @@ h1, h2, h3, h4, h5, h6 {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${appData.name || 'App'}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   </head>
   <body>
     <div id="root"></div>
     <script>
-      // Screenshot capture script - inline to ensure it loads
+      // Simple capture: serialize DOM to SVG and convert to image
       window.capturePreview = async function() {
         try {
           const root = document.getElementById('root');
           if (!root) throw new Error('Root element not found');
           
-          if (typeof html2canvas === 'undefined') {
-            throw new Error('html2canvas not loaded');
+          // Get computed styles and clone the element
+          const width = root.offsetWidth || 800;
+          const height = root.offsetHeight || 600;
+          
+          // Serialize the HTML content
+          const htmlContent = root.outerHTML;
+          
+          // Get all stylesheets
+          let styles = '';
+          for (const sheet of document.styleSheets) {
+            try {
+              for (const rule of sheet.cssRules) {
+                styles += rule.cssText + '\\n';
+              }
+            } catch (e) {
+              // Cross-origin stylesheets can't be read
+            }
           }
           
-          const canvas = await html2canvas(root, {
-            scale: 1,
-            logging: false,
-            useCORS: true
-          });
+          // Create SVG with embedded HTML
+          const svg = \`<svg xmlns="http://www.w3.org/2000/svg" width="\${width}" height="\${height}">
+            <foreignObject width="100%" height="100%">
+              <div xmlns="http://www.w3.org/1999/xhtml">
+                <style>\${styles}</style>
+                \${htmlContent}
+              </div>
+            </foreignObject>
+          </svg>\`;
           
-          let dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          // Convert SVG to data URL
+          const svgBlob = new Blob([svg], {type: 'image/svg+xml;charset=utf-8'});
+          const svgUrl = URL.createObjectURL(svgBlob);
           
-          const maxWidth = 1200;
-          if (canvas.width > maxWidth) {
-            const scaledCanvas = document.createElement('canvas');
-            const ratio = maxWidth / canvas.width;
-            scaledCanvas.width = maxWidth;
-            scaledCanvas.height = canvas.height * ratio;
-            const ctx = scaledCanvas.getContext('2d');
-            ctx.drawImage(canvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
-            dataUrl = scaledCanvas.toDataURL('image/jpeg', 0.8);
-          }
+          // Load SVG into an image
+          const img = new Image();
+          img.onload = function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0);
+            URL.revokeObjectURL(svgUrl);
+            
+            const dataUrl = canvas.toDataURL('image/png', 0.9);
+            window.parent.postMessage({
+              type: 'sandpack-captured',
+              dataUrl: dataUrl,
+              success: true
+            }, '*');
+          };
+          img.onerror = function() {
+            URL.revokeObjectURL(svgUrl);
+            // Fallback: just send a placeholder
+            window.parent.postMessage({
+              type: 'sandpack-captured',
+              success: false,
+              diagnostics: {
+                error: 'SVG to image conversion failed',
+                viewport: { width: width, height: height }
+              }
+            }, '*');
+          };
+          img.src = svgUrl;
           
-          window.parent.postMessage({
-            type: 'sandpack-captured',
-            dataUrl: dataUrl,
-            success: true
-          }, '*');
         } catch (error) {
           window.parent.postMessage({
             type: 'sandpack-captured',
@@ -160,8 +197,7 @@ h1, h2, h3, h4, h5, h6 {
             diagnostics: {
               error: error.message,
               viewport: { width: window.innerWidth, height: window.innerHeight },
-              rootFound: !!document.getElementById('root'),
-              html2canvasLoaded: typeof html2canvas !== 'undefined'
+              rootFound: !!document.getElementById('root')
             }
           }, '*');
         }
