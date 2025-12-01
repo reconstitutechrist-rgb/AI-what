@@ -276,11 +276,13 @@ html {
 
 /* Horizontal Handle (vertical divider - for horizontal layout) */
 .resize-handle-horizontal {
-  width: 4px;
+  width: 12px;
   cursor: col-resize;
-  margin: 0 -2px;
-  padding: 0 6px;
-  background-clip: content-box;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  touch-action: none;
+  z-index: 10;
 }
 
 .resize-handle-horizontal::before {
@@ -288,9 +290,9 @@ html {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: -6px;
-  right: -6px;
-  /* Extended hit area - invisible */
+  left: 0;
+  right: 0;
+  /* Visual handle area */
 }
 
 .resize-handle-horizontal:hover,
@@ -304,11 +306,13 @@ html {
 
 /* Vertical Handle (horizontal divider - for vertical layout) */
 .resize-handle-vertical {
-  height: 4px;
+  height: 12px;
   cursor: row-resize;
-  margin: -2px 0;
-  padding: 6px 0;
-  background-clip: content-box;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  touch-action: none;
+  z-index: 10;
 }
 
 .resize-handle-vertical::before {
@@ -316,9 +320,9 @@ html {
   position: absolute;
   left: 0;
   right: 0;
-  top: -6px;
-  bottom: -6px;
-  /* Extended hit area - invisible */
+  top: 0;
+  bottom: 0;
+  /* Visual handle area */
 }
 
 .resize-handle-vertical:hover,
@@ -363,25 +367,11 @@ html {
 /* Touch device optimizations */
 @media (pointer: coarse) {
   .resize-handle-horizontal {
-    width: 8px;
-    margin: 0 -4px;
-    padding: 0 12px;
+    width: 16px;
   }
   
   .resize-handle-vertical {
-    height: 8px;
-    margin: -4px 0;
-    padding: 12px 0;
-  }
-  
-  .resize-handle-horizontal::before {
-    left: -12px;
-    right: -12px;
-  }
-  
-  .resize-handle-vertical::before {
-    top: -12px;
-    bottom: -12px;
+    height: 16px;
   }
 }
 

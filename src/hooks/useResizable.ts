@@ -80,6 +80,9 @@ export function useResizable({
   // Use refs for drag state to avoid stale closure issues in event handlers
   const isDraggingRef = useRef(false);
   const activeIndexRef = useRef<number | null>(null);
+  // Ref to track latest sizes for use in callbacks (avoids stale closure)
+  const latestSizesRef = useRef<number[]>(sizes);
+  latestSizesRef.current = sizes;
 
   // Set sizes and trigger callbacks
   const setSizes = useCallback((newSizes: number[]) => {
@@ -215,19 +218,21 @@ export function useResizable({
     setSizesState(newSizes);
   }, [direction, minSizes, maxSizes]);
 
-  // Stop resize operation
+  // Stop resize operation - uses ref to get latest sizes to avoid stale closures
   const stopResize = useCallback(() => {
     if (isDraggingRef.current) {
       setIsDragging(false);
       setActiveIndex(null);
       isDraggingRef.current = false;
       activeIndexRef.current = null;
-      onLayoutChange?.(sizes);
+      // Use ref to get the latest sizes, not stale closure value
+      const currentSizes = latestSizesRef.current;
+      onLayoutChange?.(currentSizes);
       if (persistenceKey) {
-        persistSizesDebounced(persistenceKey, sizes);
+        persistSizesDebounced(persistenceKey, currentSizes);
       }
     }
-  }, [sizes, onLayoutChange, persistenceKey, persistSizesDebounced]);
+  }, [onLayoutChange, persistenceKey, persistSizesDebounced]);
 
   // Collapse a panel (store current size and minimize)
   const collapsePanel = useCallback((index: number) => {

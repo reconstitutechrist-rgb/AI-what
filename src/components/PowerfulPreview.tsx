@@ -202,6 +202,37 @@ h1, h2, h3, h4, h5, h6 {
           }, '*');
         }
       };
+      
+      // Listen for ping messages from parent to check readiness
+      window.addEventListener('message', function(event) {
+        if (event.data && event.data.type === 'sandpack-ping') {
+          // Respond that we're ready
+          window.parent.postMessage({
+            type: 'sandpack-pong',
+            ready: typeof window.capturePreview === 'function'
+          }, '*');
+        }
+        // Also handle capture requests via postMessage (cross-origin safe)
+        if (event.data && event.data.type === 'sandpack-capture-request') {
+          if (typeof window.capturePreview === 'function') {
+            window.capturePreview();
+          } else {
+            window.parent.postMessage({
+              type: 'sandpack-captured',
+              success: false,
+              diagnostics: { error: 'Capture function not ready' }
+            }, '*');
+          }
+        }
+      });
+      
+      // Notify parent when we're fully loaded
+      window.addEventListener('load', function() {
+        window.parent.postMessage({
+          type: 'sandpack-ready',
+          ready: true
+        }, '*');
+      });
     </script>
   </body>
 </html>`
@@ -217,8 +248,12 @@ h1, h2, h3, h4, h5, h6 {
 
   // Set up capture functionality
   useEffect(() => {
-    // Listen for capture results from iframe
+    let iframeReady = false;
+    let captureApiMounted = false;
+    
+    // Listen for messages from iframe
     const handleMessage = (event: MessageEvent) => {
+      // Handle capture results
       if (event.data.type === 'sandpack-captured') {
         if (event.data.success) {
           onScreenshot?.(event.data.dataUrl);
@@ -226,62 +261,69 @@ h1, h2, h3, h4, h5, h6 {
           onScreenshot?.('', JSON.stringify(event.data.diagnostics));
         }
       }
+      
+      // Handle iframe ready signal
+      if (event.data.type === 'sandpack-ready' || event.data.type === 'sandpack-pong') {
+        if (event.data.ready) {
+          iframeReady = true;
+          mountCaptureApi();
+        }
+      }
+    };
+    
+    // Mount the capture API using postMessage (cross-origin safe)
+    const mountCaptureApi = () => {
+      if (captureApiMounted || !onMountCaptureApi) return;
+      
+      const iframe = document.querySelector('iframe[title*="Sandpack"]') as HTMLIFrameElement;
+      if (!iframe) return;
+      
+      iframeRef.current = iframe;
+      captureApiMounted = true;
+      
+      onMountCaptureApi({
+        capture: async () => {
+          if (!iframeRef.current?.contentWindow) {
+            throw new Error('Preview iframe not available');
+          }
+          
+          // Use postMessage to trigger capture (cross-origin safe)
+          iframeRef.current.contentWindow.postMessage({
+            type: 'sandpack-capture-request'
+          }, '*');
+        }
+      });
     };
     
     window.addEventListener('message', handleMessage);
     
-    // Retry logic: try to find iframe every 200ms for up to 5 seconds
+    // Retry logic: try to find and ping iframe every 200ms for up to 5 seconds
     let attempts = 0;
     const maxAttempts = 25; // 25 attempts × 200ms = 5 seconds
     let intervalId: NodeJS.Timeout | null = null;
     
-    const findIframe = () => {
+    const findAndPingIframe = () => {
       attempts++;
       const iframe = document.querySelector('iframe[title*="Sandpack"]') as HTMLIFrameElement;
       
-      if (iframe) {
+      if (iframe && iframe.contentWindow) {
         iframeRef.current = iframe;
         
-        // Check if capturePreview function is actually loaded in iframe
-        let captureReady = false;
+        // Send ping to check if iframe is ready (cross-origin safe)
         try {
-          const iframeWindow = iframe.contentWindow as any;
-          captureReady = typeof iframeWindow?.capturePreview === 'function';
+          iframe.contentWindow.postMessage({ type: 'sandpack-ping' }, '*');
         } catch (e) {
-          // Cross-origin or not ready yet
-          captureReady = false;
+          // Ignore postMessage errors
         }
-        
-        if (captureReady) {
-          // Clear interval once capture is ready
-          if (intervalId) {
-            clearInterval(intervalId);
-            intervalId = null;
-          }
-          
-          // NOW expose capture API (only after capturePreview function exists)
-          if (onMountCaptureApi) {
-            onMountCaptureApi({
-              capture: async () => {
-                if (!iframeRef.current?.contentWindow) {
-                  throw new Error('Preview iframe not available');
-                }
-                
-                try {
-                  const iframeWindow = iframeRef.current.contentWindow as any;
-                  if (typeof iframeWindow.capturePreview === 'function') {
-                    iframeWindow.capturePreview();
-                  } else {
-                    throw new Error('Capture function not loaded yet. Please wait a moment and try again.');
-                  }
-                } catch (error) {
-                  throw new Error('Capture function not available in preview. Please wait for preview to fully load.');
-                }
-              }
-            });
-          }
+      }
+      
+      // If already ready, stop polling
+      if (iframeReady && captureApiMounted) {
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
         }
-        // If iframe found but capture not ready, keep retrying until maxAttempts
+        return;
       }
       
       if (attempts >= maxAttempts) {
@@ -291,15 +333,19 @@ h1, h2, h3, h4, h5, h6 {
           intervalId = null;
         }
         
-        // Still expose API but it will show error when used
-        if (onMountCaptureApi && !iframeRef.current) {
+        // Mount API anyway - it will work once iframe loads
+        if (!captureApiMounted && iframeRef.current) {
+          mountCaptureApi();
+        }
+        
+        if (!iframeRef.current) {
           console.warn('Could not find Sandpack iframe after 5 seconds');
         }
       }
     };
     
     // Start trying to find iframe
-    intervalId = setInterval(findIframe, 200);
+    intervalId = setInterval(findAndPingIframe, 200);
     
     return () => {
       window.removeEventListener('message', handleMessage);

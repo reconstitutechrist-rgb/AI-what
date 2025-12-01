@@ -106,23 +106,15 @@ export function ResizableHandle({
   // Calculate hit area sizes
   const hitAreaSize = isDragging ? hitAreaMargins.coarse : hitAreaMargins.fine;
   
-  // Handle styles
+  // Handle styles - width/height handled by CSS, just add cursor and touch-action
   const handleStyle: React.CSSProperties = {
     ...style,
     // Base styles
     position: 'relative',
     flexShrink: 0,
-    // Direction-specific
-    ...(isHorizontal
-      ? {
-          width: '4px',
-          cursor: disabled ? 'default' : 'col-resize',
-        }
-      : {
-          height: '4px',
-          cursor: disabled ? 'default' : 'row-resize',
-        }),
-    // Expand hit area with pseudo-element margins handled by CSS
+    touchAction: 'none',
+    // Direction-specific cursor only
+    cursor: disabled ? 'default' : (isHorizontal ? 'col-resize' : 'row-resize'),
   };
 
   // Build class names
