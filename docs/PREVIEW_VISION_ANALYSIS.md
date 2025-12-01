@@ -157,15 +157,15 @@ const { prompt, currentAppState, conversationHistory } = await request.json();
 
 **Note:** Must strip `data:image/jpeg;base64,` prefix before sending to Anthropic!
 
-#### 3. **No Token Cost Warning**
-**Missing:** Vision messages cost **significantly more tokens**:
+#### 3. **Token Cost Considerations**
+**Note:** Vision messages cost more tokens than text-only:
 - Text-only message: ~1,000 tokens ≈ $0.003
 - With 800x600 image: +1,500-4,000 tokens ≈ $0.005-$0.012 extra
 
-**Should add:**
-- Visual indicator when image attached
-- Optional cost estimate
-- Ability to remove image before sending
+**Handled by:**
+- Manual capture (user controls when to attach images)
+- Ability to remove image before sending (existing functionality)
+- Clear visual indicator when image attached
 
 #### 4. **Vague State Management**
 **Plan mentions:** "set `uploadedImage` and optional `previewDiagnostics`"
@@ -576,22 +576,7 @@ interface FullAppPreviewProps {
 
 ### Phase 3: Polish and Testing
 
-#### 3.1 Add Cost Warning ⏱️ ~30 minutes
-In AIBuilder.tsx, when image is attached:
-```typescript
-{uploadedImage && (
-  <div className="mb-3 relative inline-block">
-    <img src={uploadedImage} ... />
-    <button onClick={removeImage} ... >✕</button>
-    <div className="text-xs text-yellow-400 mt-1 flex items-center gap-1">
-      <span>⚠️</span>
-      <span>Vision API: Higher token cost (~2-4x text-only)</span>
-    </div>
-  </div>
-)}
-```
-
-#### 3.2 Error Handling ⏱️ ~30 minutes
+#### 3.1 Error Handling ⏱️ ~30 minutes
 - Handle html2canvas load failure
 - Handle iframe access errors
 - Handle oversized images
@@ -606,7 +591,7 @@ In AIBuilder.tsx, when image is attached:
 - Test in different browsers
 - Verify token costs with sample images
 
-**Total Phase 3: ~3 hours**
+**Total Phase 3: ~2.5 hours**
 
 ---
 
@@ -616,8 +601,8 @@ In AIBuilder.tsx, when image is attached:
 |-------|--------|------|-------------|
 | Phase 1 | ✅ **COMPLETE** | 1.25 hrs | Update API routes for image support |
 | Phase 2 | ✅ **COMPLETE** | 4 hrs | Screenshot capture infrastructure |
-| Phase 3 | ⏳ Pending | 3 hrs | Polish and testing |
-| **Total** | **~8.25 hours** | **~3 hrs remaining** | Complete implementation |
+| Phase 3 | ⏳ Pending | 2.5 hrs | Polish and testing |
+| **Total** | **~7.75 hours** | **~2.5 hrs remaining** | Complete implementation |
 
 ---
 
@@ -737,8 +722,7 @@ In AIBuilder.tsx, when image is attached:
 2. ⚠️ Update `/api/chat` route (plan correct)
 3. ❌ Update `/api/ai-builder/modify` route (plan missing)
 4. ⚠️ Add exact API message format specification
-5. ⚠️ Add token cost warnings
-6. ⚠️ Clarify state management (use existing `uploadedImage`)
+5. ⚠️ Clarify state management (use existing `uploadedImage`)
 
 ### Recommended Action:
 **Proceed with implementation** using this refined plan. The foundation exists, the approach is sound, and the gaps are manageable. Total effort: ~8-10 hours for complete feature.
@@ -908,11 +892,9 @@ In AIBuilder.tsx, when image is attached:
 
 ### Remaining Work (Phase 3):
 
-⏳ Add token cost warning when image attached  
 ⏳ Add timeout for capture (10 seconds max)  
 ⏳ Enhanced error messages for users  
 ⏳ Browser compatibility testing  
 ⏳ Performance testing with complex apps  
-⏳ Token cost verification  
 
-**Phase 2 complete - Ready to proceed with Phase 3 polish and testing (~3 hours)**
+**Phase 2 complete - Ready to proceed with Phase 3 polish and testing (~2.5 hours)**
