@@ -3,11 +3,11 @@
 /**
  * AIBuilder - Refactored Orchestrator Component
  * 
- * This component has been refactored from ~4,000 lines to ~500 lines.
+ * This component has been refactored from 3182 lines to ~1500 lines (52% reduction).
  * It now uses:
  * - Zustand store for state management
  * - Extracted ChatPanel and PreviewPanel components
- * - Custom hooks (useVersionControl, useDatabaseSync, useKeyboardShortcuts, useFileStorage)
+ * - Custom hooks (useVersionControl, useDatabaseSync, useKeyboardShortcuts, useFileStorage, useMessageSender, useBuildPhases)
  * - Modal components from ./modals
  * 
  * All functionality is preserved from the original implementation.
@@ -458,7 +458,10 @@ export default function AIBuilder() {
     loadApps();
     
     return () => { mounted = false; };
-  }, [sessionReady, user?.id, loadComponentsFromDb, setComponents, setCurrentComponent, setChatMessages, setActiveTab, setLoadingApps, setDbSyncError]);
+  // Note: Zustand store setters are stable and don't change between renders,
+  // but eslint-plugin-react-hooks requires them in the dependency array.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionReady, user?.id, loadComponentsFromDb]);
 
   // Save components to localStorage
   useEffect(() => {
@@ -1088,7 +1091,7 @@ export default function AIBuilder() {
       // Handle chat response
       if (isQuestion || data.type === 'chat') {
         const chatResponse: ChatMessage = {
-          id: (Date.now() + 1).toString(),
+          id: crypto.randomUUID(),
           role: 'assistant',
           content: data.answer || data.description,
           timestamp: new Date().toISOString()
@@ -1097,7 +1100,7 @@ export default function AIBuilder() {
       } else {
         // Handle full-app response
         const aiAppMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
+          id: crypto.randomUUID(),
           role: 'assistant',
           content: `🚀 App created\n\n${data.description || `I've created your ${data.name} app!`}`,
           timestamp: new Date().toISOString(),
@@ -1140,7 +1143,7 @@ export default function AIBuilder() {
       setGenerationProgress('');
       
       const errorMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+        id: crypto.randomUUID(),
         role: 'assistant',
         content: `❌ Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
         timestamp: new Date().toISOString()
@@ -1154,7 +1157,9 @@ export default function AIBuilder() {
         fileInputRef.current.value = '';
       }
     }
-  }, [userInput, isGenerating, currentMode, currentComponent, chatMessages, uploadedImage, messageSender, saveVersion, setLastUserRequest, setChatMessages, setUserInput, setIsGenerating, setGenerationProgress, setPendingDiff, setShowDiffPreview, setCurrentComponent, setComponents, saveComponentToDb, setActiveTab, setUploadedImage]);
+  // Note: Zustand store setters are stable and don't change between renders.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userInput, isGenerating, currentMode, currentComponent, chatMessages, uploadedImage, messageSender, saveVersion, saveComponentToDb]);
 
   // ============================================================================
   // RENDER
@@ -1415,19 +1420,24 @@ export default function AIBuilder() {
 
               setNewAppStagePlan(data);
 
+              // Safely map the API response, providing defaults for missing properties
+              const phaseContent = Array.isArray(data.phases) 
+                ? data.phases.map((p: { number?: number; name?: string; description?: string; features?: string[] }, index: number) => 
+                    `**Phase ${p.number ?? index + 1}: ${p.name ?? 'Unnamed Phase'}**\n${p.description ?? ''}\n${Array.isArray(p.features) ? p.features.map((f: string) => `  • ${f}`).join('\n') : ''}`
+                  ).join('\n\n')
+                : 'No phases defined';
+
               const phasePlanMessage: ChatMessage = {
-                id: Date.now().toString(),
+                id: crypto.randomUUID(),
                 role: 'assistant',
-                content: `🏗️ **${data.totalPhases}-Phase Build Plan Created**\n\n${data.phases.map((p: Phase) => 
-                  `**Phase ${p.number}: ${p.name}**\n${p.description}\n${p.features.map((f: string) => `  • ${f}`).join('\n')}`
-                ).join('\n\n')}\n\n**Ready to start?** Type **'start'** or **'begin'** to build Phase 1!`,
+                content: `🏗️ **${data.totalPhases ?? 0}-Phase Build Plan Created**\n\n${phaseContent}\n\n**Ready to start?** Type **'start'** or **'begin'** to build Phase 1!`,
                 timestamp: new Date().toISOString()
               };
 
               setChatMessages(prev => [...prev, phasePlanMessage]);
             } catch (error) {
               const errorMessage: ChatMessage = {
-                id: Date.now().toString(),
+                id: crypto.randomUUID(),
                 role: 'assistant',
                 content: `❌ Failed to create phase plan: ${error instanceof Error ? error.message : 'Unknown error'}`,
                 timestamp: new Date().toISOString()
