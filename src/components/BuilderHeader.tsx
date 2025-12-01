@@ -517,7 +517,7 @@ function MobileMenu({
                 <span>Phases</span>
               </button>
             )}
-            {versionCount && versionCount > 0 && onShowHistory && (
+            {versionCount !== undefined && versionCount > 0 && onShowHistory && (
               <button
                 onClick={() => {
                   onShowHistory();
@@ -747,9 +747,10 @@ export function BuilderHeader({
           border-b border-white/10 backdrop-blur-xl
           sticky top-0 z-50
           shadow-2xl shadow-black/40
+          bg-slate-900/80
         "
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10" aria-hidden="true"></div>
         <div className="px-4 lg:px-6 h-16 flex items-center gap-4 relative">
           {/* ============================================
               BRANDING SECTION (LEFT)
@@ -849,7 +850,7 @@ export function BuilderHeader({
             )}
 
             {/* Version History Button */}
-            {versionCount && versionCount > 0 && onShowHistory && (
+            {versionCount !== undefined && versionCount > 0 && onShowHistory && (
               <button
                 onClick={onShowHistory}
                 className="px-4 py-2 rounded-lg bg-slate-800/50 border border-white/20 transition-all duration-300 text-sm text-slate-300 hover:text-white flex items-center gap-2 hover:scale-105 active:scale-95 shadow-lg group"
