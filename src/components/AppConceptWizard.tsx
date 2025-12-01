@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { AppConcept, Feature, UIPreferences, TechnicalRequirements } from '../types/appConcept';
+import type { FullTemplate } from '../types/architectureTemplates';
 import {
   validateBasicInfo,
   validateFeatures,
@@ -20,6 +21,7 @@ import {
 import { ValidatedField, ValidationSummary } from './ValidationMessage';
 import { FeatureLibrary } from './FeatureLibrary';
 import { LayoutPreview } from './LayoutPreview';
+import { TemplateSelector } from './TemplateSelector';
 
 /**
  * Props for AppConceptWizard
@@ -34,11 +36,12 @@ interface AppConceptWizardProps {
  * Wizard step configuration
  */
 const STEPS = [
-  { number: 1, title: 'Basic Info', description: 'Name and describe your app' },
-  { number: 2, title: 'Features', description: 'Define core functionality' },
-  { number: 3, title: 'Design', description: 'Choose look and feel' },
-  { number: 4, title: 'Technical', description: 'Set requirements' },
-  { number: 5, title: 'Review', description: 'Confirm and create' }
+  { number: 1, title: 'Template', description: 'Choose a starting point' },
+  { number: 2, title: 'Basic Info', description: 'Name and describe your app' },
+  { number: 3, title: 'Features', description: 'Define core functionality' },
+  { number: 4, title: 'Design', description: 'Choose look and feel' },
+  { number: 5, title: 'Technical', description: 'Set requirements' },
+  { number: 6, title: 'Review', description: 'Confirm and create' }
 ];
 
 /**
@@ -73,25 +76,28 @@ export function AppConceptWizard({
   // Step navigation
   const [currentStep, setCurrentStep] = useState(1);
 
-  // Basic Info (Step 1)
+  // Template selection (Step 1)
+  const [selectedTemplate, setSelectedTemplate] = useState<FullTemplate | null>(null);
+
+  // Basic Info (Step 2)
   const [name, setName] = useState(initialConcept?.name || '');
   const [description, setDescription] = useState(initialConcept?.description || '');
   const [purpose, setPurpose] = useState(initialConcept?.purpose || '');
   const [targetUsers, setTargetUsers] = useState(initialConcept?.targetUsers || '');
 
-  // Features (Step 2)
+  // Features (Step 3)
   const [features, setFeatures] = useState<Feature[]>(initialConcept?.coreFeatures || []);
   const [newFeatureName, setNewFeatureName] = useState('');
   const [newFeatureDescription, setNewFeatureDescription] = useState('');
   const [newFeaturePriority, setNewFeaturePriority] = useState<'high' | 'medium' | 'low'>('medium');
   const [showFeatureLibrary, setShowFeatureLibrary] = useState(false);
 
-  // Design (Step 3)
+  // Design (Step 4)
   const [uiPreferences, setUiPreferences] = useState<UIPreferences>(
     initialConcept?.uiPreferences || defaultUIPreferences
   );
 
-  // Technical (Step 4)
+  // Technical (Step 5)
   const [technical, setTechnical] = useState<TechnicalRequirements>(
     initialConcept?.technical || defaultTechnicalRequirements
   );
@@ -160,14 +166,65 @@ export function AppConceptWizard({
     setShowDraftPrompt(false);
   }, [autoSaver]);
 
+  // Handle template selection
+  const handleTemplateSelect = useCallback((template: FullTemplate) => {
+    setSelectedTemplate(template);
+    
+    // Pre-populate description with template info
+    setDescription(template.basePrompt);
+    setPurpose(template.description);
+    
+    // Pre-populate features from template
+    const templateFeatures: Feature[] = template.requiredFeatures.map((f, index) => ({
+      id: `template-feature-${index}`,
+      name: f,
+      description: f,
+      priority: 'high' as const
+    }));
+    setFeatures(templateFeatures);
+    
+    // Pre-populate UI preferences based on template layout
+    const layoutMap: Record<string, UIPreferences['layout']> = {
+      sidebar: 'dashboard',
+      topnav: 'multi-page',
+      minimal: 'single-page',
+      split: 'dashboard'
+    };
+    setUiPreferences(prev => ({
+      ...prev,
+      layout: layoutMap[template.layoutStructure.type] || 'single-page'
+    }));
+    
+    // Pre-populate technical requirements
+    setTechnical(prev => ({
+      ...prev,
+      needsAuth: template.technicalRequirements.needsAuth,
+      needsDatabase: template.technicalRequirements.needsDatabase,
+      needsAPI: template.technicalRequirements.needsAPI,
+      needsFileUpload: template.technicalRequirements.needsFileUpload
+    }));
+    
+    // Move to next step
+    setCurrentStep(2);
+  }, []);
+
+  // Handle skipping template selection
+  const handleSkipTemplate = useCallback(() => {
+    setSelectedTemplate(null);
+    setCurrentStep(2);
+  }, []);
+
   // Validate current step
   const validateCurrentStep = useCallback((): ValidationError[] => {
     switch (currentStep) {
-      case 1: {
+      case 1:
+        // Template selection is optional
+        return [];
+      case 2: {
         const result = validateBasicInfo({ name, description, purpose, targetUsers });
         return result.errors;
       }
-      case 2: {
+      case 3: {
         const featuresError = validateFeatures(features);
         return featuresError ? [featuresError] : [];
       }
@@ -290,7 +347,33 @@ export function AppConceptWizard({
     switch (currentStep) {
       case 1:
         return (
+          <TemplateSelector
+            onSelect={handleTemplateSelect}
+            onSkip={handleSkipTemplate}
+            userDescription={description}
+          />
+        );
+
+      case 2:
+        return (
           <div className="space-y-6">
+            {/* Show selected template badge */}
+            {selectedTemplate && (
+              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center gap-3">
+                <span className="text-xl">{selectedTemplate.icon}</span>
+                <div className="flex-1">
+                  <span className="text-sm text-blue-200">Using template:</span>
+                  <span className="ml-2 font-medium text-white">{selectedTemplate.name}</span>
+                </div>
+                <button
+                  onClick={() => setCurrentStep(1)}
+                  className="text-xs text-blue-300 hover:text-blue-200"
+                >
+                  Change
+                </button>
+              </div>
+            )}
+
             <ValidatedField
               label="App Name"
               required
@@ -361,7 +444,7 @@ export function AppConceptWizard({
           </div>
         );
 
-      case 2:
+      case 3:
         return (
           <div className="space-y-6">
             {/* Feature Library Button */}
@@ -464,7 +547,7 @@ export function AppConceptWizard({
           </div>
         );
 
-      case 3:
+      case 4:
         return (
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -583,7 +666,7 @@ export function AppConceptWizard({
           </div>
         );
 
-      case 4:
+      case 5:
         return (
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -700,9 +783,19 @@ export function AppConceptWizard({
           </div>
         );
 
-      case 5:
+      case 6:
         return (
           <div className="space-y-6">
+            {/* Template Info if selected */}
+            {selectedTemplate && (
+              <div className="p-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30">
+                <h4 className="font-medium text-white mb-2 flex items-center gap-2">
+                  <span>{selectedTemplate.icon}</span> Using {selectedTemplate.name} Template
+                </h4>
+                <p className="text-sm text-slate-400">{selectedTemplate.description}</p>
+              </div>
+            )}
+
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Basic Info Summary */}
