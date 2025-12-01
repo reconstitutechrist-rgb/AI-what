@@ -102,21 +102,31 @@ function extractComponentName(prompt: string): string {
 }
 
 /**
+ * Phase data structure from API response
+ * Properties are optional since API responses may be incomplete
+ */
+interface PhaseApiData {
+  number?: number;
+  name?: string;
+  description?: string;
+  features?: string[];
+}
+
+/**
  * Format phase data from API response into displayable content
  * Safely handles potentially missing properties with defaults
  */
-function formatPhaseContent(phases: unknown[]): string {
+function formatPhaseContent(phases: PhaseApiData[]): string {
   if (!Array.isArray(phases) || phases.length === 0) {
     return 'No phases defined';
   }
   
-  return phases.map((p: unknown, index: number) => {
-    const phase = p as { number?: number; name?: string; description?: string; features?: string[] };
+  return phases.map((phase, index) => {
     const phaseNumber = phase.number ?? index + 1;
     const phaseName = phase.name ?? 'Unnamed Phase';
     const phaseDescription = phase.description ?? '';
     const features = Array.isArray(phase.features) 
-      ? phase.features.map((f: string) => `  • ${f}`).join('\n') 
+      ? phase.features.map((f) => `  • ${f}`).join('\n') 
       : '';
     
     return `**Phase ${phaseNumber}: ${phaseName}**\n${phaseDescription}${features ? '\n' + features : ''}`;
@@ -488,8 +498,9 @@ export default function AIBuilder() {
     loadApps();
     
     return () => { mounted = false; };
-  // Note: Zustand store setters are stable and don't change between renders,
-  // but eslint-plugin-react-hooks requires them in the dependency array.
+  // Note: This effect should only run when sessionReady, user, or loadComponentsFromDb changes.
+  // The Zustand setters (setComponents, etc.) called inside loadApps are stable and don't need 
+  // to be in the dependency array, which is why eslint is disabled here.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionReady, user?.id, loadComponentsFromDb]);
 
@@ -1187,7 +1198,8 @@ export default function AIBuilder() {
         fileInputRef.current.value = '';
       }
     }
-  // Note: Zustand store setters are stable and don't change between renders.
+  // Note: This callback depends on the listed values that may change. The Zustand setters 
+  // used internally (setChatMessages, setIsGenerating, etc.) are stable and omitted from deps.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userInput, isGenerating, currentMode, currentComponent, chatMessages, uploadedImage, messageSender, saveVersion, saveComponentToDb]);
 
