@@ -872,9 +872,9 @@ What would you like to do?`,
       features: [...prev.features, ...newFeatures],
       technical: {
         ...prev.technical,
-        needsAuth: template.architecture.auth !== undefined,
-        needsDatabase: template.architecture.database !== undefined,
-        needsAPI: template.architecture.api !== undefined,
+        needsAuth: template.technicalRequirements.needsAuth,
+        needsDatabase: template.technicalRequirements.needsDatabase,
+        needsAPI: template.technicalRequirements.needsAPI,
       },
     }));
 
