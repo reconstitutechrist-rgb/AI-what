@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { SandpackProvider, SandpackPreview, SandpackLayout } from '@codesandbox/sandpack-react';
 
 interface AppFile {
@@ -18,13 +18,26 @@ interface FullAppData {
   setupInstructions: string;
 }
 
+// Capture API interface for screenshot functionality
+export interface CaptureAPI {
+  capture: () => Promise<void>;
+}
+
 interface PowerfulPreviewProps {
   appDataJson: string;
   isFullscreen?: boolean;
+  onMountCaptureApi?: (captureApi: CaptureAPI) => void;
+  onScreenshot?: (dataUrl: string, diagnostics?: string) => void;
 }
 
-export default function PowerfulPreview({ appDataJson, isFullscreen = false }: PowerfulPreviewProps) {
+export default function PowerfulPreview({ 
+  appDataJson, 
+  isFullscreen = false,
+  onMountCaptureApi,
+  onScreenshot 
+}: PowerfulPreviewProps) {
   const appData: FullAppData = JSON.parse(appDataJson);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   // Convert files to Sandpack format - React template needs / prefix
   const sandpackFiles: Record<string, { code: string }> = {};
@@ -92,23 +105,80 @@ h1, h2, h3, h4, h5, h6 {
     };
   }
 
-  // Add public/index.html with Tailwind CDN
-  if (!sandpackFiles['/public/index.html']) {
-    sandpackFiles['/public/index.html'] = {
-      code: `<!DOCTYPE html>
+  // Add capture.js - Screenshot capture script
+  sandpackFiles['/capture.js'] = {
+    code: `// Screenshot capture script for AI debugging
+window.capturePreview = async function() {
+  try {
+    const root = document.getElementById('root');
+    if (!root) throw new Error('Root element not found');
+    
+    // Wait for html2canvas to be available
+    if (typeof html2canvas === 'undefined') {
+      throw new Error('html2canvas not loaded');
+    }
+    
+    // Use html2canvas to capture
+    const canvas = await html2canvas(root, {
+      scale: 1,
+      logging: false,
+      useCORS: true
+    });
+    
+    // Convert to JPEG with compression
+    let dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    
+    // Scale down if too large
+    const maxWidth = 1200;
+    if (canvas.width > maxWidth) {
+      const scaledCanvas = document.createElement('canvas');
+      const ratio = maxWidth / canvas.width;
+      scaledCanvas.width = maxWidth;
+      scaledCanvas.height = canvas.height * ratio;
+      const ctx = scaledCanvas.getContext('2d');
+      ctx.drawImage(canvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
+      dataUrl = scaledCanvas.toDataURL('image/jpeg', 0.8);
+    }
+    
+    // Send to parent
+    window.parent.postMessage({
+      type: 'sandpack-captured',
+      dataUrl: dataUrl,
+      success: true
+    }, '*');
+  } catch (error) {
+    // Send diagnostics on failure
+    window.parent.postMessage({
+      type: 'sandpack-captured',
+      success: false,
+      diagnostics: {
+        error: error.message,
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+        rootFound: !!document.getElementById('root'),
+        html2canvasLoaded: typeof html2canvas !== 'undefined'
+      }
+    }, '*');
+  }
+};`
+  };
+
+  // Add public/index.html with Tailwind CDN and capture script
+  sandpackFiles['/public/index.html'] = {
+    code: `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${appData.name || 'App'}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   </head>
   <body>
     <div id="root"></div>
+    <script src="/capture.js"></script>
   </body>
 </html>`
-    };
-  }
+  };
 
   // Merge user dependencies with required ones
   const dependencies = {
@@ -127,6 +197,62 @@ h1, h2, h3, h4, h5, h6 {
     console.log('App.tsx content preview:', sandpackFiles['/App.tsx'].code.substring(0, 200));
   }
 
+  // Set up capture functionality
+  useEffect(() => {
+    // Listen for capture results from iframe
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'sandpack-captured') {
+        if (event.data.success) {
+          onScreenshot?.(event.data.dataUrl);
+        } else {
+          onScreenshot?.('', JSON.stringify(event.data.diagnostics));
+        }
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    
+    // Find iframe after Sandpack mounts
+    const findIframe = () => {
+      const iframe = document.querySelector('iframe[title*="Sandpack"]') as HTMLIFrameElement;
+      if (iframe) {
+        iframeRef.current = iframe;
+      }
+    };
+    
+    // Wait for Sandpack to mount
+    const timer = setTimeout(findIframe, 1000);
+    
+    // Expose capture API to parent components
+    if (onMountCaptureApi) {
+      onMountCaptureApi({
+        capture: async () => {
+          if (!iframeRef.current?.contentWindow) {
+            throw new Error('Preview iframe not available');
+          }
+          
+          // Check if capturePreview function exists in iframe
+          try {
+            // Access the iframe's window object with proper typing
+            const iframeWindow = iframeRef.current.contentWindow as any;
+            if (typeof iframeWindow.capturePreview === 'function') {
+              iframeWindow.capturePreview();
+            } else {
+              throw new Error('Capture function not loaded yet');
+            }
+          } catch (error) {
+            throw new Error('Capture function not available in preview. Please wait for preview to fully load.');
+          }
+        }
+      });
+    }
+    
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      clearTimeout(timer);
+    };
+  }, [onMountCaptureApi, onScreenshot]);
+
   return (
     <div className="w-full h-full flex flex-col" style={{ 
       minHeight: isFullscreen ? '100vh' : '600px', 
@@ -143,7 +269,10 @@ h1, h2, h3, h4, h5, h6 {
           autorun: true,
           autoReload: true,
           recompileMode: 'immediate',
-          externalResources: ['https://cdn.tailwindcss.com'],
+          externalResources: [
+            'https://cdn.tailwindcss.com',
+            'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'
+          ],
         }}
       >
         <SandpackLayout style={{ 

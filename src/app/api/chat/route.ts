@@ -11,7 +11,7 @@ const anthropic = new Anthropic({
 
 export async function POST(request: Request) {
   try {
-    const { prompt, conversationHistory, includeCodeInResponse = false, mode = 'ACT', currentAppState } = await request.json();
+    const { prompt, conversationHistory, includeCodeInResponse = false, mode = 'ACT', currentAppState, image, hasImage } = await request.json();
 
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json({
@@ -131,7 +131,53 @@ You are NOT generating full apps in this mode - just having a helpful conversati
       });
     }
 
-    messages.push({ role: 'user', content: prompt });
+    // Add user message with optional image
+    if (hasImage && image) {
+      const imageMatch = image.match(/^data:(image\/[^;]+);base64,(.+)$/);
+      if (imageMatch) {
+        let mediaType = imageMatch[1];
+        const base64Data = imageMatch[2];
+        
+        const validMediaTypes: { [key: string]: string } = {
+          'image/jpeg': 'image/jpeg',
+          'image/jpg': 'image/jpeg',
+          'image/png': 'image/png',
+          'image/gif': 'image/gif',
+          'image/webp': 'image/webp'
+        };
+        
+        const normalizedType = validMediaTypes[mediaType.toLowerCase()];
+        if (!normalizedType) {
+          console.error('Unsupported image type:', mediaType);
+          throw new Error(`Unsupported image type: ${mediaType}. Please use JPEG, PNG, GIF, or WebP.`);
+        }
+        
+        console.log('Image media type:', normalizedType, 'Original:', mediaType);
+        
+        messages.push({ 
+          role: 'user', 
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: normalizedType,
+                data: base64Data
+              }
+            },
+            {
+              type: 'text',
+              text: prompt
+            }
+          ]
+        });
+      } else {
+        console.error('Invalid image data URL format');
+        messages.push({ role: 'user', content: prompt });
+      }
+    } else {
+      messages.push({ role: 'user', content: prompt });
+    }
 
     console.log('Chat Q&A with Claude...');
 

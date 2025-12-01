@@ -2764,6 +2764,10 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
                     <div className="text-xs text-slate-400 mt-1">
                       🎨 AI will use this for design inspiration
                     </div>
+                    <div className="text-xs text-yellow-400 mt-1 flex items-center gap-1">
+                      <span>⚠️</span>
+                      <span>Vision API: Higher token cost (~2-4x text-only)</span>
+                    </div>
                   </div>
                 )}
                 
@@ -2913,7 +2917,20 @@ I'll now show you the changes for Stage ${stagePlan.currentStage}. Review and ap
                   <>
                     {activeTab === 'preview' && (
                       <div className="h-full">
-                        <FullAppPreview appDataJson={currentComponent.code} />
+                        <FullAppPreview 
+                          appDataJson={currentComponent.code}
+                          onScreenshot={(dataUrl) => {
+                            setUploadedImage(dataUrl);
+                            // Show toast notification
+                            const captureNotice: ChatMessage = {
+                              id: Date.now().toString(),
+                              role: 'system',
+                              content: '📸 Preview captured! It will be included with your next message to help me see what you\'re seeing.',
+                              timestamp: new Date().toISOString()
+                            };
+                            setChatMessages(prev => [...prev, captureNotice]);
+                          }}
+                        />
                       </div>
                     )}
 

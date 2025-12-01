@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import PowerfulPreview from './PowerfulPreview';
+import PowerfulPreview, { CaptureAPI } from './PowerfulPreview';
 
 interface AppFile {
   path: string;
@@ -21,13 +21,17 @@ interface FullAppData {
 
 interface FullAppPreviewProps {
   appDataJson: string;
+  onScreenshot?: (dataUrl: string) => void;
 }
 
-export default function FullAppPreview({ appDataJson }: FullAppPreviewProps) {
+export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPreviewProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'preview' | 'code'>('preview');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [captureApi, setCaptureApi] = useState<CaptureAPI | null>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [captureSuccess, setCaptureSuccess] = useState(false);
 
   // Detect client-side rendering for portal
   useEffect(() => {
@@ -113,23 +117,56 @@ export default function FullAppPreview({ appDataJson }: FullAppPreviewProps) {
         </div>
       )}
 
-      {/* Floating exit button when in fullscreen preview mode */}
+      {/* Floating exit button and capture button when in fullscreen preview mode */}
       {activeTab === 'preview' && (
-        <button
-          onClick={() => setIsFullscreen(false)}
-          className="fixed top-4 right-4 z-[110] px-4 py-2 rounded-lg bg-black/80 hover:bg-black text-white backdrop-blur-sm transition-all flex items-center gap-2 shadow-xl border border-white/20"
-          title="Exit Fullscreen"
-        >
-          <span className="text-lg">⤓</span>
-          <span className="text-sm font-medium">Exit Fullscreen</span>
-        </button>
+        <>
+          <button
+            onClick={async () => {
+              setIsCapturing(true);
+              try {
+                await captureApi?.capture();
+              } catch (error) {
+                setIsCapturing(false);
+                console.error('Capture error:', error);
+              }
+            }}
+            disabled={isCapturing || !captureApi}
+            className="fixed top-4 right-40 z-[110] px-4 py-2 rounded-lg bg-purple-600/90 hover:bg-purple-700 disabled:bg-purple-800/50 disabled:opacity-50 text-white backdrop-blur-sm transition-all flex items-center gap-2 shadow-xl border border-purple-500/30"
+            title="Capture preview for AI debugging"
+          >
+            <span className="text-lg">{isCapturing ? '⏳' : captureSuccess ? '✅' : '📸'}</span>
+            <span className="text-sm font-medium">Capture</span>
+          </button>
+          <button
+            onClick={() => setIsFullscreen(false)}
+            className="fixed top-4 right-4 z-[110] px-4 py-2 rounded-lg bg-black/80 hover:bg-black text-white backdrop-blur-sm transition-all flex items-center gap-2 shadow-xl border border-white/20"
+            title="Exit Fullscreen"
+          >
+            <span className="text-lg">⤓</span>
+            <span className="text-sm font-medium">Exit Fullscreen</span>
+          </button>
+        </>
       )}
 
       {/* Content area */}
       <div className="flex-1 overflow-hidden">
         {activeTab === 'preview' ? (
           <div className="h-full w-full">
-            <PowerfulPreview appDataJson={appDataJson} isFullscreen={true} />
+            <PowerfulPreview 
+              appDataJson={appDataJson} 
+              isFullscreen={true}
+              onMountCaptureApi={setCaptureApi}
+              onScreenshot={(dataUrl, diagnostics) => {
+                setIsCapturing(false);
+                if (dataUrl) {
+                  setCaptureSuccess(true);
+                  setTimeout(() => setCaptureSuccess(false), 2000);
+                  onScreenshot?.(dataUrl);
+                } else {
+                  console.error('Capture failed:', diagnostics);
+                }
+              }}
+            />
           </div>
         ) : (
           <div className="h-full flex">
@@ -195,9 +232,26 @@ export default function FullAppPreview({ appDataJson }: FullAppPreviewProps) {
     </div>
   );
 
-  // Normal (non-fullscreen) content - shows the preview with a fullscreen button
+  // Normal (non-fullscreen) content - shows the preview with a fullscreen button and capture button
   const normalContent = (
     <div className="h-full w-full relative">
+      <button
+        onClick={async () => {
+          setIsCapturing(true);
+          try {
+            await captureApi?.capture();
+          } catch (error) {
+            setIsCapturing(false);
+            console.error('Capture error:', error);
+          }
+        }}
+        disabled={isCapturing || !captureApi}
+        className="absolute top-4 right-32 z-[100] px-4 py-2 rounded-lg bg-purple-600/90 hover:bg-purple-700 disabled:bg-purple-800/50 disabled:opacity-50 text-white backdrop-blur-sm transition-all flex items-center gap-2 shadow-xl border border-purple-500/30"
+        title="Capture preview for AI debugging"
+      >
+        <span className="text-lg">{isCapturing ? '⏳' : captureSuccess ? '✅' : '📸'}</span>
+        <span className="text-sm font-medium">Capture</span>
+      </button>
       <button
         onClick={() => setIsFullscreen(true)}
         className="absolute top-4 right-4 z-[100] px-4 py-2 rounded-lg bg-black/80 hover:bg-black text-white backdrop-blur-sm transition-all flex items-center gap-2 shadow-xl border border-white/20"
@@ -206,7 +260,21 @@ export default function FullAppPreview({ appDataJson }: FullAppPreviewProps) {
         <span className="text-lg">⤢</span>
         <span className="text-sm font-medium">Fullscreen</span>
       </button>
-      <PowerfulPreview appDataJson={appDataJson} isFullscreen={false} />
+      <PowerfulPreview 
+        appDataJson={appDataJson} 
+        isFullscreen={false}
+        onMountCaptureApi={setCaptureApi}
+        onScreenshot={(dataUrl, diagnostics) => {
+          setIsCapturing(false);
+          if (dataUrl) {
+            setCaptureSuccess(true);
+            setTimeout(() => setCaptureSuccess(false), 2000);
+            onScreenshot?.(dataUrl);
+          } else {
+            console.error('Capture failed:', diagnostics);
+          }
+        }}
+      />
     </div>
   );
 

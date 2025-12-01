@@ -117,7 +117,7 @@ export async function POST(request: Request) {
   const perfTracker = new PerformanceTracker();
   
   try {
-    const { prompt, currentAppState, conversationHistory } = await request.json();
+    const { prompt, currentAppState, conversationHistory, image, hasImage } = await request.json();
     perfTracker.checkpoint('request_parsed');
     
     // Log request start after parsing body
@@ -225,12 +225,58 @@ ${JSON.stringify(currentAppState, null, 2)}`;
       });
     }
 
-    // Add current modification request WITH file contents
+    // Add current modification request WITH file contents and optional image
     const enhancedPrompt = fileContentsSection 
       ? `${fileContentsSection}\n\n🎯 **USER REQUEST:**\n${prompt}`
       : prompt;
     
-    messages.push({ role: 'user', content: enhancedPrompt });
+    // Add user message with optional image
+    if (hasImage && image) {
+      const imageMatch = image.match(/^data:(image\/[^;]+);base64,(.+)$/);
+      if (imageMatch) {
+        let mediaType = imageMatch[1];
+        const base64Data = imageMatch[2];
+        
+        const validMediaTypes: { [key: string]: string } = {
+          'image/jpeg': 'image/jpeg',
+          'image/jpg': 'image/jpeg',
+          'image/png': 'image/png',
+          'image/gif': 'image/gif',
+          'image/webp': 'image/webp'
+        };
+        
+        const normalizedType = validMediaTypes[mediaType.toLowerCase()];
+        if (!normalizedType) {
+          console.error('Unsupported image type:', mediaType);
+          throw new Error(`Unsupported image type: ${mediaType}. Please use JPEG, PNG, GIF, or WebP.`);
+        }
+        
+        console.log('Image media type:', normalizedType, 'Original:', mediaType);
+        
+        messages.push({ 
+          role: 'user', 
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: normalizedType,
+                data: base64Data
+              }
+            },
+            {
+              type: 'text',
+              text: enhancedPrompt
+            }
+          ]
+        });
+      } else {
+        console.error('Invalid image data URL format');
+        messages.push({ role: 'user', content: enhancedPrompt });
+      }
+    } else {
+      messages.push({ role: 'user', content: enhancedPrompt });
+    }
 
     // ============================================================================
     // PHASE 5.2: RETRY LOGIC WITH SPECIFIC FIXES
