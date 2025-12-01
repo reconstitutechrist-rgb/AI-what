@@ -1,9 +1,12 @@
 /**
  * Zustand Store for AIBuilder State Management
- * 
+ *
  * This store mirrors all useState calls from AIBuilder.tsx for modular architecture.
- * It uses Zustand with devtools middleware for debugging.
- * 
+ * It uses Zustand with:
+ * - Immer middleware for safe immutable state updates (allows direct mutations in reducers)
+ * - Devtools middleware for debugging in development
+ * - Shallow comparison in selectors to prevent unnecessary re-renders
+ *
  * Slices:
  * - Chat: messages, userInput, isGenerating, generationProgress
  * - Mode: currentMode (PLAN/ACT), lastUserRequest
@@ -16,6 +19,8 @@
 
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+import { immer } from 'zustand/middleware/immer';
+import { useShallow } from 'zustand/react/shallow';
 import type {
   ChatMessage,
   AppVersion,
@@ -232,7 +237,7 @@ export interface AppState extends
  */
 export const useAppStore = create<AppState>()(
   devtools(
-    (set, get) => ({
+    immer((set, get) => ({
       // ========================================================================
       // CHAT SLICE
       // ========================================================================
@@ -417,7 +422,7 @@ export const useAppStore = create<AppState>()(
         return { selectedFiles: newSelection };
       }),
       clearFileSelection: () => set({ selectedFiles: new Set<string>() }),
-    }),
+    })),
     {
       name: 'app-store',
       enabled: process.env.NODE_ENV === 'development',
@@ -430,78 +435,90 @@ export const useAppStore = create<AppState>()(
 // ============================================================================
 
 /**
- * Select chat-related state
+ * Select chat-related state (uses shallow comparison to prevent unnecessary re-renders)
  */
-export const useChatState = () => useAppStore((state) => ({
-  chatMessages: state.chatMessages,
-  userInput: state.userInput,
-  isGenerating: state.isGenerating,
-  generationProgress: state.generationProgress,
-}));
+export const useChatState = () => useAppStore(
+  useShallow((state) => ({
+    chatMessages: state.chatMessages,
+    userInput: state.userInput,
+    isGenerating: state.isGenerating,
+    generationProgress: state.generationProgress,
+  }))
+);
 
 /**
  * Select mode-related state
  */
-export const useModeState = () => useAppStore((state) => ({
-  currentMode: state.currentMode,
-  lastUserRequest: state.lastUserRequest,
-}));
+export const useModeState = () => useAppStore(
+  useShallow((state) => ({
+    currentMode: state.currentMode,
+    lastUserRequest: state.lastUserRequest,
+  }))
+);
 
 /**
  * Select component-related state
  */
-export const useComponentsState = () => useAppStore((state) => ({
-  components: state.components,
-  currentComponent: state.currentComponent,
-  loadingApps: state.loadingApps,
-  dbSyncError: state.dbSyncError,
-}));
+export const useComponentsState = () => useAppStore(
+  useShallow((state) => ({
+    components: state.components,
+    currentComponent: state.currentComponent,
+    loadingApps: state.loadingApps,
+    dbSyncError: state.dbSyncError,
+  }))
+);
 
 /**
  * Select version control state
  */
-export const useVersionControlState = () => useAppStore((state) => ({
-  undoStack: state.undoStack,
-  redoStack: state.redoStack,
-  showVersionHistory: state.showVersionHistory,
-}));
+export const useVersionControlState = () => useAppStore(
+  useShallow((state) => ({
+    undoStack: state.undoStack,
+    redoStack: state.redoStack,
+    showVersionHistory: state.showVersionHistory,
+  }))
+);
 
 /**
  * Select UI state
  */
-export const useUIState = () => useAppStore((state) => ({
-  isClient: state.isClient,
-  activeTab: state.activeTab,
-  showLibrary: state.showLibrary,
-  showDiffPreview: state.showDiffPreview,
-  showApprovalModal: state.showApprovalModal,
-  showDeploymentModal: state.showDeploymentModal,
-  showCompareModal: state.showCompareModal,
-  showNewAppStagingModal: state.showNewAppStagingModal,
-  showConceptWizard: state.showConceptWizard,
-  showConversationalWizard: state.showConversationalWizard,
-  showSettings: state.showSettings,
-  showAdvancedPhasedBuild: state.showAdvancedPhasedBuild,
-  showQualityReport: state.showQualityReport,
-  showPerformanceReport: state.showPerformanceReport,
-  searchQuery: state.searchQuery,
-}));
+export const useUIState = () => useAppStore(
+  useShallow((state) => ({
+    isClient: state.isClient,
+    activeTab: state.activeTab,
+    showLibrary: state.showLibrary,
+    showDiffPreview: state.showDiffPreview,
+    showApprovalModal: state.showApprovalModal,
+    showDeploymentModal: state.showDeploymentModal,
+    showCompareModal: state.showCompareModal,
+    showNewAppStagingModal: state.showNewAppStagingModal,
+    showConceptWizard: state.showConceptWizard,
+    showConversationalWizard: state.showConversationalWizard,
+    showSettings: state.showSettings,
+    showAdvancedPhasedBuild: state.showAdvancedPhasedBuild,
+    showQualityReport: state.showQualityReport,
+    showPerformanceReport: state.showPerformanceReport,
+    searchQuery: state.searchQuery,
+  }))
+);
 
 /**
  * Select file storage state
  */
-export const useFileStorageState = () => useAppStore((state) => ({
-  contentTab: state.contentTab,
-  storageFiles: state.storageFiles,
-  loadingFiles: state.loadingFiles,
-  selectedFiles: state.selectedFiles,
-  fileSearchQuery: state.fileSearchQuery,
-  fileTypeFilter: state.fileTypeFilter,
-  fileSortBy: state.fileSortBy,
-  fileSortOrder: state.fileSortOrder,
-  storageStats: state.storageStats,
-  uploadingFiles: state.uploadingFiles,
-  deletingFiles: state.deletingFiles,
-}));
+export const useFileStorageState = () => useAppStore(
+  useShallow((state) => ({
+    contentTab: state.contentTab,
+    storageFiles: state.storageFiles,
+    loadingFiles: state.loadingFiles,
+    selectedFiles: state.selectedFiles,
+    fileSearchQuery: state.fileSearchQuery,
+    fileTypeFilter: state.fileTypeFilter,
+    fileSortBy: state.fileSortBy,
+    fileSortOrder: state.fileSortOrder,
+    storageStats: state.storageStats,
+    uploadingFiles: state.uploadingFiles,
+    deletingFiles: state.deletingFiles,
+  }))
+);
 
 export default useAppStore;
