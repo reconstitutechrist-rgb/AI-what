@@ -2,10 +2,13 @@
 
 import { useState, useRef, useEffect } from 'react';
 import type { AppConcept, Feature, UIPreferences, TechnicalRequirements } from '../types/appConcept';
+import type { FullTemplate } from '../types/architectureTemplates';
 import { ExamplePrompts, getRandomPlaceholder } from './ExamplePrompts';
 import { createAutoSaver, WIZARD_DRAFT_KEYS, formatDraftAge } from '../utils/wizardAutoSave';
 import { useToast } from './Toast';
 import LayoutPreview from './LayoutPreview';
+import { TemplateSelector } from './TemplateSelector';
+import TemplatePreview from './TemplatePreview';
 
 interface ConversationalAppWizardProps {
   onComplete: (concept: AppConcept) => void;
@@ -43,9 +46,13 @@ export default function ConversationalAppWizard({ onComplete, onCancel }: Conver
   const [placeholder, setPlaceholder] = useState(getRandomPlaceholder());
 
   // UI State
-  const [activeTab, setActiveTab] = useState<'summary' | 'preview'>('summary');
+  const [activeTab, setActiveTab] = useState<'summary' | 'preview' | 'templates'>('summary');
   const [previewKey, setPreviewKey] = useState(0); // To force re-render of preview animation
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
+
+  // Template State
+  const [selectedTemplate, setSelectedTemplate] = useState<FullTemplate | null>(null);
+  const [previewTemplate, setPreviewTemplate] = useState<FullTemplate | null>(null);
 
   const [wizardState, setWizardState] = useState<WizardState>({
     name: '',
@@ -136,13 +143,21 @@ export default function ConversationalAppWizard({ onComplete, onCancel }: Conver
       type: 'assistant',
       content: `👋 Welcome to the App Planning Assistant! I'm here to help you turn your vision into a detailed implementation plan.
 
-Tell me about the app you want to build. You can describe it naturally, like:
+You can start by:
+- **Browsing Templates** - Choose from pre-built architecture patterns
+- **Describing Your Idea** - Tell me naturally what you want to build
+
+Examples:
 - "I want to build a task manager for freelancers"
 - "A social recipe sharing platform"
 - "An inventory tracking system for small businesses"
 
-What's your app idea?`,
+What would you like to do?`,
       timestamp: new Date(),
+      quickActions: [
+        { label: 'Browse Templates', value: 'browse_templates', icon: '📦' },
+        { label: 'Describe My Idea', value: 'describe_idea', icon: '💬' },
+      ],
     };
     setMessages([greeting]);
   };
@@ -705,6 +720,55 @@ What's your app idea?`,
       return;
     }
 
+    // Template-related actions
+    if (value === 'browse_templates') {
+      setActiveTab('templates');
+      addMessage({ type: 'user', content: 'Show me the templates' });
+      await simulateTyping(400);
+      addMessage({
+        type: 'assistant',
+        content: `I've opened the **Templates** panel on the right. Browse through our pre-built architecture patterns - each one comes with recommended features, database schemas, and UI layouts.\n\nClick on any template to preview it, or select one to apply it to your project.`,
+      });
+      return;
+    }
+
+    if (value === 'describe_idea') {
+      addMessage({ type: 'user', content: "I'll describe my idea" });
+      await simulateTyping(400);
+      addMessage({
+        type: 'assistant',
+        content: `Go ahead! Describe your app idea in as much detail as you'd like. I'll analyze it and help you plan the features, design, and technical requirements.\n\n💡 **Tip:** You can also check out the Templates tab anytime for inspiration!`,
+      });
+      return;
+    }
+
+    if (value === 'customize_features') {
+      setWizardState(prev => ({ ...prev, currentTopic: 'features' }));
+      setExpandedSections(prev => new Set([...prev, 'features']));
+      addMessage({ type: 'user', content: 'I want to customize the features' });
+      await simulateTyping(400);
+      addMessage({
+        type: 'assistant',
+        content: `Let's customize! You can:\n\n• **Add features** - Just describe what you need\n• **Remove features** - Click the ✕ in the Summary panel\n• **Change priorities** - Use the dropdown in the Summary panel\n\nWhat features would you like to add or modify?`,
+        quickActions: [
+          { label: 'Add Feature', value: 'add_feature', icon: '➕' },
+          { label: 'Done Customizing', value: 'features_done', icon: '✅' },
+        ],
+      });
+      return;
+    }
+
+    if (value === 'continue_planning') {
+      setWizardState(prev => ({ ...prev, currentTopic: 'basic' }));
+      addMessage({ type: 'user', content: 'Continue with planning' });
+      await simulateTyping(400);
+      addMessage({
+        type: 'assistant',
+        content: `Let's continue building your app concept!\n\nWhat would you like to name your app? Or describe what makes your app unique.`,
+      });
+      return;
+    }
+
     if (value === 'add_suggested') {
       const analysis = analyzeUserInput(wizardState.description);
       const newFeatures = analysis.suggestedFeatures.map(f => ({
@@ -785,6 +849,51 @@ What's your app idea?`,
       autoSaver.current.delete();
       onCancel();
     }
+  };
+
+  // Handle template selection from TemplateSelector
+  const handleTemplateSelect = (template: FullTemplate) => {
+    setSelectedTemplate(template);
+    setPreviewTemplate(null);
+    setActiveTab('summary');
+
+    // Pre-populate wizard state from template
+    const newFeatures = template.features.map((feature, index) => ({
+      id: `template-feature-${Date.now()}-${index}`,
+      name: feature,
+      description: feature,
+      priority: index < 3 ? 'high' as const : 'medium' as const,
+    }));
+
+    setWizardState(prev => ({
+      ...prev,
+      name: prev.name || '',
+      description: prev.description || template.description,
+      features: [...prev.features, ...newFeatures],
+      technical: {
+        ...prev.technical,
+        needsAuth: template.architecture.auth !== undefined,
+        needsDatabase: template.architecture.database !== undefined,
+        needsAPI: template.architecture.api !== undefined,
+      },
+    }));
+
+    setExpandedSections(prev => new Set([...prev, 'features', 'template']));
+
+    // Add message about template selection
+    addMessage({
+      type: 'assistant',
+      content: `Excellent choice! I've loaded the **${template.name}** template. This gives us:\n\n${template.features.slice(0, 5).map(f => `• ${f}`).join('\n')}\n\nThe template is now applied. You can customize the features or continue describing your specific requirements.`,
+      quickActions: [
+        { label: 'Customize Features', value: 'customize_features', icon: '✏️' },
+        { label: 'Continue Planning', value: 'continue_planning', icon: '➡️' },
+      ],
+    });
+  };
+
+  // Handle template preview
+  const handleTemplatePreview = (template: FullTemplate) => {
+    setPreviewTemplate(template);
   };
 
   const toggleSection = (section: string) => {
@@ -1012,7 +1121,7 @@ What's your app idea?`,
               </div>
             </div>
 
-            {/* Right Panel - Summary/Preview */}
+            {/* Right Panel - Summary/Preview/Templates */}
             <div className="w-2/5 flex flex-col bg-slate-950/50">
               {/* Tabs */}
               <div className="flex border-b border-white/10">
@@ -1032,12 +1141,62 @@ What's your app idea?`,
                 >
                   Preview
                 </button>
+                <button
+                  onClick={() => setActiveTab('templates')}
+                  className={`flex-1 py-3 text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
+                    activeTab === 'templates' ? 'bg-white/5 text-white border-b-2 border-purple-500' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span>📦</span>
+                  Templates
+                  {selectedTemplate && (
+                    <span className="w-2 h-2 bg-green-500 rounded-full" />
+                  )}
+                </button>
               </div>
 
               {activeTab === 'summary' ? (
                 <div className="flex-1 overflow-y-auto p-6">
                    {/* Existing Summary Content */}
                   <div className="space-y-4">
+                    {/* Selected Template or Browse Prompt */}
+                    {selectedTemplate ? (
+                      <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/30 rounded-xl overflow-hidden">
+                        <div className="px-4 py-3 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">{selectedTemplate.icon}</span>
+                            <div>
+                              <p className="text-xs text-purple-300">Template</p>
+                              <p className="font-medium text-white">{selectedTemplate.name}</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => setActiveTab('templates')}
+                            className="px-3 py-1.5 text-xs bg-white/10 hover:bg-white/20 rounded-lg text-slate-300 transition-all"
+                          >
+                            Change
+                          </button>
+                        </div>
+                        <div className="px-4 pb-3 pt-1 border-t border-white/10">
+                          <p className="text-xs text-slate-400 line-clamp-2">{selectedTemplate.description}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setActiveTab('templates')}
+                        className="w-full p-4 bg-white/5 border border-dashed border-white/20 rounded-xl hover:bg-white/10 hover:border-purple-500/50 transition-all group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl group-hover:scale-110 transition-transform">📦</span>
+                          <div className="text-left">
+                            <p className="font-medium text-white">Browse Templates</p>
+                            <p className="text-xs text-slate-400">Start with a pre-built architecture pattern</p>
+                          </div>
+                          <span className="ml-auto text-slate-400 group-hover:text-purple-400 transition-colors">→</span>
+                        </div>
+                      </button>
+                    )}
+
                     {/* Basic Info */}
                     <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
                       <button
@@ -1225,13 +1384,13 @@ What's your app idea?`,
                     </div>
                   )}
                 </div>
-              ) : (
+              ) : activeTab === 'preview' ? (
                 <div className="flex-1 overflow-hidden bg-slate-900 relative">
                   <div className="absolute inset-0 p-4">
                      <div className="h-full border border-white/10 rounded-2xl overflow-hidden">
-                        <LayoutPreview 
-                          key={previewKey} 
-                          preferences={wizardState.uiPreferences} 
+                        <LayoutPreview
+                          key={previewKey}
+                          preferences={wizardState.uiPreferences}
                           concept={{
                             name: wizardState.name,
                             description: wizardState.description,
@@ -1249,6 +1408,49 @@ What's your app idea?`,
                         />
                      </div>
                   </div>
+                </div>
+              ) : (
+                /* Templates Tab */
+                <div className="flex-1 overflow-y-auto">
+                  {/* Selected Template Banner */}
+                  {selectedTemplate && (
+                    <div className="p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-b border-white/10">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{selectedTemplate.icon}</span>
+                        <div className="flex-1">
+                          <p className="text-sm text-slate-400">Active Template</p>
+                          <p className="font-semibold text-white">{selectedTemplate.name}</p>
+                        </div>
+                        <button
+                          onClick={() => setSelectedTemplate(null)}
+                          className="px-3 py-1.5 text-xs bg-white/10 hover:bg-white/20 rounded-lg text-slate-300 transition-all"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Template Selector */}
+                  <div className="p-4">
+                    <TemplateSelector
+                      onSelect={handleTemplateSelect}
+                      onSkip={() => setActiveTab('summary')}
+                      userDescription={wizardState.description}
+                    />
+                  </div>
+
+                  {/* Template Preview Modal */}
+                  {previewTemplate && (
+                    <TemplatePreview
+                      template={previewTemplate}
+                      onClose={() => setPreviewTemplate(null)}
+                      onSelect={() => {
+                        handleTemplateSelect(previewTemplate);
+                        setPreviewTemplate(null);
+                      }}
+                    />
+                  )}
                 </div>
               )}
             </div>
