@@ -152,7 +152,7 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
               }
             }}
             disabled={isCapturing || !captureApi}
-            className="fixed top-4 right-40 z-[110] px-4 py-2 rounded-lg bg-purple-600/90 hover:bg-purple-700 disabled:bg-purple-800/50 disabled:opacity-50 text-white backdrop-blur-sm transition-all flex items-center gap-2 shadow-xl border border-purple-500/30"
+            className="fixed top-4 right-44 z-[110] px-4 py-2 rounded-lg bg-purple-600/90 hover:bg-purple-700 disabled:bg-purple-800/50 disabled:opacity-50 text-white backdrop-blur-sm transition-all flex items-center gap-2 shadow-xl border border-purple-500/30"
             title={!captureApi ? 'Preview loading...' : 'Capture preview for AI debugging'}
           >
             <span className="text-lg">{isCapturing ? '⏳' : captureSuccess ? '✅' : '📸'}</span>
@@ -290,7 +290,7 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
           }
         }}
         disabled={isCapturing || !captureApi}
-        className="absolute top-4 right-20 z-[100] px-4 py-2 rounded-lg bg-purple-600/90 hover:bg-purple-700 disabled:bg-purple-800/50 disabled:opacity-50 text-white backdrop-blur-sm transition-all flex items-center gap-2 shadow-xl border border-purple-500/30"
+        className="absolute top-4 right-32 z-[100] px-4 py-2 rounded-lg bg-purple-600/90 hover:bg-purple-700 disabled:bg-purple-800/50 disabled:opacity-50 text-white backdrop-blur-sm transition-all flex items-center gap-2 shadow-xl border border-purple-500/30"
         title={!captureApi ? 'Preview loading...' : 'Capture preview for AI debugging'}
       >
         <span className="text-lg">{isCapturing ? '⏳' : captureSuccess ? '✅' : '📸'}</span>
