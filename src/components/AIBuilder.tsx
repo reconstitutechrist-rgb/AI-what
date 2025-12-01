@@ -376,7 +376,8 @@ export default function AIBuilder() {
   useEffect(() => {
     setIsClient(true);
     setChatMessages([getWelcomeMessage()]);
-  }, [setIsClient, setChatMessages]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount - setters are stable
 
   // Detect mode transitions
   useEffect(() => {
@@ -402,7 +403,8 @@ export default function AIBuilder() {
       };
       setChatMessages(prev => [...prev, transitionMessage]);
     }
-  }, [currentMode, setChatMessages]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentMode]); // Only react to mode changes - setChatMessages is stable
 
   // Load components from database
   useEffect(() => {
@@ -523,7 +525,8 @@ export default function AIBuilder() {
     if (user && showLibrary && contentTab === 'files') {
       fileStorage.loadFiles();
     }
-  }, [user, showLibrary, contentTab, fileStorage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, showLibrary, contentTab]); // fileStorage.loadFiles is stable
 
   // ============================================================================
   // HANDLERS
