@@ -188,15 +188,6 @@ window.capturePreview = async function() {
     ...appData.dependencies,
   };
 
-  console.log('Sandpack files:', Object.keys(sandpackFiles));
-  console.log('/App.tsx exists:', !!sandpackFiles['/App.tsx']);
-  console.log('Dependencies:', dependencies);
-  
-  // Log first 200 chars of App.tsx to verify content
-  if (sandpackFiles['/App.tsx']) {
-    console.log('App.tsx content preview:', sandpackFiles['/App.tsx'].code.substring(0, 200));
-  }
-
   // Set up capture functionality
   useEffect(() => {
     // Listen for capture results from iframe
