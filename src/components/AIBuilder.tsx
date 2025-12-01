@@ -955,16 +955,29 @@ export default function AIBuilder() {
 
   // Delete component
   const deleteComponent = useCallback((id: string) => {
+    // Delete from database first
     deleteComponentFromDb(id);
     
-    setComponents(prev => prev.filter(comp => comp.id !== id));
+    // Update components state (this will trigger localStorage sync via useEffect)
+    const updatedComponents = components.filter(comp => comp.id !== id);
+    setComponents(updatedComponents);
+    
+    // Immediately update localStorage to ensure sync before any page refresh
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ai_components', JSON.stringify(updatedComponents));
+      
+      // If deleting the currently loaded component, clear its ID from localStorage
+      if (currentComponent?.id === id) {
+        localStorage.removeItem('current_app_id');
+      }
+    }
     
     if (currentComponent?.id === id) {
       setCurrentComponent(null);
       setChatMessages([getWelcomeMessage()]);
       setActiveTab('chat');
     }
-  }, [deleteComponentFromDb, setComponents, currentComponent, setCurrentComponent, setChatMessages, setActiveTab]);
+  }, [deleteComponentFromDb, components, setComponents, currentComponent, setCurrentComponent, setChatMessages, setActiveTab]);
 
   // Export app
   const handleExportApp = useCallback(async (comp: GeneratedComponent) => {

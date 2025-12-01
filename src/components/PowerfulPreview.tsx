@@ -212,44 +212,65 @@ window.capturePreview = async function() {
     
     window.addEventListener('message', handleMessage);
     
-    // Find iframe after Sandpack mounts
+    // Retry logic: try to find iframe every 200ms for up to 5 seconds
+    let attempts = 0;
+    const maxAttempts = 25; // 25 attempts × 200ms = 5 seconds
+    let intervalId: NodeJS.Timeout | null = null;
+    
     const findIframe = () => {
+      attempts++;
       const iframe = document.querySelector('iframe[title*="Sandpack"]') as HTMLIFrameElement;
+      
       if (iframe) {
         iframeRef.current = iframe;
+        
+        // Clear interval once found
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+        
+        // NOW expose capture API (only after iframe is found)
+        if (onMountCaptureApi) {
+          onMountCaptureApi({
+            capture: async () => {
+              if (!iframeRef.current?.contentWindow) {
+                throw new Error('Preview iframe not available');
+              }
+              
+              // Check if capturePreview function exists in iframe
+              try {
+                // Access the iframe's window object with proper typing
+                const iframeWindow = iframeRef.current.contentWindow as any;
+                if (typeof iframeWindow.capturePreview === 'function') {
+                  iframeWindow.capturePreview();
+                } else {
+                  throw new Error('Capture function not loaded yet. Please wait a moment and try again.');
+                }
+              } catch (error) {
+                throw new Error('Capture function not available in preview. Please wait for preview to fully load.');
+              }
+            }
+          });
+        }
+      } else if (attempts >= maxAttempts) {
+        // Stop trying after max attempts
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+        console.warn('Could not find Sandpack iframe after 5 seconds');
       }
     };
     
-    // Wait for Sandpack to mount
-    const timer = setTimeout(findIframe, 1000);
-    
-    // Expose capture API to parent components
-    if (onMountCaptureApi) {
-      onMountCaptureApi({
-        capture: async () => {
-          if (!iframeRef.current?.contentWindow) {
-            throw new Error('Preview iframe not available');
-          }
-          
-          // Check if capturePreview function exists in iframe
-          try {
-            // Access the iframe's window object with proper typing
-            const iframeWindow = iframeRef.current.contentWindow as any;
-            if (typeof iframeWindow.capturePreview === 'function') {
-              iframeWindow.capturePreview();
-            } else {
-              throw new Error('Capture function not loaded yet');
-            }
-          } catch (error) {
-            throw new Error('Capture function not available in preview. Please wait for preview to fully load.');
-          }
-        }
-      });
-    }
+    // Start trying to find iframe
+    intervalId = setInterval(findIframe, 200);
     
     return () => {
       window.removeEventListener('message', handleMessage);
-      clearTimeout(timer);
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
     };
   }, [onMountCaptureApi, onScreenshot]);
 
