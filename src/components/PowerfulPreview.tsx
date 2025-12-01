@@ -224,42 +224,59 @@ window.capturePreview = async function() {
       if (iframe) {
         iframeRef.current = iframe;
         
-        // Clear interval once found
-        if (intervalId) {
-          clearInterval(intervalId);
-          intervalId = null;
+        // Check if capturePreview function is actually loaded in iframe
+        let captureReady = false;
+        try {
+          const iframeWindow = iframe.contentWindow as any;
+          captureReady = typeof iframeWindow?.capturePreview === 'function';
+        } catch (e) {
+          // Cross-origin or not ready yet
+          captureReady = false;
         }
         
-        // NOW expose capture API (only after iframe is found)
-        if (onMountCaptureApi) {
-          onMountCaptureApi({
-            capture: async () => {
-              if (!iframeRef.current?.contentWindow) {
-                throw new Error('Preview iframe not available');
-              }
-              
-              // Check if capturePreview function exists in iframe
-              try {
-                // Access the iframe's window object with proper typing
-                const iframeWindow = iframeRef.current.contentWindow as any;
-                if (typeof iframeWindow.capturePreview === 'function') {
-                  iframeWindow.capturePreview();
-                } else {
-                  throw new Error('Capture function not loaded yet. Please wait a moment and try again.');
+        if (captureReady) {
+          // Clear interval once capture is ready
+          if (intervalId) {
+            clearInterval(intervalId);
+            intervalId = null;
+          }
+          
+          // NOW expose capture API (only after capturePreview function exists)
+          if (onMountCaptureApi) {
+            onMountCaptureApi({
+              capture: async () => {
+                if (!iframeRef.current?.contentWindow) {
+                  throw new Error('Preview iframe not available');
                 }
-              } catch (error) {
-                throw new Error('Capture function not available in preview. Please wait for preview to fully load.');
+                
+                try {
+                  const iframeWindow = iframeRef.current.contentWindow as any;
+                  if (typeof iframeWindow.capturePreview === 'function') {
+                    iframeWindow.capturePreview();
+                  } else {
+                    throw new Error('Capture function not loaded yet. Please wait a moment and try again.');
+                  }
+                } catch (error) {
+                  throw new Error('Capture function not available in preview. Please wait for preview to fully load.');
+                }
               }
-            }
-          });
+            });
+          }
         }
-      } else if (attempts >= maxAttempts) {
+        // If iframe found but capture not ready, keep retrying until maxAttempts
+      }
+      
+      if (attempts >= maxAttempts) {
         // Stop trying after max attempts
         if (intervalId) {
           clearInterval(intervalId);
           intervalId = null;
         }
-        console.warn('Could not find Sandpack iframe after 5 seconds');
+        
+        // Still expose API but it will show error when used
+        if (onMountCaptureApi && !iframeRef.current) {
+          console.warn('Could not find Sandpack iframe after 5 seconds');
+        }
       }
     };
     
