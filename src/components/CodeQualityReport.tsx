@@ -11,7 +11,7 @@ export interface CodeQualityReportProps {
   isAnalyzing?: boolean;
 }
 
-// Helper functions for score colors
+// Helper functions for determining score-based text and background colors
 const getScoreColor = (score: number): string => {
   if (score >= 90) return 'text-green-400';
   if (score >= 70) return 'text-yellow-400';

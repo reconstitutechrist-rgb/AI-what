@@ -11,6 +11,14 @@ export interface PerformanceReportProps {
   isBenchmarking?: boolean;
 }
 
+// Helper function to get impact badge class name
+const getImpactBadgeClassName = (impact: string): string => {
+  const baseClasses = 'px-2 py-1 rounded-full border text-xs font-medium capitalize';
+  const colorClasses = getImpactColor(impact);
+  const animationClass = impact === 'critical' ? 'animate-pulse' : '';
+  return `${baseClasses} ${colorClasses} ${animationClass}`.trim();
+};
+
 // Performance thresholds for metrics
 const thresholds = {
   loadTime: { good: 1000, ok: 3000 },
@@ -127,11 +135,76 @@ export function PerformanceReport({
 
   const impactOrder = ['critical', 'high', 'medium', 'low'];
 
-  const overallStatus = report ? getOverallStatus(report.metrics) : null;
-  const statusLabels = {
+  // Compute status labels
+  const statusLabels: Record<'good' | 'ok' | 'poor', string> = {
     good: 'Good Performance',
     ok: 'Needs Improvement',
     poor: 'Poor Performance',
+  };
+
+  // Helper function to render status content safely
+  const renderStatusContent = () => {
+    if (!report) return null;
+    const status = getOverallStatus(report.metrics);
+    return (
+      <>
+        {/* Overall Status Banner */}
+        <div className={`p-4 rounded-xl border text-center ${getStatusBgColor(status)}`}>
+          <div className="flex items-center justify-center gap-3">
+            <span className="text-3xl">
+              {status === 'good' ? '🚀' : status === 'ok' ? '⚠️' : '🐌'}
+            </span>
+            <div>
+              <div className={`text-xl font-bold ${getStatusColor(status)}`}>
+                {statusLabels[status]}
+              </div>
+              <div className="text-sm text-slate-400">
+                {report.passed ? 'Performance within acceptable range' : 'Performance needs optimization'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Metric Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <MetricCard
+            label="Load Time"
+            value={report.metrics.loadTime}
+            unit="ms"
+            metricKey="loadTime"
+            icon="⏱️"
+          />
+          <MetricCard
+            label="First Contentful Paint"
+            value={report.metrics.firstContentfulPaint}
+            unit="ms"
+            metricKey="firstContentfulPaint"
+            icon="🎨"
+          />
+          <MetricCard
+            label="Time to Interactive"
+            value={report.metrics.timeToInteractive}
+            unit="ms"
+            metricKey="timeToInteractive"
+            icon="👆"
+          />
+          <MetricCard
+            label="Bundle Size"
+            value={report.metrics.bundleSize}
+            unit="KB"
+            metricKey="bundleSize"
+            icon="📦"
+          />
+          <MetricCard
+            label="Render Time"
+            value={report.metrics.renderTime}
+            unit="ms"
+            metricKey="renderTime"
+            icon="🔄"
+          />
+        </div>
+      </>
+    );
   };
 
   return (
@@ -194,61 +267,7 @@ export function PerformanceReport({
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Overall Status Banner */}
-              <div className={`p-4 rounded-xl border text-center ${getStatusBgColor(overallStatus!)}`}>
-                <div className="flex items-center justify-center gap-3">
-                  <span className="text-3xl">
-                    {overallStatus === 'good' ? '🚀' : overallStatus === 'ok' ? '⚠️' : '🐌'}
-                  </span>
-                  <div>
-                    <div className={`text-xl font-bold ${getStatusColor(overallStatus!)}`}>
-                      {statusLabels[overallStatus!]}
-                    </div>
-                    <div className="text-sm text-slate-400">
-                      {report.passed ? 'Performance within acceptable range' : 'Performance needs optimization'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Metric Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <MetricCard
-                  label="Load Time"
-                  value={report.metrics.loadTime}
-                  unit="ms"
-                  metricKey="loadTime"
-                  icon="⏱️"
-                />
-                <MetricCard
-                  label="First Contentful Paint"
-                  value={report.metrics.firstContentfulPaint}
-                  unit="ms"
-                  metricKey="firstContentfulPaint"
-                  icon="🎨"
-                />
-                <MetricCard
-                  label="Time to Interactive"
-                  value={report.metrics.timeToInteractive}
-                  unit="ms"
-                  metricKey="timeToInteractive"
-                  icon="👆"
-                />
-                <MetricCard
-                  label="Bundle Size"
-                  value={report.metrics.bundleSize}
-                  unit="KB"
-                  metricKey="bundleSize"
-                  icon="📦"
-                />
-                <MetricCard
-                  label="Render Time"
-                  value={report.metrics.renderTime}
-                  unit="ms"
-                  metricKey="renderTime"
-                  icon="🔄"
-                />
-              </div>
+              {renderStatusContent()}
 
               {/* Performance Issues */}
               {report.issues.length > 0 && (
@@ -272,9 +291,7 @@ export function PerformanceReport({
                             aria-expanded={isExpanded}
                           >
                             <div className="flex items-center gap-3">
-                              <span className={`px-2 py-1 rounded-full border text-xs font-medium capitalize ${getImpactColor(impact)} ${
-                                impact === 'critical' ? 'animate-pulse' : ''
-                              }`}>
+                              <span className={getImpactBadgeClassName(impact)}>
                                 {impact}
                               </span>
                               <span className="text-white">{issues.length} issue{issues.length !== 1 ? 's' : ''}</span>
