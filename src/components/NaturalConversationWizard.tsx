@@ -435,7 +435,8 @@ Does this look good? You can:
   // ============================================================================
 
   return (
-    <div className="flex h-full bg-slate-900 text-white">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="flex w-full max-w-7xl h-[90vh] bg-slate-900 text-white rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
@@ -801,6 +802,7 @@ Does this look good? You can:
             </button>
           </div>
         )}
+      </div>
       </div>
     </div>
   );
