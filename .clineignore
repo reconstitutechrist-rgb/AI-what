@@ -1,0 +1,52 @@
+# .clineignore - Reduce Cline's context size to save cache write tokens
+# 
+# This file works like .gitignore but controls what Cline can see in your project.
+# Files/folders listed here won't appear in environment_details, reducing cache token usage.
+
+# ============================================================================
+# HIGH IMPACT: Archive folder (~50+ files = ~500-800 tokens saved per cache write)
+# ============================================================================
+archive/
+
+# ============================================================================
+# MEDIUM IMPACT: Uncomment these lines if you want further token reduction
+# ============================================================================
+
+# Documentation folders
+# docs/
+
+# Test files (uncomment when not working on tests)
+ tests/
+ **/__tests__/
+ **/__mocks__/
+ **/*.test.ts
+ **/*.test.js
+ **/*.spec.ts
+
+# Build artifacts and dependencies
+# node_modules/
+# .next/
+# dist/
+# build/
+# .vercel/
+
+# Configuration files (uncomment if rarely modified)
+# *.config.js
+# *.config.ts
+# package-lock.json
+# tsconfig.json
+# .gitignore
+# .npmrc
+# vercel.json
+
+# ============================================================================
+# USAGE NOTES:
+# ============================================================================
+# 
+# 1. START SMALL: Currently only excluding archive/ (biggest impact, lowest risk)
+# 2. TEST IMPACT: Check your cache token usage after creating a new Cline task
+# 3. EXPAND GRADUALLY: Uncomment additional sections if you need more reduction
+# 4. OVERRIDE WHEN NEEDED: Use @filename mentions to include excluded files
+# 5. TEMPORARY DISABLE: Comment out lines with # when you need access
+#
+# Expected reduction from archive/ exclusion: 25-40% fewer cache write tokens
