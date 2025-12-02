@@ -58,11 +58,11 @@ export async function generateModifications(
   // Use streaming for better handling with timeout
   const stream = await anthropic.messages.stream({
     model: modelName,
-    max_tokens: 20000,  // Must be > budget_tokens (10000 thinking + 10000 response)
+    max_tokens: 28000,  // Match foundation phase for complex modifications
     temperature: 1,  // Required for extended thinking
     thinking: {
       type: 'enabled',
-      budget_tokens: 10000
+      budget_tokens: 12000  // Increased for complex modification planning
     },
     system: [
       {
@@ -79,7 +79,7 @@ export async function generateModifications(
   let inputTokens = 0;
   let outputTokens = 0;
   let cachedTokens = 0;
-  const timeout = 60000; // 60 seconds (increased for extended thinking)
+  const timeout = 120000; // 120 seconds (2 minutes) - matches foundation phase
   const startTime = Date.now();
   
   try {

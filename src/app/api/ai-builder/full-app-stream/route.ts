@@ -37,15 +37,57 @@ export async function POST(request: Request) {
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
   const encoder = new TextEncoder();
+  let writerClosed = false;
 
-  // Helper to write events
+  // Create abort controller for AI stream cancellation
+  const abortController = new AbortController();
+
+  // Helper to write events (checks if writer is still open)
   const writeEvent = async (event: StreamEvent) => {
-    await writer.write(encoder.encode(formatSSE(event)));
+    if (!writerClosed) {
+      try {
+        await writer.write(encoder.encode(formatSSE(event)));
+      } catch (err) {
+        // Writer was closed (client likely disconnected), mark it and abort AI stream
+        writerClosed = true;
+        abortController.abort('Client disconnected');
+      }
+    }
+  };
+
+  // Helper to close writer safely (only once)
+  const closeWriter = async () => {
+    if (!writerClosed) {
+      writerClosed = true;
+      abortController.abort('Stream closing');
+      try {
+        await writer.close();
+      } catch (err) {
+        // Already closed, ignore
+      }
+    }
   };
 
   // Start the generation in the background
   (async () => {
+    let requestBody: any;
+    
     try {
+      // Parse request body with error handling
+      try {
+        requestBody = await request.json();
+      } catch (parseError) {
+        await writeEvent({
+          type: 'error',
+          timestamp: Date.now(),
+          message: 'Invalid request: ' + (parseError instanceof Error ? parseError.message : 'Failed to parse JSON'),
+          code: 'INVALID_REQUEST',
+          recoverable: false,
+        });
+        await closeWriter();
+        return;
+      }
+
       const {
         prompt,
         conversationHistory,
@@ -56,7 +98,7 @@ export async function POST(request: Request) {
         isPhaseBuilding,
         phaseContext: rawPhaseContext,
         currentAppState
-      } = await request.json();
+      } = requestBody;
 
       perfTracker.checkpoint('request_parsed');
 
@@ -77,7 +119,7 @@ export async function POST(request: Request) {
           code: 'NO_API_KEY',
           recoverable: false,
         });
-        await writer.close();
+        await closeWriter();
         return;
       }
 
@@ -204,7 +246,13 @@ MODIFICATION MODE for "${currentAppName}":
 
       perfTracker.checkpoint('ai_request_sent');
 
-      // Stream from Claude
+      // Check if client disconnected before starting expensive AI call
+      if (writerClosed) {
+        console.log('Client disconnected before AI request - aborting');
+        return;
+      }
+
+      // Stream from Claude with abort signal
       const aiStream = await anthropic.messages.stream({
         model: modelName,
         max_tokens: tokenBudget.max_tokens,
@@ -223,6 +271,12 @@ MODIFICATION MODE for "${currentAppName}":
         messages
       });
 
+      // Monitor abort signal and cancel AI stream if needed
+      abortController.signal.addEventListener('abort', () => {
+        console.log('Aborting AI stream:', abortController.signal.reason);
+        aiStream.abort();
+      });
+
       // Collect response with real-time progress
       let responseText = '';
       let inputTokens = 0;
@@ -236,6 +290,12 @@ MODIFICATION MODE for "${currentAppName}":
 
       try {
         for await (const chunk of aiStream) {
+          // Check if client disconnected
+          if (writerClosed) {
+            console.log('Client disconnected during streaming - stopping');
+            break;
+          }
+
           // Check timeout
           if (Date.now() - startTime > timeout) {
             throw new Error(`AI response timeout after ${timeout/1000}s`);
@@ -249,10 +309,15 @@ MODIFICATION MODE for "${currentAppName}":
             // Only check the new portion plus some overlap for partial markers
             const searchStart = Math.max(0, lastFileCheckPosition - 50);
             const searchText = responseText.slice(searchStart);
-            const fileMatches = [...searchText.matchAll(/===FILE:(.*?)===/g)];
-
-            for (const match of fileMatches) {
-              const matchPosition = searchStart + (match.index || 0);
+            
+            // Use a safe regex match with bounds checking
+            let match;
+            const fileRegex = /===FILE:(.*?)===/g;
+            fileRegex.lastIndex = 0;
+            
+            while ((match = fileRegex.exec(searchText)) !== null) {
+              const matchPosition = searchStart + match.index;
+              
               // Only process if this is a new match we haven't seen
               if (matchPosition >= lastFileCheckPosition) {
                 const newFilePath = match[1].trim();
@@ -326,7 +391,7 @@ MODIFICATION MODE for "${currentAppName}":
           message: streamError instanceof Error ? streamError.message : 'Stream failed',
           recoverable: false,
         });
-        await writer.close();
+        await closeWriter();
         return;
       }
 
@@ -340,7 +405,7 @@ MODIFICATION MODE for "${currentAppName}":
           code: 'EMPTY_RESPONSE',
           recoverable: true,
         });
-        await writer.close();
+        await closeWriter();
         return;
       }
 
@@ -361,7 +426,7 @@ MODIFICATION MODE for "${currentAppName}":
           code: 'PARSE_ERROR',
           recoverable: true,
         });
-        await writer.close();
+        await closeWriter();
         return;
       }
 
@@ -391,7 +456,7 @@ MODIFICATION MODE for "${currentAppName}":
           code: 'NO_FILES',
           recoverable: true,
         });
-        await writer.close();
+        await closeWriter();
         return;
       }
 
@@ -419,27 +484,38 @@ MODIFICATION MODE for "${currentAppName}":
       let autoFixedCount = 0;
 
       for (let i = 0; i < files.length; i++) {
+        // Check if client disconnected
+        if (writerClosed) {
+          console.log('Client disconnected during validation - stopping');
+          break;
+        }
+
         const file = files[i];
         if (file.path.endsWith('.tsx') || file.path.endsWith('.ts') ||
             file.path.endsWith('.jsx') || file.path.endsWith('.js')) {
 
-          const validation = await validateGeneratedCode(file.content, file.path);
+          try {
+            const validation = await validateGeneratedCode(file.content, file.path);
 
-          if (!validation.valid) {
-            totalErrors += validation.errors.length;
+            if (!validation.valid) {
+              totalErrors += validation.errors.length;
 
-            const fixedCode = autoFixCode(file.content, validation.errors);
-            if (fixedCode !== file.content) {
-              file.content = fixedCode;
-              autoFixedCount += validation.errors.filter(e => e.type === 'UNCLOSED_STRING').length;
+              const fixedCode = autoFixCode(file.content, validation.errors);
+              if (fixedCode !== file.content) {
+                file.content = fixedCode;
+                autoFixedCount += validation.errors.filter(e => e.type === 'UNCLOSED_STRING').length;
 
-              const revalidation = await validateGeneratedCode(fixedCode, file.path);
-              if (!revalidation.valid) {
-                validationErrors.push({ file: file.path, errors: revalidation.errors });
+                const revalidation = await validateGeneratedCode(fixedCode, file.path);
+                if (!revalidation.valid) {
+                  validationErrors.push({ file: file.path, errors: revalidation.errors });
+                }
+              } else {
+                validationErrors.push({ file: file.path, errors: validation.errors });
               }
-            } else {
-              validationErrors.push({ file: file.path, errors: validation.errors });
             }
+          } catch (validationError) {
+            console.error(`Validation error for ${file.path}:`, validationError);
+            // Continue with other files even if one fails validation
           }
         }
 
@@ -507,39 +583,54 @@ MODIFICATION MODE for "${currentAppName}":
 
       await writeEvent(completeEvent);
 
-      // Log successful completion
-      analytics.logRequestComplete(requestId, {
-        modelUsed: modelName,
-        promptLength: Math.round(systemPrompt.length / 4),
-        responseLength: responseText.length,
-        validationRan: true,
-        validationIssuesFound: totalErrors,
-        validationIssuesFixed: autoFixedCount,
-        metadata: {
-          appName: name,
-          appType: appType,
-          changeType: changeType,
-          isModification: isModification,
-          hasImage: hasImage,
-          filesGenerated: files.length,
-          hasDependencies: Object.keys(dependencies).length > 0,
-          streaming: true,
-        },
-      });
+      // Log successful completion (wrapped in try-catch to avoid masking errors)
+      try {
+        analytics.logRequestComplete(requestId, {
+          modelUsed: modelName,
+          promptLength: Math.round(systemPrompt.length / 4),
+          responseLength: responseText.length,
+          validationRan: true,
+          validationIssuesFound: totalErrors,
+          validationIssuesFixed: autoFixedCount,
+          metadata: {
+            appName: name,
+            appType: appType,
+            changeType: changeType,
+            isModification: isModification,
+            hasImage: hasImage,
+            filesGenerated: files.length,
+            hasDependencies: Object.keys(dependencies).length > 0,
+            streaming: true,
+          },
+        });
+      } catch (analyticsError) {
+        console.error('Analytics logging failed:', analyticsError);
+        // Don't fail the request due to analytics
+      }
 
       if (process.env.NODE_ENV === 'development') {
-        perfTracker.log('Full-App-Stream Route');
+        try {
+          perfTracker.log('Full-App-Stream Route');
+        } catch (perfError) {
+          console.error('Performance tracking failed:', perfError);
+        }
       }
 
     } catch (error) {
       console.error('Streaming error:', error);
 
-      analytics.logRequestError(
-        requestId,
-        error as Error,
-        categorizeError(error as Error)
-      );
+      // Log error (wrapped to avoid masking original error)
+      try {
+        analytics.logRequestError(
+          requestId,
+          error as Error,
+          categorizeError(error as Error)
+        );
+      } catch (analyticsError) {
+        console.error('Analytics error logging failed:', analyticsError);
+      }
 
+      // Try to send error event if writer still open
       await writeEvent({
         type: 'error',
         timestamp: Date.now(),
@@ -547,7 +638,7 @@ MODIFICATION MODE for "${currentAppName}":
         recoverable: false,
       });
     } finally {
-      await writer.close();
+      await closeWriter();
     }
   })();
 
