@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSettings } from '@/hooks/useSettings';
+import { useAuth } from '@/contexts/AuthContext';
 import type { 
   SettingsSection, 
   SettingsPageProps,
@@ -309,6 +311,9 @@ export function SettingsPage({ isOpen, onClose, initialSection = 'general' }: Se
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  
+  const router = useRouter();
+  const { user, signOut } = useAuth();
 
   // Update active section when initialSection prop changes
   useEffect(() => {
@@ -816,7 +821,32 @@ export function SettingsPage({ isOpen, onClose, initialSection = 'general' }: Se
               title="Account Settings" 
               description="Manage your account and API configuration" 
             />
+            
+            {/* User Info & Logout */}
             <div className="py-4">
+              <h3 className="text-white font-medium mb-3">User</h3>
+              <div className="p-4 rounded-lg bg-slate-800/50 border border-white/5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-slate-400 text-sm">Signed in as</span>
+                    <p className="text-white font-medium">{user?.email || 'Unknown'}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await signOut();
+                      onClose();
+                      router.push('/login');
+                    }}
+                    className="px-4 py-2 rounded-lg bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-400 font-medium transition-all flex items-center gap-2"
+                  >
+                    <span>🚪</span> Log Out
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="py-4 border-t border-white/10">
               <h3 className="text-white font-medium mb-3">API Configuration</h3>
               <div className="p-4 rounded-lg bg-slate-800/50 border border-white/5">
                 <div className="flex items-center justify-between mb-3">
