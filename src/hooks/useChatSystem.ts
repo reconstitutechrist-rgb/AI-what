@@ -9,9 +9,36 @@ import { useState, useCallback, useRef } from 'react';
 import type { ChatMessage, BuilderMode } from '@/types/aiBuilderTypes';
 
 /**
+ * WizardState - Tracks app concept during PLAN mode conversations
+ */
+export interface WizardState {
+  name?: string;
+  description?: string;
+  features: Array<{ name: string; description: string; priority: string }>;
+  technical: Record<string, boolean | string | undefined>;
+  isComplete: boolean;
+  readyForPhases: boolean;
+}
+
+const INITIAL_WIZARD_STATE: WizardState = {
+  features: [],
+  technical: {},
+  isComplete: false,
+  readyForPhases: false,
+};
+
+/**
  * Return type for useChatSystem hook
  */
 export interface UseChatSystemReturn {
+  // Wizard state (for PLAN mode Smart Conversations)
+  /** Current wizard state tracking app concept */
+  wizardState: WizardState;
+  /** Reset wizard state */
+  resetWizardState: () => void;
+  /** Update wizard state from API response */
+  updateWizardState: (state: WizardState) => void;
+  
   // Messages
   /** Current chat messages */
   chatMessages: ChatMessage[];
@@ -99,6 +126,9 @@ export function useChatSystem(): UseChatSystemReturn {
   
   // Last request tracking
   const [lastUserRequest, setLastUserRequest] = useState('');
+  
+  // Wizard state for PLAN mode Smart Conversations
+  const [wizardState, setWizardState] = useState<WizardState>(INITIAL_WIZARD_STATE);
 
   /**
    * Add a single message to the chat
@@ -197,6 +227,20 @@ export function useChatSystem(): UseChatSystemReturn {
   }, []);
 
   /**
+   * Reset wizard state
+   */
+  const resetWizardState = useCallback(() => {
+    setWizardState(INITIAL_WIZARD_STATE);
+  }, []);
+
+  /**
+   * Update wizard state from API response
+   */
+  const updateWizardState = useCallback((state: WizardState) => {
+    setWizardState(state);
+  }, []);
+
+  /**
    * Clear the chat to welcome state
    */
   const clearChat = useCallback(() => {
@@ -206,9 +250,15 @@ export function useChatSystem(): UseChatSystemReturn {
     setGenerationProgress('');
     removeImage();
     setLastUserRequest('');
-  }, [getWelcomeMessage, removeImage]);
+    resetWizardState();
+  }, [getWelcomeMessage, removeImage, resetWizardState]);
 
   return {
+    // Wizard state
+    wizardState,
+    resetWizardState,
+    updateWizardState,
+    
     // Messages
     chatMessages,
     setChatMessages,

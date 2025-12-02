@@ -242,12 +242,27 @@ export default function AIBuilder() {
     setContentTab,
   } = useAppStore();
 
-  // ============================================================================
-  // LOCAL STATE (refs, computed values, etc)
-  // ============================================================================
-  const previousModeRef = useRef<'PLAN' | 'ACT'>('PLAN');
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+// ============================================================================
+// LOCAL STATE (refs, computed values, etc)
+// ============================================================================
+const previousModeRef = useRef<'PLAN' | 'ACT'>('PLAN');
+const fileInputRef = useRef<HTMLInputElement>(null);
+const [imageFile, setImageFile] = useState<File | null>(null);
+
+// Smart Conversations: Wizard state for PLAN mode
+const [wizardState, setWizardState] = useState<{
+  name?: string;
+  description?: string;
+  features: Array<{ name: string; description: string; priority: string }>;
+  technical: Record<string, boolean | string | undefined>;
+  isComplete: boolean;
+  readyForPhases: boolean;
+}>({
+  features: [],
+  technical: {},
+  isComplete: false,
+  readyForPhases: false,
+});
 
   // Dynamic Phase Generation state
   const [dynamicPhasePlan, setDynamicPhasePlan] = useState<DynamicPhasePlan | null>(null);
@@ -1279,15 +1294,28 @@ export default function AIBuilder() {
         // Determine endpoint based on mode and request type
         let endpoint: string;
         if (currentMode === 'PLAN') {
-          endpoint = '/api/chat';
+          // Smart Conversations: Use wizard API for intelligent planning
+          endpoint = '/api/wizard/chat';
         } else {
           endpoint = isQuestion ? '/api/chat' : '/api/ai-builder/modify';
         }
 
+        // Build request body based on endpoint
+        const fetchBody = currentMode === 'PLAN' 
+          ? JSON.stringify({
+              message: userInput,
+              conversationHistory: chatMessages.slice(-30).map(m => ({
+                role: m.role === 'user' ? 'user' : 'assistant',
+                content: m.content,
+              })),
+              currentState: wizardState,
+            })
+          : JSON.stringify(requestBody);
+
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody)
+          body: fetchBody
         });
 
         if (progressInterval) {
@@ -1299,6 +1327,11 @@ export default function AIBuilder() {
 
         if (data?.error) {
           throw new Error(data.error as string);
+        }
+
+        // Smart Conversations: Update wizard state from response
+        if (currentMode === 'PLAN' && data?.updatedState) {
+          setWizardState(data.updatedState as typeof wizardState);
         }
       }
 
@@ -1322,12 +1355,12 @@ export default function AIBuilder() {
         return;
       }
 
-      // Handle chat response
-      if (isQuestion || data?.type === 'chat') {
+      // Handle chat response (including wizard responses in PLAN mode)
+      if (isQuestion || data?.type === 'chat' || (currentMode === 'PLAN' && data?.message)) {
         const chatResponse: ChatMessage = {
           id: generateId(),
           role: 'assistant',
-          content: (data?.answer || data?.description) as string,
+          content: (data?.message || data?.answer || data?.description) as string,
           timestamp: new Date().toISOString()
         };
         setChatMessages(prev => [...prev, chatResponse]);
