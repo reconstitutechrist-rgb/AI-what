@@ -2,6 +2,8 @@
 
 import React, { useRef, useEffect } from 'react';
 import type { ChatMessage, StagePlan, Phase } from '../types/aiBuilderTypes';
+import type { StreamingProgress as StreamingProgressType } from '../types/streaming';
+import { InlineStreamingProgress } from './StreamingProgress';
 
 // ============================================================================
 // INTERNAL COMPONENTS
@@ -103,6 +105,10 @@ export interface ChatPanelProps {
   
   // View component action
   onViewComponent?: () => void;
+  
+  // Streaming progress (optional)
+  streamingProgress?: StreamingProgressType;
+  isStreamingActive?: boolean;
 }
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({
@@ -120,16 +126,18 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   stagePlan,
   onBuildPhase,
   onViewComponent,
+  streamingProgress,
+  isStreamingActive,
 }) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change or streaming progress updates
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [messages, isGenerating]);
+  }, [messages, isGenerating, isStreamingActive, streamingProgress]);
 
   return (
     <div className="glass-panel rounded-2xl border border-white/10 overflow-hidden flex flex-col h-full shadow-2xl shadow-black/40">
@@ -218,7 +226,17 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           </div>
         ))}
 
-        {isGenerating && (
+        {/* Inline Streaming Progress */}
+        {isStreamingActive && streamingProgress && (
+          <div className="flex justify-start animate-fade-in-up">
+            <div className="glass-panel text-slate-200 border border-white/20 rounded-2xl px-4 py-3 shadow-lg">
+              <InlineStreamingProgress progress={streamingProgress} />
+            </div>
+          </div>
+        )}
+
+        {/* Non-streaming generation indicator */}
+        {isGenerating && !isStreamingActive && (
           <div className="flex justify-start">
             <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl px-4 py-3 border border-blue-500/30">
               <div className="flex items-center gap-3">

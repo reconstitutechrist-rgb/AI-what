@@ -57,7 +57,6 @@ import {
   useBuildPhases,
 } from '@/hooks';
 import { useStreamingGeneration } from '@/hooks/useStreamingGeneration';
-import { StreamingProgress, InlineStreamingProgress } from './StreamingProgress';
 
 // Types
 import type { AppConcept, ImplementationPlan, BuildPhase } from '../types/appConcept';
@@ -1526,16 +1525,9 @@ export default function AIBuilder() {
                   stagePlan={newAppStagePlan}
                   onBuildPhase={handleBuildPhase}
                   onViewComponent={() => setActiveTab('preview')}
+                  streamingProgress={streaming.progress}
+                  isStreamingActive={streaming.isStreaming}
                 />
-                {/* Streaming Progress Overlay */}
-                {streaming.isStreaming && (
-                  <div className="absolute bottom-20 left-4 right-4 z-10">
-                    <StreamingProgress
-                      progress={streaming.progress}
-                      onCancel={streaming.abort}
-                    />
-                  </div>
-                )}
               </div>
             </ResizablePanel>
 
