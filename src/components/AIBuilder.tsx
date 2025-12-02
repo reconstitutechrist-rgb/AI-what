@@ -22,7 +22,6 @@ import { ChatPanel } from './ChatPanel';
 import { PreviewPanel } from './PreviewPanel';
 import { ToastProvider } from './Toast';
 import AppConceptWizard from './AppConceptWizard';
-import ConversationalAppWizard from './ConversationalAppWizard';
 import NaturalConversationWizard from './NaturalConversationWizard';
 import SettingsPage from './SettingsPage';
 import ThemeToggle from './ThemeToggle';
@@ -266,7 +265,6 @@ const [wizardState, setWizardState] = useState<{
 
   // Dynamic Phase Generation state
   const [dynamicPhasePlan, setDynamicPhasePlan] = useState<DynamicPhasePlan | null>(null);
-  const [useNaturalWizard, setUseNaturalWizard] = useState(true);
   
   // Initialize StorageService
   const [storageService] = useState(() => {
@@ -1746,17 +1744,10 @@ const [wizardState, setWizardState] = useState<{
         )}
 
         {showConversationalWizard && (
-          useNaturalWizard ? (
-            <NaturalConversationWizard
-              onComplete={handleNaturalWizardComplete}
-              onCancel={() => setShowConversationalWizard(false)}
-            />
-          ) : (
-            <ConversationalAppWizard
-              onComplete={handleConceptComplete}
-              onCancel={() => setShowConversationalWizard(false)}
-            />
-          )
+          <NaturalConversationWizard
+            onComplete={handleNaturalWizardComplete}
+            onCancel={() => setShowConversationalWizard(false)}
+          />
         )}
 
         <SettingsPage

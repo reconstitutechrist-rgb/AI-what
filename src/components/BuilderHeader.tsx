@@ -51,7 +51,7 @@ export interface BuilderHeaderProps {
   // AI Builder workflow props
   /** Opens AppConceptWizard */
   onPlanApp?: () => void;
-  /** Opens ConversationalAppWizard */
+  /** Opens NaturalConversationWizard */
   onWizard?: () => void;
   /** Starts phased build */
   onPhasedBuild?: () => void;

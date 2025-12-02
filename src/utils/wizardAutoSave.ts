@@ -8,7 +8,6 @@ export const WIZARD_DRAFT_KEYS = {
   FEATURES: 'wizard_draft_features',
   DESIGN: 'wizard_draft_design',
   TECHNICAL: 'wizard_draft_technical',
-  CONVERSATIONAL: 'wizard_conversational'
 } as const;
 
 interface DraftMetadata {
@@ -239,7 +238,7 @@ export class AutoSaver<T> {
   }
 
   /**
-   * Get draft metadata with exists flag for ConversationalAppWizard compatibility
+   * Get draft metadata with exists flag
    */
   getMetadata(): { exists: boolean; timestamp?: string; ageInMinutes?: number } | null {
     const metadata = getDraftMetadata(this.key);

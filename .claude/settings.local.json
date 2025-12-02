@@ -10,7 +10,10 @@
       "Bash(tree:*)",
       "Bash(npm run build:*)",
       "Bash(if not exist \"c:\\AI-app\\src\\app\\api\\ai-builder\\full-app-stream\" mkdir \"c:\\AI-app\\src\\app\\api\\ai-builder\\full-app-stream\")",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(powershell -Command \"(Get-Content ''c:\\AI-app\\src\\components\\ConversationalAppWizard.tsx'' | Measure-Object -Line).Lines\")",
+      "Bash(del \"c:\\AI-app\\src\\components\\ConversationalAppWizard.tsx\")",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []
