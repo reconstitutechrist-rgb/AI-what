@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import type {
   BuildPhase,
   PhaseId,
@@ -57,6 +57,9 @@ export interface UseBuildPhasesReturn {
  * Hook for managing build phases state and actions
  */
 export function useBuildPhases(options: UseBuildPhasesOptions = {}): UseBuildPhasesReturn {
+  // Track mounted state to prevent state updates after unmount
+  const mountedRef = useRef(true);
+
   const [orchestrator] = useState(() =>
     createPhaseOrchestrator({
       onPhaseStart: options.onPhaseStart,
@@ -66,6 +69,16 @@ export function useBuildPhases(options: UseBuildPhasesOptions = {}): UseBuildPha
       onError: options.onError,
     })
   );
+
+  // Cleanup orchestrator on unmount to prevent memory leaks
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      // Reset orchestrator to clean up any pending operations
+      orchestrator.reset();
+    };
+  }, [orchestrator]);
 
   const [phases, setPhases] = useState<BuildPhase[]>([]);
   const [isBuilding, setIsBuilding] = useState(false);

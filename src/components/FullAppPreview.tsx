@@ -58,6 +58,13 @@ export default function FullAppPreview({ appDataJson }: FullAppPreviewProps) {
     }
   }, [appDataJson]);
 
+  // Set initial selected file - moved to useEffect to avoid state update during render
+  useEffect(() => {
+    if (!selectedFile && appData?.files && appData.files.length > 0) {
+      setSelectedFile(appData.files[0].path);
+    }
+  }, [selectedFile, appData]);
+
   // Handle parse error
   if (!appData) {
     return (
@@ -65,11 +72,6 @@ export default function FullAppPreview({ appDataJson }: FullAppPreviewProps) {
         <p className="text-red-400">Error parsing app data</p>
       </div>
     );
-  }
-
-  // Set initial selected file
-  if (!selectedFile && appData.files && appData.files.length > 0) {
-    setSelectedFile(appData.files[0].path);
   }
 
   const currentFile = appData.files?.find(f => f.path === selectedFile);

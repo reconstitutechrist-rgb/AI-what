@@ -161,10 +161,17 @@ export function ResizablePanelGroup({
 
   // Track if initial sync has occurred to avoid resetting during drag
   const hasSyncedRef = useRef(false);
+  const isDraggingRef = useRef(false);
+
+  // Track dragging state in ref to avoid sync during drag
+  useEffect(() => {
+    isDraggingRef.current = isDragging;
+  }, [isDragging]);
 
   // Sync initial sizes to the resize hook on first render only
+  // Skip sync if currently dragging to prevent race condition
   useEffect(() => {
-    if (!hasSyncedRef.current && initialSizes.length === panelData.length) {
+    if (!hasSyncedRef.current && initialSizes.length === panelData.length && !isDraggingRef.current) {
       hasSyncedRef.current = true;
       setSizes(initialSizes);
     }

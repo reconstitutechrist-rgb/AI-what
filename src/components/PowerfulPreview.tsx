@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { SandpackProvider, SandpackPreview, SandpackLayout } from '@codesandbox/sandpack-react';
 
 interface AppFile {
@@ -23,11 +23,31 @@ interface PowerfulPreviewProps {
   isFullscreen?: boolean;
 }
 
-export default function PowerfulPreview({ 
-  appDataJson, 
+export default function PowerfulPreview({
+  appDataJson,
   isFullscreen = false
 }: PowerfulPreviewProps) {
-  const appData: FullAppData = JSON.parse(appDataJson);
+  // Parse JSON with error handling to prevent crashes
+  const appData = useMemo((): FullAppData | null => {
+    try {
+      return JSON.parse(appDataJson) as FullAppData;
+    } catch (error) {
+      console.error('PowerfulPreview: Failed to parse appDataJson:', error);
+      return null;
+    }
+  }, [appDataJson]);
+
+  // Handle parse error
+  if (!appData) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-slate-900">
+        <div className="text-center p-6">
+          <p className="text-red-400 mb-2">Failed to load preview</p>
+          <p className="text-slate-500 text-sm">Invalid app data format</p>
+        </div>
+      </div>
+    );
+  }
 
   // Convert files to Sandpack format - React template needs / prefix
   const sandpackFiles: Record<string, { code: string }> = {};

@@ -1,15 +1,15 @@
 /**
  * useFileStorage Hook - Handles file storage operations
- * 
+ *
  * Extracted from AIBuilder.tsx for reusability and better separation of concerns.
  * Provides functionality for file upload, download, delete, and listing.
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { StorageService } from '@/services/StorageService';
-import type { 
-  FileMetadata, 
-  StorageStats as StorageStatsType, 
+import type {
+  FileMetadata,
+  StorageStats as StorageStatsType,
   FileId,
   UserId
 } from '@/types/storage';
@@ -113,12 +113,27 @@ export interface UseFileStorageReturn {
  * ```
  */
 export function useFileStorage(options: UseFileStorageOptions): UseFileStorageReturn {
-  const { 
-    userId, 
+  const {
+    userId,
     storageService,
     storageQuota = DEFAULT_STORAGE_QUOTA,
     fileListLimit = DEFAULT_FILE_LIMIT,
   } = options;
+
+  // Track mounted state to prevent state updates after unmount
+  const mountedRef = useRef(true);
+  // Track current upload operation for potential cancellation
+  const uploadAbortRef = useRef<AbortController | null>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      // Abort any pending uploads on unmount
+      uploadAbortRef.current?.abort();
+    };
+  }, []);
 
   // State
   const [files, setFiles] = useState<FileMetadata[]>([]);
@@ -224,6 +239,10 @@ export function useFileStorage(options: UseFileStorageOptions): UseFileStorageRe
   const uploadFiles = useCallback(async (filesToUpload: File[]) => {
     if (!userId || filesToUpload.length === 0) return;
 
+    // Create abort controller for this upload batch
+    const abortController = new AbortController();
+    uploadAbortRef.current = abortController;
+
     // Track uploading files using functional update to avoid stale closure
     setUploadingFiles(prev => {
       const newSet = new Set(prev);
@@ -234,6 +253,11 @@ export function useFileStorage(options: UseFileStorageOptions): UseFileStorageRe
     try {
       // Upload files sequentially
       for (const file of filesToUpload) {
+        // Check if aborted before each upload
+        if (abortController.signal.aborted) {
+          throw new Error('Upload cancelled');
+        }
+
         const result = await storageService.upload('user-uploads', file, {
           maxSize: 10 * 1024 * 1024,
           allowedTypes: [],
@@ -246,11 +270,16 @@ export function useFileStorage(options: UseFileStorageOptions): UseFileStorageRe
         }
       }
 
-      // Reload files after upload
-      await loadFiles();
+      // Only reload files if still mounted
+      if (mountedRef.current) {
+        await loadFiles();
+      }
     } finally {
-      // Clear uploading state
-      setUploadingFiles(new Set());
+      // Clear uploading state only if mounted
+      if (mountedRef.current) {
+        setUploadingFiles(new Set());
+      }
+      uploadAbortRef.current = null;
     }
   }, [userId, storageService, loadFiles]);
 
@@ -270,21 +299,36 @@ export function useFileStorage(options: UseFileStorageOptions): UseFileStorageRe
       const result = await storageService.delete(file.bucket, fileId);
 
       if (result.success) {
-        // Remove from local state
-        setFiles(prev => prev.filter(f => f.id !== fileId));
-        // Update stats
-        await loadFiles();
+        // Remove from local state only - don't call loadFiles() to avoid race condition
+        // where the deleted file might reappear briefly before delete propagates
+        if (mountedRef.current) {
+          setFiles(prev => prev.filter(f => f.id !== fileId));
+          // Update storage stats locally instead of full reload
+          setStorageStats(prev => {
+            if (!prev) return prev;
+            const deletedSize = file.size;
+            const newTotalSize = prev.totalSize - deletedSize;
+            return {
+              ...prev,
+              totalFiles: prev.totalFiles - 1,
+              totalSize: newTotalSize,
+              quotaUsagePercent: (newTotalSize / (prev.quota || storageQuota)) * 100
+            };
+          });
+        }
       } else {
         throw new Error(`Failed to delete file: ${result.error?.message || 'Unknown error'}`);
       }
     } finally {
-      setDeletingFiles(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(fileId);
-        return newSet;
-      });
+      if (mountedRef.current) {
+        setDeletingFiles(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(fileId);
+          return newSet;
+        });
+      }
     }
-  }, [userId, files, storageService, loadFiles]);
+  }, [userId, files, storageService, storageQuota]);
 
   /**
    * Download a file from storage
