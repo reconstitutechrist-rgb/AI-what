@@ -16,7 +16,10 @@
       "Bash(rm:*)",
       "Bash(cat:*)",
       "Bash(git -C \"c:\\AI-app\" log --oneline -5)",
-      "Bash(git -C \"c:\\AI-app\" add:*)"
+      "Bash(git -C \"c:\\AI-app\" add:*)",
+      "Bash(git -C \"c:\\AI-app\" commit -m \"$(cat <<''EOF''\nfeat: Add Layout Builder with AI vision for conversational UI design\n\n- Add LayoutBuilderWizard modal with chat interface and live preview\n- Implement html2canvas screenshot capture for AI vision capabilities\n- Create comprehensive LayoutDesign type system for complete design storage\n- Add API endpoint with Claude Vision for analyzing layout screenshots\n- Enable element selection/highlighting in preview for targeted feedback\n- Support reference image uploads for design inspiration\n- Add \"Apply to App Concept\" to copy full design without data loss\n- Fix LayoutPreview bugs: event propagation, dynamic classes, footer\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git -C \"c:\\AI-app\" push)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

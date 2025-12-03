@@ -6,6 +6,12 @@ import { generateMockContent } from '../utils/mockContentGenerator';
 
 type ViewMode = 'mobile' | 'tablet' | 'desktop';
 
+/** Default primary color used throughout the app */
+const DEFAULT_PRIMARY_COLOR = '#3B82F6';
+
+/** Current year for copyright - extracted to avoid creating Date on every render */
+const CURRENT_YEAR = new Date().getFullYear();
+
 /**
  * Props for LayoutPreview component
  */
@@ -71,7 +77,10 @@ const stylePresets = {
     fontWeight: 'font-medium',
     spacing: 'gap-4'
   }
-};
+} as const;
+
+/** Type for style preset values */
+type StylePreset = (typeof stylePresets)[keyof typeof stylePresets];
 
 /**
  * Color scheme presets
@@ -96,24 +105,29 @@ const colorSchemes = {
     header: 'bg-slate-800'
   },
   auto: {
-    bg: 'bg-slate-900',
-    text: 'text-white',
-    textMuted: 'text-slate-400',
-    card: 'bg-slate-800',
-    border: 'border-slate-700',
-    sidebar: 'bg-slate-800',
-    header: 'bg-slate-800'
+    // Auto mode: uses a balanced theme that works in both light/dark contexts
+    bg: 'bg-zinc-900',
+    text: 'text-zinc-100',
+    textMuted: 'text-zinc-400',
+    card: 'bg-zinc-800',
+    border: 'border-zinc-700',
+    sidebar: 'bg-zinc-850',
+    header: 'bg-zinc-800'
   },
   custom: {
-    bg: 'bg-slate-900',
-    text: 'text-white',
-    textMuted: 'text-slate-400',
-    card: 'bg-slate-800',
-    border: 'border-slate-700',
-    sidebar: 'bg-slate-800',
-    header: 'bg-slate-800'
+    // Custom mode: neutral base that works well with custom primary colors
+    bg: 'bg-neutral-900',
+    text: 'text-neutral-100',
+    textMuted: 'text-neutral-400',
+    card: 'bg-neutral-800',
+    border: 'border-neutral-700',
+    sidebar: 'bg-neutral-800',
+    header: 'bg-neutral-800'
   }
-};
+} as const;
+
+/** Type for color scheme values */
+type ColorScheme = (typeof colorSchemes)[keyof typeof colorSchemes];
 
 /**
  * Selectable wrapper component for element selection
@@ -127,12 +141,25 @@ interface SelectableProps {
 }
 
 function Selectable({ id, children, isSelected, onClick, className = '' }: SelectableProps) {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      e.stopPropagation();
+      onClick(id);
+    }
+  };
+
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={(e) => {
         e.stopPropagation();
         onClick(id);
       }}
+      onKeyDown={handleKeyDown}
+      aria-pressed={isSelected}
+      aria-label={`Select ${id} element`}
       className={`cursor-pointer transition-all ${
         isSelected
           ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-transparent'
@@ -150,8 +177,8 @@ function Selectable({ id, children, isSelected, onClick, className = '' }: Selec
 interface HeaderProps {
   appName: string;
   navItems: string[];
-  colors: typeof colorSchemes.dark;
-  style: typeof stylePresets.modern;
+  colors: ColorScheme;
+  style: StylePreset;
   primaryColor?: string;
   onElementSelect?: (id: string | null) => void;
   selectedElement?: string | null;
@@ -182,21 +209,34 @@ function Header({
           {appName || 'App Name'}
         </div>
         <nav className="hidden sm:flex items-center gap-4">
-          {navItems.slice(0, 4).map((item, i) => (
+          {navItems.slice(0, 4).map((item) => (
             <span
-              key={i}
+              key={`nav-${item}`}
               className={`text-sm ${colors.textMuted} hover:opacity-80 transition-opacity cursor-pointer`}
             >
               {item}
             </span>
           ))}
         </nav>
-        <button
-          className={`px-3 py-1.5 text-sm text-white ${style.buttonStyle}`}
-          style={{ backgroundColor: primaryColor || '#3B82F6' }}
-        >
-          Sign In
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Mobile menu button - visible only on small screens */}
+          <button
+            type="button"
+            className={`sm:hidden p-2 rounded-lg ${colors.textMuted} hover:opacity-80`}
+            aria-label="Open menu"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className={`px-3 py-1.5 text-sm text-white ${style.buttonStyle}`}
+            style={{ backgroundColor: primaryColor || DEFAULT_PRIMARY_COLOR }}
+          >
+            Sign In
+          </button>
+        </div>
       </div>
     </Selectable>
   );
@@ -207,8 +247,8 @@ function Header({
  */
 interface SidebarProps {
   navItems: string[];
-  colors: typeof colorSchemes.dark;
-  style: typeof stylePresets.modern;
+  colors: ColorScheme;
+  style: StylePreset;
   primaryColor?: string;
   onElementSelect?: (id: string | null) => void;
   selectedElement?: string | null;
@@ -235,15 +275,15 @@ function Sidebar({
     >
       <div className={`${style.spacing} flex flex-col`}>
         <div className={`${style.fontWeight} ${colors.text} mb-4`}>Menu</div>
-        {navItems.map((item, i) => (
+        {navItems.map((item, index) => (
           <div
-            key={i}
+            key={`sidebar-${item}`}
             className={`px-3 py-2 rounded-lg text-sm cursor-pointer transition-all ${
-              i === 0
+              index === 0
                 ? 'text-white'
                 : `${colors.textMuted} hover:opacity-80`
             }`}
-            style={i === 0 ? { backgroundColor: primaryColor || '#3B82F6' } : {}}
+            style={index === 0 ? { backgroundColor: primaryColor || DEFAULT_PRIMARY_COLOR } : {}}
           >
             {item}
           </div>
@@ -260,8 +300,8 @@ interface HeroProps {
   title: string;
   subtitle: string;
   cta: string;
-  colors: typeof colorSchemes.dark;
-  style: typeof stylePresets.modern;
+  colors: ColorScheme;
+  style: StylePreset;
   primaryColor?: string;
   onElementSelect?: (id: string | null) => void;
   selectedElement?: string | null;
@@ -295,8 +335,9 @@ function Hero({
         {subtitle}
       </p>
       <button
+        type="button"
         className={`px-6 py-2.5 text-white ${style.buttonStyle}`}
-        style={{ backgroundColor: primaryColor || '#3B82F6' }}
+        style={{ backgroundColor: primaryColor || DEFAULT_PRIMARY_COLOR }}
       >
         {cta}
       </button>
@@ -309,8 +350,8 @@ function Hero({
  */
 interface StatsRowProps {
   stats: Array<{ label: string; value: string }>;
-  colors: typeof colorSchemes.dark;
-  style: typeof stylePresets.modern;
+  colors: ColorScheme;
+  style: StylePreset;
   onElementSelect?: (id: string | null) => void;
   selectedElement?: string | null;
 }
@@ -334,9 +375,9 @@ function StatsRow({
       className="px-4 py-6"
     >
       <div className={`grid grid-cols-2 sm:grid-cols-4 ${style.spacing}`}>
-        {stats.slice(0, 4).map((stat, i) => (
+        {stats.slice(0, 4).map((stat) => (
           <div
-            key={i}
+            key={`stat-${stat.label}`}
             className={`${colors.card} border ${colors.border} p-4 text-center`}
             style={{ borderRadius: style.borderRadius, boxShadow: style.cardShadow }}
           >
@@ -358,8 +399,8 @@ function StatsRow({
  */
 interface CardGridProps {
   cards: Array<{ title: string; subtitle: string; tag: string }>;
-  colors: typeof colorSchemes.dark;
-  style: typeof stylePresets.modern;
+  colors: ColorScheme;
+  style: StylePreset;
   primaryColor?: string;
   onElementSelect?: (id: string | null) => void;
   selectedElement?: string | null;
@@ -385,9 +426,9 @@ function CardGrid({
       className="px-4 py-6"
     >
       <div className={`grid grid-cols-1 sm:grid-cols-2 ${style.spacing}`}>
-        {cards.slice(0, 4).map((card, i) => (
+        {cards.slice(0, 4).map((card) => (
           <div
-            key={i}
+            key={`card-${card.title}`}
             className={`${colors.card} border ${colors.border} p-4`}
             style={{ borderRadius: style.borderRadius, boxShadow: style.cardShadow }}
           >
@@ -397,7 +438,7 @@ function CardGrid({
               </h3>
               <span
                 className="text-xs px-2 py-0.5 rounded-full text-white"
-                style={{ backgroundColor: primaryColor || '#3B82F6' }}
+                style={{ backgroundColor: primaryColor || DEFAULT_PRIMARY_COLOR }}
               >
                 {card.tag}
               </span>
@@ -415,8 +456,8 @@ function CardGrid({
  */
 interface ListItemsProps {
   items: Array<{ title: string; status: string; meta: string }>;
-  colors: typeof colorSchemes.dark;
-  style: typeof stylePresets.modern;
+  colors: ColorScheme;
+  style: StylePreset;
   onElementSelect?: (id: string | null) => void;
   selectedElement?: string | null;
 }
@@ -443,11 +484,11 @@ function ListItems({
         className={`${colors.card} border ${colors.border} overflow-hidden`}
         style={{ borderRadius: style.borderRadius }}
       >
-        {items.slice(0, 5).map((item, i, slicedArr) => (
+        {items.slice(0, 5).map((item, index, slicedArr) => (
           <div
-            key={i}
+            key={`list-${item.title}`}
             className={`px-4 py-3 flex items-center justify-between ${
-              i !== slicedArr.length - 1 ? `border-b ${colors.border}` : ''
+              index !== slicedArr.length - 1 ? `border-b ${colors.border}` : ''
             }`}
           >
             <div>
@@ -471,8 +512,7 @@ function ListItems({
  */
 interface FooterProps {
   appName: string;
-  colors: typeof colorSchemes.dark;
-  style: typeof stylePresets.modern;
+  colors: ColorScheme;
   onElementSelect?: (id: string | null) => void;
   selectedElement?: string | null;
 }
@@ -480,7 +520,6 @@ interface FooterProps {
 function Footer({
   appName,
   colors,
-  style,
   onElementSelect,
   selectedElement
 }: FooterProps) {
@@ -493,19 +532,44 @@ function Footer({
       id="footer"
       isSelected={selectedElement === 'footer'}
       onClick={handleSelect}
-      className={`${colors.card} border-t ${colors.border} px-4 py-4`}
+      className={`${colors.header} border-t ${colors.border} px-4 py-4`}
     >
       <div className="flex items-center justify-between">
         <div className={`text-xs ${colors.textMuted}`}>
-          {new Date().getFullYear()} {appName || 'My App'}. All rights reserved.
+          © {CURRENT_YEAR} {appName || 'My App'}. All rights reserved.
         </div>
         <div className="flex items-center gap-4">
-          <span className={`text-xs ${colors.textMuted} hover:opacity-80 cursor-pointer`}>Privacy</span>
-          <span className={`text-xs ${colors.textMuted} hover:opacity-80 cursor-pointer`}>Terms</span>
+          <button
+            type="button"
+            className={`text-xs ${colors.textMuted} hover:opacity-80`}
+            aria-label="View privacy policy"
+          >
+            Privacy
+          </button>
+          <button
+            type="button"
+            className={`text-xs ${colors.textMuted} hover:opacity-80`}
+            aria-label="View terms of service"
+          >
+            Terms
+          </button>
         </div>
       </div>
     </Selectable>
   );
+}
+
+/**
+ * Shared props for layout components
+ */
+interface LayoutComponentProps {
+  content: ReturnType<typeof generateMockContent>;
+  colors: ColorScheme;
+  style: StylePreset;
+  primaryColor?: string;
+  appName: string;
+  onElementSelect?: (id: string | null) => void;
+  selectedElement?: string | null;
 }
 
 /**
@@ -519,15 +583,7 @@ function DashboardLayout({
   appName,
   onElementSelect,
   selectedElement
-}: {
-  content: ReturnType<typeof generateMockContent>;
-  colors: typeof colorSchemes.dark;
-  style: typeof stylePresets.modern;
-  primaryColor?: string;
-  appName: string;
-  onElementSelect?: (id: string | null) => void;
-  selectedElement?: string | null;
-}) {
+}: LayoutComponentProps) {
   return (
     <div className={`flex flex-col h-full ${colors.bg}`}>
       <Header
@@ -573,6 +629,12 @@ function DashboardLayout({
           />
         </main>
       </div>
+      <Footer
+        appName={appName}
+        colors={colors}
+        onElementSelect={onElementSelect}
+        selectedElement={selectedElement}
+      />
     </div>
   );
 }
@@ -588,15 +650,7 @@ function MultiPageLayout({
   appName,
   onElementSelect,
   selectedElement
-}: {
-  content: ReturnType<typeof generateMockContent>;
-  colors: typeof colorSchemes.dark;
-  style: typeof stylePresets.modern;
-  primaryColor?: string;
-  appName: string;
-  onElementSelect?: (id: string | null) => void;
-  selectedElement?: string | null;
-}) {
+}: LayoutComponentProps) {
   return (
     <div className={`flex flex-col h-full ${colors.bg}`}>
       <Header
@@ -638,7 +692,6 @@ function MultiPageLayout({
       <Footer
         appName={appName}
         colors={colors}
-        style={style}
         onElementSelect={onElementSelect}
         selectedElement={selectedElement}
       />
@@ -657,15 +710,7 @@ function SinglePageLayout({
   appName,
   onElementSelect,
   selectedElement
-}: {
-  content: ReturnType<typeof generateMockContent>;
-  colors: typeof colorSchemes.dark;
-  style: typeof stylePresets.modern;
-  primaryColor?: string;
-  appName: string;
-  onElementSelect?: (id: string | null) => void;
-  selectedElement?: string | null;
-}) {
+}: LayoutComponentProps) {
   return (
     <div className={`flex flex-col h-full ${colors.bg}`}>
       <Header
@@ -707,7 +752,6 @@ function SinglePageLayout({
       <Footer
         appName={appName}
         colors={colors}
-        style={style}
         onElementSelect={onElementSelect}
         selectedElement={selectedElement}
       />
@@ -728,20 +772,31 @@ export function LayoutPreview({
 }: LayoutPreviewProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('desktop');
 
+  // Stable stringified key for coreFeatures to avoid unnecessary re-computation
+  const coreFeaturesKey = useMemo(
+    () => JSON.stringify(concept?.coreFeatures ?? []),
+    [concept?.coreFeatures]
+  );
+
   // Generate mock content based on concept
   const mockContent = useMemo(() => {
+    // Safely handle coreFeatures - parse from key or use empty array
+    const features: Feature[] = concept?.coreFeatures && Array.isArray(concept.coreFeatures)
+      ? concept.coreFeatures
+      : [];
+
     return generateMockContent(
       concept?.name || 'My App',
       concept?.description || '',
-      (concept?.coreFeatures as Feature[]) || [],
+      features,
       concept?.purpose || ''
     );
-  }, [concept?.name, concept?.description, concept?.coreFeatures, concept?.purpose]);
+  }, [concept?.name, concept?.description, coreFeaturesKey, concept?.purpose]);
 
   // Get style and color presets
   const style = stylePresets[preferences.style] || stylePresets.modern;
   const colors = colorSchemes[preferences.colorScheme] || colorSchemes.dark;
-  const primaryColor = preferences.primaryColor || '#3B82F6';
+  const primaryColor = preferences.primaryColor || DEFAULT_PRIMARY_COLOR;
 
   // Get device dimensions
   const dimensions = getDeviceDimensions(viewMode);
@@ -777,6 +832,7 @@ export function LayoutPreview({
         {/* View Mode Toggle */}
         <div className="flex gap-1 bg-slate-800 p-1 rounded-lg">
           <button
+            type="button"
             onClick={() => setViewMode('mobile')}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
               viewMode === 'mobile'
@@ -788,6 +844,7 @@ export function LayoutPreview({
             📱 Mobile
           </button>
           <button
+            type="button"
             onClick={() => setViewMode('tablet')}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
               viewMode === 'tablet'
@@ -799,6 +856,7 @@ export function LayoutPreview({
             📲 Tablet
           </button>
           <button
+            type="button"
             onClick={() => setViewMode('desktop')}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
               viewMode === 'desktop'
@@ -816,6 +874,7 @@ export function LayoutPreview({
           <div className="flex items-center gap-2">
             {/* Color Scheme Toggle */}
             <button
+              type="button"
               onClick={() =>
                 onPreferenceChange({
                   colorScheme: preferences.colorScheme === 'dark' ? 'light' : 'dark'
@@ -823,22 +882,25 @@ export function LayoutPreview({
               }
               className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white text-xs font-medium transition-all"
               title="Toggle color scheme"
+              aria-label={`Switch to ${preferences.colorScheme === 'dark' ? 'light' : 'dark'} mode`}
             >
               {preferences.colorScheme === 'dark' ? '🌙' : '☀️'}
             </button>
 
             {/* Primary Color Picker */}
-            <label className="relative cursor-pointer">
+            <label className="relative cursor-pointer" title="Change primary color">
+              <span className="sr-only">Choose primary color</span>
               <input
                 type="color"
                 value={primaryColor}
                 onChange={(e) => onPreferenceChange({ primaryColor: e.target.value })}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                aria-label="Choose primary color"
               />
               <div
                 className="w-8 h-8 rounded-lg border-2 border-white/20"
                 style={{ backgroundColor: primaryColor }}
-                title="Change primary color"
+                aria-hidden="true"
               />
             </label>
           </div>
@@ -869,8 +931,10 @@ export function LayoutPreview({
               Selected: <strong className="font-medium">{selectedElement}</strong>
             </span>
             <button
+              type="button"
               onClick={() => onElementSelect?.(null)}
               className="ml-auto text-xs text-blue-400 hover:text-blue-300"
+              aria-label="Clear element selection"
             >
               Clear selection
             </button>
