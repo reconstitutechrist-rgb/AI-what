@@ -23,6 +23,7 @@ import { PreviewPanel } from './PreviewPanel';
 import { ToastProvider } from './Toast';
 import AppConceptWizard from './AppConceptWizard';
 import NaturalConversationWizard from './NaturalConversationWizard';
+import LayoutBuilderWizard from './LayoutBuilderWizard';
 import SettingsPage from './SettingsPage';
 import ThemeToggle from './ThemeToggle';
 
@@ -207,6 +208,8 @@ export default function AIBuilder() {
     setShowConceptWizard,
     showConversationalWizard,
     setShowConversationalWizard,
+    showLayoutBuilder,
+    setShowLayoutBuilder,
     showAdvancedPhasedBuild,
     setShowAdvancedPhasedBuild,
     searchQuery,
@@ -1684,6 +1687,13 @@ const [wizardState, setWizardState] = useState<{
                   <span>🧙‍♂️</span>
                   <span className="hidden sm:inline">Wizard</span>
                 </button>
+                <button
+                  onClick={() => setShowLayoutBuilder(true)}
+                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 transition-all text-sm text-white font-medium flex items-center gap-2"
+                >
+                  <span>🎨</span>
+                  <span className="hidden sm:inline">Layout</span>
+                </button>
                 {appConcept && (
                   <button
                     onClick={handleStartAdvancedPhasedBuild}
@@ -1955,6 +1965,14 @@ const [wizardState, setWizardState] = useState<{
             onCancel={() => setShowConversationalWizard(false)}
           />
         )}
+
+        <LayoutBuilderWizard
+          isOpen={showLayoutBuilder}
+          onClose={() => setShowLayoutBuilder(false)}
+          onApplyToAppConcept={() => {
+            // Optionally close the wizard or show a success message
+          }}
+        />
 
         <SettingsPage
           isOpen={showSettings}

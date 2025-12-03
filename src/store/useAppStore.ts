@@ -37,6 +37,7 @@ import type {
   CompareVersions,
 } from '@/types/aiBuilderTypes';
 import type { AppConcept, ImplementationPlan } from '@/types/appConcept';
+import type { LayoutDesign } from '@/types/layoutDesign';
 import type { PhaseId } from '@/types/buildPhases';
 import type { FileMetadata, StorageStats } from '@/types/storage';
 import type { DeploymentInstructions } from '@/utils/exportApp';
@@ -122,6 +123,7 @@ interface UISlice {
   showNewAppStagingModal: boolean;
   showConceptWizard: boolean;
   showConversationalWizard: boolean;
+  showLayoutBuilder: boolean;
   showSettings: boolean;
   showAdvancedPhasedBuild: boolean;
   showQualityReport: boolean;
@@ -139,6 +141,7 @@ interface UISlice {
   setShowNewAppStagingModal: (show: boolean) => void;
   setShowConceptWizard: (show: boolean) => void;
   setShowConversationalWizard: (show: boolean) => void;
+  setShowLayoutBuilder: (show: boolean) => void;
   setShowSettings: (show: boolean) => void;
   setShowAdvancedPhasedBuild: (show: boolean) => void;
   setShowQualityReport: (show: boolean) => void;
@@ -167,6 +170,9 @@ interface DataSlice {
   isValidating: boolean;
   // Image upload
   uploadedImage: string | null;
+  // Layout Builder
+  currentLayoutDesign: LayoutDesign | null;
+  savedLayoutDesigns: LayoutDesign[];
   // Actions
   setPendingChange: (change: PendingChange | null) => void;
   setPendingDiff: (diff: PendingDiff | null) => void;
@@ -183,6 +189,11 @@ interface DataSlice {
   setSelectedPhaseId: (phaseId: PhaseId | null) => void;
   setIsValidating: (isValidating: boolean) => void;
   setUploadedImage: (image: string | null) => void;
+  // Layout Builder actions
+  setCurrentLayoutDesign: (design: LayoutDesign | null) => void;
+  setSavedLayoutDesigns: (designs: LayoutDesign[]) => void;
+  addSavedLayoutDesign: (design: LayoutDesign) => void;
+  removeSavedLayoutDesign: (id: string) => void;
 }
 
 /**
@@ -327,6 +338,7 @@ export const useAppStore = create<AppState>()(
       showNewAppStagingModal: false,
       showConceptWizard: false,
       showConversationalWizard: false,
+      showLayoutBuilder: false,
       showSettings: false,
       showAdvancedPhasedBuild: false,
       showQualityReport: false,
@@ -343,6 +355,7 @@ export const useAppStore = create<AppState>()(
       setShowNewAppStagingModal: (show) => set({ showNewAppStagingModal: show }),
       setShowConceptWizard: (show) => set({ showConceptWizard: show }),
       setShowConversationalWizard: (show) => set({ showConversationalWizard: show }),
+      setShowLayoutBuilder: (show) => set({ showLayoutBuilder: show }),
       setShowSettings: (show) => set({ showSettings: show }),
       setShowAdvancedPhasedBuild: (show) => set({ showAdvancedPhasedBuild: show }),
       setShowQualityReport: (show) => set({ showQualityReport: show }),
@@ -367,7 +380,9 @@ export const useAppStore = create<AppState>()(
       selectedPhaseId: null,
       isValidating: false,
       uploadedImage: null,
-      
+      currentLayoutDesign: null,
+      savedLayoutDesigns: [],
+
       setPendingChange: (change) => set({ pendingChange: change }),
       setPendingDiff: (diff) => set({ pendingDiff: diff }),
       setPendingNewAppRequest: (request) => set({ pendingNewAppRequest: request }),
@@ -385,6 +400,14 @@ export const useAppStore = create<AppState>()(
       setSelectedPhaseId: (phaseId) => set({ selectedPhaseId: phaseId }),
       setIsValidating: (isValidating) => set({ isValidating }),
       setUploadedImage: (image) => set({ uploadedImage: image }),
+      setCurrentLayoutDesign: (design) => set({ currentLayoutDesign: design }),
+      setSavedLayoutDesigns: (designs) => set({ savedLayoutDesigns: designs }),
+      addSavedLayoutDesign: (design) => set((state) => ({
+        savedLayoutDesigns: [...state.savedLayoutDesigns, design]
+      })),
+      removeSavedLayoutDesign: (id) => set((state) => ({
+        savedLayoutDesigns: state.savedLayoutDesigns.filter(d => d.id !== id)
+      })),
 
       // ========================================================================
       // FILE STORAGE SLICE
@@ -494,11 +517,23 @@ export const useUIState = () => useAppStore(
     showNewAppStagingModal: state.showNewAppStagingModal,
     showConceptWizard: state.showConceptWizard,
     showConversationalWizard: state.showConversationalWizard,
+    showLayoutBuilder: state.showLayoutBuilder,
     showSettings: state.showSettings,
     showAdvancedPhasedBuild: state.showAdvancedPhasedBuild,
     showQualityReport: state.showQualityReport,
     showPerformanceReport: state.showPerformanceReport,
     searchQuery: state.searchQuery,
+  }))
+);
+
+/**
+ * Select layout builder state
+ */
+export const useLayoutBuilderState = () => useAppStore(
+  useShallow((state) => ({
+    showLayoutBuilder: state.showLayoutBuilder,
+    currentLayoutDesign: state.currentLayoutDesign,
+    savedLayoutDesigns: state.savedLayoutDesigns,
   }))
 );
 

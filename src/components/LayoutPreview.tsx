@@ -129,7 +129,10 @@ interface SelectableProps {
 function Selectable({ id, children, isSelected, onClick, className = '' }: SelectableProps) {
   return (
     <div
-      onClick={() => onClick(id)}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick(id);
+      }}
       className={`cursor-pointer transition-all ${
         isSelected
           ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-transparent'
@@ -180,7 +183,10 @@ function Header({
         </div>
         <nav className="hidden sm:flex items-center gap-4">
           {navItems.slice(0, 4).map((item, i) => (
-            <span key={i} className={`text-sm ${colors.textMuted} hover:${colors.text}`}>
+            <span
+              key={i}
+              className={`text-sm ${colors.textMuted} hover:opacity-80 transition-opacity cursor-pointer`}
+            >
               {item}
             </span>
           ))}
@@ -232,10 +238,10 @@ function Sidebar({
         {navItems.map((item, i) => (
           <div
             key={i}
-            className={`px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors ${
+            className={`px-3 py-2 rounded-lg text-sm cursor-pointer transition-all ${
               i === 0
                 ? 'text-white'
-                : `${colors.textMuted} hover:${colors.text}`
+                : `${colors.textMuted} hover:opacity-80`
             }`}
             style={i === 0 ? { backgroundColor: primaryColor || '#3B82F6' } : {}}
           >
@@ -437,11 +443,11 @@ function ListItems({
         className={`${colors.card} border ${colors.border} overflow-hidden`}
         style={{ borderRadius: style.borderRadius }}
       >
-        {items.slice(0, 5).map((item, i) => (
+        {items.slice(0, 5).map((item, i, slicedArr) => (
           <div
             key={i}
             className={`px-4 py-3 flex items-center justify-between ${
-              i !== items.length - 1 ? `border-b ${colors.border}` : ''
+              i !== slicedArr.length - 1 ? `border-b ${colors.border}` : ''
             }`}
           >
             <div>
@@ -455,6 +461,48 @@ function ListItems({
             </span>
           </div>
         ))}
+      </div>
+    </Selectable>
+  );
+}
+
+/**
+ * Footer component for preview
+ */
+interface FooterProps {
+  appName: string;
+  colors: typeof colorSchemes.dark;
+  style: typeof stylePresets.modern;
+  onElementSelect?: (id: string | null) => void;
+  selectedElement?: string | null;
+}
+
+function Footer({
+  appName,
+  colors,
+  style,
+  onElementSelect,
+  selectedElement
+}: FooterProps) {
+  const handleSelect = (id: string) => {
+    onElementSelect?.(selectedElement === id ? null : id);
+  };
+
+  return (
+    <Selectable
+      id="footer"
+      isSelected={selectedElement === 'footer'}
+      onClick={handleSelect}
+      className={`${colors.card} border-t ${colors.border} px-4 py-4`}
+    >
+      <div className="flex items-center justify-between">
+        <div className={`text-xs ${colors.textMuted}`}>
+          {new Date().getFullYear()} {appName || 'My App'}. All rights reserved.
+        </div>
+        <div className="flex items-center gap-4">
+          <span className={`text-xs ${colors.textMuted} hover:opacity-80 cursor-pointer`}>Privacy</span>
+          <span className={`text-xs ${colors.textMuted} hover:opacity-80 cursor-pointer`}>Terms</span>
+        </div>
       </div>
     </Selectable>
   );
@@ -587,6 +635,13 @@ function MultiPageLayout({
           selectedElement={selectedElement}
         />
       </main>
+      <Footer
+        appName={appName}
+        colors={colors}
+        style={style}
+        onElementSelect={onElementSelect}
+        selectedElement={selectedElement}
+      />
     </div>
   );
 }
@@ -649,6 +704,13 @@ function SinglePageLayout({
           selectedElement={selectedElement}
         />
       </main>
+      <Footer
+        appName={appName}
+        colors={colors}
+        style={style}
+        onElementSelect={onElementSelect}
+        selectedElement={selectedElement}
+      />
     </div>
   );
 }

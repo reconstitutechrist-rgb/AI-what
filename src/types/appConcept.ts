@@ -2,6 +2,8 @@
  * Type definitions for App Concept and Implementation Planning
  */
 
+import type { LayoutDesign } from './layoutDesign';
+
 export interface AppConcept {
   // Basic Information
   name: string;
@@ -24,6 +26,9 @@ export interface AppConcept {
 
   // Full conversation context for rich detail preservation
   conversationContext?: string;
+
+  // Layout Design (from Layout Builder)
+  layoutDesign?: LayoutDesign;
 
   // Metadata
   createdAt: string;
@@ -49,6 +54,15 @@ export interface UIPreferences {
     url: string;
     name: string;
   }[];
+
+  // Layout Builder integration fields
+  layoutDesignId?: string;  // Reference to full LayoutDesign
+  secondaryColor?: string;
+  accentColor?: string;
+  borderRadius?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  shadowIntensity?: 'none' | 'subtle' | 'medium' | 'strong';
+  fontFamily?: string;
+  spacing?: 'compact' | 'normal' | 'relaxed';
 }
 
 export interface TechnicalRequirements {
