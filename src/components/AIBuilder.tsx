@@ -893,6 +893,20 @@ const [wizardState, setWizardState] = useState<{
         dynamicBuildPhases.initializePlan(phasePlan);
         setShowAdvancedPhasedBuild(true);
 
+        // Sync with StagePlan for ChatPanel display
+        const stagePlan: StagePlan = {
+          totalPhases: phasePlan.totalPhases,
+          currentPhase: 0,
+          phases: phasePlan.phases.map(p => ({
+            number: p.number,
+            name: p.name,
+            description: p.description,
+            features: p.features,
+            status: 'pending' as const
+          }))
+        };
+        setNewAppStagePlan(stagePlan);
+
         const notification: ChatMessage = {
           id: generateId(),
           role: 'system',
@@ -912,7 +926,7 @@ const [wizardState, setWizardState] = useState<{
       };
       setChatMessages(prev => [...prev, errorMessage]);
     }
-  }, [appConcept, dynamicBuildPhases, setShowAdvancedPhasedBuild, setChatMessages]);
+  }, [appConcept, dynamicBuildPhases, setShowAdvancedPhasedBuild, setChatMessages, setNewAppStagePlan]);
 
   // Handle phase detail view
   const handleViewPhaseDetails = useCallback((phaseId: PhaseId) => {
@@ -1398,6 +1412,20 @@ const [wizardState, setWizardState] = useState<{
             const phasePlan: DynamicPhasePlan = phaseData.plan;
             setDynamicPhasePlan(phasePlan);
             dynamicBuildPhases.initializePlan(phasePlan);
+
+            // Sync with StagePlan for ChatPanel display
+            const stagePlan: StagePlan = {
+              totalPhases: phasePlan.totalPhases,
+              currentPhase: 0,
+              phases: phasePlan.phases.map(p => ({
+                number: p.number,
+                name: p.name,
+                description: p.description,
+                features: p.features,
+                status: 'pending' as const
+              }))
+            };
+            setNewAppStagePlan(stagePlan);
 
             const planMessage: ChatMessage = {
               id: generateId(),
