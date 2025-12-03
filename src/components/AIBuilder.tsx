@@ -7,7 +7,7 @@
  * It now uses:
  * - Zustand store for state management
  * - Extracted ChatPanel and PreviewPanel components
- * - Custom hooks (useVersionControl, useDatabaseSync, useKeyboardShortcuts, useFileStorage, useMessageSender, useBuildPhases)
+ * - Custom hooks (useVersionControl, useDatabaseSync, useKeyboardShortcuts, useFileStorage, useMessageSender, useDynamicBuildPhases)
  * - Modal components from ./modals
  * 
  * All functionality is preserved from the original implementation.
@@ -53,16 +53,20 @@ import {
   useVersionControl,
   useKeyboardShortcuts,
   useMessageSender,
-  useBuildPhases,
 } from '@/hooks';
+import { useDynamicBuildPhases } from '@/hooks/useDynamicBuildPhases';
 import { useStreamingGeneration } from '@/hooks/useStreamingGeneration';
+
+// Scope detection service
+import { scopeDetectionService } from '@/services/ScopeDetectionService';
+import { adaptAllPhasesToUI, adaptDynamicProgressToUI } from '@/types/phaseAdapters';
 
 // Types
 import type { AppConcept, ImplementationPlan, BuildPhase } from '../types/appConcept';
 import type { GeneratedComponent, ChatMessage, AppVersion, StagePlan, Phase, PendingChange, PendingDiff, CurrentStagePlan } from '../types/aiBuilderTypes';
 import type { PhasedAppConcept, PhaseId } from '../types/buildPhases';
 import type { DynamicPhasePlan } from '../types/dynamicPhases';
-import { PhaseExecutionManager, buildPhaseExecutionPrompt } from '../services/PhaseExecutionManager';
+import { buildPhaseExecutionPrompt } from '../services/PhaseExecutionManager';
 
 // Utils
 import { exportAppAsZip, downloadBlob, parseAppFiles, getDeploymentInstructions, type DeploymentInstructions } from '../utils/exportApp';
@@ -360,13 +364,13 @@ const [wizardState, setWizardState] = useState<{
     },
   });
 
-  // Build phases hook
-  const buildPhases = useBuildPhases({
+  // Dynamic build phases hook (replaces useBuildPhases)
+  const dynamicBuildPhases = useDynamicBuildPhases({
     onPhaseStart: (phase) => {
       const notification: ChatMessage = {
         id: generateId(),
         role: 'system',
-        content: `🚀 **Starting Phase ${phase.order}: ${phase.name}**\n\n${phase.description}`,
+        content: `🚀 **Starting Phase ${phase.number}: ${phase.name}**\n\n${phase.description}`,
         timestamp: new Date().toISOString(),
       };
       setChatMessages(prev => [...prev, notification]);
@@ -376,17 +380,17 @@ const [wizardState, setWizardState] = useState<{
         id: generateId(),
         role: 'system',
         content: result.success
-          ? `✅ **Phase ${phase.order} Complete!**\n\nCompleted ${result.tasksCompleted}/${result.totalTasks} tasks in ${(result.duration / 1000).toFixed(1)}s`
-          : `⚠️ **Phase ${phase.order} had issues**\n\n${result.errors?.join('\n') || 'Unknown error'}`,
+          ? `✅ **Phase ${phase.number} Complete!**\n\nImplemented ${result.implementedFeatures.length} features in ${(result.duration / 1000).toFixed(1)}s`
+          : `⚠️ **Phase ${phase.number} had issues**\n\n${result.errors?.join('\n') || 'Unknown error'}`,
         timestamp: new Date().toISOString(),
       };
       setChatMessages(prev => [...prev, notification]);
     },
-    onBuildComplete: (progress) => {
+    onBuildComplete: (plan) => {
       const notification: ChatMessage = {
         id: generateId(),
         role: 'system',
-        content: `🎉 **Build Complete!**\n\nAll ${progress.totalPhases} phases finished. Your app is ready!`,
+        content: `🎉 **Build Complete!**\n\nAll ${plan.totalPhases} phases finished. Your app is ready!`,
         timestamp: new Date().toISOString(),
       };
       setChatMessages(prev => [...prev, notification]);
@@ -395,12 +399,34 @@ const [wizardState, setWizardState] = useState<{
       const notification: ChatMessage = {
         id: generateId(),
         role: 'system',
-        content: `❌ **Build Error${phase ? ` in Phase ${phase.order}` : ''}**\n\n${error.message}`,
+        content: `❌ **Build Error${phase ? ` in Phase ${phase.number}` : ''}**\n\n${error.message}`,
         timestamp: new Date().toISOString(),
       };
       setChatMessages(prev => [...prev, notification]);
     },
   });
+
+  // Adapted phases for legacy UI components
+  const adaptedPhases = useMemo(() => {
+    if (!dynamicPhasePlan) return [];
+    return adaptAllPhasesToUI(dynamicPhasePlan);
+  }, [dynamicPhasePlan]);
+
+  const adaptedProgress = useMemo(() => {
+    if (!dynamicPhasePlan) {
+      return {
+        currentPhaseId: null,
+        currentPhaseIndex: -1,
+        totalPhases: 0,
+        completedPhases: [],
+        percentComplete: 0,
+        estimatedTimeRemaining: '',
+        startedAt: '',
+        lastUpdated: '',
+      };
+    }
+    return adaptDynamicProgressToUI(dynamicPhasePlan);
+  }, [dynamicPhasePlan]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -725,6 +751,8 @@ const [wizardState, setWizardState] = useState<{
 
     if (phasePlan) {
       setDynamicPhasePlan(phasePlan);
+      // Initialize the dynamic build phases hook with the plan
+      dynamicBuildPhases.initializePlan(phasePlan);
 
       // Convert to existing StagePlan format for compatibility
       const stagePlan: StagePlan = {
@@ -769,7 +797,7 @@ const [wizardState, setWizardState] = useState<{
       setChatMessages(prev => [...prev, welcomeMessage]);
       generateImplementationPlan(concept);
     }
-  }, [setAppConcept, setShowConversationalWizard, setChatMessages, setNewAppStagePlan, generateImplementationPlan]);
+  }, [setAppConcept, setShowConversationalWizard, setChatMessages, setNewAppStagePlan, generateImplementationPlan, dynamicBuildPhases]);
 
   // Start building with dynamic phase plan (context-chained execution)
   const startDynamicPhasedBuild = useCallback(async (phaseNumber: number = 1) => {
@@ -785,23 +813,45 @@ const [wizardState, setWizardState] = useState<{
       return;
     }
 
-    const manager = new PhaseExecutionManager(dynamicPhasePlan);
+    // Use the hook's execution context and prompt builder (avoids creating duplicate managers)
+    const context = dynamicBuildPhases.getExecutionContext(phaseNumber);
+    if (!context) {
+      // Fallback: If hook's manager not ready, create temporary context from plan
+      const phase = dynamicPhasePlan.phases.find(p => p.number === phaseNumber);
+      if (!phase) {
+        console.error(`Phase ${phaseNumber} not found in plan`);
+        return;
+      }
 
-    // Get context for the specified phase
-    const context = manager.getExecutionContext(phaseNumber);
-    const prompt = buildPhaseExecutionPrompt(context);
+      // Build a basic prompt for the fallback case
+      const fallbackPrompt = `Build Phase ${phaseNumber}: ${phase.name}\n\nDescription: ${phase.description}\n\nFeatures to implement:\n${phase.features.map(f => `- ${f}`).join('\n')}`;
 
-    // Add a message showing we're starting this phase
-    const startMessage: ChatMessage = {
-      id: generateId(),
-      role: 'system',
-      content: `🚀 **Starting Phase ${phaseNumber}: ${context.phaseName}**\n\n${context.phaseDescription}\n\n**Features to implement:**\n${context.features.map(f => `- ${f}`).join('\n')}`,
-      timestamp: new Date().toISOString(),
-    };
-    setChatMessages(prev => [...prev, startMessage]);
+      const startMessage: ChatMessage = {
+        id: generateId(),
+        role: 'system',
+        content: `🚀 **Starting Phase ${phaseNumber}: ${phase.name}**\n\n${phase.description}\n\n**Features to implement:**\n${phase.features.map(f => `- ${f}`).join('\n')}`,
+        timestamp: new Date().toISOString(),
+      };
+      setChatMessages(prev => [...prev, startMessage]);
+      setUserInput(fallbackPrompt);
+    } else {
+      const prompt = dynamicBuildPhases.getExecutionPrompt(phaseNumber) || buildPhaseExecutionPrompt(context);
 
-    // Set the prompt in the input for the user to send or modify
-    setUserInput(prompt);
+      // Add a message showing we're starting this phase
+      const startMessage: ChatMessage = {
+        id: generateId(),
+        role: 'system',
+        content: `🚀 **Starting Phase ${phaseNumber}: ${context.phaseName}**\n\n${context.phaseDescription}\n\n**Features to implement:**\n${context.features.map(f => `- ${f}`).join('\n')}`,
+        timestamp: new Date().toISOString(),
+      };
+      setChatMessages(prev => [...prev, startMessage]);
+
+      // Set the prompt in the input for the user to send or modify
+      setUserInput(prompt);
+    }
+
+    // Mark phase as in-progress in the hook's state
+    dynamicBuildPhases.startPhase(phaseNumber);
     setCurrentMode('ACT');
 
     // Update the stage plan to show this phase as in-progress
@@ -812,33 +862,57 @@ const [wizardState, setWizardState] = useState<{
         p.number === phaseNumber ? { ...p, status: 'building' as const } : p
       )
     } : null);
-  }, [dynamicPhasePlan, setChatMessages, setUserInput, setCurrentMode, setNewAppStagePlan]);
+  }, [dynamicPhasePlan, dynamicBuildPhases, setChatMessages, setUserInput, setCurrentMode, setNewAppStagePlan]);
 
-  // Handle advanced phased build start
+  // Handle advanced phased build start - generates dynamic phases from app concept
   const handleStartAdvancedPhasedBuild = useCallback(async () => {
     if (!appConcept) return;
 
-    const phasedConcept: PhasedAppConcept = {
-      name: appConcept.name,
-      description: appConcept.description,
-      appType: appConcept.uiPreferences.layout,
-      features: appConcept.coreFeatures.map(f => f.name),
-      uiStyle: appConcept.uiPreferences.style,
-      colorScheme: appConcept.uiPreferences.colorScheme,
-      complexity: appConcept.coreFeatures.length > 5 ? 'complex' : appConcept.coreFeatures.length > 2 ? 'moderate' : 'simple',
-    };
-
-    await buildPhases.startPhasedBuild(phasedConcept);
-    setShowAdvancedPhasedBuild(true);
-
-    const notification: ChatMessage = {
+    // Show generating message
+    const generatingMessage: ChatMessage = {
       id: generateId(),
       role: 'system',
-      content: `🏗️ **Advanced Phased Build Started**\n\nBuilding "${appConcept.name}" in ${buildPhases.phases.length} structured phases.`,
+      content: `🔄 **Generating Phase Plan...**\n\nAnalyzing "${appConcept.name}" to create an optimal build plan.`,
       timestamp: new Date().toISOString(),
     };
-    setChatMessages(prev => [...prev, notification]);
-  }, [appConcept, buildPhases, setShowAdvancedPhasedBuild, setChatMessages]);
+    setChatMessages(prev => [...prev, generatingMessage]);
+
+    try {
+      // Call API to generate dynamic phases
+      const response = await fetch('/api/wizard/generate-phases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ concept: appConcept }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.plan) {
+        const phasePlan: DynamicPhasePlan = data.plan;
+        setDynamicPhasePlan(phasePlan);
+        dynamicBuildPhases.initializePlan(phasePlan);
+        setShowAdvancedPhasedBuild(true);
+
+        const notification: ChatMessage = {
+          id: generateId(),
+          role: 'system',
+          content: `🏗️ **${phasePlan.totalPhases}-Phase Build Plan Created**\n\nBuilding "${appConcept.name}" with ${phasePlan.complexity} complexity.\n\n**Estimated time:** ${phasePlan.estimatedTotalTime}`,
+          timestamp: new Date().toISOString(),
+        };
+        setChatMessages(prev => [...prev, notification]);
+      } else {
+        throw new Error(data.error || 'Failed to generate phase plan');
+      }
+    } catch (error) {
+      const errorMessage: ChatMessage = {
+        id: generateId(),
+        role: 'system',
+        content: `❌ **Failed to generate phase plan**\n\n${(error as Error).message}`,
+        timestamp: new Date().toISOString(),
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    }
+  }, [appConcept, dynamicBuildPhases, setShowAdvancedPhasedBuild, setChatMessages]);
 
   // Handle phase detail view
   const handleViewPhaseDetails = useCallback((phaseId: PhaseId) => {
@@ -849,11 +923,22 @@ const [wizardState, setWizardState] = useState<{
   const handleRunValidation = useCallback(async () => {
     setIsValidating(true);
     try {
-      await buildPhases.validateCurrentPhase();
+      // For now, validation is handled by the streaming generation API
+      // Future: Add specific validation logic for dynamic phases
+      const currentPhase = dynamicBuildPhases.currentPhase;
+      if (currentPhase) {
+        const notification: ChatMessage = {
+          id: generateId(),
+          role: 'system',
+          content: `🔍 **Validating Phase ${currentPhase.number}...**\n\nChecking: ${currentPhase.testCriteria.join(', ')}`,
+          timestamp: new Date().toISOString(),
+        };
+        setChatMessages(prev => [...prev, notification]);
+      }
     } finally {
       setIsValidating(false);
     }
-  }, [buildPhases, setIsValidating]);
+  }, [dynamicBuildPhases, setIsValidating, setChatMessages]);
 
   // Handle new app creation
   const handleNewApp = useCallback(() => {
@@ -1246,7 +1331,100 @@ const [wizardState, setWizardState] = useState<{
     const isModification = currentComponent !== null;
 
     // Determine if this should use streaming (full-app generation only)
-    const useStreaming = currentMode === 'ACT' && !isQuestion && !isModification;
+    let useStreaming = currentMode === 'ACT' && !isQuestion && !isModification;
+
+    // AI Scope Detection: Analyze if this request needs phased execution
+    if (currentMode === 'ACT' && !isQuestion && !isModification && !dynamicPhasePlan) {
+      const scopeResult = scopeDetectionService.analyzeScope(
+        userInput,
+        chatMessages.slice(-10).map(m => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          timestamp: m.timestamp,
+        })),
+        currentComponent
+      );
+
+      if (scopeResult.requiresPhases && scopeResult.confidence >= 0.7) {
+        // Complex request detected - generate phases first
+        const analysisMessage: ChatMessage = {
+          id: generateId(),
+          role: 'system',
+          content: `🔍 **Analyzing Request...**\n\n${scopeResult.reason}\n\n**Detected complexity:** ${scopeResult.complexity}\n**Suggested phases:** ${scopeResult.suggestedPhaseCount}\n\n⏳ Generating optimized build plan...`,
+          timestamp: new Date().toISOString(),
+        };
+        setChatMessages(prev => [...prev, analysisMessage]);
+
+        try {
+          // Generate concept from detected features
+          const concept = {
+            name: extractComponentName(userInput),
+            description: userInput,
+            purpose: userInput,
+            targetUsers: 'General users',
+            coreFeatures: scopeResult.detectedFeatures.map((f, idx) => ({
+              id: `feature-${idx}`,
+              name: f.charAt(0).toUpperCase() + f.slice(1).replace(/([A-Z])/g, ' $1'),
+              description: `Implement ${f} functionality`,
+              priority: 'high' as const,
+            })),
+            uiPreferences: {
+              layout: 'dashboard',
+              style: 'modern',
+              colorScheme: 'blue',
+              features: [],
+            },
+            technical: {
+              needsAuth: scopeResult.detectedTechnical.needsAuth || false,
+              needsDatabase: scopeResult.detectedTechnical.needsDatabase || false,
+              needsAPI: scopeResult.detectedTechnical.needsAPI || false,
+              needsFileUpload: scopeResult.detectedTechnical.needsFileUpload || false,
+              needsRealtime: scopeResult.detectedTechnical.needsRealtime || false,
+            },
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+
+          const response = await fetch('/api/wizard/generate-phases', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ concept }),
+          });
+
+          const phaseData = await response.json();
+
+          if (phaseData.success && phaseData.plan) {
+            const phasePlan: DynamicPhasePlan = phaseData.plan;
+            setDynamicPhasePlan(phasePlan);
+            dynamicBuildPhases.initializePlan(phasePlan);
+
+            const planMessage: ChatMessage = {
+              id: generateId(),
+              role: 'assistant',
+              content: `🎯 **${phasePlan.totalPhases}-Phase Build Plan Created**\n\n` +
+                `**Complexity:** ${phasePlan.complexity}\n` +
+                `**Estimated Time:** ${phasePlan.estimatedTotalTime}\n\n` +
+                phasePlan.phases.slice(0, 5).map(p =>
+                  `**Phase ${p.number}: ${p.name}** (${p.estimatedTime})`
+                ).join('\n') +
+                (phasePlan.phases.length > 5 ? `\n\n...and ${phasePlan.phases.length - 5} more phases` : '') +
+                `\n\n🚀 **Starting Phase 1 now...**`,
+              timestamp: new Date().toISOString(),
+            };
+            setChatMessages(prev => [...prev, planMessage]);
+
+            // Start building with phase 1
+            startDynamicPhasedBuild(1);
+            setIsGenerating(false);
+            return; // Exit early - phased build will handle the rest
+          }
+        } catch (error) {
+          console.error('Scope detection phase generation failed:', error);
+          // Fall through to regular execution
+        }
+      }
+    }
 
     // Get progress messages for non-streaming requests
     const progressMessages = messageSender.getProgressMessages(isQuestion, isModification);
@@ -1755,57 +1933,77 @@ const [wizardState, setWizardState] = useState<{
           onClose={() => setShowSettings(false)}
         />
 
-        {buildPhases.isPhasedMode && (
+        {dynamicPhasePlan && (
           <PhasedBuildPanel
             isOpen={showAdvancedPhasedBuild}
             onClose={() => setShowAdvancedPhasedBuild(false)}
-            phases={buildPhases.phases}
-            progress={buildPhases.progress}
-            currentPhase={buildPhases.currentPhase}
-            isBuilding={buildPhases.isBuilding}
-            isPaused={buildPhases.isPaused}
+            phases={adaptedPhases}
+            progress={adaptedProgress}
+            currentPhase={dynamicBuildPhases.currentPhase ? adaptedPhases.find(p => p.order === dynamicBuildPhases.currentPhase?.number) || null : null}
+            isBuilding={dynamicBuildPhases.isBuilding}
+            isPaused={dynamicBuildPhases.isPaused}
             isValidating={isValidating}
             onStartBuild={handleStartAdvancedPhasedBuild}
-            onPauseBuild={buildPhases.pauseBuild}
-            onResumeBuild={buildPhases.resumeBuild}
+            onPauseBuild={dynamicBuildPhases.pauseBuild}
+            onResumeBuild={dynamicBuildPhases.resumeBuild}
             onSkipPhase={(phaseId) => {
-              if (buildPhases.currentPhase?.id === phaseId) {
-                buildPhases.skipCurrentPhase();
+              const phase = adaptedPhases.find(p => p.id === phaseId);
+              if (phase) {
+                dynamicBuildPhases.skipPhase(phase.order);
               }
             }}
             onRetryPhase={(phaseId) => {
-              if (buildPhases.currentPhase?.id === phaseId) {
-                buildPhases.retryCurrentPhase();
+              const phase = adaptedPhases.find(p => p.id === phaseId);
+              if (phase) {
+                dynamicBuildPhases.retryPhase(phase.order);
               }
             }}
             onViewPhaseDetails={handleViewPhaseDetails}
             onRunValidation={handleRunValidation}
-            onResetBuild={buildPhases.resetBuild}
+            onResetBuild={dynamicBuildPhases.resetBuild}
             onExecuteCurrentPhase={async () => {
-              await buildPhases.executeCurrentPhase();
+              const nextPhase = dynamicBuildPhases.getNextPhase();
+              if (nextPhase) {
+                startDynamicPhasedBuild(nextPhase.number);
+              }
             }}
-            onProceedToNextPhase={buildPhases.proceedToNextPhase}
+            onProceedToNextPhase={() => {
+              const nextPhase = dynamicBuildPhases.getNextPhase();
+              if (nextPhase) {
+                startDynamicPhasedBuild(nextPhase.number);
+              }
+            }}
+            dynamicPlan={dynamicPhasePlan}
           />
         )}
 
-        {selectedPhaseId && (
+        {selectedPhaseId && adaptedPhases.length > 0 && (
           <PhaseDetailView
-            phase={buildPhases.getPhaseById(selectedPhaseId)!}
+            phase={adaptedPhases.find(p => p.id === selectedPhaseId) || adaptedPhases[0]}
             isOpen={!!selectedPhaseId}
             onClose={() => setSelectedPhaseId(null)}
             onBuildPhase={async () => {
-              await buildPhases.executeCurrentPhase();
+              const phase = adaptedPhases.find(p => p.id === selectedPhaseId);
+              if (phase) {
+                startDynamicPhasedBuild(phase.order);
+              }
               setSelectedPhaseId(null);
             }}
             onSkipPhase={async () => {
-              await buildPhases.skipCurrentPhase();
+              const phase = adaptedPhases.find(p => p.id === selectedPhaseId);
+              if (phase) {
+                dynamicBuildPhases.skipPhase(phase.order);
+              }
               setSelectedPhaseId(null);
             }}
             onRetryPhase={async () => {
-              await buildPhases.retryCurrentPhase();
+              const phase = adaptedPhases.find(p => p.id === selectedPhaseId);
+              if (phase) {
+                dynamicBuildPhases.retryPhase(phase.order);
+              }
               setSelectedPhaseId(null);
             }}
-            generatedCode={buildPhases.accumulatedCode}
+            generatedCode={dynamicBuildPhases.accumulatedCode}
           />
         )}
       </div>

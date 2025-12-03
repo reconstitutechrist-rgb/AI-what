@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import type { BuildPhase, PhaseId, BuildProgress } from '../../types/buildPhases';
 
 interface PhaseProgressIndicatorProps {
@@ -8,17 +8,23 @@ interface PhaseProgressIndicatorProps {
   progress: BuildProgress;
   onPhaseClick?: (phaseId: PhaseId) => void;
   className?: string;
+  /** Max phases to show in horizontal view before switching to compact */
+  maxHorizontalPhases?: number;
 }
 
 /**
  * Visual timeline showing all phases with current phase highlighted
+ * Automatically adapts to compact view when there are many phases (>7)
  */
 export function PhaseProgressIndicator({
   phases,
   progress,
   onPhaseClick,
   className = '',
+  maxHorizontalPhases = 7,
 }: PhaseProgressIndicatorProps) {
+  const [expandedView, setExpandedView] = useState(false);
+  const usesCompactMode = phases.length > maxHorizontalPhases;
   const getPhaseStatusIcon = (status: BuildPhase['status']) => {
     switch (status) {
       case 'completed':
@@ -61,6 +67,136 @@ export function PhaseProgressIndicator({
     }
   };
 
+  // Render compact view for many phases
+  const renderCompactView = () => {
+    const completedCount = phases.filter(p => p.status === 'completed').length;
+    const inProgressPhase = phases.find(p => p.status === 'in-progress');
+    const pendingCount = phases.filter(p => p.status === 'pending').length;
+
+    return (
+      <div className="space-y-3">
+        {/* Compact progress summary */}
+        <div className="flex items-center gap-4 text-sm">
+          <span className="text-green-400">✅ {completedCount} done</span>
+          {inProgressPhase && (
+            <span className="text-blue-400">⏳ Phase {inProgressPhase.order}: {inProgressPhase.name}</span>
+          )}
+          <span className="text-slate-400">⏸️ {pendingCount} pending</span>
+        </div>
+
+        {/* Toggle to expand */}
+        <button
+          onClick={() => setExpandedView(!expandedView)}
+          className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+        >
+          {expandedView ? '▲ Collapse phases' : `▼ Show all ${phases.length} phases`}
+        </button>
+
+        {/* Expanded phase list */}
+        {expandedView && (
+          <div className="max-h-64 overflow-y-auto space-y-1 pr-2">
+            {phases.map((phase) => {
+              const isCurrentPhase = phase.id === progress.currentPhaseId;
+              return (
+                <button
+                  key={phase.id}
+                  onClick={() => onPhaseClick?.(phase.id)}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm transition-all ${
+                    isCurrentPhase
+                      ? 'bg-blue-500/20 border border-blue-500/40'
+                      : 'bg-white/5 hover:bg-white/10'
+                  }`}
+                >
+                  <span>{getPhaseStatusIcon(phase.status)}</span>
+                  <span className="font-medium text-white">Phase {phase.order}</span>
+                  <span className="text-slate-400 flex-1 truncate">{phase.name}</span>
+                  <span className="text-xs text-slate-500">{phase.estimatedTime}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Render horizontal view for fewer phases
+  const renderHorizontalView = () => (
+    <div className="relative">
+      {/* Horizontal connector line */}
+      <div className="absolute top-6 left-6 right-6 h-0.5 bg-slate-700 -z-10" />
+
+      {/* Phases */}
+      <div className="flex justify-between">
+        {phases.map((phase, index) => {
+          const isCurrentPhase = phase.id === progress.currentPhaseId;
+          const isPast = progress.completedPhases.includes(phase.id);
+
+          return (
+            <div
+              key={phase.id}
+              className="flex flex-col items-center relative group"
+              style={{ width: `${100 / phases.length}%` }}
+            >
+              {/* Phase Circle */}
+              <button
+                onClick={() => onPhaseClick?.(phase.id)}
+                disabled={phase.status === 'pending' && !isPast}
+                className={`
+                  w-12 h-12 rounded-full border-2 flex items-center justify-center
+                  transition-all duration-300 hover:scale-110
+                  ${getPhaseStatusColor(phase.status, isCurrentPhase)}
+                  ${onPhaseClick && (phase.status !== 'pending' || isPast) ? 'cursor-pointer' : 'cursor-default'}
+                  ${isCurrentPhase ? 'ring-2 ring-blue-400 ring-offset-2 ring-offset-slate-900' : ''}
+                `}
+              >
+                <span className="text-lg">{getPhaseStatusIcon(phase.status)}</span>
+              </button>
+
+              {/* Phase connector to next */}
+              {index < phases.length - 1 && (
+                <div
+                  className={`absolute top-6 left-1/2 w-full h-0.5 ${getConnectorColor(phase.status)} transition-all duration-500`}
+                  style={{ transform: 'translateY(-50%)' }}
+                />
+              )}
+
+              {/* Phase Info */}
+              <div className="mt-3 text-center">
+                <div className="text-xs font-medium text-white">
+                  Phase {phase.order}
+                </div>
+                <div className="text-xs text-slate-400 mt-0.5">
+                  {phase.name}
+                </div>
+              </div>
+
+              {/* Hover Tooltip */}
+              <div className="absolute top-full mt-4 left-1/2 -translate-x-1/2 w-48 p-3 bg-slate-800 rounded-lg border border-white/10 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                <div className="text-sm font-medium text-white mb-1">
+                  {phase.name}
+                </div>
+                <div className="text-xs text-slate-400 mb-2">
+                  {phase.description}
+                </div>
+                <div className="text-xs text-slate-500">
+                  Est. time: {phase.estimatedTime}
+                </div>
+                {phase.tasks.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-white/10">
+                    <div className="text-xs text-slate-500">
+                      {phase.tasks.filter((t) => t.status === 'completed').length}/{phase.tasks.length} tasks
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   return (
     <div className={`${className}`}>
       {/* Progress Header */}
@@ -68,6 +204,11 @@ export function PhaseProgressIndicator({
         <h3 className="text-white font-bold flex items-center gap-2">
           <span>🏗️</span>
           <span>Build Progress</span>
+          {usesCompactMode && (
+            <span className="text-xs font-normal text-slate-400">
+              ({phases.length} phases)
+            </span>
+          )}
         </h3>
         <div className="flex items-center gap-3">
           <div className="text-sm text-slate-400">
@@ -87,80 +228,8 @@ export function PhaseProgressIndicator({
         />
       </div>
 
-      {/* Phase Timeline */}
-      <div className="relative">
-        {/* Horizontal connector line */}
-        <div className="absolute top-6 left-6 right-6 h-0.5 bg-slate-700 -z-10" />
-
-        {/* Phases */}
-        <div className="flex justify-between">
-          {phases.map((phase, index) => {
-            const isCurrentPhase = phase.id === progress.currentPhaseId;
-            const isPast = progress.completedPhases.includes(phase.id);
-
-            return (
-              <div
-                key={phase.id}
-                className="flex flex-col items-center relative group"
-                style={{ width: `${100 / phases.length}%` }}
-              >
-                {/* Phase Circle */}
-                <button
-                  onClick={() => onPhaseClick?.(phase.id)}
-                  disabled={phase.status === 'pending' && !isPast}
-                  className={`
-                    w-12 h-12 rounded-full border-2 flex items-center justify-center
-                    transition-all duration-300 hover:scale-110
-                    ${getPhaseStatusColor(phase.status, isCurrentPhase)}
-                    ${onPhaseClick && (phase.status !== 'pending' || isPast) ? 'cursor-pointer' : 'cursor-default'}
-                    ${isCurrentPhase ? 'ring-2 ring-blue-400 ring-offset-2 ring-offset-slate-900' : ''}
-                  `}
-                >
-                  <span className="text-lg">{getPhaseStatusIcon(phase.status)}</span>
-                </button>
-
-                {/* Phase connector to next */}
-                {index < phases.length - 1 && (
-                  <div
-                    className={`absolute top-6 left-1/2 w-full h-0.5 ${getConnectorColor(phase.status)} transition-all duration-500`}
-                    style={{ transform: 'translateY(-50%)' }}
-                  />
-                )}
-
-                {/* Phase Info */}
-                <div className="mt-3 text-center">
-                  <div className="text-xs font-medium text-white">
-                    Phase {phase.order}
-                  </div>
-                  <div className="text-xs text-slate-400 mt-0.5">
-                    {phase.name}
-                  </div>
-                </div>
-
-                {/* Hover Tooltip */}
-                <div className="absolute top-full mt-4 left-1/2 -translate-x-1/2 w-48 p-3 bg-slate-800 rounded-lg border border-white/10 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                  <div className="text-sm font-medium text-white mb-1">
-                    {phase.name}
-                  </div>
-                  <div className="text-xs text-slate-400 mb-2">
-                    {phase.description}
-                  </div>
-                  <div className="text-xs text-slate-500">
-                    Est. time: {phase.estimatedTime}
-                  </div>
-                  {phase.tasks.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-white/10">
-                      <div className="text-xs text-slate-500">
-                        {phase.tasks.filter((t) => t.status === 'completed').length}/{phase.tasks.length} tasks
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {/* Phase Timeline - Adaptive layout */}
+      {usesCompactMode ? renderCompactView() : renderHorizontalView()}
     </div>
   );
 }

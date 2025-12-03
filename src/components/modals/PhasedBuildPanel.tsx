@@ -7,6 +7,7 @@ import {
   ValidationDashboard,
 } from '../build';
 import type { BuildPhase, BuildProgress, PhaseId } from '@/types/buildPhases';
+import type { DynamicPhasePlan } from '@/types/dynamicPhases';
 
 export interface PhasedBuildPanelProps {
   isOpen: boolean;
@@ -27,6 +28,8 @@ export interface PhasedBuildPanelProps {
   onResetBuild: () => void;
   onExecuteCurrentPhase: () => void;
   onProceedToNextPhase: () => void;
+  /** Optional: The dynamic phase plan for additional info display */
+  dynamicPlan?: DynamicPhasePlan | null;
 }
 
 export function PhasedBuildPanel({
@@ -48,6 +51,7 @@ export function PhasedBuildPanel({
   onResetBuild,
   onExecuteCurrentPhase,
   onProceedToNextPhase,
+  dynamicPlan,
 }: PhasedBuildPanelProps) {
   if (!isOpen) return null;
 
@@ -68,9 +72,16 @@ export function PhasedBuildPanel({
                 <span className="text-2xl">🏗️</span>
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">Phase-Driven Build</h2>
+                <h2 className="text-xl font-bold text-white">
+                  {dynamicPlan ? `Building: ${dynamicPlan.appName}` : 'Phase-Driven Build'}
+                </h2>
                 <p className="text-sm text-slate-400">
-                  {progress.percentComplete}% complete • {progress.estimatedTimeRemaining} remaining
+                  {dynamicPlan && (
+                    <span className="mr-2 px-1.5 py-0.5 rounded bg-white/10 text-xs">
+                      {dynamicPlan.complexity}
+                    </span>
+                  )}
+                  {phases.length} phases • {progress.percentComplete}% complete • {progress.estimatedTimeRemaining} remaining
                 </p>
               </div>
             </div>

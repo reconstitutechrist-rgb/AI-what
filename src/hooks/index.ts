@@ -50,8 +50,9 @@ export type {
 } from './useSmartContext';
 
 // Re-export existing hooks for completeness
-export { useBuildPhases } from './useBuildPhases';
-export type { UseBuildPhasesOptions, UseBuildPhasesReturn } from './useBuildPhases';
+// Note: useBuildPhases replaced by useDynamicBuildPhases
+export { useDynamicBuildPhases } from './useDynamicBuildPhases';
+export type { UseDynamicBuildPhasesOptions, UseDynamicBuildPhasesReturn } from './useDynamicBuildPhases';
 
 export { useResizable } from './useResizable';
 export type { UseResizableOptions, UseResizableReturn } from './useResizable';
