@@ -150,8 +150,10 @@ export async function POST(req: NextRequest) {
       console.error('Page error:', error instanceof Error ? error.message : String(error));
     });
 
-    // Set timeout for page load
-    await page.setContent(html, {
+    // Use page.goto() with data URL instead of setContent()
+    // This triggers evaluateOnNewDocument, which doesn't fire with setContent()
+    const dataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+    await page.goto(dataUrl, {
       waitUntil: 'networkidle0',
       timeout: 15000,
     });
