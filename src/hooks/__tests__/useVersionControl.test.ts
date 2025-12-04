@@ -426,18 +426,15 @@ describe('useVersionControl', () => {
         })
       );
 
-      const updatedComponent = act(() => {
-        return result.current.saveVersion(
-          mockComponent,
-          'NEW_APP',
-          'Initial version'
-        );
+      let updatedComponent: GeneratedComponent;
+      act(() => {
+        updatedComponent = result.current.saveVersion(mockComponent, 'NEW_APP', 'Initial version');
       });
 
-      expect(updatedComponent.versions).toHaveLength(1);
-      expect(updatedComponent.versions[0].versionNumber).toBe(1);
-      expect(updatedComponent.versions[0].description).toBe('Initial version');
-      expect(updatedComponent.versions[0].changeType).toBe('NEW_APP');
+      expect(updatedComponent!.versions).toHaveLength(1);
+      expect(updatedComponent!.versions![0].versionNumber).toBe(1);
+      expect(updatedComponent!.versions![0].description).toBe('Initial version');
+      expect(updatedComponent!.versions![0].changeType).toBe('NEW_APP');
     });
 
     it('should increment version number for subsequent saves', () => {
@@ -463,9 +460,9 @@ describe('useVersionControl', () => {
       });
 
       expect(component.versions).toHaveLength(3);
-      expect(component.versions[0].versionNumber).toBe(1);
-      expect(component.versions[1].versionNumber).toBe(2);
-      expect(component.versions[2].versionNumber).toBe(3);
+      expect(component.versions![0].versionNumber).toBe(1);
+      expect(component.versions![1].versionNumber).toBe(2);
+      expect(component.versions![2].versionNumber).toBe(3);
     });
 
     it('should preserve existing versions when saving new one', () => {
@@ -484,17 +481,18 @@ describe('useVersionControl', () => {
         })
       );
 
-      const updatedComponent = act(() => {
-        return result.current.saveVersion(
+      let updatedComponent: GeneratedComponent;
+      act(() => {
+        updatedComponent = result.current.saveVersion(
           componentWithVersions,
           'MINOR_CHANGE',
           'New version'
         );
       });
 
-      expect(updatedComponent.versions).toHaveLength(2);
-      expect(updatedComponent.versions[0].description).toBe('Existing v1');
-      expect(updatedComponent.versions[1].description).toBe('New version');
+      expect(updatedComponent!.versions).toHaveLength(2);
+      expect(updatedComponent!.versions![0].description).toBe('Existing v1');
+      expect(updatedComponent!.versions![1].description).toBe('New version');
     });
 
     it('should generate unique version IDs', () => {
@@ -535,15 +533,12 @@ describe('useVersionControl', () => {
         })
       );
 
-      const updatedComponent = act(() => {
-        return result.current.saveVersion(
-          componentWithCode,
-          'NEW_APP',
-          'Save test'
-        );
+      let updatedComponent: GeneratedComponent;
+      act(() => {
+        updatedComponent = result.current.saveVersion(componentWithCode, 'NEW_APP', 'Save test');
       });
 
-      expect(updatedComponent.versions[0].code).toBe('<div>Specific Code To Save</div>');
+      expect(updatedComponent!.versions![0].code).toBe('<div>Specific Code To Save</div>');
     });
   });
 
@@ -730,10 +725,7 @@ describe('useVersionControl', () => {
         code: '<div>Old Version Code</div>',
       });
 
-      const forkedComponent = result.current.forkFromVersion(
-        sourceComponent,
-        oldVersion
-      );
+      const forkedComponent = result.current.forkFromVersion(sourceComponent, oldVersion);
 
       expect(forkedComponent.code).toBe('<div>Old Version Code</div>');
       expect(forkedComponent.description).toContain('forked from v3');
@@ -787,7 +779,12 @@ describe('useVersionControl', () => {
 
       const sourceComponent = createMockComponent({
         conversationHistory: [
-          { role: 'user' as const, content: 'test message' },
+          {
+            id: 'msg-1',
+            role: 'user' as const,
+            content: 'test message',
+            timestamp: new Date().toISOString(),
+          },
         ],
       });
 
@@ -891,9 +888,7 @@ describe('useVersionControl', () => {
         result.current.undo();
       });
 
-      expect(mockOnComponentUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({ code: '' })
-      );
+      expect(mockOnComponentUpdate).toHaveBeenCalledWith(expect.objectContaining({ code: '' }));
     });
 
     it('should handle component with null versions array', () => {
@@ -909,15 +904,16 @@ describe('useVersionControl', () => {
         })
       );
 
-      const updatedComponent = act(() => {
-        return result.current.saveVersion(
+      let updatedComponent: GeneratedComponent;
+      act(() => {
+        updatedComponent = result.current.saveVersion(
           componentWithNullVersions,
           'NEW_APP',
           'First version'
         );
       });
 
-      expect(updatedComponent.versions).toHaveLength(1);
+      expect(updatedComponent!.versions).toHaveLength(1);
     });
 
     it('should update timestamp when reverting', () => {

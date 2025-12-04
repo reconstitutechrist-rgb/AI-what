@@ -25,7 +25,7 @@ interface BuildInput {
  * while using CDN-loaded globals at runtime
  */
 const SHIM_MODULES: Record<string, string> = {
-  'react': `
+  react: `
     const React = window.React;
     export default React;
     export const { useState, useEffect, useCallback, useMemo, useRef, useContext, useReducer, useLayoutEffect, useImperativeHandle, useDebugValue, createContext, createElement, cloneElement, isValidElement, Children, Fragment, StrictMode, Suspense, lazy, memo, forwardRef, createRef } = React;
@@ -71,7 +71,7 @@ function createVirtualFsPlugin(files: AppFile[], hasDependencies: Record<string,
   const fileMap = new Map<string, string>();
 
   // Normalize paths and build lookup map
-  files.forEach(f => {
+  files.forEach((f) => {
     let path = f.path;
     if (path.startsWith('src/')) path = path.slice(4);
     if (!path.startsWith('/')) path = '/' + path;
@@ -150,14 +150,18 @@ function createVirtualFsPlugin(files: AppFile[], hasDependencies: Record<string,
         if (content) {
           return {
             contents: content,
-            loader: args.path.endsWith('.tsx') ? 'tsx' :
-                    args.path.endsWith('.ts') ? 'ts' :
-                    args.path.endsWith('.jsx') ? 'jsx' : 'js'
+            loader: args.path.endsWith('.tsx')
+              ? 'tsx'
+              : args.path.endsWith('.ts')
+                ? 'ts'
+                : args.path.endsWith('.jsx')
+                  ? 'jsx'
+                  : 'js',
           };
         }
         return { contents: '', loader: 'js' };
       });
-    }
+    },
   };
 }
 
@@ -173,10 +177,8 @@ export async function buildPreviewHtml(input: BuildInput): Promise<string> {
   const { files, name = 'Preview', dependencies = {} } = input;
 
   // Find entry point
-  const entryFile = files.find(f =>
-    f.path === 'App.tsx' ||
-    f.path === 'src/App.tsx' ||
-    f.path.endsWith('/App.tsx')
+  const entryFile = files.find(
+    (f) => f.path === 'App.tsx' || f.path === 'src/App.tsx' || f.path.endsWith('/App.tsx')
   );
 
   if (!entryFile) {
@@ -191,17 +193,14 @@ export async function buildPreviewHtml(input: BuildInput): Promise<string> {
     root.render(<App />);
   `;
 
-  const allFiles = [
-    ...files,
-    { path: '/entry.tsx', content: entryCode }
-  ];
+  const allFiles = [...files, { path: '/entry.tsx', content: entryCode }];
 
   // Bundle with esbuild
   const result = await esbuild.build({
     stdin: {
       contents: entryCode,
       resolveDir: '/',
-      loader: 'tsx'
+      loader: 'tsx',
     },
     bundle: true,
     write: false,
@@ -212,19 +211,20 @@ export async function buildPreviewHtml(input: BuildInput): Promise<string> {
     plugins: [createVirtualFsPlugin(allFiles, dependencies)],
     // No externals - we use shim modules that map to window globals
     define: {
-      'process.env.NODE_ENV': '"production"'
-    }
+      'process.env.NODE_ENV': '"production"',
+    },
   });
 
   const bundledCode = result.outputFiles[0].text;
 
   // Collect CSS
-  const cssFiles = files.filter(f => f.path.endsWith('.css'));
-  const cssContent = cssFiles.map(f => f.content).join('\n');
+  const cssFiles = files.filter((f) => f.path.endsWith('.css'));
+  const cssContent = cssFiles.map((f) => f.content).join('\n');
 
   // Escape for HTML
-  const escapedName = name.replace(/[<>&"']/g, c =>
-    ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c] || c)
+  const escapedName = name.replace(
+    /[<>&"']/g,
+    (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' })[c] || c
   );
 
   // Check for common dependencies
