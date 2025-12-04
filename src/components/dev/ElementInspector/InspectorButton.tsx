@@ -18,9 +18,15 @@ export function InspectorButton({
   onClick,
   selectedCount,
 }: InspectorButtonProps): React.ReactElement {
+  const handleClick = () => {
+    // eslint-disable-next-line no-console
+    console.log('[InspectorButton] Clicked! Current isActive:', isActive);
+    onClick();
+  };
+
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
       data-inspector-button
       className={`
         fixed bottom-4 right-4 z-[9999]
