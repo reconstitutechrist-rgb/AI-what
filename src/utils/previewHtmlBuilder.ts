@@ -122,18 +122,25 @@ function createVirtualFsPlugin(files: AppFile[], hasDependencies: Record<string,
       // Resolve relative imports to virtual paths
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       build.onResolve({ filter: /^\./ }, (args: any) => {
-        // Handle case where importer is undefined/empty (e.g., stdin entry)
-        const importer = args.importer || '/entry.tsx';
+        // Handle case where importer is undefined/empty/special (e.g., stdin entry)
+        let importer = args.importer;
+        if (!importer || importer === '<stdin>' || !importer.startsWith('/')) {
+          importer = '/entry.tsx';
+        }
+
         let resolved: string;
         try {
           resolved = new URL(args.path, `file://${importer}`).pathname;
         } catch {
           // Fallback: simple path resolution
-          const dir = importer.substring(0, importer.lastIndexOf('/')) || '/';
-          resolved = args.path.startsWith('./')
-            ? `${dir}/${args.path.slice(2)}`
-            : `${dir}/${args.path}`;
+          const dir = importer.substring(0, importer.lastIndexOf('/')) || '';
+          const relPath = args.path.startsWith('./') ? args.path.slice(2) : args.path;
+          resolved = dir + '/' + relPath;
         }
+
+        // Normalize path: ensure single leading slash, no double slashes
+        resolved = '/' + resolved.replace(/^\/+/, '').replace(/\/+/g, '/');
+
         // Try extensions FIRST, then exact match
         // This ensures we get the proper .tsx/.ts extension for loader detection
         for (const ext of ['.tsx', '.ts', '.jsx', '.js', '']) {
@@ -141,6 +148,15 @@ function createVirtualFsPlugin(files: AppFile[], hasDependencies: Record<string,
             return { path: resolved + ext, namespace: 'virtual' };
           }
         }
+
+        // Also try /index.tsx for directory imports
+        for (const ext of ['.tsx', '.ts', '.jsx', '.js']) {
+          if (fileMap.has(resolved + '/index' + ext)) {
+            return { path: resolved + '/index' + ext, namespace: 'virtual' };
+          }
+        }
+
+        console.warn(`[esbuild] Could not resolve: ${args.path} from ${args.importer} -> ${resolved}`);
         return { path: resolved, namespace: 'virtual' };
       });
 
@@ -160,7 +176,11 @@ function createVirtualFsPlugin(files: AppFile[], hasDependencies: Record<string,
                   : 'js',
           };
         }
-        return { contents: '', loader: 'js' };
+        // Log available paths for debugging
+        console.warn(`[esbuild] File not found: ${args.path}`);
+        console.warn(`[esbuild] Available files:`, Array.from(fileMap.keys()).slice(0, 10));
+        // Return empty module to prevent hard errors, but the component will be undefined
+        return { contents: 'export default undefined;', loader: 'js' };
       });
     },
   };
