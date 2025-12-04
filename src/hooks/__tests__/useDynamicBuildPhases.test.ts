@@ -23,16 +23,23 @@ function createMockAppConcept(overrides?: Partial<AppConcept>): AppConcept {
   return {
     name: 'Test App',
     description: 'A test application',
-    appType: 'web-app',
-    features: [
+    purpose: 'Testing the build phases',
+    targetUsers: 'Developers',
+    coreFeatures: [
       { name: 'User Dashboard', description: 'Main user dashboard' },
       { name: 'Profile Page', description: 'User profile management' },
     ],
-    pages: [{ name: 'Home', route: '/', description: 'Home page' }],
-    techStack: {
-      framework: 'nextjs',
-      styling: 'tailwind',
-      database: 'none',
+    uiPreferences: {
+      style: 'modern',
+      colorScheme: 'light',
+      layout: 'single-page',
+    },
+    technical: {
+      needsAuth: false,
+      needsDatabase: false,
+      needsAPI: false,
+      needsFileUpload: false,
+      needsRealtime: false,
     },
     ...overrides,
   } as AppConcept;
@@ -325,8 +332,11 @@ describe('useDynamicBuildPhases', () => {
         result.current.startPhase(1);
       });
 
-      expect(result.current.currentPhase).not.toBeNull();
-      expect(result.current.currentPhase?.number).toBe(1);
+      // After startPhase, the phase should be in-progress
+      // Check via the phases array since currentPhase depends on status
+      const phaseOne = result.current.phases.find((p) => p.number === 1);
+      expect(phaseOne?.status).toBe('in-progress');
+      expect(result.current.isBuilding).toBe(true);
     });
 
     it('should do nothing if plan is null', () => {
@@ -984,7 +994,8 @@ describe('useDynamicBuildPhases', () => {
         result.current.completePhase(createMockExecutionResult(1));
       });
 
-      expect(result.current.progress.completedPhases).toContain('phase-1');
+      // generatePhaseId(1) returns 'foundation' for first 5 phases
+      expect(result.current.progress.completedPhases).toContain('foundation');
     });
   });
 

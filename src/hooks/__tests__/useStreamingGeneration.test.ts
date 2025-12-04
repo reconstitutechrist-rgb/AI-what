@@ -7,7 +7,7 @@
  * Target: 90%+ coverage for this critical streaming hook
  */
 
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { useStreamingGeneration } from '../useStreamingGeneration';
 import type {
   StreamEvent,
@@ -572,33 +572,37 @@ describe('useStreamingGeneration', () => {
 
   describe('abort()', () => {
     it('should abort ongoing generation', async () => {
-      // Create a slow response that we can abort
-      let resolveResponse: (value: any) => void;
-      const slowPromise = new Promise((resolve) => {
-        resolveResponse = resolve;
-      });
-      mockFetch.mockReturnValue(slowPromise);
+      // Create a mock that throws AbortError when aborted
+      mockFetch.mockImplementation(
+        (_url: string, options: { signal?: AbortSignal }) =>
+          new Promise((_resolve, reject) => {
+            // Simulate the abort signal being triggered
+            if (options?.signal) {
+              options.signal.addEventListener('abort', () => {
+                const error = new Error('Aborted');
+                error.name = 'AbortError';
+                reject(error);
+              });
+            }
+          })
+      );
 
       const { result } = renderHook(() => useStreamingGeneration());
 
-      // Start generation (don't await)
+      // Start generation (don't await - it will hang until aborted)
+      let generatePromise: Promise<unknown>;
       act(() => {
-        result.current.generate({});
+        generatePromise = result.current.generate({});
       });
 
-      // Abort
+      // Abort the generation
       act(() => {
         result.current.abort();
       });
 
-      // Resolve the fetch (should be aborted)
-      act(() => {
-        resolveResponse!(createMockResponse([formatSSE(createCompleteEvent())]));
-      });
-
-      // Give time for abort to process
+      // Wait for the abort to process
       await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        await generatePromise;
       });
 
       expect(result.current.progress.phase).toBe('idle');
@@ -800,7 +804,10 @@ describe('useStreamingGeneration', () => {
     it('should handle rapid sequential generations', async () => {
       const completeEvent = createCompleteEvent();
 
-      mockFetch.mockResolvedValue(createMockResponse([formatSSE(completeEvent)]));
+      // Use mockImplementation to return fresh response for each call
+      mockFetch.mockImplementation(() =>
+        Promise.resolve(createMockResponse([formatSSE(completeEvent)]))
+      );
 
       const { result } = renderHook(() => useStreamingGeneration());
 

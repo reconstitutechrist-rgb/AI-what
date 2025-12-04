@@ -859,10 +859,16 @@ describe('useVersionControl', () => {
         result.current.pushToUndoStack(createMockVersion({ code: 'v3' }));
       });
 
-      // Rapid undo operations
+      // Undo operations - each in separate act() due to React batching
+      // (closures capture state at creation time, so rapid calls in same act
+      // don't see intermediate state updates)
       act(() => {
         result.current.undo();
+      });
+      act(() => {
         result.current.undo();
+      });
+      act(() => {
         result.current.undo();
       });
 
