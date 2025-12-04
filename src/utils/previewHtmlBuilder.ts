@@ -134,8 +134,9 @@ function createVirtualFsPlugin(files: AppFile[], hasDependencies: Record<string,
             ? `${dir}/${args.path.slice(2)}`
             : `${dir}/${args.path}`;
         }
-        // Try exact match, then with extensions
-        for (const ext of ['', '.tsx', '.ts', '.jsx', '.js']) {
+        // Try extensions FIRST, then exact match
+        // This ensures we get the proper .tsx/.ts extension for loader detection
+        for (const ext of ['.tsx', '.ts', '.jsx', '.js', '']) {
           if (fileMap.has(resolved + ext)) {
             return { path: resolved + ext, namespace: 'virtual' };
           }
@@ -254,6 +255,15 @@ export async function buildPreviewHtml(input: BuildInput): Promise<string> {
 <body>
   <div id="root"></div>
   <script>
+    // Global error handler for syntax errors and uncaught exceptions
+    window.onerror = function(msg, url, line, col, error) {
+      console.error('Global error:', msg);
+      var root = document.getElementById('root');
+      if (root) {
+        root.innerHTML = '<div style="padding:20px;color:red;font-family:monospace;"><h2>Script Error</h2><pre>' + msg + '\\nLine: ' + line + '</pre></div>';
+      }
+      return true;
+    };
     // Provide React globals for the bundle
     window.React = React;
     window.ReactDOM = ReactDOM;
@@ -265,7 +275,7 @@ export async function buildPreviewHtml(input: BuildInput): Promise<string> {
       ${bundledCode}
     } catch (err) {
       console.error('App render error:', err);
-      document.getElementById('root').innerHTML = '<div style="padding:20px;color:red;font-family:monospace;"><h2>Render Error</h2><pre>' + err.message + '</pre></div>';
+      document.getElementById('root').innerHTML = '<div style="padding:20px;color:red;font-family:monospace;"><h2>Render Error</h2><pre>' + (err.message || err) + '</pre></div>';
     }
   </script>
 </body>

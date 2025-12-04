@@ -91,6 +91,18 @@ export async function POST(req: NextRequest) {
     page = await browser.newPage();
     await page.setViewport({ width, height });
 
+    // Capture browser console output for debugging
+    page.on('console', (msg) => {
+      const type = msg.type();
+      const text = msg.text();
+      if (type === 'error' || type === 'warn') {
+        console.warn(`Browser ${type}:`, text);
+      }
+    });
+    page.on('pageerror', (error) => {
+      console.error('Page error:', error instanceof Error ? error.message : String(error));
+    });
+
     // Set timeout for page load
     await page.setContent(html, {
       waitUntil: 'networkidle0',
