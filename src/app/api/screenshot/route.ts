@@ -91,6 +91,53 @@ export async function POST(req: NextRequest) {
     page = await browser.newPage();
     await page.setViewport({ width, height });
 
+    // Inject polyfills BEFORE any page scripts run
+    // This is necessary because setContent() creates a page without a proper origin,
+    // making localStorage inaccessible. evaluateOnNewDocument runs before any scripts.
+    await page.evaluateOnNewDocument(() => {
+      // Polyfill localStorage with an in-memory implementation
+      const store: Record<string, string> = {};
+      const fakeStorage = {
+        getItem: (key: string) => (key in store ? store[key] : null),
+        setItem: (key: string, value: string) => {
+          store[key] = String(value);
+        },
+        removeItem: (key: string) => {
+          delete store[key];
+        },
+        clear: () => {
+          for (const key in store) delete store[key];
+        },
+        get length() {
+          return Object.keys(store).length;
+        },
+        key: (index: number) => Object.keys(store)[index] || null,
+      };
+
+      try {
+        // Use defineProperty to override the getter - simple assignment doesn't work
+        Object.defineProperty(window, 'localStorage', {
+          value: fakeStorage,
+          writable: true,
+          configurable: true,
+        });
+      } catch {
+        // Fallback: try direct assignment (won't work but doesn't hurt)
+        (window as unknown as { localStorage: typeof fakeStorage }).localStorage = fakeStorage;
+      }
+
+      // Also polyfill sessionStorage for completeness
+      try {
+        Object.defineProperty(window, 'sessionStorage', {
+          value: { ...fakeStorage }, // Separate store instance
+          writable: true,
+          configurable: true,
+        });
+      } catch {
+        // Ignore
+      }
+    });
+
     // Capture browser console output for debugging
     page.on('console', (msg) => {
       const type = msg.type();
