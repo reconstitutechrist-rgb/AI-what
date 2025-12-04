@@ -7,6 +7,7 @@
 
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { z } from 'zod';
 import {
   LAYOUT_BUILDER_SYSTEM_PROMPT,
   buildLayoutBuilderPrompt,
@@ -18,7 +19,6 @@ import type {
   LayoutChatResponse,
   DesignChange,
   SuggestedAction,
-  defaultLayoutDesign,
 } from '@/types/layoutDesign';
 
 // Vercel serverless function config
@@ -30,12 +30,187 @@ const anthropic = new Anthropic({
 });
 
 // ============================================================================
+// ZOD VALIDATION SCHEMAS
+// ============================================================================
+
+// Hex color validation regex
+const hexColorRegex = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
+
+// Typography settings schema
+const TypographySchema = z.object({
+  fontFamily: z.string().optional(),
+  headingWeight: z.enum(['light', 'normal', 'medium', 'semibold', 'bold']).optional(),
+  bodyWeight: z.enum(['light', 'normal', 'medium', 'semibold']).optional(),
+  headingSize: z.enum(['sm', 'base', 'lg', 'xl', '2xl']).optional(),
+  bodySize: z.enum(['xs', 'sm', 'base', 'lg']).optional(),
+  lineHeight: z.enum(['tight', 'normal', 'relaxed']).optional(),
+  letterSpacing: z.enum(['tight', 'normal', 'wide']).optional(),
+}).strict().optional();
+
+// Color settings schema with hex validation
+const ColorSchema = z.object({
+  primary: z.string().regex(hexColorRegex, 'Invalid hex color format').optional(),
+  secondary: z.string().regex(hexColorRegex, 'Invalid hex color format').optional(),
+  accent: z.string().regex(hexColorRegex, 'Invalid hex color format').optional(),
+  background: z.string().regex(hexColorRegex, 'Invalid hex color format').optional(),
+  surface: z.string().regex(hexColorRegex, 'Invalid hex color format').optional(),
+  text: z.string().regex(hexColorRegex, 'Invalid hex color format').optional(),
+  textMuted: z.string().regex(hexColorRegex, 'Invalid hex color format').optional(),
+  border: z.string().regex(hexColorRegex, 'Invalid hex color format').optional(),
+  success: z.string().regex(hexColorRegex, 'Invalid hex color format').optional(),
+  warning: z.string().regex(hexColorRegex, 'Invalid hex color format').optional(),
+  error: z.string().regex(hexColorRegex, 'Invalid hex color format').optional(),
+  info: z.string().regex(hexColorRegex, 'Invalid hex color format').optional(),
+}).strict().optional();
+
+// Spacing settings schema
+const SpacingSchema = z.object({
+  density: z.enum(['compact', 'normal', 'relaxed']).optional(),
+  containerWidth: z.enum(['narrow', 'standard', 'wide', 'full']).optional(),
+  sectionPadding: z.enum(['sm', 'md', 'lg', 'xl']).optional(),
+  componentGap: z.enum(['sm', 'md', 'lg', 'xl']).optional(),
+}).strict().optional();
+
+// Effects settings schema
+const EffectsSchema = z.object({
+  borderRadius: z.enum(['none', 'sm', 'md', 'lg', 'xl', 'full']).optional(),
+  shadows: z.enum(['none', 'subtle', 'medium', 'strong']).optional(),
+  animations: z.enum(['none', 'subtle', 'smooth', 'playful']).optional(),
+  blur: z.enum(['none', 'subtle', 'medium', 'strong']).optional(),
+  gradients: z.boolean().optional(),
+}).strict().optional();
+
+// Global styles schema
+const GlobalStylesSchema = z.object({
+  typography: TypographySchema,
+  colors: ColorSchema,
+  spacing: SpacingSchema,
+  effects: EffectsSchema,
+}).strict().optional();
+
+// Base preferences schema
+const BasePreferencesSchema = z.object({
+  style: z.enum(['modern', 'minimalist', 'playful', 'professional', 'custom']).optional(),
+  colorScheme: z.enum(['light', 'dark', 'auto', 'custom']).optional(),
+  layout: z.enum(['single-page', 'multi-page', 'dashboard', 'custom']).optional(),
+}).strict().optional();
+
+// Component schemas
+const HeaderDesignSchema = z.object({
+  visible: z.boolean().optional(),
+  height: z.enum(['compact', 'standard', 'tall']).optional(),
+  style: z.enum(['solid', 'gradient', 'blur', 'transparent']).optional(),
+  logoPosition: z.enum(['left', 'center', 'right']).optional(),
+  navPosition: z.enum(['left', 'center', 'right']).optional(),
+  hasSearch: z.boolean().optional(),
+  hasCTA: z.boolean().optional(),
+  ctaText: z.string().optional(),
+  ctaStyle: z.enum(['filled', 'outline', 'ghost']).optional(),
+}).strict().optional();
+
+const SidebarDesignSchema = z.object({
+  visible: z.boolean().optional(),
+  position: z.enum(['left', 'right']).optional(),
+  width: z.enum(['narrow', 'standard', 'wide']).optional(),
+  collapsible: z.boolean().optional(),
+  defaultCollapsed: z.boolean().optional(),
+  style: z.enum(['standard', 'minimal', 'floating']).optional(),
+  iconOnly: z.boolean().optional(),
+  hasLogo: z.boolean().optional(),
+}).strict().optional();
+
+const HeroDesignSchema = z.object({
+  visible: z.boolean().optional(),
+  height: z.enum(['compact', 'standard', 'tall', 'fullscreen']).optional(),
+  layout: z.enum(['centered', 'split', 'offset']).optional(),
+  hasImage: z.boolean().optional(),
+  imagePosition: z.enum(['left', 'right', 'background']).optional(),
+  hasSubtitle: z.boolean().optional(),
+  hasCTA: z.boolean().optional(),
+  ctaCount: z.number().min(1).max(3).optional(),
+}).strict().optional();
+
+const CardDesignSchema = z.object({
+  style: z.enum(['minimal', 'bordered', 'elevated', 'filled']).optional(),
+  imagePosition: z.enum(['none', 'top', 'left', 'right', 'background']).optional(),
+  showBadge: z.boolean().optional(),
+  showFooter: z.boolean().optional(),
+  hoverEffect: z.enum(['none', 'lift', 'glow', 'scale', 'border']).optional(),
+  aspectRatio: z.enum(['auto', 'square', 'portrait', 'landscape', 'video']).optional(),
+}).strict().optional();
+
+const FooterDesignSchema = z.object({
+  visible: z.boolean().optional(),
+  style: z.enum(['minimal', 'standard', 'rich']).optional(),
+  columns: z.number().min(1).max(5).optional(),
+  showSocial: z.boolean().optional(),
+  showNewsletter: z.boolean().optional(),
+  showCopyright: z.boolean().optional(),
+  position: z.enum(['static', 'fixed', 'sticky']).optional(),
+}).strict().optional();
+
+// Components schema
+const ComponentsSchema = z.object({
+  header: HeaderDesignSchema,
+  sidebar: SidebarDesignSchema,
+  hero: HeroDesignSchema,
+  cards: CardDesignSchema,
+  footer: FooterDesignSchema,
+}).strict().optional();
+
+// Structure schema
+const StructureSchema = z.object({
+  type: z.enum(['single-page', 'multi-page', 'dashboard', 'landing']).optional(),
+  hasHeader: z.boolean().optional(),
+  hasSidebar: z.boolean().optional(),
+  hasFooter: z.boolean().optional(),
+  sidebarPosition: z.enum(['left', 'right']).optional(),
+  headerType: z.enum(['fixed', 'sticky', 'static']).optional(),
+  contentLayout: z.enum(['centered', 'full-width', 'offset']).optional(),
+  mainContentWidth: z.enum(['narrow', 'standard', 'wide', 'full']).optional(),
+}).strict().optional();
+
+// Responsive schema
+const ResponsiveSchema = z.object({
+  mobileBreakpoint: z.number().optional(),
+  tabletBreakpoint: z.number().optional(),
+  mobileLayout: z.enum(['stack', 'drawer', 'bottom-nav']).optional(),
+  mobileHeader: z.enum(['hamburger', 'bottom-tabs', 'minimal']).optional(),
+  hideSidebarOnMobile: z.boolean().optional(),
+  stackCardsOnMobile: z.boolean().optional(),
+}).strict().optional();
+
+// Complete design updates schema
+const DesignUpdatesSchema = z.object({
+  basePreferences: BasePreferencesSchema,
+  globalStyles: GlobalStylesSchema,
+  components: ComponentsSchema,
+  structure: StructureSchema,
+  responsive: ResponsiveSchema,
+}).strict();
+
+// Design change schema
+const DesignChangeSchema = z.object({
+  property: z.string(),
+  oldValue: z.unknown(),
+  newValue: z.unknown(),
+  reason: z.string(),
+});
+
+// Complete extraction response schema
+const ExtractionResponseSchema = z.object({
+  updates: DesignUpdatesSchema.optional().default({}),
+  changes: z.array(DesignChangeSchema).optional().default([]),
+});
+
+// ============================================================================
 // DESIGN EXTRACTION
 // ============================================================================
 
 /**
  * Extract design changes from the AI response
  * Looks for specific property change suggestions
+ * Uses Zod validation to ensure extracted data is valid
  */
 async function extractDesignUpdates(
   response: string,
@@ -43,12 +218,22 @@ async function extractDesignUpdates(
 ): Promise<{
   updates: Partial<LayoutDesign>;
   changes: DesignChange[];
+  validationErrors?: string[];
 }> {
   const extractionPrompt = `Analyze this design assistant response and extract any specific design changes mentioned.
 
 Return a JSON object with:
 1. "updates" - A partial LayoutDesign object with only the fields that should be changed
 2. "changes" - An array describing each change
+
+**IMPORTANT VALIDATION RULES:**
+- Color values MUST be valid hex codes (e.g., "#3B82F6" or "#FFF")
+- borderRadius must be one of: "none", "sm", "md", "lg", "xl", "full"
+- shadows must be one of: "none", "subtle", "medium", "strong"
+- animations must be one of: "none", "subtle", "smooth", "playful"
+- style must be one of: "modern", "minimalist", "playful", "professional", "custom"
+- colorScheme must be one of: "light", "dark", "auto", "custom"
+- layout must be one of: "single-page", "multi-page", "dashboard", "custom"
 
 **RESPONSE TO ANALYZE:**
 ${response}
@@ -60,7 +245,7 @@ Return ONLY valid JSON in this format:
 {
   "updates": {
     "globalStyles": {
-      "colors": { "primary": "#newcolor" },
+      "colors": { "primary": "#6366F1" },
       "effects": { "borderRadius": "xl" }
     }
   },
@@ -99,17 +284,147 @@ If no specific changes were suggested, return:
           .trim();
       }
 
-      const extracted = JSON.parse(jsonText);
-      return {
-        updates: extracted.updates || {},
-        changes: extracted.changes || [],
-      };
+      const rawExtracted = JSON.parse(jsonText);
+
+      // Validate using Zod schema
+      const validationResult = ExtractionResponseSchema.safeParse(rawExtracted);
+
+      if (validationResult.success) {
+        // Validation passed - use validated data (cast to Partial<LayoutDesign>)
+        return {
+          updates: validationResult.data.updates as Partial<LayoutDesign>,
+          changes: (validationResult.data.changes || []) as DesignChange[],
+        };
+      } else {
+        // Validation failed - log errors and attempt partial recovery
+        const errors = validationResult.error.issues.map(
+          (e) => `${e.path.join('.')}: ${e.message}`
+        );
+        console.warn('Design extraction validation errors:', errors);
+
+        // Try to salvage valid parts by removing invalid fields
+        const sanitizedUpdates = sanitizeDesignUpdates(rawExtracted.updates || {});
+        const sanitizedChanges = (rawExtracted.changes || [])
+          .filter((c: unknown) => {
+            const result = DesignChangeSchema.safeParse(c);
+            return result.success;
+          })
+          .map((c: unknown) => c as DesignChange);
+
+        return {
+          updates: sanitizedUpdates,
+          changes: sanitizedChanges,
+          validationErrors: errors,
+        };
+      }
     }
   } catch (error) {
     console.error('Design extraction error:', error);
   }
 
   return { updates: {}, changes: [] };
+}
+
+/**
+ * Sanitize design updates by removing invalid fields
+ * Attempts to preserve valid data while discarding invalid values
+ * Uses explicit type casting since we're dealing with partial/validated data
+ */
+function sanitizeDesignUpdates(updates: Record<string, unknown>): Partial<LayoutDesign> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sanitized: Record<string, any> = {};
+
+  // Validate and sanitize basePreferences
+  if (updates.basePreferences && typeof updates.basePreferences === 'object') {
+    const baseResult = BasePreferencesSchema.safeParse(updates.basePreferences);
+    if (baseResult.success && baseResult.data) {
+      sanitized.basePreferences = baseResult.data;
+    }
+  }
+
+  // Validate and sanitize globalStyles
+  if (updates.globalStyles && typeof updates.globalStyles === 'object') {
+    const stylesInput = updates.globalStyles as Record<string, unknown>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sanitizedStyles: Record<string, any> = {};
+
+    // Validate each sub-section separately
+    if (stylesInput.typography) {
+      const typoResult = TypographySchema.safeParse(stylesInput.typography);
+      if (typoResult.success && typoResult.data) {
+        sanitizedStyles.typography = typoResult.data;
+      }
+    }
+    if (stylesInput.colors) {
+      const colorsResult = ColorSchema.safeParse(stylesInput.colors);
+      if (colorsResult.success && colorsResult.data) {
+        sanitizedStyles.colors = colorsResult.data;
+      } else {
+        // Try to salvage valid colors individually
+        const validColors = sanitizeColors(stylesInput.colors as Record<string, unknown>);
+        if (Object.keys(validColors).length > 0) {
+          sanitizedStyles.colors = validColors;
+        }
+      }
+    }
+    if (stylesInput.spacing) {
+      const spacingResult = SpacingSchema.safeParse(stylesInput.spacing);
+      if (spacingResult.success && spacingResult.data) {
+        sanitizedStyles.spacing = spacingResult.data;
+      }
+    }
+    if (stylesInput.effects) {
+      const effectsResult = EffectsSchema.safeParse(stylesInput.effects);
+      if (effectsResult.success && effectsResult.data) {
+        sanitizedStyles.effects = effectsResult.data;
+      }
+    }
+
+    if (Object.keys(sanitizedStyles).length > 0) {
+      sanitized.globalStyles = sanitizedStyles;
+    }
+  }
+
+  // Validate and sanitize components
+  if (updates.components && typeof updates.components === 'object') {
+    const componentsResult = ComponentsSchema.safeParse(updates.components);
+    if (componentsResult.success && componentsResult.data) {
+      sanitized.components = componentsResult.data;
+    }
+  }
+
+  // Validate and sanitize structure
+  if (updates.structure && typeof updates.structure === 'object') {
+    const structureResult = StructureSchema.safeParse(updates.structure);
+    if (structureResult.success && structureResult.data) {
+      sanitized.structure = structureResult.data;
+    }
+  }
+
+  // Validate and sanitize responsive
+  if (updates.responsive && typeof updates.responsive === 'object') {
+    const responsiveResult = ResponsiveSchema.safeParse(updates.responsive);
+    if (responsiveResult.success && responsiveResult.data) {
+      sanitized.responsive = responsiveResult.data;
+    }
+  }
+
+  return sanitized as Partial<LayoutDesign>;
+}
+
+/**
+ * Sanitize individual color values, keeping only valid hex colors
+ */
+function sanitizeColors(colors: Record<string, unknown>): Record<string, string> {
+  const validColors: Record<string, string> = {};
+
+  for (const [key, value] of Object.entries(colors)) {
+    if (typeof value === 'string' && hexColorRegex.test(value)) {
+      validColors[key] = value;
+    }
+  }
+
+  return validColors;
 }
 
 /**

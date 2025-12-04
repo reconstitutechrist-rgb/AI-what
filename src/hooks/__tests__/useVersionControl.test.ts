@@ -432,9 +432,9 @@ describe('useVersionControl', () => {
       });
 
       expect(updatedComponent!.versions).toHaveLength(1);
-      expect(updatedComponent!.versions![0].versionNumber).toBe(1);
-      expect(updatedComponent!.versions![0].description).toBe('Initial version');
-      expect(updatedComponent!.versions![0].changeType).toBe('NEW_APP');
+      expect(updatedComponent!.versions[0].versionNumber).toBe(1);
+      expect(updatedComponent!.versions[0].description).toBe('Initial version');
+      expect(updatedComponent!.versions[0].changeType).toBe('NEW_APP');
     });
 
     it('should increment version number for subsequent saves', () => {
@@ -460,9 +460,9 @@ describe('useVersionControl', () => {
       });
 
       expect(component.versions).toHaveLength(3);
-      expect(component.versions![0].versionNumber).toBe(1);
-      expect(component.versions![1].versionNumber).toBe(2);
-      expect(component.versions![2].versionNumber).toBe(3);
+      expect(component.versions[0].versionNumber).toBe(1);
+      expect(component.versions[1].versionNumber).toBe(2);
+      expect(component.versions[2].versionNumber).toBe(3);
     });
 
     it('should preserve existing versions when saving new one', () => {
@@ -491,8 +491,8 @@ describe('useVersionControl', () => {
       });
 
       expect(updatedComponent!.versions).toHaveLength(2);
-      expect(updatedComponent!.versions![0].description).toBe('Existing v1');
-      expect(updatedComponent!.versions![1].description).toBe('New version');
+      expect(updatedComponent!.versions[0].description).toBe('Existing v1');
+      expect(updatedComponent!.versions[1].description).toBe('New version');
     });
 
     it('should generate unique version IDs', () => {
@@ -538,7 +538,7 @@ describe('useVersionControl', () => {
         updatedComponent = result.current.saveVersion(componentWithCode, 'NEW_APP', 'Save test');
       });
 
-      expect(updatedComponent!.versions![0].code).toBe('<div>Specific Code To Save</div>');
+      expect(updatedComponent!.versions[0].code).toBe('<div>Specific Code To Save</div>');
     });
   });
 

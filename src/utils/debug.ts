@@ -66,11 +66,9 @@ export const DEBUG = {
 
   /**
    * Show debug panel UI overlay
-   * Enable: NEXT_PUBLIC_DEBUG_PANEL=true or NEXT_PUBLIC_DEV_TOOLS=true
+   * Enabled when SHOW_DEV_TOOLS is true (development or NEXT_PUBLIC_DEV_TOOLS=true)
    */
-  SHOW_PANEL:
-    process.env.NEXT_PUBLIC_DEV_TOOLS === 'true' ||
-    (isDevelopment && process.env.NEXT_PUBLIC_DEBUG_PANEL === 'true'),
+  SHOW_PANEL: SHOW_DEV_TOOLS,
 
   /**
    * Expose app state to window.__APP_STATE__

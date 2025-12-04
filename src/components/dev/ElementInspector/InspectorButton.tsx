@@ -29,7 +29,7 @@ export function InspectorButton({
       onClick={handleClick}
       data-inspector-button
       className={`
-        fixed bottom-4 right-4 z-[9999]
+        fixed bottom-4 right-24 z-[9999]
         px-3 py-2 rounded-lg shadow-lg
         font-mono text-sm transition-all
         ${
