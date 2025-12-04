@@ -20,10 +20,54 @@ interface BuildInput {
 }
 
 /**
+ * Shim modules that map CDN globals to ES module exports
+ * These allow esbuild to bundle code that imports from react/react-dom
+ * while using CDN-loaded globals at runtime
+ */
+const SHIM_MODULES: Record<string, string> = {
+  'react': `
+    const React = window.React;
+    export default React;
+    export const { useState, useEffect, useCallback, useMemo, useRef, useContext, useReducer, useLayoutEffect, useImperativeHandle, useDebugValue, createContext, createElement, cloneElement, isValidElement, Children, Fragment, StrictMode, Suspense, lazy, memo, forwardRef, createRef } = React;
+  `,
+  'react-dom': `
+    const ReactDOM = window.ReactDOM;
+    export default ReactDOM;
+    export const { createPortal, flushSync, render, hydrate, unmountComponentAtNode } = ReactDOM;
+  `,
+  'react-dom/client': `
+    const ReactDOM = window.ReactDOM;
+    export const createRoot = (container) => ReactDOM.createRoot(container);
+    export const hydrateRoot = (container, element) => ReactDOM.hydrateRoot(container, element);
+  `,
+  'react/jsx-runtime': `
+    const React = window.React;
+    export const jsx = React.createElement;
+    export const jsxs = React.createElement;
+    export const jsxDEV = React.createElement;
+    export const Fragment = React.Fragment;
+  `,
+  'react/jsx-dev-runtime': `
+    const React = window.React;
+    export const jsx = React.createElement;
+    export const jsxs = React.createElement;
+    export const jsxDEV = React.createElement;
+    export const Fragment = React.Fragment;
+  `,
+  'lucide-react': `
+    const LucideReact = window.LucideReact || window.lucide || {};
+    export default LucideReact;
+    // Export all icons - lucide-react exposes them on the module
+    const icons = LucideReact;
+    export const { Menu, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, Plus, Minus, Check, AlertCircle, Info, Settings, User, Home, Mail, Phone, Calendar, Clock, Star, Heart, ThumbsUp, Share, Download, Upload, Edit, Trash, Copy, Save, Refresh, Filter, Sort, Grid, List, Eye, EyeOff, Lock, Unlock, Bell, MessageCircle, Send, Image, Video, Music, File, Folder, Link, ExternalLink, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, MoreHorizontal, MoreVertical, Sun, Moon, Cloud, Zap, Activity, TrendingUp, TrendingDown, BarChart, PieChart, DollarSign, CreditCard, ShoppingCart, Package, Truck, MapPin, Navigation, Globe, Wifi, Bluetooth, Battery, Power, Volume, VolumeX, Mic, MicOff, Camera, Printer, Monitor, Smartphone, Tablet, Laptop, Watch, Headphones, Speaker, Tv, Radio, Gamepad, Gift, Award, Flag, Bookmark, Tag, Hash, AtSign, Percent, Slash } = icons;
+  `,
+};
+
+/**
  * Virtual filesystem plugin for esbuild
  * Maps app files to a virtual filesystem that esbuild can resolve imports from
  */
-function createVirtualFsPlugin(files: AppFile[]) {
+function createVirtualFsPlugin(files: AppFile[], hasDependencies: Record<string, string>) {
   const fileMap = new Map<string, string>();
 
   // Normalize paths and build lookup map
@@ -44,6 +88,37 @@ function createVirtualFsPlugin(files: AppFile[]) {
     name: 'virtual-fs',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setup(build: any) {
+      // Handle npm package imports - resolve to shims or mark external
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      build.onResolve({ filter: /^[^./]/ }, (args: any) => {
+        const pkgName = args.path;
+        // Check if we have a shim for this package
+        if (SHIM_MODULES[pkgName]) {
+          return { path: pkgName, namespace: 'shim' };
+        }
+        // For lucide-react, only include shim if it's in dependencies
+        if (pkgName === 'lucide-react' && 'lucide-react' in hasDependencies) {
+          return { path: pkgName, namespace: 'shim' };
+        }
+        // Unknown packages - return empty module to prevent errors
+        return { path: pkgName, namespace: 'empty' };
+      });
+
+      // Load shim modules
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      build.onLoad({ filter: /.*/, namespace: 'shim' }, (args: any) => {
+        const shimCode = SHIM_MODULES[args.path];
+        if (shimCode) {
+          return { contents: shimCode, loader: 'js' };
+        }
+        return { contents: 'export default {};', loader: 'js' };
+      });
+
+      // Empty module for unknown packages
+      build.onLoad({ filter: /.*/, namespace: 'empty' }, () => {
+        return { contents: 'export default {}; export const __empty = true;', loader: 'js' };
+      });
+
       // Resolve relative imports to virtual paths
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       build.onResolve({ filter: /^\./ }, (args: any) => {
@@ -81,12 +156,6 @@ function createVirtualFsPlugin(files: AppFile[]) {
           };
         }
         return { contents: '', loader: 'js' };
-      });
-
-      // Handle external packages (React, lucide-react, etc.)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      build.onResolve({ filter: /^[^./]/ }, (args: any) => {
-        return { path: args.path, external: true };
       });
     }
   };
@@ -140,8 +209,8 @@ export async function buildPreviewHtml(input: BuildInput): Promise<string> {
     target: 'es2020',
     jsx: 'automatic',
     minify: false,
-    plugins: [createVirtualFsPlugin(allFiles)],
-    external: ['react', 'react-dom', 'react-dom/client', 'lucide-react'],
+    plugins: [createVirtualFsPlugin(allFiles, dependencies)],
+    // No externals - we use shim modules that map to window globals
     define: {
       'process.env.NODE_ENV': '"production"'
     }

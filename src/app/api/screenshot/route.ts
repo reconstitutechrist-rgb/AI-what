@@ -94,11 +94,27 @@ export async function POST(req: NextRequest) {
     // Set timeout for page load
     await page.setContent(html, {
       waitUntil: 'networkidle0',
-      timeout: 10000
+      timeout: 15000
     });
 
-    // Wait for React to render
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // Wait for React to actually render content into #root
+    // This is more reliable than a fixed timeout
+    try {
+      await page.waitForFunction(
+        () => {
+          const root = document.getElementById('root');
+          // Check that root exists and has actual rendered content
+          return root && root.children.length > 0 && root.innerHTML.trim().length > 0;
+        },
+        { timeout: 10000 }
+      );
+    } catch {
+      // If waitForFunction times out, log but continue - might still have content
+      console.warn('React render wait timed out, capturing anyway');
+    }
+
+    // Additional small delay for any final paints/layout
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     const screenshot = await page.screenshot({
       type: 'jpeg',
