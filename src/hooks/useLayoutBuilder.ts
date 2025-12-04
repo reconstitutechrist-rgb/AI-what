@@ -9,9 +9,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { captureLayoutPreview, containsVisualKeywords } from '@/utils/screenshotCapture';
 import { LAYOUT_BUILDER_GREETING } from '@/prompts/layoutBuilderSystemPrompt';
-import {
-  defaultLayoutDesign,
-} from '@/types/layoutDesign';
+import { defaultLayoutDesign } from '@/types/layoutDesign';
 import type {
   LayoutDesign,
   LayoutMessage,
@@ -102,7 +100,10 @@ interface UseLayoutBuilderReturn {
   importDesign: (file: File) => Promise<boolean>;
 
   // Version History Actions
-  createVersionSnapshot: (trigger: 'save' | 'apply' | 'manual', description?: string) => DesignVersion;
+  createVersionSnapshot: (
+    trigger: 'save' | 'apply' | 'manual',
+    description?: string
+  ) => DesignVersion;
   restoreVersion: (versionId: string) => void;
   deleteVersion: (versionId: string) => void;
   getVersionById: (versionId: string) => DesignVersion | undefined;
@@ -133,7 +134,15 @@ function loadDraftFromStorage(): DraftState | null {
   try {
     const stored = localStorage.getItem(DRAFT_STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored) as DraftState;
+      const parsed = JSON.parse(stored);
+      // Convert timestamp strings back to Date objects
+      if (parsed.messages && Array.isArray(parsed.messages)) {
+        parsed.messages = parsed.messages.map((msg: LayoutMessage) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp),
+        }));
+      }
+      return parsed as DraftState;
     }
   } catch (error) {
     console.warn('Failed to load draft from localStorage:', error);
@@ -158,7 +167,7 @@ function clearDraftFromStorage(): void {
 function saveVersionHistoryToStorage(versions: DesignVersion[]): void {
   try {
     // Only store version metadata, not full designs (to save space)
-    const storableVersions = versions.map(v => ({
+    const storableVersions = versions.map((v) => ({
       ...v,
       design: {
         id: v.design.id,
@@ -236,7 +245,7 @@ function mapLayoutDesignToUIPreferences(design: Partial<LayoutDesign>): Partial<
     fontFamily: typography?.fontFamily,
     spacing: spacing?.density,
     layoutDesignId: design.id,
-    referenceMedia: design.referenceMedia?.map(ref => ({
+    referenceMedia: design.referenceMedia?.map((ref) => ({
       type: ref.type as 'image' | 'video',
       url: ref.source,
       name: ref.name,
@@ -386,7 +395,9 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
   const [lastSavedChangeCount, setLastSavedChangeCount] = useState(0);
 
   // Version history state
-  const [versionHistory, setVersionHistory] = useState<DesignVersion[]>(() => loadVersionHistoryFromStorage());
+  const [versionHistory, setVersionHistory] = useState<DesignVersion[]>(() =>
+    loadVersionHistoryFromStorage()
+  );
   const [currentVersionId, setCurrentVersionId] = useState<string | null>(null);
 
   // Refs
@@ -443,6 +454,16 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
     };
   }, [design, messages, referenceImages, changeCount, lastSavedChangeCount]);
 
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
+
   // ========================================================================
   // ACTIONS
   // ========================================================================
@@ -466,205 +487,257 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
   /**
    * Send a message to the layout builder AI
    */
-  const sendMessage = useCallback(async (text: string, includeCapture = false) => {
-    if (!text.trim() && !includeCapture) return;
+  const sendMessage = useCallback(
+    async (text: string, includeCapture = false) => {
+      if (!text.trim() && !includeCapture) return;
 
-    // Cancel any pending request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-
-    // Determine if we should auto-capture
-    let screenshot = lastCapture;
-    if (includeCapture || containsVisualKeywords(text) || selectedElement) {
-      const newCapture = await capturePreview();
-      if (newCapture) {
-        screenshot = newCapture;
+      // Cancel any pending request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
-    }
+      abortControllerRef.current = new AbortController();
 
-    // Add user message
-    const userMessage: LayoutMessage = {
-      id: generateMessageId(),
-      role: 'user',
-      content: text,
-      timestamp: new Date(),
-      selectedElement: selectedElement || undefined,
-      previewSnapshot: screenshot || undefined,
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setIsLoading(true);
-
-    try {
-      const request: LayoutChatRequest = {
-        message: text,
-        conversationHistory: messages,
-        currentDesign: design,
-        selectedElement: selectedElement || undefined,
-        previewScreenshot: screenshot || undefined,
-        referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
-      };
-
-      const response = await fetch('/api/layout/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request),
-        signal: abortControllerRef.current.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data: LayoutChatResponse = await response.json();
-
-      // Add assistant message
-      const assistantMessage: LayoutMessage = {
-        id: generateMessageId(),
-        role: 'assistant',
-        content: data.message,
-        timestamp: new Date(),
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-
-      // Update design with any changes
-      if (data.updatedDesign && Object.keys(data.updatedDesign).length > 0) {
-        setDesign(prev => ({
-          ...prev,
-          ...data.updatedDesign,
-        }));
-      }
-
-      // Update suggested actions
-      if (data.suggestedActions) {
-        setSuggestedActions(data.suggestedActions);
-      }
-
-      // Track recent changes
-      if (data.designChanges && data.designChanges.length > 0) {
-        setRecentChanges(data.designChanges);
-      }
-
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        return; // Request was cancelled
-      }
-
-      console.error('Layout chat error:', error);
-
-      // Extract status code if available
-      let statusCode: number | undefined;
-      if (error instanceof Error && error.message.includes('API error:')) {
-        const match = error.message.match(/API error: (\d+)/);
-        if (match) {
-          statusCode = parseInt(match[1], 10);
+      // Determine if we should auto-capture
+      let screenshot = lastCapture;
+      if (includeCapture || containsVisualKeywords(text) || selectedElement) {
+        const newCapture = await capturePreview();
+        if (newCapture) {
+          screenshot = newCapture;
         }
       }
 
-      // Categorize the error
-      const errorInfo = categorizeError(error, statusCode);
-
-      // Add error message with retry capability
-      const errorMessage: LayoutMessage = {
+      // Add user message
+      const userMessage: LayoutMessage = {
         id: generateMessageId(),
-        role: 'assistant',
-        content: errorInfo.message,
+        role: 'user',
+        content: text,
         timestamp: new Date(),
-        error: {
-          ...errorInfo,
-          originalMessage: text, // Store original message for retry
-        },
+        selectedElement: selectedElement || undefined,
+        previewSnapshot: screenshot || undefined,
       };
 
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-      abortControllerRef.current = null;
-    }
-  }, [messages, design, selectedElement, referenceImages, lastCapture, capturePreview]);
+      setMessages((prev) => [...prev, userMessage]);
+      setIsLoading(true);
+
+      try {
+        const request: LayoutChatRequest = {
+          message: text,
+          conversationHistory: messages,
+          currentDesign: design,
+          selectedElement: selectedElement || undefined,
+          previewScreenshot: screenshot || undefined,
+          referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
+        };
+
+        const response = await fetch('/api/layout/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(request),
+          signal: abortControllerRef.current.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const data: LayoutChatResponse = await response.json();
+
+        // Add assistant message
+        const assistantMessage: LayoutMessage = {
+          id: generateMessageId(),
+          role: 'assistant',
+          content: data.message,
+          timestamp: new Date(),
+        };
+
+        setMessages((prev) => [...prev, assistantMessage]);
+
+        // Update design with any changes - use updateDesign to track history
+        if (data.updatedDesign && Object.keys(data.updatedDesign).length > 0) {
+          // Merge updates with current design
+          const mergedDesign = {
+            ...design,
+            ...data.updatedDesign,
+            globalStyles: {
+              ...design.globalStyles,
+              ...data.updatedDesign.globalStyles,
+              typography: {
+                ...design.globalStyles?.typography,
+                ...data.updatedDesign.globalStyles?.typography,
+              },
+              colors: {
+                ...design.globalStyles?.colors,
+                ...data.updatedDesign.globalStyles?.colors,
+              },
+              spacing: {
+                ...design.globalStyles?.spacing,
+                ...data.updatedDesign.globalStyles?.spacing,
+              },
+              effects: {
+                ...design.globalStyles?.effects,
+                ...data.updatedDesign.globalStyles?.effects,
+              },
+            },
+            components: {
+              ...design.components,
+              ...data.updatedDesign.components,
+            },
+            structure: {
+              ...design.structure,
+              ...data.updatedDesign.structure,
+            },
+          };
+          setDesign(mergedDesign);
+
+          // Update history for undo/redo
+          setDesignHistory((history) => {
+            const newHistory = history.slice(0, historyIndex + 1);
+            newHistory.push(mergedDesign);
+            if (newHistory.length > MAX_HISTORY_SIZE) {
+              newHistory.shift();
+            }
+            return newHistory;
+          });
+          setHistoryIndex((prev) => Math.min(prev + 1, MAX_HISTORY_SIZE - 1));
+          setChangeCount((prev) => prev + 1);
+        }
+
+        // Update suggested actions
+        if (data.suggestedActions) {
+          setSuggestedActions(data.suggestedActions);
+        }
+
+        // Track recent changes
+        if (data.designChanges && data.designChanges.length > 0) {
+          setRecentChanges(data.designChanges);
+        }
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          return; // Request was cancelled
+        }
+
+        console.error('Layout chat error:', error);
+
+        // Extract status code if available
+        let statusCode: number | undefined;
+        if (error instanceof Error && error.message.includes('API error:')) {
+          const match = error.message.match(/API error: (\d+)/);
+          if (match) {
+            statusCode = parseInt(match[1], 10);
+          }
+        }
+
+        // Categorize the error
+        const errorInfo = categorizeError(error, statusCode);
+
+        // Add error message with retry capability
+        const errorMessage: LayoutMessage = {
+          id: generateMessageId(),
+          role: 'assistant',
+          content: errorInfo.message,
+          timestamp: new Date(),
+          error: {
+            ...errorInfo,
+            originalMessage: text, // Store original message for retry
+          },
+        };
+
+        setMessages((prev) => [...prev, errorMessage]);
+      } finally {
+        setIsLoading(false);
+        abortControllerRef.current = null;
+      }
+    },
+    [messages, design, selectedElement, referenceImages, lastCapture, capturePreview, historyIndex]
+  );
 
   /**
    * Retry a failed message
    */
-  const retryMessage = useCallback(async (messageId: string) => {
-    // Find the error message
-    const errorMessageIndex = messages.findIndex(m => m.id === messageId && m.error);
-    if (errorMessageIndex === -1) return;
+  const retryMessage = useCallback(
+    async (messageId: string) => {
+      // Find the error message
+      const errorMessageIndex = messages.findIndex((m) => m.id === messageId && m.error);
+      if (errorMessageIndex === -1) return;
 
-    const errorMessage = messages[errorMessageIndex];
-    if (!errorMessage.error?.originalMessage) return;
+      const errorMessage = messages[errorMessageIndex];
+      if (!errorMessage.error?.originalMessage) return;
 
-    // Check rate limit
-    if (errorMessage.error.retryAfter && errorMessage.error.type === 'rate_limit') {
-      const timeSinceError = Date.now() - errorMessage.timestamp.getTime();
-      if (timeSinceError < errorMessage.error.retryAfter) {
-        const waitSeconds = Math.ceil((errorMessage.error.retryAfter - timeSinceError) / 1000);
-        // Update message to show wait time
-        setMessages(prev => prev.map(m =>
-          m.id === messageId
-            ? { ...m, content: `Please wait ${waitSeconds} seconds before retrying.` }
-            : m
-        ));
-        return;
+      // Check rate limit
+      if (errorMessage.error.retryAfter && errorMessage.error.type === 'rate_limit') {
+        const timeSinceError = Date.now() - errorMessage.timestamp.getTime();
+        if (timeSinceError < errorMessage.error.retryAfter) {
+          const waitSeconds = Math.ceil((errorMessage.error.retryAfter - timeSinceError) / 1000);
+          // Update message to show wait time
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === messageId
+                ? { ...m, content: `Please wait ${waitSeconds} seconds before retrying.` }
+                : m
+            )
+          );
+          return;
+        }
       }
-    }
 
-    // Mark as retrying
-    setMessages(prev => prev.map(m =>
-      m.id === messageId
-        ? { ...m, isRetrying: true, content: 'Retrying...' }
-        : m
-    ));
+      // Mark as retrying
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId ? { ...m, isRetrying: true, content: 'Retrying...' } : m
+        )
+      );
 
-    // Remove the error message before retrying
-    setMessages(prev => prev.filter(m => m.id !== messageId));
+      // Remove the error message before retrying
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
 
-    // Retry the original message
-    await sendMessage(errorMessage.error.originalMessage, false);
-  }, [messages, sendMessage]);
+      // Retry the original message
+      await sendMessage(errorMessage.error.originalMessage, false);
+    },
+    [messages, sendMessage]
+  );
 
   /**
    * Add a reference image
    */
   const addReferenceImage = useCallback((imageData: string) => {
-    setReferenceImages(prev => [...prev, imageData]);
+    setReferenceImages((prev) => [...prev, imageData]);
   }, []);
 
   /**
    * Remove a reference image
    */
   const removeReferenceImage = useCallback((index: number) => {
-    setReferenceImages(prev => prev.filter((_, i) => i !== index));
+    setReferenceImages((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
   /**
    * Update design directly with history tracking
    */
-  const updateDesign = useCallback((updates: Partial<LayoutDesign>) => {
-    setDesign(prev => {
-      const newDesign = { ...prev, ...updates };
+  const updateDesign = useCallback(
+    (updates: Partial<LayoutDesign>) => {
+      setDesign((prev) => {
+        const newDesign = { ...prev, ...updates };
 
-      // Add to history (truncate any redo states)
-      setDesignHistory(history => {
-        const newHistory = history.slice(0, historyIndex + 1);
-        newHistory.push(newDesign);
-        // Limit history size
-        if (newHistory.length > MAX_HISTORY_SIZE) {
-          newHistory.shift();
-        }
-        return newHistory;
+        // Add to history (truncate any redo states)
+        setDesignHistory((history) => {
+          const newHistory = history.slice(0, historyIndex + 1);
+          newHistory.push(newDesign);
+          // Limit history size
+          if (newHistory.length > MAX_HISTORY_SIZE) {
+            newHistory.shift();
+          }
+          return newHistory;
+        });
+        setHistoryIndex((prev) => Math.min(prev + 1, MAX_HISTORY_SIZE - 1));
+
+        // Increment change count
+        setChangeCount((prev) => prev + 1);
+
+        return newDesign;
       });
-      setHistoryIndex(prev => Math.min(prev + 1, MAX_HISTORY_SIZE - 1));
-
-      // Increment change count
-      setChangeCount(prev => prev + 1);
-
-      return newDesign;
-    });
-  }, [historyIndex]);
+    },
+    [historyIndex]
+  );
 
   /**
    * Undo the last design change
@@ -674,7 +747,7 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
       const newIndex = historyIndex - 1;
       setHistoryIndex(newIndex);
       setDesign(designHistory[newIndex]);
-      setChangeCount(prev => prev + 1);
+      setChangeCount((prev) => prev + 1);
     }
   }, [historyIndex, designHistory]);
 
@@ -686,7 +759,7 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
       const newIndex = historyIndex + 1;
       setHistoryIndex(newIndex);
       setDesign(designHistory[newIndex]);
-      setChangeCount(prev => prev + 1);
+      setChangeCount((prev) => prev + 1);
     }
   }, [historyIndex, designHistory]);
 
@@ -702,6 +775,10 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
       // Reset history with recovered state
       setDesignHistory([pendingDraft.design]);
       setHistoryIndex(0);
+
+      // Mark as having unsaved changes (draft was never saved)
+      setChangeCount(1);
+      setLastSavedChangeCount(0);
 
       // Clear draft state
       setPendingDraft(null);
@@ -730,62 +807,74 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
   /**
    * Save the current design
    */
-  const saveDesign = useCallback((name?: string): LayoutDesign => {
-    const now = new Date().toISOString();
-    const savedDesign: LayoutDesign = {
-      ...defaultLayoutDesign,
-      ...design,
-      id: design.id || `ld_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      name: name || design.name || 'Untitled Design',
-      version: (design.version || 0) + 1,
-      createdAt: design.createdAt || now,
-      updatedAt: now,
-      referenceMedia: referenceImages.map((img, i) => ({
-        id: `ref_${i}`,
-        type: 'image' as const,
-        source: img,
-        name: `Reference ${i + 1}`,
-        addedAt: now,
-      })),
-      conversationContext: {
-        messageCount: messages.length,
-        keyDecisions: recentChanges.map(c => c.reason),
-        userPreferences: [],
-        lastUpdated: now,
-      },
-    } as LayoutDesign;
+  const saveDesign = useCallback(
+    (name?: string): LayoutDesign => {
+      const now = new Date().toISOString();
+      const savedDesign: LayoutDesign = {
+        ...defaultLayoutDesign,
+        ...design,
+        id: design.id || `ld_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        name: name || design.name || 'Untitled Design',
+        version: (design.version || 0) + 1,
+        createdAt: design.createdAt || now,
+        updatedAt: now,
+        referenceMedia: referenceImages.map((img, i) => ({
+          id: `ref_${i}`,
+          type: 'image' as const,
+          source: img,
+          name: `Reference ${i + 1}`,
+          addedAt: now,
+        })),
+        conversationContext: {
+          messageCount: messages.length,
+          keyDecisions: recentChanges.map((c) => c.reason),
+          userPreferences: [],
+          lastUpdated: now,
+        },
+      } as LayoutDesign;
 
-    // Save to store
-    setCurrentLayoutDesign(savedDesign);
-    addSavedLayoutDesign(savedDesign);
+      // Save to store
+      setCurrentLayoutDesign(savedDesign);
+      addSavedLayoutDesign(savedDesign);
 
-    // Update local state with ID
-    setDesign(savedDesign);
+      // Update local state with ID
+      setDesign(savedDesign);
 
-    // Clear draft and mark as saved
-    clearDraftFromStorage();
-    setLastSavedChangeCount(changeCount);
+      // Clear draft and mark as saved
+      clearDraftFromStorage();
+      setLastSavedChangeCount(changeCount);
 
-    // Create version snapshot
-    const versionId = generateVersionId();
-    const newVersion: DesignVersion = {
-      id: versionId,
-      version: versionHistory.length + 1,
-      name: savedDesign.name,
-      design: savedDesign,
-      savedAt: now,
-      trigger: 'save',
-      description: 'Saved design',
-    };
-    setVersionHistory(prev => {
-      const updated = [newVersion, ...prev].slice(0, MAX_VERSION_HISTORY_SIZE);
-      saveVersionHistoryToStorage(updated);
-      return updated;
-    });
-    setCurrentVersionId(versionId);
+      // Create version snapshot
+      const versionId = generateVersionId();
+      const newVersion: DesignVersion = {
+        id: versionId,
+        version: versionHistory.length + 1,
+        name: savedDesign.name,
+        design: savedDesign,
+        savedAt: now,
+        trigger: 'save',
+        description: 'Saved design',
+      };
+      setVersionHistory((prev) => {
+        const updated = [newVersion, ...prev].slice(0, MAX_VERSION_HISTORY_SIZE);
+        saveVersionHistoryToStorage(updated);
+        return updated;
+      });
+      setCurrentVersionId(versionId);
 
-    return savedDesign;
-  }, [design, referenceImages, messages.length, recentChanges, setCurrentLayoutDesign, addSavedLayoutDesign, changeCount, versionHistory.length]);
+      return savedDesign;
+    },
+    [
+      design,
+      referenceImages,
+      messages.length,
+      recentChanges,
+      setCurrentLayoutDesign,
+      addSavedLayoutDesign,
+      changeCount,
+      versionHistory.length,
+    ]
+  );
 
   /**
    * Apply the current design to the App Concept
@@ -859,33 +948,36 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
   /**
    * Export design to JSON file
    */
-  const exportDesign = useCallback((includeMessages: boolean = false) => {
-    const exportData = {
-      version: '1.0',
-      exportedAt: new Date().toISOString(),
-      design: {
-        ...design,
-        name: design.name || 'Untitled Design',
-        version: design.version || 1,
-        updatedAt: new Date().toISOString(),
-      },
-      referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
-      messages: includeMessages ? messages.filter(m => m.role !== 'system') : undefined,
-    };
+  const exportDesign = useCallback(
+    (includeMessages: boolean = false) => {
+      const exportData = {
+        version: '1.0',
+        exportedAt: new Date().toISOString(),
+        design: {
+          ...design,
+          name: design.name || 'Untitled Design',
+          version: design.version || 1,
+          updatedAt: new Date().toISOString(),
+        },
+        referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
+        messages: includeMessages ? messages.filter((m) => m.role !== 'system') : undefined,
+      };
 
-    // Create blob and download
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${design.name || 'layout-design'}-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }, [design, referenceImages, messages]);
+      // Create blob and download
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${design.name || 'layout-design'}-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    },
+    [design, referenceImages, messages]
+  );
 
   /**
    * Import design from JSON file
@@ -939,6 +1031,10 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
           setDesignHistory([importedDesign]);
           setHistoryIndex(0);
 
+          // Reset change tracking - imported design is considered "saved"
+          setChangeCount(0);
+          setLastSavedChangeCount(0);
+
           resolve(true);
         } catch (error) {
           console.error('Failed to parse import file:', error);
@@ -962,77 +1058,88 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
   /**
    * Create a version snapshot of the current design
    */
-  const createVersionSnapshot = useCallback((
-    trigger: 'save' | 'apply' | 'manual',
-    description?: string
-  ): DesignVersion => {
-    const now = new Date().toISOString();
-    const versionNumber = versionHistory.length + 1;
+  const createVersionSnapshot = useCallback(
+    (trigger: 'save' | 'apply' | 'manual', description?: string): DesignVersion => {
+      const now = new Date().toISOString();
+      const versionNumber = versionHistory.length + 1;
 
-    const newVersion: DesignVersion = {
-      id: generateVersionId(),
-      version: versionNumber,
-      name: design.name || `Version ${versionNumber}`,
-      design: { ...design },
-      savedAt: now,
-      trigger,
-      description: description || getTriggerDescription(trigger),
-    };
+      const newVersion: DesignVersion = {
+        id: generateVersionId(),
+        version: versionNumber,
+        name: design.name || `Version ${versionNumber}`,
+        design: { ...design },
+        savedAt: now,
+        trigger,
+        description: description || getTriggerDescription(trigger),
+      };
 
-    setVersionHistory(prev => {
-      const updated = [newVersion, ...prev].slice(0, MAX_VERSION_HISTORY_SIZE);
-      saveVersionHistoryToStorage(updated);
-      return updated;
-    });
+      setVersionHistory((prev) => {
+        const updated = [newVersion, ...prev].slice(0, MAX_VERSION_HISTORY_SIZE);
+        saveVersionHistoryToStorage(updated);
+        return updated;
+      });
 
-    setCurrentVersionId(newVersion.id);
-    return newVersion;
-  }, [design, versionHistory.length]);
+      setCurrentVersionId(newVersion.id);
+      return newVersion;
+    },
+    [design, versionHistory.length]
+  );
 
   /**
    * Restore a previous version of the design
    */
-  const restoreVersion = useCallback((versionId: string) => {
-    const version = versionHistory.find(v => v.id === versionId);
-    if (!version) {
-      console.warn('Version not found:', versionId);
-      return;
-    }
+  const restoreVersion = useCallback(
+    (versionId: string) => {
+      const version = versionHistory.find((v) => v.id === versionId);
+      if (!version) {
+        console.warn('Version not found:', versionId);
+        return;
+      }
 
-    // Restore the design
-    setDesign(version.design);
-    setCurrentVersionId(versionId);
+      // Restore the design
+      setDesign(version.design);
+      setCurrentVersionId(versionId);
 
-    // Update undo/redo history
-    setDesignHistory([version.design]);
-    setHistoryIndex(0);
+      // Update undo/redo history
+      setDesignHistory([version.design]);
+      setHistoryIndex(0);
 
-    // Increment change count to mark as modified
-    setChangeCount(prev => prev + 1);
-  }, [versionHistory]);
+      // Reset change tracking - restored version is considered "saved"
+      const nextChangeCount = changeCount + 1;
+      setChangeCount(nextChangeCount);
+      setLastSavedChangeCount(nextChangeCount);
+    },
+    [versionHistory, changeCount]
+  );
 
   /**
    * Delete a version from history
    */
-  const deleteVersion = useCallback((versionId: string) => {
-    setVersionHistory(prev => {
-      const updated = prev.filter(v => v.id !== versionId);
-      saveVersionHistoryToStorage(updated);
-      return updated;
-    });
+  const deleteVersion = useCallback(
+    (versionId: string) => {
+      setVersionHistory((prev) => {
+        const updated = prev.filter((v) => v.id !== versionId);
+        saveVersionHistoryToStorage(updated);
+        return updated;
+      });
 
-    // Clear current version if it was deleted
-    if (currentVersionId === versionId) {
-      setCurrentVersionId(null);
-    }
-  }, [currentVersionId]);
+      // Clear current version if it was deleted
+      if (currentVersionId === versionId) {
+        setCurrentVersionId(null);
+      }
+    },
+    [currentVersionId]
+  );
 
   /**
    * Get a specific version by ID
    */
-  const getVersionById = useCallback((versionId: string): DesignVersion | undefined => {
-    return versionHistory.find(v => v.id === versionId);
-  }, [versionHistory]);
+  const getVersionById = useCallback(
+    (versionId: string): DesignVersion | undefined => {
+      return versionHistory.find((v) => v.id === versionId);
+    },
+    [versionHistory]
+  );
 
   // ========================================================================
   // COMPUTED

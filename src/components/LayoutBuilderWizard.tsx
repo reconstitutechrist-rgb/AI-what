@@ -13,7 +13,14 @@ import { useToast } from '@/hooks/useToast';
 import { LayoutPreview } from '@/components/LayoutPreview';
 import { DesignControlPanel } from '@/components/DesignControlPanel';
 import { ToastContainer } from '@/components/ui/Toast';
-import type { LayoutMessage, SuggestedAction, DesignChange, EffectsSettings, ColorSettings, LayoutDesign } from '@/types/layoutDesign';
+import type {
+  LayoutMessage,
+  SuggestedAction,
+  DesignChange,
+  EffectsSettings,
+  ColorSettings,
+  LayoutDesign,
+} from '@/types/layoutDesign';
 import type { UIPreferences } from '@/types/appConcept';
 import { DESIGN_TEMPLATES, type DesignTemplate } from '@/data/designTemplates';
 import { VersionHistoryPanel } from '@/components/VersionHistoryPanel';
@@ -181,9 +188,7 @@ function calculateDesignProgress(design: Partial<LayoutDesign>): {
   const components = Math.round((componentsSet / componentProps.length) * 100);
 
   // Overall is weighted average
-  const overall = Math.round(
-    (colors * 0.25 + typography * 0.2 + layout * 0.3 + components * 0.25)
-  );
+  const overall = Math.round(colors * 0.25 + typography * 0.2 + layout * 0.3 + components * 0.25);
 
   return { overall, colors, typography, layout, components };
 }
@@ -271,8 +276,18 @@ function DraftRecoveryBanner({
   return (
     <div className="bg-blue-500/20 border-b border-blue-500/30 px-6 py-3 flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <svg
+          className="w-5 h-5 text-blue-400"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
         <span className="text-sm text-blue-200">
           You have an unsaved draft from a previous session
@@ -333,13 +348,25 @@ function DesignProgressIndicator({
         className="w-full px-3 py-2 flex items-center justify-between hover:bg-slate-700/30 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          <svg
+            className="w-4 h-4 text-slate-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            />
           </svg>
           <span className="text-xs font-medium text-slate-300">Design Progress</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`text-xs font-semibold ${progress.overall >= 50 ? 'text-green-400' : 'text-slate-400'}`}>
+          <span
+            className={`text-xs font-semibold ${progress.overall >= 50 ? 'text-green-400' : 'text-slate-400'}`}
+          >
             {progress.overall}%
           </span>
           <div className="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden">
@@ -422,8 +449,11 @@ function DesignProgressIndicator({
 
           {/* Status label */}
           <div className="mt-2 text-center">
-            <span className={`text-xs font-medium ${progress.overall >= 50 ? 'text-green-400' : 'text-slate-500'}`}>
-              {getProgressLabel(progress.overall)} - {progress.overall >= 80 ? 'Ready to apply!' : 'Keep customizing'}
+            <span
+              className={`text-xs font-medium ${progress.overall >= 50 ? 'text-green-400' : 'text-slate-500'}`}
+            >
+              {getProgressLabel(progress.overall)} -{' '}
+              {progress.overall >= 80 ? 'Ready to apply!' : 'Keep customizing'}
             </span>
           </div>
         </div>
@@ -455,25 +485,45 @@ function MessageBubble({
       case 'network':
         return (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414"
+            />
           </svg>
         );
       case 'rate_limit':
         return (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
         );
       case 'server':
         return (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"
+            />
           </svg>
         );
       default:
         return (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
           </svg>
         );
     }
@@ -486,8 +536,8 @@ function MessageBubble({
           isUser
             ? 'bg-blue-600 text-white'
             : hasError
-            ? 'bg-red-500/20 border border-red-500/30 text-slate-100'
-            : 'bg-slate-700 text-slate-100'
+              ? 'bg-red-500/20 border border-red-500/30 text-slate-100'
+              : 'bg-slate-700 text-slate-100'
         }`}
       >
         {/* Show error header if present */}
@@ -514,12 +564,25 @@ function MessageBubble({
         )}
 
         {/* Message content */}
-        <div className={`text-sm whitespace-pre-wrap leading-relaxed ${hasError ? 'text-red-200' : ''}`}>
+        <div
+          className={`text-sm whitespace-pre-wrap leading-relaxed ${hasError ? 'text-red-200' : ''}`}
+        >
           {message.isRetrying ? (
             <span className="flex items-center gap-2">
               <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
               </svg>
               Retrying...
             </span>
@@ -535,14 +598,21 @@ function MessageBubble({
             className="mt-3 px-3 py-1.5 bg-red-500/30 hover:bg-red-500/50 text-red-200 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
             Retry
           </button>
         )}
 
         {/* Timestamp */}
-        <div className={`text-xs mt-2 ${isUser ? 'text-blue-200' : hasError ? 'text-red-300/70' : 'text-slate-400'}`}>
+        <div
+          className={`text-xs mt-2 ${isUser ? 'text-blue-200' : hasError ? 'text-red-300/70' : 'text-slate-400'}`}
+        >
           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
@@ -674,26 +744,51 @@ function TemplatePicker({
       case 'business':
         return (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+            />
           </svg>
         );
       case 'creative':
         return (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+            />
           </svg>
         );
       case 'commerce':
         return (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+            />
           </svg>
         );
       case 'utility':
         return (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+            />
           </svg>
         );
     }
@@ -712,7 +807,12 @@ function TemplatePicker({
           aria-label="Close template picker"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
@@ -732,11 +832,13 @@ function TemplatePicker({
               </div>
               <p className="text-xs text-slate-400 line-clamp-2">{template.description}</p>
               <div className="mt-3 flex items-center gap-2">
-                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                  template.design.basePreferences?.colorScheme === 'dark'
-                    ? 'bg-slate-700 text-slate-300'
-                    : 'bg-gray-200 text-gray-700'
-                }`}>
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full ${
+                    template.design.basePreferences?.colorScheme === 'dark'
+                      ? 'bg-slate-700 text-slate-300'
+                      : 'bg-gray-200 text-gray-700'
+                  }`}
+                >
                   {template.design.basePreferences?.colorScheme}
                 </span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">
@@ -820,8 +922,19 @@ function ChatInput({
           {isCapturing ? (
             <>
               <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
               </svg>
               Capturing...
             </>
@@ -919,8 +1032,8 @@ export function LayoutBuilderWizard({
   const [isApplying, setIsApplying] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
 
-  // Template picker state - show on first open when no messages
-  const [showTemplatePicker, setShowTemplatePicker] = useState(messages.length === 0);
+  // Template picker state - show on first open when only greeting message
+  const [showTemplatePicker, setShowTemplatePicker] = useState(messages.length <= 1);
 
   // Version history panel state
   const [showVersionHistory, setShowVersionHistory] = useState(false);
@@ -969,7 +1082,7 @@ export function LayoutBuilderWizard({
     setIsSaving(true);
     try {
       // Small delay to show loading state
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
       saveDesign();
       success('Design saved!');
     } catch (err) {
@@ -983,7 +1096,7 @@ export function LayoutBuilderWizard({
   const handleSaveAndClose = useCallback(async () => {
     setIsSaving(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
       saveDesign();
       success('Design saved successfully!');
       setShowCloseConfirm(false);
@@ -1010,7 +1123,7 @@ export function LayoutBuilderWizard({
   const handleConfirmApply = useCallback(async () => {
     setIsApplying(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
       applyToAppConcept();
       setShowApplyConfirm(false);
       success('Design applied to app concept!');
@@ -1073,115 +1186,142 @@ export function LayoutBuilderWizard({
   };
 
   // Handle suggested action clicks
-  const handleAction = useCallback((action: string) => {
-    switch (action) {
-      case 'capture_preview':
-        capturePreview();
-        break;
-      case 'upload_reference':
-        fileInputRef.current?.click();
-        break;
-      case 'toggle_theme':
-        updateDesign({
-          basePreferences: {
-            ...design.basePreferences,
-            colorScheme: design.basePreferences?.colorScheme === 'dark' ? 'light' : 'dark',
-          } as typeof design.basePreferences,
-        });
-        break;
-      case 'save_design':
-        saveDesign();
-        break;
-      case 'apply_to_concept':
-        applyToAppConcept();
-        onApplyToAppConcept?.();
-        break;
-    }
-  }, [capturePreview, updateDesign, design.basePreferences, saveDesign, applyToAppConcept, onApplyToAppConcept]);
+  const handleAction = useCallback(
+    (action: string) => {
+      switch (action) {
+        case 'capture_preview':
+          capturePreview();
+          break;
+        case 'upload_reference':
+          fileInputRef.current?.click();
+          break;
+        case 'toggle_theme':
+          updateDesign({
+            basePreferences: {
+              ...design.basePreferences,
+              colorScheme: design.basePreferences?.colorScheme === 'dark' ? 'light' : 'dark',
+            } as typeof design.basePreferences,
+          });
+          break;
+        case 'save_design':
+          saveDesign();
+          break;
+        case 'apply_to_concept':
+          applyToAppConcept();
+          onApplyToAppConcept?.();
+          break;
+      }
+    },
+    [
+      capturePreview,
+      updateDesign,
+      design.basePreferences,
+      saveDesign,
+      applyToAppConcept,
+      onApplyToAppConcept,
+    ]
+  );
 
   // Handle effects settings change from DesignControlPanel
-  const handleEffectsChange = useCallback((effects: Partial<EffectsSettings>) => {
-    updateDesign({
-      globalStyles: {
-        ...design.globalStyles,
-        effects: {
-          ...design.globalStyles?.effects,
-          ...effects,
-        } as EffectsSettings,
-      },
-    });
-  }, [updateDesign, design.globalStyles]);
+  const handleEffectsChange = useCallback(
+    (effects: Partial<EffectsSettings>) => {
+      updateDesign({
+        globalStyles: {
+          ...design.globalStyles,
+          effects: {
+            ...design.globalStyles?.effects,
+            ...effects,
+          } as EffectsSettings,
+        },
+      });
+    },
+    [updateDesign, design.globalStyles]
+  );
 
   // Handle color settings change from DesignControlPanel
-  const handleColorSettingsChange = useCallback((colors: Partial<ColorSettings>) => {
-    updateDesign({
-      globalStyles: {
-        ...design.globalStyles,
-        colors: {
-          ...design.globalStyles?.colors,
-          ...colors,
-        } as ColorSettings,
-      },
-    });
-  }, [updateDesign, design.globalStyles]);
+  const handleColorSettingsChange = useCallback(
+    (colors: Partial<ColorSettings>) => {
+      updateDesign({
+        globalStyles: {
+          ...design.globalStyles,
+          colors: {
+            ...design.globalStyles?.colors,
+            ...colors,
+          } as ColorSettings,
+        },
+      });
+    },
+    [updateDesign, design.globalStyles]
+  );
 
   // Handle primary color change from DesignControlPanel
-  const handlePrimaryColorChange = useCallback((color: string) => {
-    updateDesign({
-      globalStyles: {
-        ...design.globalStyles,
-        colors: {
-          ...design.globalStyles?.colors,
-          primary: color,
-        } as ColorSettings,
-      },
-    });
-  }, [updateDesign, design.globalStyles]);
+  const handlePrimaryColorChange = useCallback(
+    (color: string) => {
+      updateDesign({
+        globalStyles: {
+          ...design.globalStyles,
+          colors: {
+            ...design.globalStyles?.colors,
+            primary: color,
+          } as ColorSettings,
+        },
+      });
+    },
+    [updateDesign, design.globalStyles]
+  );
 
   // Handle reference image upload with compression
-  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      error('Please select an image file');
-      e.target.value = '';
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      error('Image must be less than 10MB');
-      e.target.value = '';
-      return;
-    }
-
-    try {
-      // Compress the image
-      const { dataUrl, originalSize, compressedSize } = await compressImage(file);
-
-      addReferenceImage(dataUrl);
-
-      // Show compression info if significant size reduction
-      const reduction = ((originalSize - compressedSize) / originalSize) * 100;
-      if (reduction > 10) {
-        success(`Image added (${formatBytes(originalSize)} → ${formatBytes(compressedSize)}, ${Math.round(reduction)}% smaller)`);
-      } else {
-        success('Reference image added');
+      if (!file.type.startsWith('image/')) {
+        error('Please select an image file');
+        e.target.value = '';
+        return;
       }
-    } catch (err) {
-      error('Failed to process image. Please try another file.');
-    }
 
-    // Reset input
-    e.target.value = '';
-  }, [addReferenceImage, error, success]);
+      if (file.size > 10 * 1024 * 1024) {
+        error('Image must be less than 10MB');
+        e.target.value = '';
+        return;
+      }
+
+      try {
+        // Compress the image
+        const { dataUrl, originalSize, compressedSize } = await compressImage(file);
+
+        addReferenceImage(dataUrl);
+
+        // Show compression info if significant size reduction
+        const reduction = ((originalSize - compressedSize) / originalSize) * 100;
+        if (reduction > 10) {
+          success(
+            `Image added (${formatBytes(originalSize)} → ${formatBytes(compressedSize)}, ${Math.round(reduction)}% smaller)`
+          );
+        } else {
+          success('Reference image added');
+        }
+      } catch (err) {
+        error('Failed to process image. Please try another file.');
+      }
+
+      // Reset input
+      e.target.value = '';
+    },
+    [addReferenceImage, error, success]
+  );
 
   // Handle template selection
-  const handleTemplateSelect = useCallback((template: DesignTemplate) => {
-    updateDesign(template.design as Partial<LayoutDesign>);
-    setShowTemplatePicker(false);
-    success(`Applied "${template.name}" template`);
-  }, [updateDesign, success]);
+  const handleTemplateSelect = useCallback(
+    (template: DesignTemplate) => {
+      updateDesign(template.design as Partial<LayoutDesign>);
+      setShowTemplatePicker(false);
+      success(`Applied "${template.name}" template`);
+    },
+    [updateDesign, success]
+  );
 
   // Handle export
   const handleExport = useCallback(() => {
@@ -1190,57 +1330,69 @@ export function LayoutBuilderWizard({
   }, [exportDesign, success]);
 
   // Handle import file selection
-  const handleImportFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleImportFile = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-    if (!file.name.endsWith('.json')) {
-      error('Please select a JSON file');
+      if (!file.name.endsWith('.json')) {
+        error('Please select a JSON file');
+        e.target.value = '';
+        return;
+      }
+
+      const result = await importDesign(file);
+      if (result) {
+        success('Design imported successfully');
+      } else {
+        error('Failed to import design. Please check the file format.');
+      }
+
       e.target.value = '';
-      return;
-    }
-
-    const result = await importDesign(file);
-    if (result) {
-      success('Design imported successfully');
-    } else {
-      error('Failed to import design. Please check the file format.');
-    }
-
-    e.target.value = '';
-  }, [importDesign, success, error]);
+    },
+    [importDesign, success, error]
+  );
 
   // Handle version restore
-  const handleRestoreVersion = useCallback((versionId: string) => {
-    restoreVersion(versionId);
-    success('Version restored successfully');
-    setShowVersionHistory(false);
-  }, [restoreVersion, success]);
+  const handleRestoreVersion = useCallback(
+    (versionId: string) => {
+      restoreVersion(versionId);
+      success('Version restored successfully');
+      setShowVersionHistory(false);
+    },
+    [restoreVersion, success]
+  );
 
   // Handle version delete
-  const handleDeleteVersion = useCallback((versionId: string) => {
-    deleteVersion(versionId);
-    info('Version deleted');
-  }, [deleteVersion, info]);
+  const handleDeleteVersion = useCallback(
+    (versionId: string) => {
+      deleteVersion(versionId);
+      info('Version deleted');
+    },
+    [deleteVersion, info]
+  );
 
   // Handle preference changes from preview
-  const handlePreferenceChange = useCallback((prefs: Partial<UIPreferences>) => {
-    updateDesign({
-      basePreferences: {
-        ...design.basePreferences,
-        style: prefs.style || design.basePreferences?.style,
-        colorScheme: prefs.colorScheme || design.basePreferences?.colorScheme,
-        layout: prefs.layout || design.basePreferences?.layout,
-      } as typeof design.basePreferences,
-      globalStyles: {
-        ...design.globalStyles,
-        colors: {
-          ...design.globalStyles?.colors,
-          primary: prefs.primaryColor || design.globalStyles?.colors?.primary,
-        },
-      } as typeof design.globalStyles,
-    });
-  }, [design, updateDesign]);
+  const handlePreferenceChange = useCallback(
+    (prefs: Partial<UIPreferences>) => {
+      updateDesign({
+        basePreferences: {
+          ...design.basePreferences,
+          style: prefs.style || design.basePreferences?.style,
+          colorScheme: prefs.colorScheme || design.basePreferences?.colorScheme,
+          layout: prefs.layout || design.basePreferences?.layout,
+        } as typeof design.basePreferences,
+        globalStyles: {
+          ...design.globalStyles,
+          colors: {
+            ...design.globalStyles?.colors,
+            primary: prefs.primaryColor || design.globalStyles?.colors?.primary,
+          },
+        } as typeof design.globalStyles,
+      });
+    },
+    [design, updateDesign]
+  );
 
   if (!isOpen) return null;
 
@@ -1270,7 +1422,12 @@ export function LayoutBuilderWizard({
               title="Choose a design template"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
+                />
               </svg>
               Templates
             </button>
@@ -1283,7 +1440,12 @@ export function LayoutBuilderWizard({
                 title="Export design to JSON file"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                  />
                 </svg>
               </button>
               <button
@@ -1292,7 +1454,12 @@ export function LayoutBuilderWizard({
                 title="Import design from JSON file"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
                 </svg>
               </button>
               <button
@@ -1301,7 +1468,12 @@ export function LayoutBuilderWizard({
                 title="View version history"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
                 {versionHistory.length > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 text-[10px] bg-blue-600 text-white rounded-full flex items-center justify-center">
@@ -1327,7 +1499,12 @@ export function LayoutBuilderWizard({
                 title="Undo (Ctrl+Z)"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+                  />
                 </svg>
               </button>
               <button
@@ -1337,7 +1514,12 @@ export function LayoutBuilderWizard({
                 title="Redo (Ctrl+Shift+Z)"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6"
+                  />
                 </svg>
               </button>
             </div>
@@ -1350,8 +1532,19 @@ export function LayoutBuilderWizard({
               {isSaving ? (
                 <>
                   <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
                   </svg>
                   Saving...
                 </>
@@ -1367,8 +1560,19 @@ export function LayoutBuilderWizard({
               {isApplying ? (
                 <>
                   <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
                   </svg>
                   Applying...
                 </>
@@ -1381,7 +1585,12 @@ export function LayoutBuilderWizard({
               className="p-2 text-slate-400 hover:text-white transition-colors"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -1409,9 +1618,15 @@ export function LayoutBuilderWizard({
                     className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 15l7-7 7 7"
+                      />
                     </svg>
-                    Load {Math.min(MESSAGES_PAGE_SIZE, totalMessages - visibleMessages.length)} older messages
+                    Load {Math.min(MESSAGES_PAGE_SIZE, totalMessages - visibleMessages.length)}{' '}
+                    older messages
                     <span className="text-slate-500">
                       ({visibleMessages.length} of {totalMessages})
                     </span>
@@ -1426,8 +1641,14 @@ export function LayoutBuilderWizard({
                   <div className="bg-slate-700 rounded-2xl px-4 py-3 text-slate-300">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" />
-                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                      <div
+                        className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                        style={{ animationDelay: '0.1s' }}
+                      />
+                      <div
+                        className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                        style={{ animationDelay: '0.2s' }}
+                      />
                     </div>
                   </div>
                 </div>
