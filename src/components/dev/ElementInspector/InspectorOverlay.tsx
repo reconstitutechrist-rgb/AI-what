@@ -65,21 +65,7 @@ export function InspectorOverlay({
 
   /** Handle click to select element */
   const handleClick = useCallback((e: MouseEvent) => {
-    const target = e.target as HTMLElement;
-
-    console.log('[Overlay] Click detected on:', target?.tagName, target?.className?.slice?.(0, 50));
-    console.log('[Overlay] shouldIgnore:', target && shouldIgnoreElement(target));
-
-    // Don't intercept clicks on inspector UI elements
-    if (target && shouldIgnoreElement(target)) {
-      console.log('[Overlay] Letting click through to UI');
-      return; // Let the click through to the UI
-    }
-
-    console.log('[Overlay] Blocking click for element selection');
-    e.preventDefault();
-    e.stopPropagation();
-
+    // First, find the actual element beneath the overlay
     const overlay = overlayRef.current;
     if (overlay) {
       overlay.style.pointerEvents = 'none';
@@ -91,9 +77,23 @@ export function InspectorOverlay({
       overlay.style.pointerEvents = 'auto';
     }
 
-    if (element && !shouldIgnoreElement(element)) {
-      onSelect(element);
+    // eslint-disable-next-line no-console
+    console.log('[Overlay] Click - element beneath:', element?.tagName, element?.className?.toString().slice(0, 50));
+
+    // Check if the element beneath should be ignored (inspector UI elements)
+    if (!element || shouldIgnoreElement(element)) {
+      // eslint-disable-next-line no-console
+      console.log('[Overlay] Element is ignored or null, letting click through');
+      return; // Let the click through to the UI
     }
+
+    // Block the click and select the element
+    // eslint-disable-next-line no-console
+    console.log('[Overlay] Selecting element:', element.tagName);
+    e.preventDefault();
+    e.stopPropagation();
+
+    onSelect(element);
   }, [onSelect, shouldIgnoreElement]);
 
   // Set up event listeners
