@@ -371,6 +371,86 @@ interface PhaseExecutionContextWithEnhancedTracking extends PhaseExecutionContex
   apiContracts?: APIContract[];
   establishedPatterns?: string[];
   accumulatedFilesRich?: AccumulatedFile[];
+  /** Smart context from CodeContextService */
+  smartContextSnapshot?: CodeContextSnapshot;
+}
+
+// ============================================================================
+// SMART CONTEXT FORMATTER
+// ============================================================================
+
+/**
+ * Format CodeContextSnapshot into a prompt-friendly string
+ * Provides intelligent context with clear structure for the LLM
+ */
+function formatCodeContextSnapshot(snapshot: CodeContextSnapshot): string {
+  let result = '';
+
+  // Group files by representation for clarity
+  const fullFiles = snapshot.context.filter((f) => f.representation === 'full');
+  const signatureFiles = snapshot.context.filter((f) => f.representation === 'signature');
+  const typesOnlyFiles = snapshot.context.filter((f) => f.representation === 'types-only');
+  const summaryFiles = snapshot.context.filter((f) => f.representation === 'summary');
+
+  // Full files - most important context
+  if (fullFiles.length > 0) {
+    result += `### Complete Files (Reference for Implementation)\n`;
+    for (const file of fullFiles) {
+      result += `\n#### ${file.path}\n`;
+      result += `> Priority: ${(file.priority * 100).toFixed(0)}% | Reason: ${file.reason}\n`;
+      result += `\`\`\`typescript\n${file.content}\n\`\`\`\n`;
+    }
+  }
+
+  // Type definitions - critical for type safety
+  if (typesOnlyFiles.length > 0) {
+    result += `\n### Type Definitions (Use These Types)\n`;
+    for (const file of typesOnlyFiles) {
+      result += `\n#### ${file.path}\n`;
+      result += `\`\`\`typescript\n${file.content}\n\`\`\`\n`;
+    }
+  }
+
+  // Signatures - understand interfaces without full implementation
+  if (signatureFiles.length > 0) {
+    result += `\n### Component & Function Signatures (API Reference)\n`;
+    for (const file of signatureFiles) {
+      result += `\n#### ${file.path}\n`;
+      result += `\`\`\`typescript\n${file.content}\n\`\`\`\n`;
+    }
+  }
+
+  // Summaries - lightweight context
+  if (summaryFiles.length > 0) {
+    result += `\n### File Summaries (Overview)\n`;
+    for (const file of summaryFiles) {
+      result += `- **${file.path}**: ${file.content}\n`;
+    }
+  }
+
+  // Dependency hints - help LLM understand relationships
+  if (snapshot.dependencyHints.length > 0) {
+    result += `\n### Import/Export Relationships\n`;
+    for (const hint of snapshot.dependencyHints) {
+      const imports = hint.imports.map((i) => `imports {${i.symbols.join(', ')}} from "${i.from}"`);
+      const usedBy = hint.usedBy.length > 0 ? `Used by: ${hint.usedBy.slice(0, 3).join(', ')}${hint.usedBy.length > 3 ? '...' : ''}` : '';
+      result += `- **${hint.file}**: ${imports.join('; ')}${usedBy ? ` | ${usedBy}` : ''}\n`;
+    }
+  }
+
+  // Omitted summary - tell LLM what's NOT included
+  if (snapshot.omittedSummary.fileCount > 0) {
+    result += `\n### Files Not Shown (${snapshot.omittedSummary.fileCount} files, ~${snapshot.omittedSummary.totalTokens} tokens)\n`;
+    result += `> These files exist but weren't included due to token limits. Ask if you need specific content.\n`;
+    const categories = Object.entries(snapshot.omittedSummary.categories)
+      .filter(([, count]) => count > 0)
+      .map(([type, count]) => `${type}: ${count}`);
+    if (categories.length > 0) {
+      result += `> Categories: ${categories.join(', ')}\n`;
+    }
+  }
+
+  return result;
 }
 
 // ============================================================================
@@ -573,13 +653,23 @@ ${patterns.map(p => `- ${p}`).join('\n')}
   }
 
   // Include relevant existing code for context
-  if (context.previousPhaseCode) {
+  // Priority: Smart context snapshot > previousPhaseCode string
+  const enhancedContext = context as PhaseExecutionContextWithEnhancedTracking;
+  if (enhancedContext.smartContextSnapshot) {
+    // Use the intelligent CodeContextService output
+    prompt += `## Existing Code Reference (Smart Context)
+
+The following is intelligently selected code from previous phases, organized by relevance:
+
+${formatCodeContextSnapshot(enhancedContext.smartContextSnapshot)}
+`;
+  } else if (context.previousPhaseCode) {
+    // Legacy fallback - just include the code as-is (already processed by getSmartCodeContext)
     prompt += `## Existing Code Reference
 
 The following code was generated in previous phases. Reference it when building new features:
 
-${truncateCodeForContext(context.previousPhaseCode)}
-
+${context.previousPhaseCode}
 `;
   }
 
@@ -663,49 +753,6 @@ ${context.features.map((f) => `- **${f}**`).join('\n')}
 - The app should remain fully functional after this phase
 - Test all existing features still work
 - New features should integrate seamlessly`;
-}
-
-/**
- * Truncate code to fit in context while preserving important parts
- */
-function truncateCodeForContext(code: string, maxLength: number = 32000): string {
-  if (code.length <= maxLength) return code;
-
-  // Try to parse as JSON (it might be a full app structure)
-  try {
-    const parsed = JSON.parse(code);
-    if (parsed.files && Array.isArray(parsed.files)) {
-      // Include App.tsx and main files in full, truncate others
-      const priorityFiles = ['App.tsx', 'index.tsx', 'types.ts', 'index.css'];
-      let result = '';
-      let remainingLength = maxLength;
-
-      // First pass: priority files
-      for (const file of parsed.files) {
-        const isPriority = priorityFiles.some((pf) => file.path.includes(pf));
-        if (isPriority && file.content.length < remainingLength) {
-          result += `=== ${file.path} ===\n${file.content}\n\n`;
-          remainingLength -= file.content.length + file.path.length + 10;
-        }
-      }
-
-      // Second pass: other files (truncated)
-      for (const file of parsed.files) {
-        const isPriority = priorityFiles.some((pf) => file.path.includes(pf));
-        if (!isPriority && remainingLength > 500) {
-          const truncatedContent = file.content.substring(0, Math.min(500, remainingLength));
-          result += `=== ${file.path} ===\n${truncatedContent}\n[... truncated ...]\n\n`;
-          remainingLength -= 550;
-        }
-      }
-
-      return result;
-    }
-  } catch {
-    // Not JSON, just truncate
-  }
-
-  return code.substring(0, maxLength) + '\n\n[... truncated for context limit ...]';
 }
 
 // ============================================================================
@@ -800,7 +847,38 @@ export class PhaseExecutionManager {
       apiContracts: [...this.apiContracts],
       establishedPatterns: [...this.establishedPatterns],
       accumulatedFilesRich: [...this.accumulatedFilesRich],
+
+      // Smart context from CodeContextService (if available)
+      // Call getOptimizedPhaseContext() before getExecutionContext() to populate this
+      smartContextSnapshot: this.cachedSmartContextSnapshot,
     } as PhaseExecutionContextWithEnhancedTracking;
+  }
+
+  /**
+   * Get execution context with smart context pre-loaded (async)
+   * This is the recommended way to get context for phase execution
+   */
+  async getExecutionContextAsync(
+    phaseNumber: number,
+    maxTokens: number = 16000
+  ): Promise<PhaseExecutionContext> {
+    // Initialize CodeContextService if not already done
+    if (!this.codeContextService && this.rawGeneratedFiles.length > 0) {
+      this.initializeCodeContext();
+    }
+
+    // Pre-fetch smart context (populates cache)
+    await this.getOptimizedPhaseContext(phaseNumber, maxTokens);
+
+    // Return context with cached smart snapshot
+    return this.getExecutionContext(phaseNumber);
+  }
+
+  /**
+   * Clear the cached smart context (call after phase completion)
+   */
+  clearCachedSmartContext(): void {
+    this.cachedSmartContextSnapshot = null;
   }
 
   /**
@@ -880,6 +958,9 @@ export class PhaseExecutionManager {
       }
       this.plan.failedPhaseNumbers.push(result.phaseNumber);
     }
+
+    // Clear cached smart context so next phase gets fresh context
+    this.clearCachedSmartContext();
   }
 
   /**
@@ -1000,6 +1081,7 @@ export class PhaseExecutionManager {
   // ==========================================================================
 
   private codeContextService: CodeContextService | null = null;
+  private cachedSmartContextSnapshot: CodeContextSnapshot | null = null;
 
   /**
    * Initialize the CodeContextService for enhanced context management
@@ -1024,6 +1106,7 @@ export class PhaseExecutionManager {
   /**
    * Get optimized context for a phase using CodeContextService
    * Falls back to legacy getSmartCodeContext if service not initialized
+   * Caches result for synchronous access via getExecutionContext
    */
   async getOptimizedPhaseContext(
     phaseNumber: number,
@@ -1042,16 +1125,21 @@ export class PhaseExecutionManager {
     if (this.rawGeneratedFiles.length > 0) {
       await this.codeContextService.updateContext(this.rawGeneratedFiles, {
         incremental: true,
-        phaseNumber: phaseNumber - 1, // Mark files as from previous phase
+        phaseNumber: phaseNumber, // Mark files as from current phase
       });
     }
 
     // Get optimized context for this phase
-    return this.codeContextService.getPhaseContext(
+    const snapshot = await this.codeContextService.getPhaseContext(
       phaseNumber,
       phase.features,
       maxTokens
     );
+
+    // Cache for synchronous access
+    this.cachedSmartContextSnapshot = snapshot;
+
+    return snapshot;
   }
 
   /**
