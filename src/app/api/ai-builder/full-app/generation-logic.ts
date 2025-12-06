@@ -9,6 +9,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { validateGeneratedCode, autoFixCode, type ValidationError } from '@/utils/codeValidator';
 import type { ErrorCategory } from '@/utils/analytics';
+import { generateImagesForApp, type AppImageGenerationResult } from '@/services/AppImageGenerator';
+import { injectImageUrls } from '@/utils/imageUrlInjector';
+import type { LayoutDesign } from '@/types/layoutDesign';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -21,6 +24,16 @@ export interface GenerationContext {
   modelName: string;
   correctionPrompt?: string; // Added for retry with specific fixes
   phaseContext?: PhaseContext; // Added for multi-phase builds
+  // Image generation options
+  imageOptions?: {
+    generateImages?: boolean;
+    imageQuality?: 'standard' | 'hd';
+    maxImages?: number;
+    appName?: string;
+    appDescription?: string;
+    layoutDesign?: LayoutDesign;
+    features?: string[];
+  };
 }
 
 export interface PhaseContext {
@@ -70,6 +83,15 @@ export interface GenerationResult {
   totalErrors: number;
   autoFixedCount: number;
   truncationInfo?: TruncationInfo;
+  // Image generation results
+  images?: {
+    hero?: string;
+    cards: string[];
+    background?: string;
+    fallbackUsed: boolean;
+    cost: number;
+    generationTime: number;
+  };
 }
 
 export interface GenerationError extends Error {
@@ -710,6 +732,78 @@ export async function generateFullApp(
   const changeSummary = changeSummaryMatch ? changeSummaryMatch[1].trim() : '';
   const setupInstructions = setupMatch ? setupMatch[1].trim() : 'Run npm install && npm run dev';
 
+  // ============================================================================
+  // IMAGE GENERATION STEP
+  // ============================================================================
+
+  let imageResult: GenerationResult['images'] = undefined;
+  const { imageOptions } = context;
+
+  if (imageOptions?.generateImages) {
+    console.log('🎨 Starting image generation for app...');
+
+    try {
+      // Extract features from files if not provided
+      const features = imageOptions.features || extractFeaturesFromFiles(files);
+
+      const images = await generateImagesForApp(
+        imageOptions.appName || name,
+        imageOptions.appDescription || descriptionText,
+        imageOptions.layoutDesign,
+        features,
+        {
+          generateHero: true,
+          generateCards: true,
+          generateBackground: false,
+          maxCards: imageOptions.maxImages || 4,
+          quality: imageOptions.imageQuality || 'standard',
+        }
+      );
+
+      console.log(`✅ Image generation complete. Cost: $${images.totalCost.toFixed(2)}, Time: ${images.generationTime}ms`);
+
+      // Inject image URLs into generated code
+      if (!images.fallbackUsed || images.hero || images.cards.length > 0) {
+        console.log('🔧 Injecting image URLs into generated code...');
+
+        const injectionResult = injectImageUrls(
+          files.map(f => ({ path: f.path, content: f.content })),
+          images
+        );
+
+        // Update files with injected image URLs
+        files.length = 0;
+        files.push(...injectionResult.files.map(f => ({
+          path: f.path,
+          content: f.content,
+          description: `${f.path.split('/').pop()} file`,
+        })));
+
+        // Add the image constants file
+        files.push({
+          path: injectionResult.imageConstantsFile.path,
+          content: injectionResult.imageConstantsFile.content,
+          description: 'Image constants file with generated image URLs',
+        });
+
+        console.log(`✅ Injected ${injectionResult.imagesInjected} images into code`);
+      }
+
+      // Build image result metadata
+      imageResult = {
+        hero: images.hero?.url,
+        cards: images.cards.map(c => c.url),
+        background: images.background?.url,
+        fallbackUsed: images.fallbackUsed,
+        cost: images.totalCost,
+        generationTime: images.generationTime,
+      };
+    } catch (imageError) {
+      console.error('⚠️ Image generation failed, continuing without images:', imageError);
+      // Don't fail the entire generation if images fail
+    }
+  }
+
   return {
     name,
     description: descriptionText,
@@ -727,5 +821,26 @@ export async function generateFullApp(
     totalErrors,
     autoFixedCount,
     truncationInfo: truncationInfo.isTruncated ? truncationInfo : undefined,
+    images: imageResult,
   };
+}
+
+/**
+ * Extract feature names from generated files for image context
+ */
+function extractFeaturesFromFiles(files: Array<{ path: string; content: string }>): string[] {
+  const features: string[] = [];
+
+  // Look for component files and extract names
+  for (const file of files) {
+    if (file.path.includes('/components/') && (file.path.endsWith('.tsx') || file.path.endsWith('.jsx'))) {
+      const componentName = file.path.split('/').pop()?.replace(/\.(tsx|jsx)$/, '');
+      if (componentName && !['index', 'layout', 'page'].includes(componentName.toLowerCase())) {
+        features.push(componentName.replace(/([A-Z])/g, ' $1').trim());
+      }
+    }
+  }
+
+  // Limit to 4 features for card images
+  return features.slice(0, 4);
 }

@@ -63,9 +63,6 @@ import {
   needsCompression,
 } from '@/utils/contextCompression';
 
-// Phase adapters
-import { adaptAllPhasesToUI, adaptDynamicProgressToUI } from '@/types/phaseAdapters';
-
 // Types
 import type { AppConcept, ImplementationPlan, BuildPhase } from '../types/appConcept';
 import type {
@@ -435,28 +432,6 @@ export default function AIBuilder() {
       setChatMessages((prev) => [...prev, notification]);
     },
   });
-
-  // Adapted phases for legacy UI components
-  const adaptedPhases = useMemo(() => {
-    if (!dynamicPhasePlan) return [];
-    return adaptAllPhasesToUI(dynamicPhasePlan);
-  }, [dynamicPhasePlan]);
-
-  const adaptedProgress = useMemo(() => {
-    if (!dynamicPhasePlan) {
-      return {
-        currentPhaseId: null,
-        currentPhaseIndex: -1,
-        totalPhases: 0,
-        completedPhases: [],
-        percentComplete: 0,
-        estimatedTimeRemaining: '',
-        startedAt: '',
-        lastUpdated: '',
-      };
-    }
-    return adaptDynamicProgressToUI(dynamicPhasePlan);
-  }, [dynamicPhasePlan]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -916,6 +891,9 @@ export default function AIBuilder() {
         setUserInput(prompt);
       }
 
+      // Auto-open the phased build panel when building starts
+      setShowAdvancedPhasedBuild(true);
+
       // Mark phase as in-progress in the hook's state
       dynamicBuildPhases.startPhase(phaseNumber);
       setCurrentMode('ACT');
@@ -940,6 +918,7 @@ export default function AIBuilder() {
       setUserInput,
       setCurrentMode,
       setNewAppStagePlan,
+      setShowAdvancedPhasedBuild,
     ]
   );
 
@@ -2184,12 +2163,13 @@ export default function AIBuilder() {
           <PhasedBuildPanel
             isOpen={showAdvancedPhasedBuild}
             onClose={() => setShowAdvancedPhasedBuild(false)}
-            phases={adaptedPhases}
-            progress={adaptedProgress}
+            phases={dynamicBuildPhases.uiPhases}
+            progress={dynamicBuildPhases.progress}
             currentPhase={
               dynamicBuildPhases.currentPhase
-                ? adaptedPhases.find((p) => p.order === dynamicBuildPhases.currentPhase?.number) ||
-                  null
+                ? dynamicBuildPhases.uiPhases.find(
+                    (p) => p.order === dynamicBuildPhases.currentPhase?.number
+                  ) || null
                 : null
             }
             isBuilding={dynamicBuildPhases.isBuilding}
@@ -2199,13 +2179,13 @@ export default function AIBuilder() {
             onPauseBuild={dynamicBuildPhases.pauseBuild}
             onResumeBuild={dynamicBuildPhases.resumeBuild}
             onSkipPhase={(phaseId) => {
-              const phase = adaptedPhases.find((p) => p.id === phaseId);
+              const phase = dynamicBuildPhases.uiPhases.find((p) => p.id === phaseId);
               if (phase) {
                 dynamicBuildPhases.skipPhase(phase.order);
               }
             }}
             onRetryPhase={(phaseId) => {
-              const phase = adaptedPhases.find((p) => p.id === phaseId);
+              const phase = dynamicBuildPhases.uiPhases.find((p) => p.id === phaseId);
               if (phase) {
                 dynamicBuildPhases.retryPhase(phase.order);
               }
@@ -2229,27 +2209,30 @@ export default function AIBuilder() {
           />
         )}
 
-        {selectedPhaseId && adaptedPhases.length > 0 && (
+        {selectedPhaseId && dynamicBuildPhases.uiPhases.length > 0 && (
           <PhaseDetailView
-            phase={adaptedPhases.find((p) => p.id === selectedPhaseId) || adaptedPhases[0]}
+            phase={
+              dynamicBuildPhases.uiPhases.find((p) => p.id === selectedPhaseId) ||
+              dynamicBuildPhases.uiPhases[0]
+            }
             isOpen={!!selectedPhaseId}
             onClose={() => setSelectedPhaseId(null)}
             onBuildPhase={async () => {
-              const phase = adaptedPhases.find((p) => p.id === selectedPhaseId);
+              const phase = dynamicBuildPhases.uiPhases.find((p) => p.id === selectedPhaseId);
               if (phase) {
                 startDynamicPhasedBuild(phase.order);
               }
               setSelectedPhaseId(null);
             }}
             onSkipPhase={async () => {
-              const phase = adaptedPhases.find((p) => p.id === selectedPhaseId);
+              const phase = dynamicBuildPhases.uiPhases.find((p) => p.id === selectedPhaseId);
               if (phase) {
                 dynamicBuildPhases.skipPhase(phase.order);
               }
               setSelectedPhaseId(null);
             }}
             onRetryPhase={async () => {
-              const phase = adaptedPhases.find((p) => p.id === selectedPhaseId);
+              const phase = dynamicBuildPhases.uiPhases.find((p) => p.id === selectedPhaseId);
               if (phase) {
                 dynamicBuildPhases.retryPhase(phase.order);
               }

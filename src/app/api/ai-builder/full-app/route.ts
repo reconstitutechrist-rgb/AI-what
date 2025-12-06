@@ -59,6 +59,12 @@ export async function POST(request: Request) {
       isPhaseBuilding,
       phaseContext: rawPhaseContext,
       currentAppState,
+      // NEW: Image generation options
+      generateImages,
+      imageQuality,
+      maxImages,
+      layoutDesign,
+      appFeatures,
     } = await request.json();
 
     perfTracker.checkpoint('request_parsed');
@@ -173,7 +179,7 @@ MODIFICATION MODE for "${currentAppName}":
     if (hasImage && image) {
       const imageMatch = image.match(/^data:(image\/[^;]+);base64,(.+)$/);
       if (imageMatch) {
-        let mediaType = imageMatch[1];
+        const mediaType = imageMatch[1];
         const base64Data = imageMatch[2];
 
         const validMediaTypes: { [key: string]: string } = {
@@ -251,6 +257,16 @@ MODIFICATION MODE for "${currentAppName}":
           modelName,
           correctionPrompt: undefined, // Will be set below if retry
           phaseContext, // Pass phase context for multi-phase builds
+          // Image generation options
+          imageOptions: generateImages !== false ? {
+            generateImages: generateImages ?? (!!layoutDesign), // Default: true if layoutDesign exists
+            imageQuality: imageQuality || 'standard',
+            maxImages: maxImages || 4,
+            appName: currentAppName,
+            appDescription: prompt,
+            layoutDesign: layoutDesign,
+            features: appFeatures,
+          } : undefined,
         };
 
         // If this is a retry, add correction prompt
@@ -359,6 +375,7 @@ MODIFICATION MODE for "${currentAppName}":
     const validationErrors = result.validationErrors;
     const totalErrors = result.totalErrors;
     const autoFixedCount = result.autoFixedCount;
+    const images = result.images;
 
     const validationWarnings =
       validationErrors.length > 0
@@ -379,6 +396,7 @@ MODIFICATION MODE for "${currentAppName}":
       dependencies,
       setupInstructions,
       ...(validationWarnings && { validationWarnings }),
+      ...(images && { images }),
     };
 
     perfTracker.checkpoint('response_prepared');
@@ -401,6 +419,8 @@ MODIFICATION MODE for "${currentAppName}":
         hasDependencies: Object.keys(dependencies).length > 0,
         retryAttempts: attemptNumber,
         retriedSuccessfully: attemptNumber > 1,
+        imagesGenerated: images ? !images.fallbackUsed : false,
+        imageCost: images?.cost || 0,
       },
     });
 
