@@ -913,6 +913,9 @@ export default function AIBuilder() {
       dynamicBuildPhases.startPhase(phaseNumber);
       setCurrentMode('ACT');
 
+      // Show the phased build panel so user can see progress
+      setShowAdvancedPhasedBuild(true);
+
       // Update the stage plan to show this phase as in-progress
       setNewAppStagePlan((prev) =>
         prev
@@ -933,6 +936,7 @@ export default function AIBuilder() {
       setUserInput,
       setCurrentMode,
       setNewAppStagePlan,
+      setShowAdvancedPhasedBuild,
     ]
   );
 
