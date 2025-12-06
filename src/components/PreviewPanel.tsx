@@ -65,7 +65,7 @@ export function PreviewPanel({
         <button
           onClick={() => onTabChange('preview')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            activeTab === 'preview'
+            activeTab === 'preview' || (activeTab === 'chat' && currentComponent)
               ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
               : 'text-slate-400 hover:text-white hover:bg-white/5'
           }`}
@@ -156,9 +156,9 @@ export function PreviewPanel({
             </p>
           </div>
         ) : (
-          // Content based on active tab
+          // Content based on active tab (default to preview when tab is 'chat')
           <>
-            {activeTab === 'preview' && (
+            {(activeTab === 'preview' || activeTab === 'chat') && (
               <div className="h-full">
                 <FullAppPreview appDataJson={currentComponent.code} onScreenshot={onScreenshot} />
               </div>
