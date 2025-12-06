@@ -1374,9 +1374,9 @@ export class DynamicPhaseGenerator {
   // ============================================================================
 
   /**
-   * Maximum code context size (increased from 8KB to 16KB)
+   * Maximum code context size (increased to 48KB for complex apps)
    */
-  private static readonly MAX_CODE_CONTEXT = 16384;
+  private static readonly MAX_CODE_CONTEXT = 48000;
 
   /**
    * Build smart code context from previous phases with importance scoring

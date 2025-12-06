@@ -6,7 +6,7 @@
 import type { PhaseId, PhasedAppConcept } from '../types/buildPhases';
 
 /** Maximum length for code context in prompts to avoid token limits */
-const MAX_CODE_CONTEXT_LENGTH = 2000;
+const MAX_CODE_CONTEXT_LENGTH = 12000;
 
 /**
  * Truncate code to a safe length for prompt context

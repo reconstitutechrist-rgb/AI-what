@@ -21,6 +21,8 @@ import type {
 import type { TechnicalRequirements, UIPreferences, UserRole } from '@/types/appConcept';
 import type { LayoutDesign } from '@/types/layoutDesign';
 import { DynamicPhaseGenerator } from './DynamicPhaseGenerator';
+import { getCodeContextService, CodeContextService } from './CodeContextService';
+import type { CodeContextSnapshot } from '@/types/codeContext';
 import {
   borderRadiusMap,
   shadowMap,
@@ -666,7 +668,7 @@ ${context.features.map((f) => `- **${f}**`).join('\n')}
 /**
  * Truncate code to fit in context while preserving important parts
  */
-function truncateCodeForContext(code: string, maxLength: number = 8000): string {
+function truncateCodeForContext(code: string, maxLength: number = 32000): string {
   if (code.length <= maxLength) return code;
 
   // Try to parse as JSON (it might be a full app structure)
@@ -991,6 +993,95 @@ export class PhaseExecutionManager {
       // Remove from failed list
       this.plan.failedPhaseNumbers = this.plan.failedPhaseNumbers.filter((n) => n !== phaseNumber);
     }
+  }
+
+  // ==========================================================================
+  // CODE CONTEXT API INTEGRATION
+  // ==========================================================================
+
+  private codeContextService: CodeContextService | null = null;
+
+  /**
+   * Initialize the CodeContextService for enhanced context management
+   */
+  initializeCodeContext(): CodeContextService {
+    if (!this.codeContextService) {
+      const appType = this.plan.concept.technical.needsDatabase ? 'FULL_STACK' : 'FRONTEND_ONLY';
+      this.codeContextService = getCodeContextService(
+        this.plan.appName,
+        this.plan.appName,
+        appType
+      );
+
+      // Initialize with existing files
+      if (this.rawGeneratedFiles.length > 0) {
+        this.codeContextService.updateContext(this.rawGeneratedFiles, { incremental: false });
+      }
+    }
+    return this.codeContextService;
+  }
+
+  /**
+   * Get optimized context for a phase using CodeContextService
+   * Falls back to legacy getSmartCodeContext if service not initialized
+   */
+  async getOptimizedPhaseContext(
+    phaseNumber: number,
+    maxTokens: number = 16000
+  ): Promise<CodeContextSnapshot | null> {
+    if (!this.codeContextService) {
+      return null;
+    }
+
+    const phase = this.plan.phases.find((p) => p.number === phaseNumber);
+    if (!phase) {
+      return null;
+    }
+
+    // Update context with latest files
+    if (this.rawGeneratedFiles.length > 0) {
+      await this.codeContextService.updateContext(this.rawGeneratedFiles, {
+        incremental: true,
+        phaseNumber: phaseNumber - 1, // Mark files as from previous phase
+      });
+    }
+
+    // Get optimized context for this phase
+    return this.codeContextService.getPhaseContext(
+      phaseNumber,
+      phase.features,
+      maxTokens
+    );
+  }
+
+  /**
+   * Get context for modifying generated code
+   */
+  async getModificationContext(
+    targetFile: string,
+    changeDescription: string,
+    maxTokens: number = 16000
+  ): Promise<CodeContextSnapshot | null> {
+    if (!this.codeContextService) {
+      this.initializeCodeContext();
+    }
+
+    if (!this.codeContextService) {
+      return null;
+    }
+
+    return this.codeContextService.getModificationContext(
+      targetFile,
+      changeDescription,
+      maxTokens
+    );
+  }
+
+  /**
+   * Get the CodeContextService instance
+   */
+  getCodeContextService(): CodeContextService | null {
+    return this.codeContextService;
   }
 }
 

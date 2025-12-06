@@ -304,7 +304,7 @@ export interface PhaseGeneratorConfig {
  * Default configuration
  */
 export const DEFAULT_PHASE_GENERATOR_CONFIG: PhaseGeneratorConfig = {
-  maxTokensPerPhase: 8000,
+  maxTokensPerPhase: 16000,
   targetTokensPerPhase: 5000,
   maxFeaturesPerPhase: 4,
   minFeaturesPerPhase: 1,
