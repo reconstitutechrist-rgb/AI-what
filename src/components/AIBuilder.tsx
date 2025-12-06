@@ -1596,8 +1596,112 @@ export default function AIBuilder() {
 
       // Builder Expert: Check if we should trigger build/modify (ACT mode)
       if (currentMode === 'ACT' && data?.shouldTriggerBuild) {
-        // The builder expert decided this needs a full build - redirect to streaming
-        // For now, just show the response - user can confirm to build
+        // The builder expert decided this needs a full build - call streaming generation
+        const buildRequestBody: Record<string, unknown> = {
+          prompt: userInput,
+          conversationHistory: chatMessages.slice(-30),
+          isModification: false,
+          image: uploadedImage || undefined,
+          hasImage: !!uploadedImage,
+        };
+
+        const buildingMessage: ChatMessage = {
+          id: generateId(),
+          role: 'assistant',
+          content: "🔨 **Building your app...**\n\nI'm generating the code for your application.",
+          timestamp: new Date().toISOString(),
+        };
+        setChatMessages((prev) => [...prev, buildingMessage]);
+
+        const streamResult = await streaming.generate(buildRequestBody);
+
+        if (streamResult) {
+          const aiAppMessage: ChatMessage = {
+            id: generateId(),
+            role: 'assistant',
+            content: `🚀 App created!\n\n${streamResult.description || `I've created your ${streamResult.name} app!`}`,
+            timestamp: new Date().toISOString(),
+            componentCode: JSON.stringify(streamResult),
+            componentPreview: !!(streamResult.files as unknown[])?.length,
+          };
+          setChatMessages((prev) => [...prev, aiAppMessage]);
+
+          const files = streamResult.files as Array<{ path: string; content: string }>;
+          if (files && files.length > 0) {
+            let newComponent: GeneratedComponent = {
+              id: generateId(),
+              name: (streamResult.name as string) || extractComponentName(userInput),
+              code: JSON.stringify(streamResult, null, 2),
+              description: userInput,
+              timestamp: new Date().toISOString(),
+              isFavorite: false,
+              conversationHistory: [...chatMessages, userMessage, aiAppMessage],
+              versions: [],
+            };
+
+            newComponent = saveVersion(newComponent, 'NEW_APP', userInput);
+            setCurrentComponent(newComponent);
+            setComponents((prev) => [newComponent, ...prev].slice(0, 50));
+            saveComponentToDb(newComponent);
+            setActiveTab('preview');
+          }
+        }
+        return;
+      }
+
+      // Builder Expert: Check if we should trigger modify (ACT mode)
+      if (currentMode === 'ACT' && data?.shouldTriggerModify && currentComponent) {
+        const modifyRequestBody: Record<string, unknown> = {
+          prompt: userInput,
+          conversationHistory: chatMessages.slice(-30),
+          isModification: true,
+          currentAppName: currentComponent.name,
+          currentAppState: JSON.parse(currentComponent.code),
+          image: uploadedImage || undefined,
+          hasImage: !!uploadedImage,
+        };
+
+        const modifyingMessage: ChatMessage = {
+          id: generateId(),
+          role: 'assistant',
+          content: '🔧 **Updating your app...**',
+          timestamp: new Date().toISOString(),
+        };
+        setChatMessages((prev) => [...prev, modifyingMessage]);
+
+        const streamResult = await streaming.generate(modifyRequestBody);
+
+        if (streamResult) {
+          const aiAppMessage: ChatMessage = {
+            id: generateId(),
+            role: 'assistant',
+            content: `✅ App updated!\n\n${streamResult.description || 'Changes applied.'}`,
+            timestamp: new Date().toISOString(),
+            componentCode: JSON.stringify(streamResult),
+            componentPreview: !!(streamResult.files as unknown[])?.length,
+          };
+          setChatMessages((prev) => [...prev, aiAppMessage]);
+
+          const files = streamResult.files as Array<{ path: string; content: string }>;
+          if (files && files.length > 0) {
+            let updatedComponent: GeneratedComponent = {
+              ...currentComponent,
+              code: JSON.stringify(streamResult, null, 2),
+              description: userInput,
+              timestamp: new Date().toISOString(),
+              conversationHistory: [...chatMessages, userMessage, aiAppMessage],
+            };
+
+            updatedComponent = saveVersion(updatedComponent, 'MAJOR_CHANGE', userInput);
+            setCurrentComponent(updatedComponent);
+            setComponents((prev) =>
+              prev.map((c) => (c.id === currentComponent.id ? updatedComponent : c))
+            );
+            saveComponentToDb(updatedComponent);
+            setActiveTab('preview');
+          }
+        }
+        return;
       }
 
       // Handle diff response
