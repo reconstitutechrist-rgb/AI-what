@@ -100,16 +100,18 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
     }
   }, [selectedFile, appData]);
 
-  // Handle parse error
-  if (!appData) {
+  // Handle parse error or missing files
+  if (!appData || !appData.files || !Array.isArray(appData.files) || appData.files.length === 0) {
     return (
       <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-xl">
-        <p className="text-red-400">Error parsing app data</p>
+        <p className="text-red-400">
+          {!appData ? 'Error parsing app data' : 'No files found in app data'}
+        </p>
       </div>
     );
   }
 
-  const currentFile = appData.files?.find((f) => f.path === selectedFile);
+  const currentFile = appData.files.find((f) => f.path === selectedFile);
 
   // Fullscreen content that will be rendered via portal
   const fullscreenContent = (

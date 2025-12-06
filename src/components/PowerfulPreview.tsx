@@ -74,13 +74,15 @@ export default function PowerfulPreview({
     onCaptureReady?.(capturePreview);
   }, [capturePreview, onCaptureReady]);
 
-  // Handle parse error
-  if (!appData) {
+  // Handle parse error or missing files
+  if (!appData || !appData.files || !Array.isArray(appData.files) || appData.files.length === 0) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-slate-900">
         <div className="text-center p-6">
           <p className="text-red-400 mb-2">Failed to load preview</p>
-          <p className="text-slate-500 text-sm">Invalid app data format</p>
+          <p className="text-slate-500 text-sm">
+            {!appData ? 'Invalid app data format' : 'No files found in app data'}
+          </p>
         </div>
       </div>
     );
