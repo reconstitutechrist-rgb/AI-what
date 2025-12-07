@@ -26,6 +26,8 @@ export interface PhasedBuildPanelProps {
   onProceedToNextPhase: () => void;
   /** Optional: The dynamic phase plan for additional info display */
   dynamicPlan?: DynamicPhasePlan | null;
+  /** When true, renders inline without modal overlay */
+  isFullPage?: boolean;
 }
 
 export function PhasedBuildPanel({
@@ -48,18 +50,15 @@ export function PhasedBuildPanel({
   onExecuteCurrentPhase,
   onProceedToNextPhase,
   dynamicPlan,
+  isFullPage = false,
 }: PhasedBuildPanelProps) {
   if (!isOpen) return null;
 
-  return (
+  const content = (
     <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-20"
-      onClick={onClose}
+      className={`bg-slate-900 rounded-2xl border border-white/10 ${isFullPage ? 'w-full h-full max-h-full' : 'max-w-4xl w-full max-h-[80vh]'} overflow-hidden flex flex-col shadow-2xl`}
+      onClick={(e) => e.stopPropagation()}
     >
-      <div
-        className="bg-slate-900 rounded-2xl border border-white/10 max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
         {/* Panel Header */}
         <div className="px-6 py-4 border-b border-white/10 bg-gradient-to-r from-orange-500/10 to-amber-500/10">
           <div className="flex items-center justify-between">
@@ -153,6 +152,18 @@ export function PhasedBuildPanel({
           </div>
         </div>
       </div>
+  );
+
+  if (isFullPage) {
+    return content;
+  }
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-20"
+      onClick={onClose}
+    >
+      {content}
     </div>
   );
 }

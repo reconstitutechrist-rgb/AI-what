@@ -111,11 +111,17 @@ interface VersionControlSlice {
 }
 
 /**
+ * Main view type for tab navigation
+ */
+export type MainView = 'main' | 'wizard' | 'layout' | 'build';
+
+/**
  * UI state slice
  */
 interface UISlice {
   isClient: boolean;
   activeTab: ActiveTab;
+  activeView: MainView;
   // Modal visibility states
   showLibrary: boolean;
   showDiffPreview: boolean;
@@ -135,6 +141,7 @@ interface UISlice {
   // Actions
   setIsClient: (isClient: boolean) => void;
   setActiveTab: (tab: ActiveTab) => void;
+  setActiveView: (view: MainView) => void;
   setShowLibrary: (show: boolean) => void;
   setShowDiffPreview: (show: boolean) => void;
   setShowApprovalModal: (show: boolean) => void;
@@ -345,6 +352,7 @@ export const useAppStore = create<AppState>()(
       // ========================================================================
       isClient: false,
       activeTab: 'chat',
+      activeView: 'main',
       showLibrary: false,
       showDiffPreview: false,
       showApprovalModal: false,
@@ -362,6 +370,7 @@ export const useAppStore = create<AppState>()(
 
       setIsClient: (isClient) => set({ isClient }),
       setActiveTab: (tab) => set({ activeTab: tab }),
+      setActiveView: (view) => set({ activeView: view }),
       setShowLibrary: (show) => set({ showLibrary: show }),
       setShowDiffPreview: (show) => set({ showDiffPreview: show }),
       setShowApprovalModal: (show) => set({ showApprovalModal: show }),
@@ -533,6 +542,7 @@ export const useUIState = () =>
     useShallow((state) => ({
       isClient: state.isClient,
       activeTab: state.activeTab,
+      activeView: state.activeView,
       showLibrary: state.showLibrary,
       showDiffPreview: state.showDiffPreview,
       showApprovalModal: state.showApprovalModal,

@@ -85,6 +85,7 @@ interface NaturalConversationWizardProps {
   onComplete: (concept: AppConcept, phasePlan?: DynamicPhasePlan) => void;
   onCancel: () => void;
   initialConcept?: Partial<AppConcept>;
+  isFullPage?: boolean;
 }
 
 // ============================================================================
@@ -95,6 +96,7 @@ export default function NaturalConversationWizard({
   onComplete,
   onCancel,
   initialConcept,
+  isFullPage = false,
 }: NaturalConversationWizardProps) {
   // State
   const [messages, setMessages] = useState<Message[]>([]);
@@ -828,15 +830,11 @@ Does this look good? You can:
     );
   }
 
-  return (
+  const content = (
     <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={onCancel}
+      className={`flex w-full ${isFullPage ? 'h-full' : 'max-w-7xl h-[90vh]'} bg-slate-900 text-white ${isFullPage ? '' : 'rounded-2xl border border-white/10 shadow-2xl'} overflow-hidden`}
+      onClick={(e) => e.stopPropagation()}
     >
-      <div
-        className="flex w-full max-w-7xl h-[90vh] bg-slate-900 text-white rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col">
           {/* Header */}
@@ -1271,6 +1269,19 @@ Does this look good? You can:
           )}
         </div>
       </div>
+  );
+
+  // Return with or without modal wrapper based on isFullPage
+  if (isFullPage) {
+    return content;
+  }
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={onCancel}
+    >
+      {content}
     </div>
   );
 }

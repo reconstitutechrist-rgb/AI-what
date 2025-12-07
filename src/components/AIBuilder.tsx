@@ -26,6 +26,7 @@ import NaturalConversationWizard from './NaturalConversationWizard';
 import LayoutBuilderWizard from './LayoutBuilderWizard';
 import SettingsPage from './SettingsPage';
 import BuilderHeader from './BuilderHeader';
+import TabNavigation from './TabNavigation';
 
 // UI components
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from './ui';
@@ -231,6 +232,8 @@ export default function AIBuilder() {
     setShowLayoutBuilder,
     showAdvancedPhasedBuild,
     setShowAdvancedPhasedBuild,
+    activeView,
+    setActiveView,
     searchQuery,
     setSearchQuery,
 
@@ -1905,13 +1908,13 @@ export default function AIBuilder() {
             /* Could open help modal */
           }}
           onPlanApp={() => setShowConceptWizard(true)}
-          onWizard={() => setShowConversationalWizard(true)}
-          onLayoutBuilder={() => setShowLayoutBuilder(true)}
-          onPhasedBuild={handleStartAdvancedPhasedBuild}
+          onWizard={() => setActiveView('wizard')}
+          onLayoutBuilder={() => setActiveView('layout')}
+          onPhasedBuild={() => setActiveView('build')}
           hasAppConcept={!!appConcept}
-          isPhasedMode={showAdvancedPhasedBuild}
-          showPhasedBuildPanel={showAdvancedPhasedBuild}
-          onTogglePhasedPanel={() => setShowAdvancedPhasedBuild(!showAdvancedPhasedBuild)}
+          isPhasedMode={activeView === 'build'}
+          showPhasedBuildPanel={activeView === 'build'}
+          onTogglePhasedPanel={() => setActiveView(activeView === 'build' ? 'main' : 'build')}
           versionCount={currentComponent?.versions?.length || 0}
           onShowHistory={() => setShowVersionHistory(!showVersionHistory)}
           appCount={components.length}
@@ -1921,8 +1924,12 @@ export default function AIBuilder() {
           onNewApp={handleNewApp}
         />
 
-        {/* Main Content */}
-        <div className="max-w-[1800px] mx-auto px-4 py-4 h-[calc(100vh-80px)]">
+        {/* Tab Navigation */}
+        <TabNavigation />
+
+        {/* Main Content - Builder View */}
+        {activeView === 'main' && (
+        <div className="max-w-[1800px] mx-auto px-4 py-4 h-[calc(100vh-120px)]">
           <ResizablePanelGroup
             direction="horizontal"
             persistenceKey="ai-builder-layout"
@@ -1979,6 +1986,105 @@ export default function AIBuilder() {
             </ResizablePanel>
           </ResizablePanelGroup>
         </div>
+        )}
+
+        {/* Wizard View */}
+        {activeView === 'wizard' && (
+          <div className="h-[calc(100vh-120px)]">
+            <NaturalConversationWizard
+              onComplete={handleNaturalWizardComplete}
+              onCancel={() => setActiveView('main')}
+              isFullPage
+            />
+          </div>
+        )}
+
+        {/* Layout View */}
+        {activeView === 'layout' && (
+          <div className="h-[calc(100vh-120px)]">
+            <LayoutBuilderWizard
+              isOpen={true}
+              onClose={() => setActiveView('main')}
+              onApplyToAppConcept={() => {
+                // Optionally close the wizard or show a success message
+              }}
+              isFullPage
+            />
+          </div>
+        )}
+
+        {/* Build View */}
+        {activeView === 'build' && dynamicPhasePlan && (
+          <div className="h-[calc(100vh-120px)]">
+            <PhasedBuildPanel
+              isOpen={true}
+              onClose={() => setActiveView('main')}
+              phases={dynamicBuildPhases.uiPhases}
+              progress={dynamicBuildPhases.progress}
+              currentPhase={
+                dynamicBuildPhases.currentPhase
+                  ? dynamicBuildPhases.uiPhases.find(
+                      (p) => p.order === dynamicBuildPhases.currentPhase?.number
+                    ) || null
+                  : null
+              }
+              isBuilding={dynamicBuildPhases.isBuilding}
+              isPaused={dynamicBuildPhases.isPaused}
+              isValidating={isValidating}
+              onStartBuild={handleStartAdvancedPhasedBuild}
+              onPauseBuild={dynamicBuildPhases.pauseBuild}
+              onResumeBuild={dynamicBuildPhases.resumeBuild}
+              onSkipPhase={(phaseId) => {
+                const phase = dynamicBuildPhases.uiPhases.find((p) => p.id === phaseId);
+                if (phase) {
+                  dynamicBuildPhases.skipPhase(phase.order);
+                }
+              }}
+              onRetryPhase={(phaseId) => {
+                const phase = dynamicBuildPhases.uiPhases.find((p) => p.id === phaseId);
+                if (phase) {
+                  dynamicBuildPhases.retryPhase(phase.order);
+                }
+              }}
+              onViewPhaseDetails={handleViewPhaseDetails}
+              onRunValidation={handleRunValidation}
+              onResetBuild={dynamicBuildPhases.resetBuild}
+              onExecuteCurrentPhase={async () => {
+                const nextPhase = dynamicBuildPhases.getNextPhase();
+                if (nextPhase) {
+                  startDynamicPhasedBuild(nextPhase.number);
+                }
+              }}
+              onProceedToNextPhase={() => {
+                const nextPhase = dynamicBuildPhases.getNextPhase();
+                if (nextPhase) {
+                  startDynamicPhasedBuild(nextPhase.number);
+                }
+              }}
+              dynamicPlan={dynamicPhasePlan}
+              isFullPage
+            />
+          </div>
+        )}
+
+        {/* Build View - No Plan Yet */}
+        {activeView === 'build' && !dynamicPhasePlan && (
+          <div className="h-[calc(100vh-120px)] flex items-center justify-center">
+            <div className="text-center max-w-md">
+              <div className="text-6xl mb-4">🏗️</div>
+              <h2 className="text-2xl font-bold text-white mb-2">No Build Plan Yet</h2>
+              <p className="text-slate-400 mb-6">
+                Use the Wizard to create an app concept and generate a phased build plan first.
+              </p>
+              <button
+                onClick={() => setActiveView('wizard')}
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Start with Wizard
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Modals */}
         <LibraryModal

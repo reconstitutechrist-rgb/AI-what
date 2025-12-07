@@ -209,6 +209,7 @@ interface LayoutBuilderWizardProps {
   isOpen: boolean;
   onClose: () => void;
   onApplyToAppConcept?: () => void;
+  isFullPage?: boolean;
 }
 
 // ============================================================================
@@ -990,6 +991,7 @@ export function LayoutBuilderWizard({
   isOpen,
   onClose,
   onApplyToAppConcept,
+  isFullPage = false,
 }: LayoutBuilderWizardProps) {
   const {
     messages,
@@ -1453,9 +1455,8 @@ export function LayoutBuilderWizard({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div className="w-[95vw] h-[90vh] max-w-[1600px] bg-slate-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-700">
+  const content = (
+    <div className={`${isFullPage ? 'w-full h-full' : 'w-[95vw] h-[90vh] max-w-[1600px]'} bg-slate-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-700`}>
         {/* Draft recovery banner */}
         {hasDraftToRecover && (
           <DraftRecoveryBanner onRecover={recoverDraft} onDiscard={discardDraft} />
@@ -1939,7 +1940,10 @@ export function LayoutBuilderWizard({
           </div>
         </div>
       </div>
+  );
 
+  const dialogs = (
+    <>
       {/* Close confirmation dialog */}
       <ConfirmDialog
         isOpen={showCloseConfirm}
@@ -1978,6 +1982,22 @@ export function LayoutBuilderWizard({
 
       {/* Toast notifications */}
       <ToastContainer toasts={toasts} onDismiss={dismiss} position="top-right" />
+    </>
+  );
+
+  if (isFullPage) {
+    return (
+      <>
+        {content}
+        {dialogs}
+      </>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+      {content}
+      {dialogs}
     </div>
   );
 }
