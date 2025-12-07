@@ -1790,9 +1790,9 @@ export function LayoutBuilderWizard({
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 min-h-0 flex overflow-hidden">
         {/* Chat panel (left) */}
-        <div className="w-1/2 flex flex-col border-r border-slate-700 relative">
+        <div className="w-1/2 min-h-0 flex flex-col border-r border-slate-700 relative">
           {/* Template Picker Overlay */}
           <TemplatePicker
             isOpen={showTemplatePicker}
@@ -1891,7 +1891,7 @@ export function LayoutBuilderWizard({
         </div>
 
         {/* Preview panel (right) */}
-        <div className="w-1/2 flex flex-col bg-slate-950">
+        <div className="w-1/2 min-h-0 flex flex-col bg-slate-950">
           {/* Selected element indicator */}
           {selectedElement && (
             <div className="px-4 py-2 bg-blue-500/20 border-b border-blue-500/30 flex items-center justify-between">
@@ -1920,7 +1920,7 @@ export function LayoutBuilderWizard({
           </div>
 
           {/* Layout Preview */}
-          <div className="flex-1 p-4" id="layout-preview-container">
+          <div className="flex-1 min-h-0 overflow-y-auto p-4" id="layout-preview-container">
             <div id="layout-preview-frame" className="h-full">
               <LayoutPreview
                 preferences={previewPreferences}
