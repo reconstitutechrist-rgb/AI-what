@@ -164,7 +164,7 @@ export function PhaseDetailView({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 min-h-0 overflow-y-auto p-6">
           {activeTab === 'tasks' && (
             <div className="space-y-2">
               {phase.tasks.map((task) => (

@@ -1182,7 +1182,7 @@ function DashboardLayout({
             }}
           />
         )}
-        <main className={`flex-1 overflow-y-auto ${isMobile ? 'p-2' : 'p-4'}`}>
+        <main className={`flex-1 min-h-0 overflow-y-auto ${isMobile ? 'p-2' : 'p-4'}`}>
           <StatsRow
             stats={content.stats}
             colors={colors}
@@ -1259,7 +1259,7 @@ function MultiPageLayout({
         effectsSettings={effectsSettings}
         isMobile={isMobile}
       />
-      <main className={`flex-1 overflow-y-auto ${isMobile ? 'px-2' : ''}`}>
+      <main className={`flex-1 min-h-0 overflow-y-auto ${isMobile ? 'px-2' : ''}`}>
         <Hero
           title={content.hero.title}
           subtitle={content.hero.subtitle}
@@ -1338,7 +1338,7 @@ function SinglePageLayout({
         effectsSettings={effectsSettings}
         isMobile={isMobile}
       />
-      <main className={`flex-1 overflow-y-auto ${isMobile ? 'px-2' : ''}`}>
+      <main className={`flex-1 min-h-0 overflow-y-auto ${isMobile ? 'px-2' : ''}`}>
         <Hero
           title={content.hero.title}
           subtitle={content.hero.subtitle}

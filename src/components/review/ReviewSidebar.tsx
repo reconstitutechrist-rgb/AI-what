@@ -125,7 +125,7 @@ export default function ReviewSidebar({
       </div>
 
       {/* File List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {changes.length === 0 ? (
           <div className="p-4 text-center">
             <span className="text-4xl block mb-2">📭</span>

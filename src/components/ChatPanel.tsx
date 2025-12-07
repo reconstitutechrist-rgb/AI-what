@@ -189,7 +189,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       </div>
 
       {/* Chat Messages */}
-      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div ref={chatContainerRef} className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4">
         {/* Phase Progress Display */}
         {stagePlan && stagePlan.phases && stagePlan.phases.length > 0 && (
           <PhaseProgressCard

@@ -133,7 +133,7 @@ export function CodeQualityReport({
         </div>
 
         {/* Modal Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 min-h-0 overflow-y-auto p-6">
           {isAnalyzing ? (
             <div className="flex flex-col items-center justify-center py-16">
               <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-4" />

@@ -931,7 +931,7 @@ export function SettingsPage({ isOpen, onClose, initialSection = 'general' }: Se
           </nav>
 
           {/* Main Content */}
-          <div className="flex-1 overflow-y-auto p-6">{renderSectionContent()}</div>
+          <div className="flex-1 min-h-0 overflow-y-auto p-6">{renderSectionContent()}</div>
         </div>
       </div>
     </div>

@@ -863,7 +863,7 @@ Does this look good? You can:
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-4">
             {/* Load older messages button - shown when windowing is active */}
             {!showAllMessages && messages.length > MAX_VISIBLE_MESSAGES && (
               <div className="flex justify-center">
@@ -1127,7 +1127,7 @@ Does this look good? You can:
             </p>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
             {/* App Name */}
             <div>
               <label className="text-xs text-slate-400 uppercase tracking-wide">App Name</label>

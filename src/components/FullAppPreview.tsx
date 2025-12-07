@@ -229,7 +229,7 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
             </div>
 
             {/* Code viewer */}
-            <div className="flex-1 overflow-auto">
+            <div className="flex-1 min-h-0 overflow-auto">
               {currentFile ? (
                 <div className="h-full">
                   <div className="sticky top-0 bg-black/40 backdrop-blur-sm px-4 py-2 border-b border-white/10 flex items-center justify-between">

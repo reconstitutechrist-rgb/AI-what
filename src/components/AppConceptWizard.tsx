@@ -1085,7 +1085,7 @@ export function AppConceptWizard({ onComplete, onCancel, initialConcept }: AppCo
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">{renderStepContent()}</div>
+        <div className="flex-1 min-h-0 overflow-y-auto p-6">{renderStepContent()}</div>
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-white/10 bg-black/20 flex items-center justify-between">

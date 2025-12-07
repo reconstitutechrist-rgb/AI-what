@@ -64,7 +64,7 @@ export function VersionHistoryModal({
         </div>
 
         {/* Version List */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 min-h-0 overflow-y-auto p-6">
           <div className="space-y-3">
             {[...currentComponent.versions].reverse().map((version, idx) => {
               const isCurrentVersion = idx === 0;
