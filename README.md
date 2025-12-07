@@ -1,439 +1,355 @@
-# 🤖 AI App Builder
+# AI App Builder
 
 > Build complete web applications through natural conversation with AI. Plan, design, and generate production-ready React apps powered by Claude AI.
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-15.5-black)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-blue)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.2-blue)](https://www.typescriptlang.org/)
-[![Supabase](https://img.shields.io/badge/Supabase-Ready-green)](https://supabase.com/)
+[![Railway](https://img.shields.io/badge/Railway-Deployed-blueviolet)](https://railway.app/)
+[![Supabase](https://img.shields.io/badge/Supabase-Backend-green)](https://supabase.com/)
 
 ---
 
-## ✨ Features
+## Features
 
-### 🎯 Dual-Mode AI System
-- **💭 PLAN Mode**: Discuss and design your app without generating code
-  - Brainstorm features and architecture
-  - Refine requirements through conversation
-  - Create detailed implementation plans
-- **⚡ ACT Mode**: Generate and modify working applications
-  - Real-time code generation
-  - Surgical code modifications
-  - Context-aware changes
+### Dual-Mode AI System
+- **PLAN Mode**: Discuss and design your app without generating code - brainstorm features, refine requirements, create implementation plans
+- **ACT Mode**: Generate and modify working applications with real-time code generation and context-aware changes
 
-### 🧙‍♂️ Guided App Creation
-- **Interactive Wizards**: Step-by-step app planning with AI assistance
-- **State Persistence**: Wizard state persists through browser refresh and navigation
-- **Smart Conversations**: Natural language understanding of requirements
-- **Rich Concept Preservation**: App concepts and details preserved throughout the generation pipeline
-- **Template Suggestions**: AI recommends the best starting point
+### AI-Powered Generation
+- **Claude Sonnet 4.5** with extended thinking for intelligent code generation
+- **Streaming responses** with real-time file progress tracking
+- **Full-stack support** for both frontend-only and full-stack applications
+- **Token budget management** for complex multi-file apps
+- **Automatic code validation** with syntax checking and auto-fixing
 
-### 🏗️ Phased Building System
-- **AI-Powered Scope Detection**: Intelligent analysis determines optimal phases dynamically
-- **Dynamic Phase Generation**: AI creates custom phases based on app complexity and requirements
-- Break complex apps into manageable phases
-- Context-aware phase execution
-- Build incrementally with dependencies
-- **Synchronized Progress Tracking**: Real-time sync between chat panel and stage plan
-- Track progress across phases
+### Dynamic Phase Building
+- **AI-powered scope detection** analyzes requirements and generates 2-25+ optimal phases
+- **Dependency detection** between phases with sequential execution
+- **Context accumulation** across phases for coherent multi-phase builds
+- **Smart code context service** with 48KB window optimization per phase
+- **Test criteria generation** per phase
 
-### ⚡ Real-Time Generation
-- **Streaming Code Generation**: Watch your app come to life
-- **Live Progress Tracking**: See each file as it's created
-- **Instant Preview**: Test components immediately
-- **Sandpack Integration**: Interactive code playground
+### App Concept Wizard
+- 6-step guided creation: Template → Basic Info → Features → Design → Technical → Review
+- Feature library with pre-defined templates
+- Auto-save with draft persistence
+- Rich concept preservation through the entire generation pipeline
 
-### 🔄 Advanced Version Control
-- **Automatic History**: Every change saved automatically
-- **Undo/Redo**: One-click rollback to any state
-- **Fork Versions**: Create variations without losing originals
-- **Compare Versions**: Side-by-side diff viewer
-- **Smart Rollback**: Revert to any previous version
+### Layout Builder
+- Visual layout design with AI feedback
+- **Vision capabilities** - Claude can see and critique your designs via screenshots
+- Design token management and export
+- Export formats: CSS Variables, Tailwind Config, Figma Tokens, React components
+- Version history for design changes
 
-### 🎨 Pre-Built Templates
-Choose from 6 production-ready templates:
-- **Blog**: Content-focused with dynamic routing
-- **CRUD App**: Full database operations
-- **Dashboard**: Analytics and data visualization
-- **E-commerce**: Product catalog and shopping cart
-- **Landing Page**: Marketing and conversion optimized
-- **SaaS Platform**: Multi-page application structure
+### DALL-E 3 Image Generation
+- Hero images, card thumbnails, and background patterns
+- Design context-aware prompts
+- Batch processing with rate limiting
+- Caching for repeated generations
 
-### 🔍 Intelligent Code Modifications
-- **Diff-Based Editing**: Review changes before applying
-- **Approval Workflow**: Accept or reject modifications
-- **Impact Analysis**: Understand effects before committing
-- **AST Parsing**: Surgical code changes with Tree-sitter
+### Surgical Code Modifications
+- **AST-based editing** using Tree-sitter for precise changes
+- Diff-based modification tracking with approval workflow
+- Impact analysis with risk assessment and breaking change detection
+- Context-aware editing that preserves existing functionality
 
-### 📁 Cloud Storage Integration
-- **File Management**: Upload and organize project assets
-- **Supabase Storage**: Secure cloud file storage
-- **Analytics**: Track storage usage and file statistics
-- **Bulk Operations**: Delete multiple files at once
+### Version Control & Rollback
+- Automatic version snapshots on every change
+- One-click rollback to any previous state
+- Fork versions without losing originals
+- Side-by-side diff comparison
 
-### 📦 Export & Deployment
-- **Download as ZIP**: Get complete project files
-- **Deployment Guides**: Instructions for Vercel, Netlify, etc.
-- **Production Ready**: Optimized code with best practices
-- **One-Click Export**: Package entire application instantly
+### Real-Time Preview
+- **Sandpack integration** for interactive code playground
+- Live code execution with instant feedback
+- Error boundaries with graceful fallbacks
 
-### 🔐 Authentication & Security
-- **Supabase Auth**: Secure user authentication
-- **Protected Routes**: Middleware-based route protection
-- **User Isolation**: Each user's apps are private
-- **Session Management**: Persistent login state
+### Cloud Storage
+- Supabase file storage integration
+- Storage analytics and quota tracking
+- Bulk operations and file categorization
+
+### Authentication
+- Supabase auth with session management
+- Protected routes via middleware
+- User isolation - each user's apps are private
 
 ---
 
-## 🚀 Quick Start
+## Tech Stack
+
+### Frontend
+- **Next.js 15** - App Router with streaming SSR
+- **React 19** - Latest features including Server Components
+- **TypeScript** - Full type safety
+- **Tailwind CSS** - Utility-first styling
+- **Zustand** - Lightweight state management
+
+### Backend & Database
+- **Next.js API Routes** - Serverless endpoints with SSE streaming
+- **Supabase** - PostgreSQL, Auth, File Storage, Real-time
+
+### AI Integration
+- **Anthropic Claude** - Sonnet 4.5 with extended thinking
+- **OpenAI DALL-E 3** - Image generation
+- **js-tiktoken** - Token counting and budget management
+
+### Developer Tools
+- **Tree-sitter** - AST parsing for surgical code edits
+- **Sandpack** - Live code preview
+- **Puppeteer** - Screenshot generation
+- **Jest** - Testing framework
+- **ESLint + Prettier** - Code quality
+- **Husky + lint-staged** - Pre-commit hooks
+
+---
+
+## Quick Start
 
 ### Prerequisites
-
-- **Node.js** 18.0 or higher
-- **npm** or **yarn**
-- **Supabase** account (free tier works)
-- **Anthropic API** key (Claude)
+- Node.js 18+
+- Anthropic API key
+- Supabase account
+- OpenAI API key (optional, for image generation)
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/takk387/AI-app.git
-   cd AI-app
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/takk387/AI-app.git
+cd AI-app
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
-   
-   Create a `.env.local` file in the root directory:
-   
-   ```env
-   # Anthropic API
-   ANTHROPIC_API_KEY=your_anthropic_api_key_here
-   
-   # Supabase
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-   
-   # Optional: App Configuration
-   NEXT_PUBLIC_APP_URL=http://localhost:3000
-   ```
-
-4. **Set up Supabase**
-   
-   Run the migrations in your Supabase project:
-   ```bash
-   # The migrations are in supabase/migrations/
-   # Apply them through Supabase dashboard or CLI
-   ```
-
-5. **Run development server**
-   ```bash
-   npm run dev
-   ```
-
-6. **Open your browser**
-   
-   Navigate to [http://localhost:3000](http://localhost:3000)
-
----
-
-## 🎯 How to Use
-
-### Getting Started
-
-1. **Start a Conversation**
-   - Click "New App" to begin
-   - Describe what you want to build in natural language
-   - Use the image upload to share design inspiration
-
-2. **Choose Your Approach**
-   
-   **Option A: Quick Build**
-   - Describe your app
-   - Switch to ACT Mode
-   - Type "build it" and let AI generate everything
-   
-   **Option B: Use Wizards** 🧙‍♂️
-   - Click "Wizard" button
-   - Answer guided questions
-   - Get a structured plan
-   - Build in phases
-   
-   **Option C: Detailed Planning**
-   - Stay in PLAN Mode
-   - Discuss features and architecture
-   - Refine requirements
-   - Then switch to ACT Mode to build
-
-### PLAN Mode vs ACT Mode
-
-| Mode | Purpose | AI Behavior |
-|------|---------|-------------|
-| **💭 PLAN** | Discussion & Design | Answers questions, suggests features, creates plans |
-| **⚡ ACT** | Code Generation | Generates working code, modifies apps, implements features |
-
-**Tip**: Always start in PLAN Mode to design, then switch to ACT Mode to build.
-
-### Building in Phases
-
-1. Use the **Wizard** to create a phased build plan
-2. **AI-powered scope detection** analyzes your requirements and generates 3-7 optimal phases
-3. **Dynamic phase planning** adapts to your specific app complexity and architecture
-4. Build one phase at a time for better control with **synchronized progress tracking**
-5. Each phase includes context from previous phases with **rich concept preservation**
-
-### Modifying Existing Apps
-
-1. Load an app from "My Apps"
-2. Switch to ACT Mode
-3. Describe your changes
-4. Review the diff preview
-5. Approve or reject modifications
-
-### Version Control
-
-- **Undo/Redo**: Use buttons in the preview panel
-- **History**: Click "History" to view all versions
-- **Fork**: Create a copy to experiment safely
-- **Compare**: View differences between versions
-
----
-
-## 🛠️ Tech Stack
-
-### Frontend
-- **[Next.js 15](https://nextjs.org/)** - React framework with App Router
-- **[React 19](https://react.dev/)** - UI library with latest features
-- **[TypeScript](https://www.typescriptlang.org/)** - Type-safe JavaScript
-- **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first styling
-- **[Zustand](https://zustand-demo.pmnd.rs/)** - Lightweight state management
-
-### Backend & Database
-- **Next.js API Routes** - Serverless backend
-- **[Supabase](https://supabase.com/)** - Backend-as-a-Service
-  - PostgreSQL database
-  - Authentication
-  - File storage
-  - Real-time subscriptions
-
-### AI Integration
-- **[Anthropic Claude](https://www.anthropic.com/)** - AI code generation
-  - Claude 3.5 Sonnet for complex reasoning
-  - Streaming responses for real-time feedback
-  - Extended context for full-app generation
-
-### Developer Tools
-- **[Tree-sitter](https://tree-sitter.github.io/tree-sitter/)** - Code parsing and AST manipulation
-- **[Sandpack](https://sandpack.codesandbox.io/)** - Live code preview and execution
-- **[Jest](https://jestjs.io/)** - Testing framework
-- **[JSZip](https://stuk.github.io/jszip/)** - App export functionality
-
----
-
-## 📂 Project Structure
-
+# Install dependencies
+npm install
 ```
-AI-APP-BUILDER/
-├── src/
-│   ├── app/                      # Next.js App Router
-│   │   ├── api/                  # API Routes
-│   │   │   ├── ai-builder/      # Main AI endpoints
-│   │   │   ├── chat/            # Chat API
-│   │   │   ├── auth/            # Authentication
-│   │   │   └── wizard/          # Wizard endpoints
-│   │   ├── login/               # Login page
-│   │   ├── signup/              # Signup page
-│   │   └── page.tsx             # Home page
-│   │
-│   ├── components/              # React components
-│   │   ├── AIBuilder.tsx        # Main orchestrator
-│   │   ├── ChatPanel.tsx        # Chat interface
-│   │   ├── PreviewPanel.tsx     # Code preview
-│   │   ├── modals/              # Modal dialogs
-│   │   ├── build/               # Build system UI
-│   │   ├── review/              # Code review UI
-│   │   └── storage/             # File storage UI
-│   │
-│   ├── hooks/                   # Custom React hooks
-│   │   ├── useBuildPhases.ts   # Phase management
-│   │   ├── useVersionControl.ts # Version history
-│   │   ├── useDatabaseSync.ts  # Supabase sync
-│   │   └── useStreamingGeneration.ts # Streaming AI
-│   │
-│   ├── services/                # Business logic
-│   │   ├── PhaseOrchestrator.ts        # Phase coordination
-│   │   ├── PhaseExecutionManager.ts    # Phase execution
-│   │   ├── DynamicPhaseGenerator.ts    # AI-powered scope detection and phase planning
-│   │   ├── ImpactAnalyzer.ts          # Change analysis
-│   │   ├── RollbackService.ts         # Version rollback
-│   │   └── StorageService.ts          # File management
-│   │
-│   ├── types/                   # TypeScript types
-│   ├── utils/                   # Utility functions
-│   ├── prompts/                 # AI prompts
-│   ├── data/templates/          # App templates
-│   ├── contexts/                # React contexts
-│   └── store/                   # Zustand stores
-│
-├── supabase/                    # Supabase configuration
-│   └── migrations/              # Database migrations
-│
-├── tests/                       # Test files
-├── docs/                        # Documentation
-└── public/                      # Static assets
-```
-
----
-
-## 🔧 Configuration
 
 ### Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `ANTHROPIC_API_KEY` | Your Anthropic API key | ✅ Yes |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | ✅ Yes |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key | ✅ Yes |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key | ✅ Yes |
-| `NEXT_PUBLIC_APP_URL` | Your app URL | ❌ No (defaults to localhost) |
+Create `.env.local`:
 
-### Getting API Keys
+```env
+# Anthropic API (required)
+ANTHROPIC_API_KEY=your_anthropic_api_key
 
-**Anthropic API Key:**
-1. Sign up at [console.anthropic.com](https://console.anthropic.com/)
-2. Navigate to API Keys
-3. Create a new key
-4. Copy and add to `.env.local`
+# Supabase (required)
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-**Supabase Setup:**
-1. Create project at [supabase.com](https://supabase.com/)
-2. Go to Settings > API
-3. Copy URL and keys
-4. Apply database migrations from `supabase/migrations/`
+# OpenAI (optional - for DALL-E image generation)
+OPENAI_API_KEY=your_openai_api_key
 
----
-
-## 🧪 Testing
-
-Run the test suite:
-
-```bash
-# Run all tests
-npm test
-
-# Run specific test suites
-npm run test:validator    # Code validation tests
-npm run test:retry        # Retry logic tests
-npm run test:integration  # Integration tests
-
-# Run all tests including integration
-npm run test:all
+# App URL
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
+### Run Development Server
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000)
+
 ---
 
-## 📤 Deployment
+## Deployment (Railway)
 
-### Deploy to Vercel (Recommended)
+### Deploy to Railway
 
 1. **Push to GitHub**
    ```bash
    git push origin main
    ```
 
-2. **Import to Vercel**
-   - Go to [vercel.com](https://vercel.com/)
-   - Click "New Project"
-   - Import your GitHub repository
+2. **Create Railway Project**
+   - Go to [railway.app](https://railway.app/)
+   - Click "New Project" → "Deploy from GitHub repo"
+   - Select your repository
 
 3. **Add Environment Variables**
+   - In Railway dashboard, go to your service → Variables
    - Add all variables from `.env.local`
-   - Deploy
+   - Set `NEXT_PUBLIC_APP_URL` to your Railway URL
 
-4. **Configure Supabase**
-   - Update `NEXT_PUBLIC_APP_URL` with your Vercel URL
-   - Add Vercel URL to Supabase allowed origins
+4. **Configure Build**
+   - Railway auto-detects Next.js
+   - Build command: `npm run build`
+   - Start command: `npm start`
 
-### Other Platforms
+5. **Update Supabase**
+   - Add your Railway URL to Supabase Auth allowed redirect URLs
+   - Settings → Authentication → URL Configuration
 
-The app can be deployed to any platform supporting Next.js:
-- **Netlify**: Use `next export` for static export
-- **Railway**: Direct deployment with build commands
-- **DigitalOcean**: App Platform supports Next.js
-- **AWS Amplify**: Full Next.js support
-
----
-
-## 🎨 Customization
-
-### Adding New Templates
-
-1. Create a new file in `src/data/templates/`
-2. Follow the template structure:
-   ```typescript
-   export const myTemplate = {
-     id: 'my-template',
-     name: 'My Template',
-     description: 'Description here',
-     tags: ['tag1', 'tag2'],
-     // ... more config
-   };
-   ```
-3. Export from `src/data/templates/index.ts`
-
-### Modifying AI Prompts
-
-AI prompts are located in `src/prompts/`:
-- `builder.ts` - Main builder prompts
-- `phasePrompts.ts` - Phase-specific prompts
-- `wizardSystemPrompt.ts` - Wizard conversation prompts
-
-### Customizing UI Theme
-
-Edit `src/app/globals.css` for global styles or use the built-in theme toggle for light/dark modes.
+### Railway Features
+- Automatic deployments on push
+- Built-in SSL certificates
+- Web Application Firewall protection
+- Auto-scaling and monitoring
 
 ---
 
-## 🤝 Contributing
+## Usage
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+### Quick Build
+1. Click "New App"
+2. Describe what you want to build
+3. Switch to ACT Mode
+4. Type "build it"
+
+### Guided Wizard
+1. Click "Wizard" button
+2. Follow the 6-step guided flow
+3. Review your app concept
+4. Build in phases
+
+### Modify Existing Apps
+1. Load an app from "My Apps"
+2. Switch to ACT Mode
+3. Describe your changes
+4. Review the diff preview
+5. Approve or reject
+
+### PLAN vs ACT Mode
+
+| Mode | Purpose |
+|------|---------|
+| **PLAN** | Discussion, brainstorming, architecture planning |
+| **ACT** | Code generation, modifications, building |
+
+---
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── api/
+│   │   ├── ai-builder/    # Main AI generation endpoints
+│   │   ├── images/        # DALL-E image generation
+│   │   ├── wizard/        # Wizard & phase planning
+│   │   ├── layout/        # Layout builder chat
+│   │   ├── builder/       # Builder expert chat
+│   │   └── auth/          # Authentication
+│   ├── login/
+│   └── signup/
+├── components/
+│   ├── AIBuilder.tsx      # Main orchestrator
+│   ├── ChatPanel.tsx      # Chat interface
+│   ├── PreviewPanel.tsx   # Code preview
+│   ├── wizards/           # Wizard components
+│   ├── build/             # Build system UI
+│   ├── review/            # Diff review UI
+│   └── modals/            # Modal dialogs
+├── services/
+│   ├── PhaseExecutionManager.ts
+│   ├── DynamicPhaseGenerator.ts
+│   ├── CodeContextService.ts
+│   ├── ImpactAnalyzer.ts
+│   ├── RollbackService.ts
+│   └── AppImageGenerator.ts
+├── hooks/                  # Custom React hooks
+├── store/                  # Zustand stores
+├── prompts/                # AI system prompts
+├── types/                  # TypeScript definitions
+└── utils/                  # Utilities
+```
+
+---
+
+## Testing
+
+```bash
+# Run all tests
+npm run test:all
+
+# Unit tests
+npm run test:unit
+
+# Hook tests
+npm run test:hooks
+
+# Service tests
+npm run test:services
+
+# Integration tests
+npm run test:integration
+
+# Watch mode
+npm run test:watch
+```
+
+---
+
+## API Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `/api/ai-builder` | Single component generation |
+| `/api/ai-builder/full-app-stream` | Full app generation with SSE |
+| `/api/ai-builder/modify` | Surgical code modifications |
+| `/api/ai-builder/apply-diff` | Apply diff changes |
+| `/api/wizard/generate-phases` | Dynamic phase planning |
+| `/api/wizard/chat` | Planning conversations |
+| `/api/layout/chat` | Layout builder with vision |
+| `/api/builder/chat` | ACT mode expert chat |
+| `/api/images/generate` | DALL-E 3 image generation |
+| `/api/embeddings` | Text embeddings |
+
+---
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ANTHROPIC_API_KEY` | Yes | Claude API key |
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key |
+| `OPENAI_API_KEY` | No | For DALL-E image generation |
+| `NEXT_PUBLIC_APP_URL` | No | App URL (defaults to localhost) |
+
+### Debug Mode
+
+```bash
+# Run with debug panels
+npm run dev:debug
+
+# Run with mock AI (no API calls)
+npm run dev:mock
+```
+
+---
+
+## Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
+2. Create a feature branch (`git checkout -b feature/name`)
+3. Commit changes (`git commit -m 'Add feature'`)
+4. Push to branch (`git push origin feature/name`)
 5. Open a Pull Request
 
 ---
 
-## 📝 License
+## License
 
-This project is part of a private repository. Please contact the repository owner for licensing information.
-
----
-
-## 🙏 Acknowledgments
-
-- **Anthropic** for Claude AI
-- **Supabase** for backend infrastructure
-- **Vercel** for Next.js framework
-- **CodeSandbox** for Sandpack live preview
+Private repository. Contact the owner for licensing information.
 
 ---
 
-## 📧 Support
+## Acknowledgments
 
-For questions or issues:
-- Open an issue on GitHub
-- Check the [User Guide](docs/USER_GUIDE.md)
+- [Anthropic](https://anthropic.com/) - Claude AI
+- [OpenAI](https://openai.com/) - DALL-E 3
+- [Supabase](https://supabase.com/) - Backend infrastructure
+- [Railway](https://railway.app/) - Deployment platform
+- [Vercel](https://vercel.com/) - Next.js framework
+- [CodeSandbox](https://codesandbox.io/) - Sandpack preview
 
 ---
 
-**Built with ❤️ using Next.js, React, and Claude AI**
-
+**Built with Next.js, React, and Claude AI**
