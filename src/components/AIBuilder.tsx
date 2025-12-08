@@ -781,14 +781,17 @@ export default function AIBuilder() {
         };
         setNewAppStagePlan(stagePlan);
 
-        // Show phase plan message
+        // Show phase plan message with optional design system indicator
+        const designSystemInfo = concept.layoutDesign
+          ? `\n🎨 **Design System:** Using "${concept.layoutDesign.name || 'Custom Layout'}" - exact colors, typography & styles will be applied\n`
+          : '';
         const planMessage: ChatMessage = {
           id: generateId(),
           role: 'assistant',
           content:
             `🎯 **${phasePlan.totalPhases}-Phase Build Plan Created for "${concept.name}"**\n\n` +
             `**Complexity:** ${phasePlan.complexity}\n` +
-            `**Estimated Time:** ${phasePlan.estimatedTotalTime}\n\n` +
+            `**Estimated Time:** ${phasePlan.estimatedTotalTime}${designSystemInfo}\n\n` +
             phasePlan.phases
               .map((p) => `**Phase ${p.number}: ${p.name}** (${p.estimatedTime})\n${p.description}`)
               .join('\n\n') +
@@ -798,6 +801,9 @@ export default function AIBuilder() {
         setChatMessages((prev) => [...prev, planMessage]);
       } else {
         // No phase plan, just show concept created message
+        const designInfo = concept.layoutDesign
+          ? `\n🎨 **Design System:** Using "${concept.layoutDesign.name || 'Custom Layout'}"\n`
+          : '';
         const welcomeMessage: ChatMessage = {
           id: generateId(),
           role: 'assistant',
@@ -805,7 +811,7 @@ export default function AIBuilder() {
             `✨ **App Concept Created: "${concept.name}"**\n\n` +
             `**Description:** ${concept.description}\n\n` +
             `**Target Users:** ${concept.targetUsers}\n\n` +
-            `**Features:** ${concept.coreFeatures.length} defined\n\n` +
+            `**Features:** ${concept.coreFeatures.length} defined${designInfo}\n\n` +
             `I'm now generating your implementation plan...`,
           timestamp: new Date().toISOString(),
         };
@@ -1612,6 +1618,8 @@ export default function AIBuilder() {
           isModification: false,
           image: uploadedImage || undefined,
           hasImage: !!uploadedImage,
+          // Include layout design from app concept for design system integration
+          layoutDesign: appConcept?.layoutDesign || undefined,
         };
 
         const buildingMessage: ChatMessage = {
@@ -1668,6 +1676,8 @@ export default function AIBuilder() {
           currentAppState: JSON.parse(currentComponent.code),
           image: uploadedImage || undefined,
           hasImage: !!uploadedImage,
+          // Include layout design from app concept for design system integration
+          layoutDesign: appConcept?.layoutDesign || undefined,
         };
 
         const modifyingMessage: ChatMessage = {

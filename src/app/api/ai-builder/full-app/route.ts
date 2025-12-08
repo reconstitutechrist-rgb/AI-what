@@ -16,6 +16,7 @@ import {
 } from './generation-logic';
 import { isMockAIEnabled, mockFullAppResponse } from '@/utils/mockAI';
 import { logAPI } from '@/utils/debug';
+import { generateDesignFilesArray } from '@/utils/designSystemGenerator';
 
 // Vercel serverless function config
 export const maxDuration = 60; // 60 seconds max
@@ -152,7 +153,8 @@ MODIFICATION MODE for "${currentAppName}":
 }${currentAppContext}`;
 
     // Build compressed prompt using modular sections from src/prompts/
-    const systemPrompt = buildFullAppPrompt(baseInstructions, hasImage, isModification);
+    // Pass layoutDesign to inject design tokens into the prompt
+    const systemPrompt = buildFullAppPrompt(baseInstructions, hasImage, isModification, layoutDesign);
     const estimatedPromptTokens = Math.round(systemPrompt.length / 4);
 
     perfTracker.checkpoint('prompt_built');
@@ -358,7 +360,7 @@ MODIFICATION MODE for "${currentAppName}":
     const appType = result.appType;
     const changeType = result.changeType;
     const changeSummary = result.changeSummary;
-    const files = result.files;
+    let files = result.files;
     const dependencies = result.dependencies;
     const setupInstructions = result.setupInstructions;
     const responseText = result.responseText;
@@ -366,6 +368,30 @@ MODIFICATION MODE for "${currentAppName}":
     const totalErrors = result.totalErrors;
     const autoFixedCount = result.autoFixedCount;
     const images = result.images;
+
+    // Inject design system files if layoutDesign is provided
+    if (layoutDesign) {
+      const designFiles = generateDesignFilesArray(layoutDesign);
+      // Merge design files with generated files, replacing any existing globals.css or tailwind.config
+      const existingPaths = new Set(files.map((f: { path: string }) => f.path));
+      const filesToAdd = designFiles.filter((df) => !existingPaths.has(df.path));
+      const filesToReplace = designFiles.filter((df) => existingPaths.has(df.path));
+
+      // Replace existing files with design system versions
+      files = files.map((f: { path: string; content: string; description?: string }) => {
+        const replacement = filesToReplace.find((df) => df.path === f.path);
+        if (replacement) {
+          return { ...f, content: replacement.content, description: `Design system: ${f.path}` };
+        }
+        return f;
+      });
+
+      // Add new design files
+      files = [
+        ...filesToAdd.map((df) => ({ path: df.path, content: df.content, description: `Design system: ${df.path}` })),
+        ...files,
+      ];
+    }
 
     const validationWarnings =
       validationErrors.length > 0

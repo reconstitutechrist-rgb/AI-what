@@ -15,7 +15,9 @@ import {
   PerformanceTracker,
 } from '@/utils/analytics';
 import { type StreamEvent, formatSSE, type CompleteEvent } from '@/types/streaming';
-import { detectTruncation, getTokenBudget, type PhaseContext } from '../full-app/generation-logic';
+import { detectTruncation, getTokenBudget, type PhaseContext, type Phase } from '../full-app/generation-logic';
+import { generateDesignFilesArray } from '@/utils/designSystemGenerator';
+import type { LayoutDesign } from '@/types/layoutDesign';
 
 // Vercel serverless function config
 export const maxDuration = 60;
@@ -98,7 +100,26 @@ export async function POST(request: Request) {
         isPhaseBuilding,
         phaseContext: rawPhaseContext,
         currentAppState,
-      } = requestBody;
+        layoutDesign,
+      } = requestBody as {
+        prompt: string;
+        conversationHistory?: Array<{ role: string; content: string }>;
+        isModification?: boolean;
+        currentAppName?: string;
+        image?: string;
+        hasImage?: boolean;
+        isPhaseBuilding?: boolean;
+        phaseContext?: {
+          phaseNumber?: number;
+          phaseName?: string;
+          previousPhaseCode?: string | null;
+          allPhases?: Phase[];
+          completedPhases?: number[];
+          cumulativeFeatures?: string[];
+        };
+        currentAppState?: { name?: string; appType?: string; files?: Array<{ path: string; content: string }> };
+        layoutDesign?: LayoutDesign;
+      };
 
       perfTracker.checkpoint('request_parsed');
 
@@ -185,7 +206,7 @@ MODIFICATION MODE for "${currentAppName}":
     : ''
 }${currentAppContext}`;
 
-      const systemPrompt = buildFullAppPrompt(baseInstructions, hasImage, isModification);
+      const systemPrompt = buildFullAppPrompt(baseInstructions, hasImage, isModification, layoutDesign);
       perfTracker.checkpoint('prompt_built');
 
       // Build conversation context
@@ -549,6 +570,35 @@ MODIFICATION MODE for "${currentAppName}":
       }
 
       perfTracker.checkpoint('validation_complete');
+
+      // Inject design system files if layoutDesign is provided
+      if (layoutDesign) {
+        const designFiles = generateDesignFilesArray(layoutDesign);
+        const existingPaths = new Set(files.map((f) => f.path));
+        const filesToAdd = designFiles.filter((df) => !existingPaths.has(df.path));
+        const filesToReplace = designFiles.filter((df) => existingPaths.has(df.path));
+
+        // Replace existing files with design system versions
+        for (let i = 0; i < files.length; i++) {
+          const replacement = filesToReplace.find((df) => df.path === files[i].path);
+          if (replacement) {
+            files[i] = {
+              ...files[i],
+              content: replacement.content,
+              description: `Design system: ${files[i].path}`,
+            };
+          }
+        }
+
+        // Add new design files at the beginning
+        files.unshift(
+          ...filesToAdd.map((df) => ({
+            path: df.path,
+            content: df.content,
+            description: `Design system: ${df.path}`,
+          }))
+        );
+      }
 
       // Parse dependencies
       const dependencies: Record<string, string> = {};

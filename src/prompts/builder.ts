@@ -10,6 +10,8 @@ import { MODIFICATION_EXAMPLES } from './modify/examples-compressed';
 import { FRONTEND_RULES_COMPRESSED } from './full-app/frontend-rules-compressed';
 import { FULLSTACK_RULES_COMPRESSED } from './full-app/fullstack-rules-compressed';
 import { FULLAPP_EXAMPLES_COMPRESSED } from './full-app/examples-compressed';
+import { buildDesignTokenPrompt } from './designTokenPrompt';
+import type { LayoutDesign } from '@/types/layoutDesign';
 
 /**
  * Accuracy guidelines included in all builder prompts
@@ -52,12 +54,13 @@ CRITICAL REMINDERS:
 
 /**
  * Build system prompt for full-app route
- * Combines: base rules + frontend + fullstack + examples
+ * Combines: base rules + frontend + fullstack + examples + design tokens
  */
 export function buildFullAppPrompt(
   baseInstructions: string,
   includeImageContext: boolean = false,
-  isModification: boolean = false
+  isModification: boolean = false,
+  layoutDesign?: LayoutDesign
 ): string {
   const imageContext = includeImageContext
     ? `
@@ -77,9 +80,23 @@ MODIFICATION MODE:
 `.trim()
     : '';
 
+  // Build design token instructions if layoutDesign is provided
+  const designTokenContext = layoutDesign
+    ? `
+${buildDesignTokenPrompt(layoutDesign)}
+
+⚠️ DESIGN SYSTEM ENFORCEMENT:
+- A globals.css file with CSS variables will be auto-generated
+- Use var(--color-*), var(--border-radius), var(--shadow) in ALL components
+- Do NOT use hardcoded Tailwind colors like bg-blue-500 or text-gray-900
+- Use bg-[var(--color-primary)], text-[var(--color-text)], etc.
+`
+    : '';
+
   return `${baseInstructions}
 ${imageContext}
 ${modificationContext ? '\n' + modificationContext + '\n' : ''}
+${designTokenContext}
 
 ${ACCURACY_GUIDELINES}
 
@@ -99,7 +116,7 @@ ${FULLAPP_EXAMPLES_COMPRESSED}
 
 REMEMBER:
 - Complete code (never truncate mid-line/tag/string)
-- Tailwind CSS for styling
+- ${layoutDesign ? 'Use CSS variables from design system (var(--color-*), etc.)' : 'Tailwind CSS for styling'}
 - Include setup instructions
 `.trim();
 }

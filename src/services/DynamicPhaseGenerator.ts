@@ -673,11 +673,12 @@ export class DynamicPhaseGenerator {
         'No console errors',
       ],
       status: 'pending',
-      // Include concept context for execution
+      // Include concept context for execution (including layoutDesign for design-aware styling)
       conceptContext: {
         purpose: concept.purpose,
         targetUsers: concept.targetUsers,
         uiPreferences: concept.uiPreferences,
+        layoutDesign: concept.layoutDesign, // Include layout design for setup phase
         roles: concept.roles,
       },
     };
@@ -835,11 +836,12 @@ export class DynamicPhaseGenerator {
         'No console warnings or errors',
       ],
       status: 'pending',
-      // Include full concept context
+      // Include full concept context (including layoutDesign for design-aware animations)
       conceptContext: {
         purpose: concept.purpose,
         targetUsers: concept.targetUsers,
         uiPreferences: concept.uiPreferences,
+        layoutDesign: concept.layoutDesign, // Include layout design for polish animations
         roles: concept.roles,
         conversationContext: concept.conversationContext,
       },
@@ -890,12 +892,13 @@ export class DynamicPhaseGenerator {
       dependencyNames: [],
       testCriteria: this.generateTestCriteria(features, domain),
       status: 'pending',
-      // Include concept context if available
+      // Include concept context if available (including layoutDesign for design-aware styling)
       conceptContext: concept
         ? {
             purpose: concept.purpose,
             targetUsers: concept.targetUsers,
             uiPreferences: concept.uiPreferences,
+            layoutDesign: concept.layoutDesign, // CRITICAL: Include layout design for all phases
             roles: concept.roles,
             dataModels: concept.technical.dataModels,
           }

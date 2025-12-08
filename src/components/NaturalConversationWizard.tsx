@@ -23,8 +23,10 @@ import type {
   UserRole,
 } from '@/types/appConcept';
 import type { DynamicPhasePlan } from '@/types/dynamicPhases';
+import type { LayoutDesign } from '@/types/layoutDesign';
 import { useToast } from '@/components/Toast';
-import { WandIcon, ImageIcon, SendIcon, XIcon, LoaderIcon, SaveIcon } from './ui/Icons';
+import { WandIcon, ImageIcon, SendIcon, XIcon, LoaderIcon, SaveIcon, PaletteIcon } from './ui/Icons';
+import { useAppStore } from '@/store/useAppStore';
 import {
   WIZARD_DRAFT_KEYS,
   saveWizardDraft,
@@ -120,6 +122,12 @@ export default function NaturalConversationWizard({
   const [draftAge, setDraftAge] = useState<string>('');
   const [isInitialized, setIsInitialized] = useState(false);
   const [showAllMessages, setShowAllMessages] = useState(false);
+  const [importedLayoutDesign, setImportedLayoutDesign] = useState<LayoutDesign | null>(
+    initialConcept?.layoutDesign || null
+  );
+
+  // Get current layout design from store
+  const currentLayoutDesign = useAppStore((state) => state.currentLayoutDesign);
 
   // Message windowing - limit rendered messages for performance
   const MAX_VISIBLE_MESSAGES = 100;
@@ -605,7 +613,13 @@ What would you like to build?`,
     } finally {
       setIsGeneratingPhases(false);
     }
-  }, [wizardState, showToast]);
+  }, [
+    wizardState,
+    showToast,
+    convertRolesToUserRoles,
+    extractWorkflowsFromConversation,
+    buildConversationContext,
+  ]);
 
   // Auto-trigger phase generation when ready
   useEffect(() => {
@@ -678,6 +692,8 @@ Does this look good? You can:
               workflows: extractWorkflowsFromConversation(),
               // Preserve full conversation context for detail retention
               conversationContext: buildConversationContext(),
+              // Include imported layout design for pixel-perfect styling
+              layoutDesign: importedLayoutDesign || undefined,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             };
@@ -704,7 +720,18 @@ Does this look good? You can:
           break;
       }
     },
-    [generatePhases, phasePlan, wizardState, onComplete, sendMessage, clearDrafts]
+    [
+      generatePhases,
+      phasePlan,
+      wizardState,
+      onComplete,
+      sendMessage,
+      clearDrafts,
+      convertRolesToUserRoles,
+      extractWorkflowsFromConversation,
+      buildConversationContext,
+      importedLayoutDesign,
+    ]
   );
 
   // ============================================================================
@@ -827,9 +854,40 @@ Does this look good? You can:
               </p>
             </div>
           </div>
-          <button onClick={onCancel} className="btn-ghost text-sm">
-            Cancel
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Import Layout Design Button */}
+            {currentLayoutDesign && !importedLayoutDesign && (
+              <button
+                onClick={() => {
+                  setImportedLayoutDesign(currentLayoutDesign);
+                  showToast({ type: 'success', message: 'Layout design imported! Your app will use these exact styles.' });
+                }}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 rounded-lg border border-purple-500/30 transition-colors"
+              >
+                <PaletteIcon size={16} />
+                Import Layout
+              </button>
+            )}
+            {/* Show imported layout indicator */}
+            {importedLayoutDesign && (
+              <div className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-600/20 text-green-300 rounded-lg border border-green-500/30">
+                <PaletteIcon size={16} />
+                <span>{importedLayoutDesign.name || 'Layout'}</span>
+                <button
+                  onClick={() => {
+                    setImportedLayoutDesign(null);
+                    showToast({ type: 'info', message: 'Layout design removed' });
+                  }}
+                  className="ml-1 hover:text-green-100"
+                >
+                  <XIcon size={14} />
+                </button>
+              </div>
+            )}
+            <button onClick={onCancel} className="btn-ghost text-sm">
+              Cancel
+            </button>
+          </div>
         </div>
 
         {/* Messages */}

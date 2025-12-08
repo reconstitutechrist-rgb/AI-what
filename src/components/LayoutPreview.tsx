@@ -133,6 +133,10 @@ interface LayoutPreviewProps {
   sectionOrder?: LayoutSection[];
   /** Callback when sections are reordered */
   onSectionOrderChange?: (sections: LayoutSection[]) => void;
+  /** Show 12-column grid overlay for alignment */
+  showGridOverlay?: boolean;
+  /** Callback when grid overlay is toggled */
+  onGridOverlayToggle?: (show: boolean) => void;
 }
 
 /**
@@ -1364,11 +1368,42 @@ export function LayoutPreview({
   enableDragDrop = false,
   sectionOrder: externalSectionOrder,
   onSectionOrderChange,
+  showGridOverlay: externalShowGridOverlay,
+  onGridOverlayToggle,
 }: LayoutPreviewProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('desktop');
   const [isAnimationDemo, setIsAnimationDemo] = useState(false);
   const [animationDemoIndex, setAnimationDemoIndex] = useState(0);
   const [showSectionPanel, setShowSectionPanel] = useState(false);
+  const [internalShowGridOverlay, setInternalShowGridOverlay] = useState(false);
+
+  // Use external grid overlay state if provided, otherwise use internal
+  const showGridOverlay = externalShowGridOverlay ?? internalShowGridOverlay;
+
+  // Toggle grid overlay handler
+  const toggleGridOverlay = useCallback(() => {
+    if (onGridOverlayToggle) {
+      onGridOverlayToggle(!showGridOverlay);
+    } else {
+      setInternalShowGridOverlay(!showGridOverlay);
+    }
+  }, [showGridOverlay, onGridOverlayToggle]);
+
+  // Keyboard shortcut for grid overlay (G key)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only trigger if not in an input field
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (e.key === 'g' || e.key === 'G') {
+        toggleGridOverlay();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleGridOverlay]);
 
   // Image generation state
   const [generatedImages, setGeneratedImages] = useState<GeneratedImages>({ cards: [] });
@@ -1815,6 +1850,34 @@ export function LayoutPreview({
               )}
             </button>
 
+            {/* Grid Overlay Toggle */}
+            <button
+              type="button"
+              onClick={toggleGridOverlay}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                showGridOverlay
+                  ? 'bg-cyan-600 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:text-white'
+              }`}
+              title={showGridOverlay ? 'Hide grid overlay (G)' : 'Show grid overlay (G)'}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M4 9h16M4 15h16M9 4v16M15 4v16"
+                />
+              </svg>
+              Grid
+            </button>
+
             {/* Section Order Panel Toggle */}
             {enableDragDrop && (
               <button
@@ -1995,7 +2058,7 @@ export function LayoutPreview({
           </div>
         )}
         <div
-          className="bg-white rounded-lg overflow-hidden shadow-2xl transition-all duration-300"
+          className="bg-white rounded-lg overflow-hidden shadow-2xl transition-all duration-300 relative"
           style={{
             width: dimensions.width,
             height: dimensions.height,
@@ -2004,6 +2067,26 @@ export function LayoutPreview({
           }}
         >
           {renderLayout()}
+
+          {/* 12-Column Grid Overlay */}
+          {showGridOverlay && (
+            <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden">
+              <div className="h-full w-full max-w-full px-4">
+                <div className="h-full grid grid-cols-12 gap-2">
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-full bg-cyan-500/10 border-x border-cyan-500/20"
+                    />
+                  ))}
+                </div>
+              </div>
+              {/* Grid Overlay Label */}
+              <div className="absolute bottom-2 right-2 bg-cyan-600/90 text-white text-xs px-2 py-1 rounded">
+                12-column grid
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

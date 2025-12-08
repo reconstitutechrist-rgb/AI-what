@@ -857,6 +857,7 @@ export class PhaseExecutionManager {
         purpose: concept.purpose,
         targetUsers: concept.targetUsers,
         uiPreferences: concept.uiPreferences,
+        layoutDesign: concept.layoutDesign, // CRITICAL: Include layout design for code generation
         roles: concept.roles,
         conversationContext: concept.conversationContext,
         dataModels: concept.technical.dataModels,

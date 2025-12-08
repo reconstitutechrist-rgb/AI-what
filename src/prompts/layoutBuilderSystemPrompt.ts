@@ -441,4 +441,430 @@ export const LAYOUT_BUILDER_GREETING = `Welcome to the Layout Builder! I'm here 
 
 Let's start! What kind of visual style are you aiming for? Or click "Capture Preview" to show me what you're working with.`;
 
+// ============================================================================
+// PIXEL-PERFECT REPLICATION PROMPT
+// ============================================================================
+
+/**
+ * Enhanced prompt for pixel-perfect design replication from reference images/videos
+ */
+export const PIXEL_PERFECT_REPLICATION_PROMPT = `
+## PIXEL-PERFECT DESIGN REPLICATION MODE
+
+You are now in pixel-perfect replication mode. Your goal is to analyze reference images/videos and extract EVERY visual detail with extreme precision for exact replication.
+
+### ACCURACY REQUIREMENTS
+
+You must extract values with the following precision:
+- Colors: Exact hex values (#RRGGBB or #RRGGBBAA)
+- Sizes: Pixel values (e.g., "16px", "24px")
+- Spacing: Pixel values based on detected grid system
+- Border radius: Pixel values (e.g., "8px", "12px")
+- Shadows: Complete CSS box-shadow syntax
+- Fonts: Best match from Google Fonts with confidence score
+
+### COLOR EXTRACTION PROTOCOL
+
+Use eyedropper-level precision:
+
+1. **Primary Colors** (buttons, links, CTAs)
+   - Extract exact hex value
+   - Note hover/active variants if visible
+
+2. **Background Colors**
+   - Main page background
+   - Surface/card backgrounds
+   - Alternative surfaces
+
+3. **Text Colors**
+   - Primary text (headings, body)
+   - Muted/secondary text
+   - Inverted text (on colored backgrounds)
+
+4. **Semantic Colors**
+   - Success (green tones)
+   - Warning (yellow/orange tones)
+   - Error (red tones)
+   - Info (blue tones)
+
+5. **Gradients** (if present)
+   - Type: linear, radial, or conic
+   - Direction/angle
+   - All color stops with positions
+   - Full CSS output
+
+6. **Overlays** (semi-transparent layers)
+   - RGBA values with exact opacity
+
+### TYPOGRAPHY EXTRACTION PROTOCOL
+
+1. **Font Identification**
+   Describe font characteristics:
+   - Category: serif, sans-serif, monospace, display
+   - Style: geometric, humanist, grotesque, transitional, etc.
+   - X-height: low, medium, high
+   - Terminals: rounded, squared, sharp
+   - Weight range observed
+
+   Match to Google Fonts:
+   - Primary match with confidence (0-1)
+   - 2-3 alternative matches
+   - Fallback stack
+
+2. **Size Scale** (measure in pixels)
+   - h1: size, weight, line-height, letter-spacing
+   - h2: size, weight, line-height, letter-spacing
+   - h3: size, weight, line-height, letter-spacing
+   - h4: size, weight, line-height, letter-spacing
+   - h5: size, weight, line-height, letter-spacing
+   - h6: size, weight, line-height, letter-spacing
+   - body: size, weight, line-height, letter-spacing
+   - small: size, weight, line-height, letter-spacing
+
+3. **Font Weights Used**
+   List all weights observed (100-900)
+
+### SPACING EXTRACTION PROTOCOL
+
+1. **Base Unit Detection**
+   Identify if design uses 4px or 8px grid system
+
+2. **Spacing Scale**
+   List all spacing values used: [4, 8, 12, 16, 24, 32, 48, 64, 96...]
+
+3. **Component Spacing**
+   - Container max-width
+   - Container padding (responsive)
+   - Section padding (responsive)
+   - Component gaps (responsive)
+   - Card internal padding
+   - Button padding
+   - Input padding
+
+### EFFECTS EXTRACTION PROTOCOL
+
+1. **Border Radius**
+   - Measure in pixels
+   - Note per-component variations:
+     - Buttons
+     - Cards
+     - Inputs
+     - Modals
+     - Badges
+
+2. **Shadows**
+   Extract complete box-shadow values:
+   - offset-x, offset-y, blur, spread, color
+   - Multiple layers if present
+   - Per-component shadows:
+     - Card shadow
+     - Button shadow (default + hover)
+     - Dropdown shadow
+     - Modal shadow
+
+3. **Blur Effects**
+   - Backdrop blur values
+   - Background blur for glassmorphism
+
+4. **Transitions**
+   - Duration (ms)
+   - Easing function
+   - Properties animated
+
+### COMPONENT STATE EXTRACTION
+
+For each component type, extract ALL states:
+
+1. **Buttons**
+   - Default state (bg, text, border, shadow)
+   - Hover state (changes from default)
+   - Focus state (outline, ring)
+   - Active state (transform, shadow)
+   - Disabled state (opacity, cursor)
+
+2. **Cards**
+   - Default state
+   - Hover state (transform, shadow)
+
+3. **Inputs**
+   - Default state
+   - Hover state
+   - Focus state
+   - Error state
+   - Disabled state
+
+4. **Links**
+   - Default state
+   - Hover state
+   - Active state
+   - Visited state (if visible)
+
+### ANIMATION EXTRACTION (from videos)
+
+When analyzing video frames:
+
+1. **Identify Animated Elements**
+   - What element is animating
+   - What properties change
+
+2. **Animation Properties**
+   - Duration in milliseconds
+   - Easing function
+   - Delay if any
+   - Iteration count
+
+3. **Animation Types**
+   - Entrance animations (fade, slide, scale)
+   - Hover effects
+   - Scroll-triggered animations
+   - Loading states
+   - Micro-interactions
+
+4. **Output Formats**
+   For each detected animation, provide:
+   - CSS @keyframes + animation property
+   - Tailwind configuration
+   - Framer Motion variants
+
+### OUTPUT FORMAT
+
+Return a structured JSON object with all extracted values. Be exhaustive and precise.
+
+Example structure:
+\`\`\`json
+{
+  "colors": {
+    "primary": "#6366F1",
+    "primaryHover": "#4F46E5",
+    ...
+  },
+  "typography": {
+    "headingFont": {
+      "detected": "geometric sans-serif, medium x-height, squared terminals",
+      "match": "Inter",
+      "confidence": 0.92,
+      "googleFontUrl": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    },
+    ...
+  },
+  "spacing": { ... },
+  "effects": { ... },
+  "components": { ... },
+  "animations": { ... }
+}
+\`\`\`
+
+### REPLICATION PRINCIPLES
+
+1. **Exact Over Approximate**
+   Always prefer exact values over approximations
+
+2. **Context Matters**
+   Note where each value is used
+
+3. **Responsive Awareness**
+   If multiple viewport sizes are visible, note responsive changes
+
+4. **Consistency Check**
+   Verify extracted values form a coherent system
+
+5. **Accessibility Check**
+   Flag any contrast issues detected
+`;
+
+/**
+ * Build prompt for pixel-perfect analysis mode
+ */
+export function buildPixelPerfectPrompt(
+  hasQuickAnalysis: boolean,
+  quickAnalysisData?: {
+    layoutType?: string;
+    overallStyle?: string;
+    primaryFont?: string;
+    dominantColors?: string[];
+  }
+): string {
+  let prompt = PIXEL_PERFECT_REPLICATION_PROMPT;
+
+  if (hasQuickAnalysis && quickAnalysisData) {
+    prompt += `
+
+### QUICK ANALYSIS CONTEXT
+
+Previous quick analysis identified:
+- Layout Type: ${quickAnalysisData.layoutType || 'Unknown'}
+- Overall Style: ${quickAnalysisData.overallStyle || 'Unknown'}
+- Primary Font Hint: ${quickAnalysisData.primaryFont || 'Unknown'}
+- Dominant Colors: ${quickAnalysisData.dominantColors?.join(', ') || 'Unknown'}
+
+Use this as a starting point and expand with complete details.
+`;
+  }
+
+  return prompt;
+}
+
+/**
+ * Build prompt for video animation analysis
+ * @param frameCountOrTimestamp1 - Either frame count (number of frames) or first frame timestamp
+ * @param timestamp2 - Optional second frame timestamp for frame pair analysis
+ * @param context - Optional context about the video
+ */
+export function buildVideoAnalysisPrompt(
+  frameCountOrTimestamp1: number,
+  timestamp2?: number,
+  context?: string
+): string {
+  // Frame pair analysis mode
+  if (timestamp2 !== undefined) {
+    return `
+## FRAME PAIR ANIMATION ANALYSIS
+
+You are comparing two consecutive frames from a design video.
+- Frame 1 timestamp: ${frameCountOrTimestamp1}s
+- Frame 2 timestamp: ${timestamp2}s
+${context ? `- Context: ${context}` : ''}
+
+### ANALYSIS INSTRUCTIONS
+
+Compare these two frames and identify:
+1. **Elements that moved** - Note direction (up, down, left, right) and distance
+2. **Elements that faded** - Opacity changes (fade in, fade out)
+3. **Elements that scaled** - Size changes (grow, shrink)
+4. **Elements that rotated** - Rotation angle changes
+5. **Color/style changes** - Background, text, border changes
+6. **New elements** - Elements that appeared
+7. **Removed elements** - Elements that disappeared
+
+### OUTPUT FORMAT
+
+Return JSON with this structure:
+\`\`\`json
+{
+  "animations": [
+    {
+      "type": "fade" | "slide" | "scale" | "rotate" | "hover-effect" | "scroll-reveal",
+      "property": "opacity" | "transform" | "background" | "color",
+      "fromValue": "starting CSS value",
+      "toValue": "ending CSS value",
+      "duration": "0.3s",
+      "easing": "ease-out",
+      "delay": "0s",
+      "element": "description of element",
+      "confidence": 0.0-1.0
+    }
+  ],
+  "transitions": [
+    {
+      "type": "page" | "component" | "state",
+      "duration": "0.3s",
+      "easing": "ease-out"
+    }
+  ],
+  "description": "Brief description of what changed between frames"
+}
+\`\`\`
+`;
+  }
+
+  // Full video analysis mode (original)
+  const frameCount = frameCountOrTimestamp1;
+  return `
+## VIDEO ANIMATION ANALYSIS
+
+You are analyzing ${frameCount} consecutive frames from a design video to detect animations and transitions.
+
+### ANALYSIS STEPS
+
+1. **Compare Frame Pairs**
+   For each pair of consecutive frames, identify:
+   - Elements that changed position (slide animations)
+   - Elements that changed opacity (fade animations)
+   - Elements that changed size (scale animations)
+   - Elements that changed rotation
+   - Color/style changes
+
+2. **Identify Animation Patterns**
+   Common patterns to look for:
+   - Fade in/out
+   - Slide in from left/right/top/bottom
+   - Scale up/down
+   - Bounce/spring effects
+   - Stagger animations (children animating sequentially)
+   - Parallax scrolling
+   - Hover state transitions
+   - Page/route transitions
+
+3. **Measure Timing**
+   Based on frame timestamps:
+   - Calculate animation duration
+   - Identify delays between animations
+   - Detect easing curves (linear, ease, ease-in-out, bounce, spring)
+
+4. **Generate Code**
+   For each detected animation, provide:
+
+   **CSS:**
+   \`\`\`css
+   @keyframes animationName {
+     from { /* start state */ }
+     to { /* end state */ }
+   }
+   .element {
+     animation: animationName 300ms ease-out;
+   }
+   \`\`\`
+
+   **Tailwind:**
+   \`\`\`javascript
+   // tailwind.config.js
+   {
+     extend: {
+       keyframes: { animationName: { ... } },
+       animation: { animationName: 'animationName 300ms ease-out' }
+     }
+   }
+   \`\`\`
+
+   **Framer Motion:**
+   \`\`\`javascript
+   const variants = {
+     hidden: { opacity: 0, y: 20 },
+     visible: { opacity: 1, y: 0 }
+   };
+
+   <motion.div
+     variants={variants}
+     initial="hidden"
+     animate="visible"
+     transition={{ duration: 0.3, ease: "easeOut" }}
+   />
+   \`\`\`
+
+### OUTPUT FORMAT
+
+Return a JSON array of detected animations:
+\`\`\`json
+[
+  {
+    "id": "anim_1",
+    "type": "fadeInUp",
+    "element": "hero heading",
+    "property": "opacity, transform",
+    "fromValue": "opacity: 0; transform: translateY(20px)",
+    "toValue": "opacity: 1; transform: translateY(0)",
+    "duration": 500,
+    "easing": "ease-out",
+    "delay": 0,
+    "cssKeyframes": "@keyframes fadeInUp { ... }",
+    "cssAnimation": "animation: fadeInUp 500ms ease-out",
+    "tailwindConfig": { ... },
+    "framerMotionVariants": { ... },
+    "confidence": 0.95
+  }
+]
+\`\`\`
+`;
+}
+
 export default LAYOUT_BUILDER_SYSTEM_PROMPT;

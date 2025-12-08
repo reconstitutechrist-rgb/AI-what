@@ -7,8 +7,16 @@
  * Provides sliders and toggles for spacing, effects, colors, and component visibility.
  */
 
-import React, { useState } from 'react';
-import type { EffectsSettings, ColorSettings } from '@/types/layoutDesign';
+import React, { useState, useMemo } from 'react';
+import type { EffectsSettings, ColorSettings, TypographySettings, SpacingSettings, LayoutDesign, ButtonSpec } from '@/types/layoutDesign';
+import { checkContrast } from '@/utils/colorHarmony';
+import { TypographyPanel } from './TypographyPanel';
+import { SpacingPanel } from './SpacingPanel';
+import { AccessibilityPanel } from './AccessibilityPanel';
+import { ComponentStateEditor } from './ComponentStateEditor';
+import { ButtonDesigner } from './ButtonDesigner';
+import { LinkDesigner } from './LinkDesigner';
+import type { LinkSpec } from '@/hooks/useComponentStates';
 
 // ============================================================================
 // TYPES
@@ -34,6 +42,22 @@ interface DesignControlPanelProps {
   componentVisibility?: ComponentVisibility;
   onVisibilityChange?: (visibility: ComponentVisibility) => void;
   className?: string;
+  // Typography panel props
+  typographySettings?: Partial<TypographySettings>;
+  onTypographyChange?: (typography: Partial<TypographySettings>) => void;
+  // Spacing panel props
+  spacingSettings?: Partial<SpacingSettings>;
+  onSpacingChange?: (spacing: Partial<SpacingSettings>) => void;
+  showGridOverlay?: boolean;
+  onGridOverlayToggle?: (show: boolean) => void;
+  // Accessibility panel props
+  layoutDesign?: LayoutDesign;
+  onAccessibilityFix?: (fixes: Partial<ColorSettings>) => void;
+  // Component design props
+  buttonSpecs?: ButtonSpec[];
+  onButtonSpecsChange?: (buttons: ButtonSpec[]) => void;
+  linkSpecs?: LinkSpec[];
+  onLinkSpecsChange?: (links: LinkSpec[]) => void;
 }
 
 // ============================================================================
@@ -213,6 +237,44 @@ function Toggle({
   );
 }
 
+/**
+ * Contrast badge component for WCAG compliance indication
+ */
+function ContrastBadge({
+  foreground,
+  background,
+}: {
+  foreground?: string;
+  background?: string;
+}) {
+  const result = useMemo(() => {
+    if (!foreground || !background) return null;
+    try {
+      return checkContrast(foreground, background);
+    } catch {
+      return null;
+    }
+  }, [foreground, background]);
+
+  if (!result) return null;
+
+  const getBadgeColor = () => {
+    if (result.passesAAA) return 'bg-green-500/20 text-green-400 border-green-500/30';
+    if (result.passesAA) return 'bg-lime-500/20 text-lime-400 border-lime-500/30';
+    if (result.passesAALarge) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+    return 'bg-red-500/20 text-red-400 border-red-500/30';
+  };
+
+  return (
+    <span
+      className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${getBadgeColor()}`}
+      title={`Contrast ratio: ${result.ratio.toFixed(2)}:1 - ${result.level}`}
+    >
+      {result.ratio.toFixed(1)}:1 {result.level}
+    </span>
+  );
+}
+
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
@@ -227,13 +289,30 @@ export function DesignControlPanel({
   componentVisibility,
   onVisibilityChange,
   className = '',
+  typographySettings,
+  onTypographyChange,
+  spacingSettings,
+  onSpacingChange,
+  showGridOverlay,
+  onGridOverlayToggle,
+  layoutDesign,
+  onAccessibilityFix,
+  buttonSpecs,
+  onButtonSpecsChange,
+  linkSpecs,
+  onLinkSpecsChange,
 }: DesignControlPanelProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [openSections, setOpenSections] = useState({
     components: false,
     effects: true,
     colors: false,
+    typography: false,
+    spacing: false,
+    accessibility: false,
+    componentDesign: false,
   });
+  const [componentDesignTab, setComponentDesignTab] = useState<'states' | 'buttons' | 'links'>('buttons');
 
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections((prev) => ({
@@ -411,14 +490,23 @@ export function DesignControlPanel({
             isOpen={openSections.colors}
             onToggle={() => toggleSection('colors')}
           >
-            <ColorPicker
-              label="Primary"
-              value={primaryColor || colorSettings?.primary}
-              onChange={(v) => {
-                onPrimaryColorChange?.(v);
-                handleColorSettingChange('primary', v);
-              }}
-            />
+            {/* Primary color with contrast check against white */}
+            <div className="space-y-1">
+              <ColorPicker
+                label="Primary"
+                value={primaryColor || colorSettings?.primary}
+                onChange={(v) => {
+                  onPrimaryColorChange?.(v);
+                  handleColorSettingChange('primary', v);
+                }}
+              />
+              <div className="flex justify-end">
+                <ContrastBadge
+                  foreground="#FFFFFF"
+                  background={primaryColor || colorSettings?.primary}
+                />
+              </div>
+            </div>
 
             <ColorPicker
               label="Secondary"
@@ -431,6 +519,31 @@ export function DesignControlPanel({
               value={colorSettings?.accent}
               onChange={(v) => handleColorSettingChange('accent', v)}
             />
+
+            {/* Text and Background Colors with Contrast Check */}
+            <div className="border-t border-slate-700 pt-2 mt-2">
+              <div className="text-xs text-slate-500 mb-2">Text & Background</div>
+
+              <div className="space-y-1">
+                <ColorPicker
+                  label="Text"
+                  value={colorSettings?.text || '#1F2937'}
+                  onChange={(v) => handleColorSettingChange('text', v)}
+                />
+                <ColorPicker
+                  label="Background"
+                  value={colorSettings?.background || '#FFFFFF'}
+                  onChange={(v) => handleColorSettingChange('background', v)}
+                />
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-500">Text/BG Contrast:</span>
+                  <ContrastBadge
+                    foreground={colorSettings?.text || '#1F2937'}
+                    background={colorSettings?.background || '#FFFFFF'}
+                  />
+                </div>
+              </div>
+            </div>
 
             <div className="border-t border-slate-700 pt-2 mt-2">
               <div className="text-xs text-slate-500 mb-2">Status Colors</div>
@@ -460,6 +573,109 @@ export function DesignControlPanel({
               />
             </div>
           </Section>
+
+          {/* Typography Section */}
+          {onTypographyChange && (
+            <Section
+              title="Typography"
+              isOpen={openSections.typography}
+              onToggle={() => toggleSection('typography')}
+            >
+              <TypographyPanel
+                typography={typographySettings || {}}
+                onChange={onTypographyChange}
+              />
+            </Section>
+          )}
+
+          {/* Spacing Section */}
+          {onSpacingChange && (
+            <Section
+              title="Spacing"
+              isOpen={openSections.spacing}
+              onToggle={() => toggleSection('spacing')}
+            >
+              <SpacingPanel
+                spacing={spacingSettings || {}}
+                onChange={onSpacingChange}
+                showGridOverlay={showGridOverlay}
+                onGridOverlayToggle={onGridOverlayToggle}
+              />
+            </Section>
+          )}
+
+          {/* Accessibility Section */}
+          {layoutDesign && (
+            <Section
+              title="Accessibility"
+              isOpen={openSections.accessibility}
+              onToggle={() => toggleSection('accessibility')}
+            >
+              <AccessibilityPanel
+                design={layoutDesign}
+                onAutoFix={onAccessibilityFix}
+              />
+            </Section>
+          )}
+
+          {/* Component Design Section */}
+          {(onButtonSpecsChange || onLinkSpecsChange) && (
+            <Section
+              title="Component Design"
+              isOpen={openSections.componentDesign}
+              onToggle={() => toggleSection('componentDesign')}
+            >
+              {/* Tab Selector */}
+              <div className="flex gap-1 bg-slate-800 p-0.5 rounded-md mb-3">
+                <button
+                  type="button"
+                  onClick={() => setComponentDesignTab('states')}
+                  className={`flex-1 px-2 py-1 text-xs rounded transition-all ${
+                    componentDesignTab === 'states' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  States
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setComponentDesignTab('buttons')}
+                  className={`flex-1 px-2 py-1 text-xs rounded transition-all ${
+                    componentDesignTab === 'buttons' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Buttons
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setComponentDesignTab('links')}
+                  className={`flex-1 px-2 py-1 text-xs rounded transition-all ${
+                    componentDesignTab === 'links' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Links
+                </button>
+              </div>
+
+              {/* Tab Content */}
+              <div className="max-h-96 overflow-y-auto">
+                {componentDesignTab === 'states' && (
+                  <ComponentStateEditor showPreview={true} />
+                )}
+                {componentDesignTab === 'buttons' && onButtonSpecsChange && (
+                  <ButtonDesigner
+                    buttons={buttonSpecs}
+                    onChange={onButtonSpecsChange}
+                  />
+                )}
+                {componentDesignTab === 'links' && onLinkSpecsChange && (
+                  <LinkDesigner
+                    links={linkSpecs}
+                    onChange={onLinkSpecsChange}
+                  />
+                )}
+              </div>
+            </Section>
+          )}
         </div>
       )}
     </div>

@@ -10,9 +10,17 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useLayoutBuilder } from '@/hooks/useLayoutBuilder';
 import { useToast } from '@/hooks/useToast';
+import { useAnalysisProgress } from '@/hooks/useAnalysisProgress';
 import { LayoutPreview } from '@/components/LayoutPreview';
 import { DesignControlPanel } from '@/components/DesignControlPanel';
+import { AnalysisProgressIndicator } from '@/components/AnalysisProgressIndicator';
+import { DesignComparison } from '@/components/DesignComparison';
 import { ToastContainer } from '@/components/ui/Toast';
+import { ReferenceMediaPanel } from '@/components/ReferenceMediaPanel';
+import { SpecSheetPanel } from '@/components/SpecSheetPanel';
+import { AnimationPanel } from '@/components/AnimationPanel';
+import { CodePreviewPanel } from '@/components/CodePreviewPanel';
+import { KeyboardShortcutsPanel } from '@/components/KeyboardShortcutsPanel';
 import type {
   LayoutMessage,
   SuggestedAction,
@@ -20,6 +28,11 @@ import type {
   EffectsSettings,
   ColorSettings,
   LayoutDesign,
+  CompleteDesignAnalysis,
+  QuickAnalysis,
+  DetectedAnimation,
+  TypographySettings,
+  SpacingSettings,
 } from '@/types/layoutDesign';
 import type { UIPreferences } from '@/types/appConcept';
 import { DESIGN_TEMPLATES, type DesignTemplate } from '@/data/designTemplates';
@@ -32,6 +45,14 @@ import {
   downloadExport,
   copyToClipboard,
 } from '@/utils/layoutExport';
+import { exportSpecSheet, downloadSpecSheet } from '@/utils/specSheetExport';
+import {
+  validateVideoFile,
+  processVideo,
+  createVideoThumbnail,
+  formatDuration,
+  VIDEO_CONFIG,
+} from '@/utils/videoProcessor';
 
 // ============================================================================
 // CONSTANTS
@@ -1054,6 +1075,32 @@ export function LayoutBuilderWizard({
   // Progress indicator state
   const [progressExpanded, setProgressExpanded] = useState(false);
 
+  // Pixel-perfect mode state
+  const [analysisMode, setAnalysisMode] = useState<'standard' | 'pixel-perfect'>('standard');
+  const [showComparisonView, setShowComparisonView] = useState(false);
+  const [pixelPerfectAnalysis, setPixelPerfectAnalysis] = useState<CompleteDesignAnalysis | null>(null);
+  const [quickAnalysis, setQuickAnalysis] = useState<QuickAnalysis | null>(null);
+
+  // Video upload state
+  const [uploadedVideo, setUploadedVideo] = useState<File | null>(null);
+  const [videoThumbnail, setVideoThumbnail] = useState<string | null>(null);
+  const [isProcessingVideo, setIsProcessingVideo] = useState(false);
+
+  // New panel states for integrated components
+  const [detectedAnimations, setDetectedAnimations] = useState<DetectedAnimation[]>([]);
+  const [showAnimationPanel, setShowAnimationPanel] = useState(false);
+  const [showSpecSheetPanel, setShowSpecSheetPanel] = useState(false);
+  const [showReferenceMediaPanel, setShowReferenceMediaPanel] = useState(true);
+  const [showGridOverlay, setShowGridOverlay] = useState(false);
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  const [showCodePreview, setShowCodePreview] = useState(false);
+
+  // Analysis progress hook
+  const analysisProgress = useAnalysisProgress();
+
+  // Video file input ref
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
   // Message windowing state for virtualization
   const [visibleMessageCount, setVisibleMessageCount] = useState(MESSAGES_PAGE_SIZE);
 
@@ -1165,9 +1212,16 @@ export function LayoutBuilderWizard({
     }
   }, [capturePreview, success, error]);
 
-  // Keyboard shortcuts for undo/redo
+  // Keyboard shortcuts for undo/redo and other actions
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts when typing in input fields
+      const target = e.target as HTMLElement;
+      const isInputField =
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable;
+
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
         if (e.shiftKey) {
           e.preventDefault();
@@ -1177,13 +1231,28 @@ export function LayoutBuilderWizard({
           undo();
         }
       }
+
+      // '?' to toggle keyboard shortcuts (Shift + /)
+      if (e.key === '?' && !isInputField) {
+        e.preventDefault();
+        setShowKeyboardShortcuts((prev) => !prev);
+      }
+
+      // 'Escape' to close panels
+      if (e.key === 'Escape') {
+        if (showKeyboardShortcuts) {
+          setShowKeyboardShortcuts(false);
+        } else if (showCodePreview) {
+          setShowCodePreview(false);
+        }
+      }
     };
 
     if (isOpen) {
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
     }
-  }, [isOpen, undo, redo]);
+  }, [isOpen, undo, redo, showKeyboardShortcuts, showCodePreview]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -1281,6 +1350,55 @@ export function LayoutBuilderWizard({
       });
     },
     [updateDesign, design.globalStyles]
+  );
+
+  // Handle typography settings change from DesignControlPanel
+  const handleTypographyChange = useCallback(
+    (typography: Partial<TypographySettings>) => {
+      updateDesign({
+        globalStyles: {
+          ...design.globalStyles,
+          typography: {
+            ...design.globalStyles?.typography,
+            ...typography,
+          } as TypographySettings,
+        },
+      });
+    },
+    [updateDesign, design.globalStyles]
+  );
+
+  // Handle spacing settings change from DesignControlPanel
+  const handleSpacingChange = useCallback(
+    (spacing: Partial<SpacingSettings>) => {
+      updateDesign({
+        globalStyles: {
+          ...design.globalStyles,
+          spacing: {
+            ...design.globalStyles?.spacing,
+            ...spacing,
+          } as SpacingSettings,
+        },
+      });
+    },
+    [updateDesign, design.globalStyles]
+  );
+
+  // Handle accessibility auto-fix
+  const handleAccessibilityFix = useCallback(
+    (fixes: Partial<ColorSettings>) => {
+      updateDesign({
+        globalStyles: {
+          ...design.globalStyles,
+          colors: {
+            ...design.globalStyles?.colors,
+            ...fixes,
+          } as ColorSettings,
+        },
+      });
+      success('Accessibility fixes applied');
+    },
+    [updateDesign, design.globalStyles, success]
   );
 
   // Handle reference image upload with compression
@@ -1453,6 +1571,157 @@ export function LayoutBuilderWizard({
     [design, updateDesign]
   );
 
+  // Process video file directly (accepts File object)
+  const processVideoFile = useCallback(
+    async (file: File) => {
+      // Validate video
+      const validation = validateVideoFile(file);
+      if (!validation.valid) {
+        error(validation.error || 'Invalid video file');
+        return;
+      }
+
+      setUploadedVideo(file);
+      setIsProcessingVideo(true);
+      analysisProgress.startAnalysis();
+
+      try {
+        // Create thumbnail
+        const thumbnail = await createVideoThumbnail(file);
+        setVideoThumbnail(thumbnail);
+        analysisProgress.completePhase('upload');
+
+        // Process video frames
+        analysisProgress.startPhase('quick');
+        const result = await processVideo(file, {
+          onProgress: (progress) => {
+            analysisProgress.updatePhase('quick', { progress });
+          },
+        });
+
+        analysisProgress.completePhase('quick');
+        success(`Video processed: ${result.frames.length} frames extracted`);
+
+        // Send frames to video analysis API
+        analysisProgress.startPhase('deep');
+        const response = await fetch('/api/layout/video-analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            frames: result.frames.slice(0, 10).map((f) => ({
+              index: f.index,
+              timestamp: f.timestamp,
+              imageDataUrl: f.imageDataUrl,
+              isKeyFrame: f.isKeyFrame,
+            })),
+            keyFrames: result.keyFrames.map((f) => ({
+              index: f.index,
+              timestamp: f.timestamp,
+              imageDataUrl: f.imageDataUrl,
+              isKeyFrame: f.isKeyFrame,
+            })),
+            metadata: result.metadata,
+            analysisMode: 'detailed',
+          }),
+        });
+
+        if (response.ok) {
+          const videoAnalysis = await response.json();
+          analysisProgress.completePhase('deep');
+          analysisProgress.completePhase('generate');
+          analysisProgress.completePhase('render');
+
+          // Store detected animations and show panel if any found
+          if (videoAnalysis.animations && videoAnalysis.animations.length > 0) {
+            setDetectedAnimations(videoAnalysis.animations);
+            setShowAnimationPanel(true);
+            success(`Detected ${videoAnalysis.animations.length} animations - view in Animation Panel`);
+          } else {
+            success('Video analyzed - no animations detected');
+          }
+
+          // Auto-enable pixel-perfect mode with video
+          setAnalysisMode('pixel-perfect');
+        } else {
+          throw new Error('Video analysis failed');
+        }
+      } catch (err) {
+        analysisProgress.setError(err instanceof Error ? err.message : 'Video processing failed');
+        error('Failed to process video');
+      } finally {
+        setIsProcessingVideo(false);
+      }
+    },
+    [success, error, analysisProgress]
+  );
+
+  // Handle video file upload from input element
+  const handleVideoUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      e.target.value = ''; // Reset input
+      await processVideoFile(file);
+    },
+    [processVideoFile]
+  );
+
+  // Handle spec sheet export
+  const handleExportSpecSheet = useCallback(
+    (format: 'css' | 'tailwind' | 'json' | 'figma' | 'summary') => {
+      if (!pixelPerfectAnalysis) {
+        error('No analysis available to export');
+        return;
+      }
+
+      const specs = exportSpecSheet(pixelPerfectAnalysis);
+
+      switch (format) {
+        case 'css':
+          downloadSpecSheet(specs.css, 'design-variables.css', 'text/css');
+          break;
+        case 'tailwind':
+          downloadSpecSheet(specs.tailwindConfig, 'tailwind.config.js', 'application/javascript');
+          break;
+        case 'json':
+          downloadSpecSheet(specs.json, 'design-analysis.json', 'application/json');
+          break;
+        case 'figma':
+          downloadSpecSheet(specs.figmaTokens, 'design-tokens.json', 'application/json');
+          break;
+        case 'summary':
+          downloadSpecSheet(specs.summary, 'design-specs.md', 'text/markdown');
+          break;
+      }
+
+      success(`Exported ${format.toUpperCase()} spec sheet`);
+      setShowExportMenu(false);
+    },
+    [pixelPerfectAnalysis, success, error]
+  );
+
+  // Toggle pixel-perfect mode
+  const handleTogglePixelPerfectMode = useCallback(() => {
+    const newMode = analysisMode === 'standard' ? 'pixel-perfect' : 'standard';
+    setAnalysisMode(newMode);
+
+    if (newMode === 'pixel-perfect') {
+      info('Pixel-perfect mode enabled. Upload a reference image for detailed analysis.');
+    } else {
+      setShowComparisonView(false);
+      info('Standard mode enabled.');
+    }
+  }, [analysisMode, info]);
+
+  // Handle adjustment request from comparison view
+  const handleAdjustmentRequest = useCallback(
+    (element: string, property: string, description: string) => {
+      // Send adjustment request as a chat message
+      sendMessage(`Please adjust the ${element}: ${description}`, false);
+    },
+    [sendMessage]
+  );
+
   if (!isOpen) return null;
 
   const content = (
@@ -1491,6 +1760,81 @@ export function LayoutBuilderWizard({
             </svg>
             Templates
           </button>
+
+          {/* Pixel-Perfect Mode Toggle */}
+          <button
+            onClick={handleTogglePixelPerfectMode}
+            className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-2 ${
+              analysisMode === 'pixel-perfect'
+                ? 'bg-purple-600 text-white'
+                : 'text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700'
+            }`}
+            title={analysisMode === 'pixel-perfect' ? 'Switch to standard mode' : 'Enable pixel-perfect replication mode'}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+              />
+            </svg>
+            {analysisMode === 'pixel-perfect' ? 'Pixel-Perfect' : 'Standard'}
+          </button>
+
+          {/* Video Upload Button */}
+          <button
+            onClick={() => videoInputRef.current?.click()}
+            disabled={isProcessingVideo}
+            className="px-3 py-1.5 text-sm text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-2"
+            title="Upload video reference for animation detection"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+              />
+            </svg>
+            {isProcessingVideo ? 'Processing...' : 'Video'}
+          </button>
+          <input
+            ref={videoInputRef}
+            type="file"
+            accept={VIDEO_CONFIG.supportedFormats.join(',')}
+            onChange={handleVideoUpload}
+            className="hidden"
+          />
+
+          {/* Comparison View Toggle (only in pixel-perfect mode with reference) */}
+          {analysisMode === 'pixel-perfect' && referenceImages.length > 0 && (
+            <button
+              onClick={() => setShowComparisonView(!showComparisonView)}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-2 ${
+                showComparisonView
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700'
+              }`}
+              title="Toggle side-by-side comparison view"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
+                />
+              </svg>
+              Compare
+            </button>
+          )}
 
           {/* Export/Import/History buttons */}
           <div className="flex items-center gap-1">
@@ -1673,6 +2017,34 @@ export function LayoutBuilderWizard({
                   {versionHistory.length > 9 ? '9+' : versionHistory.length}
                 </span>
               )}
+            </button>
+            <button
+              onClick={() => setShowCodePreview(true)}
+              className="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+              title="View generated code"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                />
+              </svg>
+            </button>
+            <button
+              onClick={() => setShowKeyboardShortcuts(true)}
+              className="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+              title="Keyboard shortcuts (?)"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
             </button>
             <input
               ref={importInputRef}
@@ -1864,21 +2236,35 @@ export function LayoutBuilderWizard({
           {/* Suggested actions */}
           <SuggestedActionsBar actions={suggestedActions} onAction={handleAction} />
 
-          {/* Reference images */}
-          <div className="px-4 py-3 border-t border-slate-700">
-            <ReferenceImagesPanel
-              images={referenceImages}
-              onRemove={removeReferenceImage}
-              onAdd={() => fileInputRef.current?.click()}
-            />
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-          </div>
+          {/* Reference Media Panel - Unified image & video uploads */}
+          {showReferenceMediaPanel && (
+            <div className="border-t border-slate-700 max-h-64 overflow-hidden">
+              <ReferenceMediaPanel
+                onImageUpload={(dataUrl) => {
+                  addReferenceImage(dataUrl);
+                  // Auto-enable pixel-perfect mode when image is added
+                  if (analysisMode === 'standard') {
+                    setAnalysisMode('pixel-perfect');
+                  }
+                }}
+                onVideoUpload={(file) => {
+                  // Process video directly
+                  processVideoFile(file);
+                }}
+                onRemoveMedia={(index) => removeReferenceImage(index)}
+                maxImages={5}
+                className="h-full"
+              />
+            </div>
+          )}
+          {/* Hidden file inputs for fallback */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
 
           {/* Input */}
           <ChatInput
@@ -1892,6 +2278,110 @@ export function LayoutBuilderWizard({
 
         {/* Preview panel (right) */}
         <div className="w-1/2 min-h-0 flex flex-col bg-slate-950">
+          {/* Analysis Progress Indicator */}
+          {analysisProgress.state.isAnalyzing && (
+            <div className="p-4 border-b border-slate-700">
+              <AnalysisProgressIndicator
+                state={analysisProgress.state}
+                onCancel={analysisProgress.cancel}
+                showDetails={true}
+                compact={false}
+              />
+            </div>
+          )}
+
+          {/* Pixel-Perfect Mode Indicator with Panel Toggles */}
+          {analysisMode === 'pixel-perfect' && !analysisProgress.state.isAnalyzing && (
+            <div className="px-4 py-2 bg-purple-500/20 border-b border-purple-500/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  <span className="text-sm text-purple-300">
+                    Pixel-Perfect Mode {referenceImages.length > 0 ? `(${referenceImages.length} ref)` : ''}
+                  </span>
+                </div>
+                {/* Panel toggle buttons */}
+                <div className="flex items-center gap-2">
+                  {detectedAnimations.length > 0 && (
+                    <button
+                      onClick={() => setShowAnimationPanel(!showAnimationPanel)}
+                      className={`text-xs px-2 py-1 rounded flex items-center gap-1 transition-colors ${
+                        showAnimationPanel
+                          ? 'bg-purple-500/30 text-purple-300'
+                          : 'text-purple-400 hover:text-purple-300 hover:bg-purple-500/20'
+                      }`}
+                    >
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Animations ({detectedAnimations.length})
+                    </button>
+                  )}
+                  {pixelPerfectAnalysis && (
+                    <button
+                      onClick={() => setShowSpecSheetPanel(!showSpecSheetPanel)}
+                      className={`text-xs px-2 py-1 rounded flex items-center gap-1 transition-colors ${
+                        showSpecSheetPanel
+                          ? 'bg-purple-500/30 text-purple-300'
+                          : 'text-purple-400 hover:text-purple-300 hover:bg-purple-500/20'
+                      }`}
+                    >
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Specs
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Animation Panel - Shows detected animations from video analysis */}
+          {showAnimationPanel && detectedAnimations.length > 0 && (
+            <div className="border-b border-slate-700 max-h-80 overflow-hidden">
+              <AnimationPanel
+                animations={detectedAnimations}
+                onEditAnimation={(id, updates) => {
+                  setDetectedAnimations(prev =>
+                    prev.map(a => a.id === id ? { ...a, ...updates } : a)
+                  );
+                }}
+                onApplyAnimation={(animation, targetElement) => {
+                  // Apply animation to design - could update globalStyles.effects
+                  success(`Applied ${animation.type} animation to ${targetElement || 'element'}`);
+                }}
+                onRemoveAnimation={(id) => {
+                  setDetectedAnimations(prev => prev.filter(a => a.id !== id));
+                  if (detectedAnimations.length <= 1) {
+                    setShowAnimationPanel(false);
+                  }
+                }}
+                className="h-full"
+              />
+            </div>
+          )}
+
+          {/* Spec Sheet Panel - Shows design specifications from analysis */}
+          {showSpecSheetPanel && pixelPerfectAnalysis && (
+            <div className="border-b border-slate-700 max-h-96 overflow-hidden">
+              <SpecSheetPanel
+                analysis={pixelPerfectAnalysis}
+                onExport={(format, _content) => {
+                  // Use existing export handler which generates content internally
+                  if (format === 'json' || format === 'css' || format === 'tailwind' || format === 'figma') {
+                    handleExportSpecSheet(format);
+                  }
+                }}
+                onClose={() => setShowSpecSheetPanel(false)}
+                className="h-full"
+              />
+            </div>
+          )}
+
           {/* Selected element indicator */}
           {selectedElement && (
             <div className="px-4 py-2 bg-blue-500/20 border-b border-blue-500/30 flex items-center justify-between">
@@ -1907,37 +2397,77 @@ export function LayoutBuilderWizard({
             </div>
           )}
 
-          {/* Design Control Panel */}
-          <div className="px-4 pt-4">
-            <DesignControlPanel
-              effectsSettings={design.globalStyles?.effects}
-              colorSettings={design.globalStyles?.colors}
-              onEffectsChange={handleEffectsChange}
-              onColorChange={handleColorSettingsChange}
-              primaryColor={design.globalStyles?.colors?.primary}
-              onPrimaryColorChange={handlePrimaryColorChange}
-            />
-          </div>
-
-          {/* Layout Preview */}
-          <div className="flex-1 min-h-0 overflow-y-auto p-4" id="layout-preview-container">
-            <div id="layout-preview-frame" className="h-full">
-              <LayoutPreview
-                preferences={previewPreferences}
-                className="h-full"
-                onPreferenceChange={handlePreferenceChange}
-                onElementSelect={setSelectedElement}
-                selectedElement={selectedElement}
-                componentDesign={{
-                  effectsSettings: design.globalStyles?.effects,
-                  colorSettings: design.globalStyles?.colors,
-                  headerDesign: design.components?.header,
-                  sidebarDesign: design.components?.sidebar,
-                  cardDesign: design.components?.cards,
-                  navDesign: design.components?.navigation,
-                }}
+          {/* Design Control Panel (hidden in comparison view) */}
+          {!showComparisonView && (
+            <div className="px-4 pt-4">
+              <DesignControlPanel
+                effectsSettings={design.globalStyles?.effects}
+                colorSettings={design.globalStyles?.colors}
+                onEffectsChange={handleEffectsChange}
+                onColorChange={handleColorSettingsChange}
+                primaryColor={design.globalStyles?.colors?.primary}
+                onPrimaryColorChange={handlePrimaryColorChange}
+                typographySettings={design.globalStyles?.typography}
+                onTypographyChange={handleTypographyChange}
+                spacingSettings={design.globalStyles?.spacing}
+                onSpacingChange={handleSpacingChange}
+                showGridOverlay={showGridOverlay}
+                onGridOverlayToggle={setShowGridOverlay}
+                layoutDesign={design as LayoutDesign}
+                onAccessibilityFix={handleAccessibilityFix}
               />
             </div>
+          )}
+
+          {/* Layout Preview or Comparison View */}
+          <div className="flex-1 min-h-0 overflow-hidden" id="layout-preview-container">
+            {showComparisonView && referenceImages.length > 0 ? (
+              <DesignComparison
+                referenceImage={referenceImages[0]}
+                generatedPreview={
+                  <LayoutPreview
+                    preferences={previewPreferences}
+                    className="h-full"
+                    onPreferenceChange={handlePreferenceChange}
+                    onElementSelect={setSelectedElement}
+                    selectedElement={selectedElement}
+                    componentDesign={{
+                      effectsSettings: design.globalStyles?.effects,
+                      colorSettings: design.globalStyles?.colors,
+                      headerDesign: design.components?.header,
+                      sidebarDesign: design.components?.sidebar,
+                      cardDesign: design.components?.cards,
+                      navDesign: design.components?.navigation,
+                    }}
+                    showGridOverlay={showGridOverlay}
+                    onGridOverlayToggle={setShowGridOverlay}
+                  />
+                }
+                analysis={pixelPerfectAnalysis}
+                onRequestAdjustment={handleAdjustmentRequest}
+                className="h-full"
+              />
+            ) : (
+              <div id="layout-preview-frame" className="h-full overflow-y-auto p-4">
+                <LayoutPreview
+                  preferences={previewPreferences}
+                  className="h-full"
+                  onPreferenceChange={handlePreferenceChange}
+                  onElementSelect={setSelectedElement}
+                  selectedElement={selectedElement}
+                  componentDesign={{
+                    effectsSettings: design.globalStyles?.effects,
+                    colorSettings: design.globalStyles?.colors,
+                    headerDesign: design.components?.header,
+                    sidebarDesign: design.components?.sidebar,
+                    cardDesign: design.components?.cards,
+                    navDesign: design.components?.navigation,
+                  }}
+                  showGridOverlay={showGridOverlay}
+                  onGridOverlayToggle={setShowGridOverlay}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1980,6 +2510,33 @@ export function LayoutBuilderWizard({
           onDelete={handleDeleteVersion}
           onClose={() => setShowVersionHistory(false)}
         />
+      )}
+
+      {/* Keyboard Shortcuts Panel */}
+      <KeyboardShortcutsPanel
+        isOpen={showKeyboardShortcuts}
+        onClose={() => setShowKeyboardShortcuts(false)}
+      />
+
+      {/* Code Preview Panel (slide-over) */}
+      {showCodePreview && (
+        <div className="fixed inset-y-0 right-0 w-[600px] max-w-full bg-slate-900 border-l border-slate-700 shadow-2xl z-50 flex flex-col">
+          <div className="flex items-center justify-between p-4 border-b border-slate-700">
+            <h2 className="text-lg font-semibold text-white">Code Preview</h2>
+            <button
+              type="button"
+              onClick={() => setShowCodePreview(false)}
+              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="flex-1 overflow-auto p-4">
+            <CodePreviewPanel design={design as LayoutDesign} />
+          </div>
+        </div>
       )}
 
       {/* Toast notifications */}

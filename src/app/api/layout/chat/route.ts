@@ -8,13 +8,18 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
-import { buildLayoutBuilderPrompt } from '@/prompts/layoutBuilderSystemPrompt';
+import {
+  buildLayoutBuilderPrompt,
+  buildPixelPerfectPrompt,
+} from '@/prompts/layoutBuilderSystemPrompt';
 import type {
   LayoutDesign,
   LayoutChatRequest,
   LayoutChatResponse,
   DesignChange,
   SuggestedAction,
+  CompleteDesignAnalysis,
+  QuickAnalysis,
 } from '@/types/layoutDesign';
 import {
   matchDesignPattern,
@@ -22,6 +27,7 @@ import {
   type DesignPattern,
 } from '@/utils/designPatterns';
 import { parseDesignDescription } from '@/utils/designLanguageParser';
+import { DesignReplicator } from '@/services/designReplicator';
 
 // Vercel serverless function config
 export const maxDuration = 60;
@@ -711,6 +717,8 @@ export async function POST(request: Request) {
       selectedElement,
       previewScreenshot,
       referenceImages,
+      analysisMode = 'standard',
+      requestedAnalysis,
     } = body;
 
     if (!process.env.ANTHROPIC_API_KEY) {
@@ -720,6 +728,32 @@ export async function POST(request: Request) {
         },
         { status: 500 }
       );
+    }
+
+    // Handle pixel-perfect mode with reference images
+    let pixelPerfectAnalysis: CompleteDesignAnalysis | null = null;
+    let quickAnalysisResult: QuickAnalysis | null = null;
+
+    if (analysisMode === 'pixel-perfect' && referenceImages && referenceImages.length > 0) {
+      const replicator = new DesignReplicator(process.env.ANTHROPIC_API_KEY);
+
+      try {
+        if (requestedAnalysis === 'quick') {
+          // Quick analysis only
+          quickAnalysisResult = await replicator.quickAnalysis(referenceImages[0]);
+        } else if (requestedAnalysis === 'deep' || requestedAnalysis === 'full') {
+          // Full analysis (quick + deep)
+          const fullResult = await replicator.fullAnalysis(referenceImages[0]);
+          pixelPerfectAnalysis = fullResult.deep;
+          quickAnalysisResult = fullResult.quick;
+        } else {
+          // Default: quick analysis for faster response
+          quickAnalysisResult = await replicator.quickAnalysis(referenceImages[0]);
+        }
+      } catch (analysisError) {
+        console.error('Pixel-perfect analysis error:', analysisError);
+        // Continue with standard mode if analysis fails
+      }
     }
 
     // Build Claude messages from conversation history
@@ -785,12 +819,29 @@ export async function POST(request: Request) {
     });
 
     // Build system prompt with context
-    const systemPrompt = buildLayoutBuilderPrompt(
-      currentDesign,
-      selectedElement || null,
-      !!previewScreenshot,
-      referenceImages?.length || 0
-    );
+    let systemPrompt: string;
+
+    if (analysisMode === 'pixel-perfect' && referenceImages?.length) {
+      // Use pixel-perfect prompt for design replication
+      const hasAnalysis = !!(pixelPerfectAnalysis || quickAnalysisResult);
+      systemPrompt = buildPixelPerfectPrompt(
+        hasAnalysis,
+        quickAnalysisResult ? {
+          layoutType: quickAnalysisResult.layoutType,
+          overallStyle: quickAnalysisResult.overallStyle,
+          primaryFont: quickAnalysisResult.primaryFont,
+          dominantColors: quickAnalysisResult.dominantColors?.map(c => c.hex),
+        } : undefined
+      );
+    } else {
+      // Use standard layout builder prompt
+      systemPrompt = buildLayoutBuilderPrompt(
+        currentDesign,
+        selectedElement || null,
+        !!previewScreenshot,
+        referenceImages?.length || 0
+      );
+    }
 
     // Call Claude API
     const response = await anthropic.messages.create({
@@ -852,6 +903,13 @@ export async function POST(request: Request) {
       !!previewScreenshot
     );
 
+    // If we have pixel-perfect analysis, merge it into the design
+    if (pixelPerfectAnalysis) {
+      const replicator = new DesignReplicator(process.env.ANTHROPIC_API_KEY!);
+      const analysisDesign = replicator.analysisToLayoutDesign(pixelPerfectAnalysis);
+      Object.assign(updatedDesign, analysisDesign);
+    }
+
     const result: LayoutChatResponse = {
       message: assistantMessage,
       updatedDesign,
@@ -868,6 +926,9 @@ export async function POST(request: Request) {
         input: response.usage.input_tokens,
         output: response.usage.output_tokens,
       },
+      // Include pixel-perfect analysis results if available
+      pixelPerfectAnalysis: pixelPerfectAnalysis || undefined,
+      quickAnalysis: quickAnalysisResult || undefined,
     };
 
     return NextResponse.json(result);
