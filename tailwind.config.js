@@ -14,6 +14,13 @@ module.exports = {
       colors: {
         'primary': '#3B82F6',
         'secondary': '#6366F1',
+        // Surface layers for consistent UI hierarchy
+        surface: {
+          DEFAULT: '#09090b',      // zinc-950
+          elevated: '#18181b',     // zinc-900
+          overlay: '#27272a',      // zinc-800
+          border: '#3f3f46',       // zinc-700
+        },
         // Linear/Vercel-inspired color palette
         linear: {
           bg: '#0a0a0a',
@@ -122,6 +129,9 @@ module.exports = {
         'elevated-sm': '0 2px 8px -2px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06)',
         'elevated-md': '0 4px 16px -4px rgba(0, 0, 0, 0.15), 0 2px 8px -2px rgba(0, 0, 0, 0.1)',
         'elevated-lg': '0 8px 32px -8px rgba(0, 0, 0, 0.2), 0 4px 16px -4px rgba(0, 0, 0, 0.15)',
+        // Button shadows
+        'btn': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+        'btn-hover': '0 1px 3px 0 rgb(0 0 0 / 0.1)',
       },
       // Backdrop blur extensions
       backdropBlur: {
@@ -214,15 +224,15 @@ module.exports = {
         }
       },
       animation: {
-        'fadeIn': 'fadeIn 0.3s ease-out',
-        'fade-in': 'fadeIn 0.3s ease-out',
-        'fade-out': 'fadeOut 0.3s ease-out',
-        'fade-in-up': 'fadeInUp 0.5s ease-out',
-        'slide-in-right': 'slideInRight 0.3s ease-out',
-        'slide-in-left': 'slideInLeft 0.3s ease-out',
-        'slide-in-up': 'slideInUp 0.3s ease-out',
-        'slide-in-down': 'slideInDown 0.3s ease-out',
-        'scale-in': 'scaleIn 0.2s ease-out',
+        'fadeIn': 'fadeIn 0.2s ease-out',
+        'fade-in': 'fadeIn 0.2s ease-out',
+        'fade-out': 'fadeOut 0.2s ease-out',
+        'fade-in-up': 'fadeInUp 0.3s ease-out',
+        'slide-in-right': 'slideInRight 0.2s ease-out',
+        'slide-in-left': 'slideInLeft 0.2s ease-out',
+        'slide-in-up': 'slideInUp 0.2s ease-out',
+        'slide-in-down': 'slideInDown 0.2s ease-out',
+        'scale-in': 'scaleIn 0.15s ease-out',
         'spin-slow': 'spin 3s linear infinite',
         'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
         'bounce-soft': 'bounceSoft 1s ease-in-out infinite',

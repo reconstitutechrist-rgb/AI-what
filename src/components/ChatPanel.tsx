@@ -4,6 +4,19 @@ import React, { useRef, useEffect } from 'react';
 import type { ChatMessage, StagePlan, Phase } from '../types/aiBuilderTypes';
 import type { StreamingProgress as StreamingProgressType } from '../types/streaming';
 import { InlineStreamingProgress } from './StreamingProgress';
+import {
+  MessageSquareIcon,
+  SendIcon,
+  ImageIcon,
+  XIcon,
+  BrainIcon,
+  ZapIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  LoaderIcon,
+  LayersIcon,
+  EyeIcon,
+} from './ui/Icons';
 
 // ============================================================================
 // INTERNAL COMPONENTS
@@ -20,54 +33,58 @@ const PhaseProgressCard: React.FC<PhaseProgressCardProps> = ({
   currentPhase,
   onBuildPhase,
 }) => (
-  <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-xl p-4 border border-purple-500/30 mb-4">
-    <h3 className="text-white font-bold mb-3 flex items-center gap-2">
-      <span>🏗️</span> Build Plan ({phases.length} Phases)
+  <div className="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700 mb-4">
+    <h3 className="text-zinc-100 font-medium text-sm mb-3 flex items-center gap-2">
+      <LayersIcon size={16} className="text-purple-400" />
+      Build Plan ({phases.length} Phases)
     </h3>
     <div className="space-y-2">
       {phases.map((phase, idx) => (
         <div
           key={idx}
-          className={`p-3 rounded-lg border transition-all ${
+          className={`p-3 rounded-lg border transition-colors ${
             phase.status === 'complete'
-              ? 'bg-green-500/20 border-green-500/30'
+              ? 'bg-green-500/10 border-green-500/30'
               : phase.status === 'building'
-                ? 'bg-blue-500/20 border-blue-500/30 animate-pulse'
-                : 'bg-white/5 border-white/10 hover:bg-white/10'
+                ? 'bg-blue-500/10 border-blue-500/30'
+                : 'bg-zinc-800/50 border-zinc-700 hover:bg-zinc-800'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-white font-medium text-sm">
+            <span className="text-zinc-100 font-medium text-sm">
               Phase {phase.number}: {phase.name}
             </span>
             <div className="flex items-center gap-2">
               {phase.status === 'pending' && idx === currentPhase && onBuildPhase && (
                 <button
                   onClick={() => onBuildPhase(phase)}
-                  className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-all hover:scale-105"
+                  className="px-3 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors"
                 >
                   Build
                 </button>
               )}
-              {phase.status === 'complete' && <span className="text-green-400">✅</span>}
-              {phase.status === 'building' && (
-                <span className="text-blue-400 animate-spin">⏳</span>
+              {phase.status === 'complete' && (
+                <CheckCircleIcon size={16} className="text-green-400" />
               )}
+              {phase.status === 'building' && <LoaderIcon size={16} className="text-blue-400" />}
               {phase.status === 'pending' && idx !== currentPhase && (
-                <span className="text-slate-500">⏸️</span>
+                <ClockIcon size={16} className="text-zinc-500" />
               )}
             </div>
           </div>
-          <p className="text-xs text-slate-400 mt-1">{phase.description}</p>
+          <p className="text-xs text-zinc-400 mt-1">{phase.description}</p>
           {phase.features && phase.features.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {phase.features.slice(0, 3).map((feature, fIdx) => (
-                <span key={fIdx} className="text-xs bg-white/10 px-2 py-0.5 rounded text-slate-300">
+                <span
+                  key={fIdx}
+                  className="text-xs bg-zinc-700/50 px-2 py-0.5 rounded text-zinc-300"
+                >
                   {feature.length > 25 ? feature.substring(0, 25) + '...' : feature}
                 </span>
               ))}
               {phase.features.length > 3 && (
-                <span className="text-xs text-slate-500">+{phase.features.length - 3} more</span>
+                <span className="text-xs text-zinc-500">+{phase.features.length - 3} more</span>
               )}
             </div>
           )}
@@ -144,48 +161,43 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   }, [messages, isGenerating, isStreamingActive, streamingProgress]);
 
   return (
-    <div className="glass-panel rounded-2xl border border-white/10 overflow-hidden flex flex-col h-full shadow-2xl shadow-black/40">
+    <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden flex flex-col h-full">
       {/* Chat Header */}
-      <div className="px-6 py-4 border-b border-white/10 bg-black/30 backdrop-blur-sm">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-            <span>💬</span>
-            <span>Conversation</span>
+      <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-900/50">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium text-zinc-100 flex items-center gap-2">
+            <MessageSquareIcon size={16} className="text-zinc-400" />
+            Chat
           </h2>
 
           {/* Plan/Act Mode Toggle */}
-          <div className="flex gap-2 bg-slate-900/50 p-1 rounded-lg border border-white/10">
+          <div className="flex bg-zinc-800 rounded-lg p-0.5">
             <button
               onClick={() => onModeChange('PLAN')}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 currentMode === 'PLAN'
-                  ? 'bg-purple-600 text-white shadow-lg'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  ? 'bg-purple-600 text-white'
+                  : 'text-zinc-400 hover:text-zinc-200'
               }`}
               title="Plan Mode: AI discusses and explains (no code changes)"
             >
-              💭 Plan
+              <BrainIcon size={14} />
+              Plan
             </button>
             <button
               onClick={() => onModeChange('ACT')}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 currentMode === 'ACT'
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-zinc-400 hover:text-zinc-200'
               }`}
               title="Act Mode: AI can modify code"
             >
-              ⚡ Act
+              <ZapIcon size={14} />
+              Act
             </button>
           </div>
         </div>
-
-        {/* Mode Description */}
-        <p className="text-sm text-slate-400">
-          {currentMode === 'PLAN'
-            ? '💭 Plan Mode: AI will discuss and explain (no code changes)'
-            : '⚡ Act Mode: AI can modify your app'}
-        </p>
       </div>
 
       {/* Chat Messages */}
@@ -202,24 +214,25 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in-up`}
+            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
           >
             <div
-              className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-lg transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] ${
+              className={`max-w-[85%] rounded-lg px-4 py-3 ${
                 message.role === 'user'
-                  ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-blue-500/30 hover:shadow-blue-500/50'
+                  ? 'bg-blue-600 text-white'
                   : message.role === 'system'
-                    ? 'glass-panel text-purple-200 border border-purple-500/40 shadow-purple-500/20 hover:shadow-purple-500/40 hover:border-purple-500/60'
-                    : 'glass-panel text-slate-200 border border-white/20 hover:border-white/30'
+                    ? 'bg-zinc-900 border-l-2 border-purple-500 text-zinc-300'
+                    : 'bg-zinc-800 text-zinc-200'
               }`}
             >
               <p className="text-sm whitespace-pre-wrap">{message.content}</p>
               {message.componentPreview && onViewComponent && (
                 <button
                   onClick={onViewComponent}
-                  className="mt-3 text-xs px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-all"
+                  className="mt-3 text-xs px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-colors flex items-center gap-1.5"
                 >
-                  👁️ View Component
+                  <EyeIcon size={12} />
+                  View Component
                 </button>
               )}
               <p className="text-xs opacity-50 mt-2" suppressHydrationWarning>
@@ -231,8 +244,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 
         {/* Inline Streaming Progress */}
         {isStreamingActive && streamingProgress && (
-          <div className="flex justify-start animate-fade-in-up">
-            <div className="glass-panel text-slate-200 border border-white/20 rounded-2xl px-4 py-3 shadow-lg">
+          <div className="flex justify-start animate-fade-in">
+            <div className="bg-zinc-800 text-zinc-200 border border-zinc-700 rounded-lg px-4 py-3">
               <InlineStreamingProgress progress={streamingProgress} />
             </div>
           </div>
@@ -241,26 +254,13 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         {/* Non-streaming generation indicator */}
         {isGenerating && !isStreamingActive && (
           <div className="flex justify-start">
-            <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl px-4 py-3 border border-blue-500/30">
+            <div className="bg-zinc-800 rounded-lg px-4 py-3 border border-zinc-700">
               <div className="flex items-center gap-3">
-                <div className="flex gap-1">
-                  <div
-                    className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
-                    style={{ animationDelay: '0ms' }}
-                  ></div>
-                  <div
-                    className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
-                    style={{ animationDelay: '150ms' }}
-                  ></div>
-                  <div
-                    className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
-                    style={{ animationDelay: '300ms' }}
-                  ></div>
-                </div>
+                <LoaderIcon size={18} className="text-blue-500" />
                 <div>
-                  <div className="text-sm font-medium text-white">Generating your app...</div>
+                  <div className="text-sm font-medium text-zinc-200">Generating...</div>
                   {generationProgress && (
-                    <div className="text-xs text-blue-200 mt-1">{generationProgress}</div>
+                    <div className="text-xs text-zinc-400 mt-0.5">{generationProgress}</div>
                   )}
                 </div>
               </div>
@@ -270,34 +270,29 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       </div>
 
       {/* Input Area */}
-      <div className="p-4 border-t border-white/10 bg-black/20">
+      <div className="p-4 border-t border-zinc-800 bg-zinc-900/50">
         {/* Image Preview */}
         {uploadedImage && (
           <div className="mb-3 relative inline-block">
             <img
               src={uploadedImage}
               alt="Uploaded inspiration"
-              className="h-20 w-20 object-cover rounded-lg border-2 border-blue-500"
+              className="h-20 w-20 object-cover rounded-lg border border-zinc-700"
             />
             <button
               onClick={onRemoveImage}
-              className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold"
+              className="absolute -top-1.5 -right-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-400 hover:text-zinc-100 rounded-full p-1 transition-colors"
             >
-              ✕
+              <XIcon size={12} />
             </button>
-            <div className="text-xs text-slate-400 mt-1">
-              🎨 AI will use this for design inspiration
-            </div>
+            <div className="text-xs text-zinc-500 mt-1">Design reference attached</div>
           </div>
         )}
 
         <div className="flex gap-2">
           {/* Image Upload Button */}
-          <label
-            className="px-3 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-white/10 text-white cursor-pointer transition-all hover:scale-105 active:scale-95 flex items-center justify-center"
-            title="Upload image for AI-inspired design"
-          >
-            <span className="text-xl">🖼️</span>
+          <label className="btn-icon cursor-pointer" title="Upload image">
+            <ImageIcon size={18} />
             <input
               ref={fileInputRef}
               type="file"
@@ -314,9 +309,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             value={userInput}
             onChange={(e) => onUserInputChange(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && onSendMessage()}
-            placeholder="Describe what you want to build or change..."
+            placeholder="Describe what you want to build..."
             disabled={isGenerating}
-            className="flex-1 px-4 py-3 rounded-xl glass-panel border border-white/20 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500/60 disabled:opacity-50 transition-all duration-300 focus:shadow-xl focus:shadow-blue-500/30 focus:scale-[1.01] hover:border-white/30"
+            className="flex-1 px-4 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 transition-colors"
             id="chat-panel-user-message"
             name="chat-panel-user-message"
             autoComplete="off"
@@ -325,10 +320,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             onClick={onSendMessage}
             disabled={isGenerating || (!userInput.trim() && !uploadedImage)}
             data-send-button="true"
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white font-bold shadow-xl shadow-blue-500/40 hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95 hover:from-blue-500 hover:via-purple-500 hover:to-pink-500 relative overflow-hidden group"
+            className="btn-primary px-4"
           >
-            <span className="relative z-10">{isGenerating ? '⏳' : '🚀'}</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+            {isGenerating ? <LoaderIcon size={18} /> : <SendIcon size={18} />}
           </button>
         </div>
       </div>

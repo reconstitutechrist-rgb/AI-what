@@ -24,6 +24,7 @@ import type {
 } from '@/types/appConcept';
 import type { DynamicPhasePlan } from '@/types/dynamicPhases';
 import { useToast } from '@/components/Toast';
+import { WandIcon, ImageIcon, SendIcon, XIcon, LoaderIcon, SaveIcon } from './ui/Icons';
 import {
   WIZARD_DRAFT_KEYS,
   saveWizardDraft,
@@ -785,42 +786,34 @@ Does this look good? You can:
   if (showRecoveryPrompt) {
     return (
       <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
         onClick={onCancel}
       >
         <div
-          className="bg-slate-900 text-white rounded-2xl border border-white/10 shadow-2xl p-8 max-w-md w-full"
+          className="bg-zinc-900 text-white rounded-xl border border-zinc-800 shadow-2xl p-8 max-w-md w-full"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="text-center">
-            <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-3xl mb-4">
-              <span role="img" aria-label="restore">
-                &#128190;
-              </span>
+            <div className="w-16 h-16 mx-auto rounded-xl bg-blue-600/20 flex items-center justify-center mb-4">
+              <SaveIcon size={32} className="text-blue-400" />
             </div>
-            <h2 className="text-xl font-bold mb-2">Resume Previous Session?</h2>
-            <p className="text-slate-400 mb-6">
+            <h2 className="text-xl font-semibold mb-2">Resume Previous Session?</h2>
+            <p className="text-zinc-400 mb-6">
               You have an unsaved conversation from{' '}
-              <span className="text-white font-medium">{draftAge}</span>. Would you like to continue
-              where you left off?
+              <span className="text-zinc-100 font-medium">{draftAge}</span>. Would you like to
+              continue where you left off?
             </p>
             <div className="flex gap-3">
-              <button
-                onClick={startFreshConversation}
-                className="flex-1 px-4 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-medium transition-colors"
-              >
+              <button onClick={startFreshConversation} className="btn-secondary flex-1 py-2.5">
                 Start Fresh
               </button>
-              <button
-                onClick={recoverConversation}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl font-medium transition-colors"
-              >
+              <button onClick={recoverConversation} className="btn-primary flex-1 py-2.5">
                 Resume
               </button>
             </div>
             <button
               onClick={onCancel}
-              className="mt-4 text-sm text-slate-500 hover:text-slate-300 transition-colors"
+              className="mt-4 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
             >
               Cancel
             </button>
@@ -832,30 +825,25 @@ Does this look good? You can:
 
   const content = (
     <div
-      className={`flex w-full ${isFullPage ? 'h-full' : 'max-w-7xl h-[90vh]'} bg-slate-900 text-white ${isFullPage ? '' : 'rounded-2xl border border-white/10 shadow-2xl'} overflow-hidden`}
+      className={`flex w-full ${isFullPage ? 'h-full' : 'max-w-7xl h-[90vh]'} bg-zinc-900 text-white ${isFullPage ? '' : 'rounded-xl border border-zinc-800 shadow-2xl'} overflow-hidden`}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Main Chat Area */}
       <div className="flex-1 min-h-0 flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-xl">
-              <span role="img" aria-label="wizard">
-                &#129497;
-              </span>
+            <div className="w-10 h-10 rounded-lg bg-purple-600/20 flex items-center justify-center">
+              <WandIcon size={20} className="text-purple-400" />
             </div>
             <div>
-              <h1 className="font-semibold">App Planning Assistant</h1>
-              <p className="text-sm text-slate-400">
+              <h1 className="font-semibold text-zinc-100">App Planning Assistant</h1>
+              <p className="text-sm text-zinc-400">
                 {wizardState.name ? `Planning: ${wizardState.name}` : 'Describe your app idea'}
               </p>
             </div>
           </div>
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
-          >
+          <button onClick={onCancel} className="btn-ghost text-sm">
             Cancel
           </button>
         </div>
@@ -867,7 +855,7 @@ Does this look good? You can:
             <div className="flex justify-center">
               <button
                 onClick={() => setShowAllMessages(true)}
-                className="px-4 py-2 text-sm text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-600 transition-colors"
+                className="px-4 py-2 text-sm text-zinc-400 hover:text-zinc-100 bg-zinc-800 hover:bg-zinc-700 rounded-lg border border-zinc-700 transition-colors"
               >
                 Load {messages.length - MAX_VISIBLE_MESSAGES} older messages
               </button>
@@ -881,12 +869,12 @@ Does this look good? You can:
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                className={`max-w-[80%] rounded-lg px-4 py-3 ${
                   message.role === 'user'
                     ? 'bg-blue-600 text-white'
                     : message.role === 'system'
-                      ? 'bg-purple-600/20 text-purple-200 border border-purple-500/30'
-                      : 'bg-slate-800 text-slate-100 border border-slate-700/50'
+                      ? 'bg-zinc-900 border-l-2 border-purple-500 text-zinc-300'
+                      : 'bg-zinc-800 text-zinc-100'
                 }`}
               >
                 {/* Attachments */}
@@ -942,7 +930,7 @@ Does this look good? You can:
                     }
                     // Horizontal rule
                     if (line === '---') {
-                      return <hr key={i} className="my-3 border-slate-600" />;
+                      return <hr key={i} className="my-3 border-zinc-700" />;
                     }
                     // Tables (simple rendering)
                     if (line.startsWith('|')) {
@@ -970,23 +958,10 @@ Does this look good? You can:
           {/* Loading indicator */}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-slate-800 rounded-2xl px-4 py-3 border border-slate-700/50">
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-1">
-                    <span
-                      className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
-                      style={{ animationDelay: '0ms' }}
-                    />
-                    <span
-                      className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
-                      style={{ animationDelay: '150ms' }}
-                    />
-                    <span
-                      className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
-                      style={{ animationDelay: '300ms' }}
-                    />
-                  </div>
-                  <span className="text-slate-400 text-sm">Thinking...</span>
+              <div className="bg-zinc-800 rounded-lg px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <LoaderIcon size={18} className="text-blue-500" />
+                  <span className="text-zinc-400 text-sm">Thinking...</span>
                 </div>
               </div>
             </div>
@@ -995,10 +970,10 @@ Does this look good? You can:
           {/* Phase generation indicator */}
           {isGeneratingPhases && (
             <div className="flex justify-start">
-              <div className="bg-purple-600/20 rounded-2xl px-4 py-3 border border-purple-500/30">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-purple-200">Generating implementation plan...</span>
+              <div className="bg-purple-600/10 rounded-lg px-4 py-3 border-l-2 border-purple-500">
+                <div className="flex items-center gap-3">
+                  <LoaderIcon size={18} className="text-purple-400" />
+                  <span className="text-zinc-300">Generating implementation plan...</span>
                 </div>
               </div>
             </div>
@@ -1007,7 +982,9 @@ Does this look good? You can:
           {/* Error message */}
           {error && (
             <div className="flex justify-center">
-              <div className="bg-red-500/20 text-red-200 rounded-lg px-4 py-2 text-sm">{error}</div>
+              <div className="bg-red-600/10 text-red-300 rounded-lg px-4 py-2 text-sm border border-red-600/30">
+                {error}
+              </div>
             </div>
           )}
 
@@ -1021,7 +998,7 @@ Does this look good? You can:
               <button
                 key={i}
                 onClick={() => handleAction(action.action)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-full text-sm transition-colors"
+                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-sm transition-colors"
               >
                 {action.label}
               </button>
@@ -1037,13 +1014,13 @@ Does this look good? You can:
                 <img
                   src={img}
                   alt={`Upload ${i + 1}`}
-                  className="w-16 h-16 object-cover rounded-lg"
+                  className="w-16 h-16 object-cover rounded-lg border border-zinc-700"
                 />
                 <button
                   onClick={() => removePendingImage(i)}
-                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs"
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-800 border border-zinc-700 rounded-full flex items-center justify-center"
                 >
-                  x
+                  <XIcon size={12} />
                 </button>
               </div>
             ))}
@@ -1051,17 +1028,15 @@ Does this look good? You can:
         )}
 
         {/* Input Area */}
-        <div className="px-6 py-4 border-t border-slate-700/50">
+        <div className="px-6 py-4 border-t border-zinc-800">
           <div className="flex items-end gap-3">
             {/* File upload button */}
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="p-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
+              className="btn-icon"
               title="Upload design reference"
             >
-              <span role="img" aria-label="image">
-                &#128444;
-              </span>
+              <ImageIcon size={18} />
             </button>
             <input
               ref={fileInputRef}
@@ -1081,7 +1056,7 @@ Does this look good? You can:
                 onKeyDown={handleKeyDown}
                 placeholder="Describe your app idea..."
                 rows={1}
-                className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 pr-12 resize-none focus:outline-none focus:border-blue-500 transition-colors"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 pr-12 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-zinc-100 placeholder-zinc-500 transition-colors"
                 style={{ minHeight: '48px', maxHeight: '120px' }}
               />
             </div>
@@ -1092,33 +1067,23 @@ Does this look good? You can:
                 sendMessage(userInput, pendingImages.length > 0 ? pendingImages : undefined)
               }
               disabled={isLoading || (!userInput.trim() && pendingImages.length === 0)}
-              className={`p-3 rounded-xl transition-all ${
-                isLoading || (!userInput.trim() && pendingImages.length === 0)
-                  ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-500 text-white'
-              }`}
+              className="btn-primary px-4 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <span role="img" aria-label="send">
-                  &#128640;
-                </span>
-              )}
+              {isLoading ? <LoaderIcon size={18} /> : <SendIcon size={18} />}
             </button>
           </div>
 
-          <p className="text-xs text-slate-500 mt-2 text-center">
+          <p className="text-xs text-zinc-500 mt-2 text-center">
             Press Enter to send, Shift+Enter for new line
           </p>
         </div>
       </div>
 
       {/* Side Panel - Concept Summary */}
-      <div className="w-80 border-l border-slate-700/50 flex flex-col">
-        <div className="p-4 border-b border-slate-700/50">
-          <h2 className="font-semibold">Concept Summary</h2>
-          <p className="text-sm text-slate-400">
+      <div className="w-80 border-l border-zinc-800 flex flex-col bg-zinc-900/50">
+        <div className="p-4 border-b border-zinc-800">
+          <h2 className="font-semibold text-zinc-100">Concept Summary</h2>
+          <p className="text-sm text-zinc-400">
             {wizardState.isComplete ? 'Ready to build' : 'In progress...'}
           </p>
         </div>
@@ -1126,34 +1091,35 @@ Does this look good? You can:
         <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
           {/* App Name */}
           <div>
-            <label className="text-xs text-slate-400 uppercase tracking-wide">App Name</label>
-            <p className="mt-1">{wizardState.name || '—'}</p>
+            <label className="text-xs text-zinc-500 uppercase tracking-wide">App Name</label>
+            <p className="mt-1 text-zinc-100">{wizardState.name || '—'}</p>
           </div>
 
           {/* Description */}
           {wizardState.description && (
             <div>
-              <label className="text-xs text-slate-400 uppercase tracking-wide">Description</label>
-              <p className="mt-1 text-sm">{wizardState.description}</p>
+              <label className="text-xs text-zinc-500 uppercase tracking-wide">Description</label>
+              <p className="mt-1 text-sm text-zinc-300">{wizardState.description}</p>
             </div>
           )}
 
           {/* Target Users */}
           {wizardState.targetUsers && (
             <div>
-              <label className="text-xs text-slate-400 uppercase tracking-wide">Target Users</label>
-              <p className="mt-1 text-sm">{wizardState.targetUsers}</p>
+              <label className="text-xs text-zinc-500 uppercase tracking-wide">Target Users</label>
+              <p className="mt-1 text-sm text-zinc-300">{wizardState.targetUsers}</p>
             </div>
           )}
 
           {/* Roles */}
           {wizardState.roles && wizardState.roles.length > 0 && (
             <div>
-              <label className="text-xs text-slate-400 uppercase tracking-wide">User Roles</label>
+              <label className="text-xs text-zinc-500 uppercase tracking-wide">User Roles</label>
               <ul className="mt-1 space-y-1">
                 {wizardState.roles.map((role, i) => (
-                  <li key={i} className="text-sm">
-                    <strong>{role.name}:</strong> {role.capabilities.slice(0, 2).join(', ')}
+                  <li key={i} className="text-sm text-zinc-300">
+                    <strong className="text-zinc-100">{role.name}:</strong>{' '}
+                    {role.capabilities.slice(0, 2).join(', ')}
                     {role.capabilities.length > 2 && ` +${role.capabilities.length - 2} more`}
                   </li>
                 ))}
@@ -1164,12 +1130,12 @@ Does this look good? You can:
           {/* Features */}
           {wizardState.features.length > 0 && (
             <div>
-              <label className="text-xs text-slate-400 uppercase tracking-wide">
+              <label className="text-xs text-zinc-500 uppercase tracking-wide">
                 Features ({wizardState.features.length})
               </label>
               <ul className="mt-1 space-y-1">
                 {wizardState.features.slice(0, 6).map((feature, i) => (
-                  <li key={i} className="text-sm flex items-center gap-2">
+                  <li key={i} className="text-sm flex items-center gap-2 text-zinc-300">
                     <span
                       className={`w-2 h-2 rounded-full ${
                         feature.priority === 'high'
@@ -1183,7 +1149,7 @@ Does this look good? You can:
                   </li>
                 ))}
                 {wizardState.features.length > 6 && (
-                  <li className="text-sm text-slate-400">
+                  <li className="text-sm text-zinc-500">
                     +{wizardState.features.length - 6} more features
                   </li>
                 )}
@@ -1194,30 +1160,30 @@ Does this look good? You can:
           {/* Technical */}
           {Object.values(wizardState.technical).some((v) => v !== undefined) && (
             <div>
-              <label className="text-xs text-slate-400 uppercase tracking-wide">Technical</label>
+              <label className="text-xs text-zinc-500 uppercase tracking-wide">Technical</label>
               <div className="mt-1 flex flex-wrap gap-1">
                 {wizardState.technical.needsAuth && (
-                  <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded text-xs">
+                  <span className="px-2 py-0.5 bg-blue-600/20 text-blue-300 rounded text-xs">
                     Auth
                   </span>
                 )}
                 {wizardState.technical.needsDatabase && (
-                  <span className="px-2 py-0.5 bg-green-500/20 text-green-300 rounded text-xs">
+                  <span className="px-2 py-0.5 bg-green-600/20 text-green-300 rounded text-xs">
                     Database
                   </span>
                 )}
                 {wizardState.technical.needsRealtime && (
-                  <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded text-xs">
+                  <span className="px-2 py-0.5 bg-purple-600/20 text-purple-300 rounded text-xs">
                     Real-time
                   </span>
                 )}
                 {wizardState.technical.needsFileUpload && (
-                  <span className="px-2 py-0.5 bg-orange-500/20 text-orange-300 rounded text-xs">
+                  <span className="px-2 py-0.5 bg-orange-600/20 text-orange-300 rounded text-xs">
                     Files
                   </span>
                 )}
                 {wizardState.technical.needsAPI && (
-                  <span className="px-2 py-0.5 bg-pink-500/20 text-pink-300 rounded text-xs">
+                  <span className="px-2 py-0.5 bg-pink-600/20 text-pink-300 rounded text-xs">
                     API
                   </span>
                 )}
@@ -1228,20 +1194,20 @@ Does this look good? You can:
           {/* Phase Plan */}
           {phasePlan && (
             <div>
-              <label className="text-xs text-slate-400 uppercase tracking-wide">
+              <label className="text-xs text-zinc-500 uppercase tracking-wide">
                 Implementation Plan ({phasePlan.totalPhases} phases)
               </label>
               <div className="mt-2 space-y-1">
                 {phasePlan.phases.slice(0, 5).map((phase) => (
-                  <div key={phase.number} className="flex items-center gap-2 text-sm">
-                    <span className="w-5 h-5 rounded-full bg-slate-700 flex items-center justify-center text-xs">
+                  <div key={phase.number} className="flex items-center gap-2 text-sm text-zinc-300">
+                    <span className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-xs text-zinc-400">
                       {phase.number}
                     </span>
                     <span className="truncate">{phase.name}</span>
                   </div>
                 ))}
                 {phasePlan.phases.length > 5 && (
-                  <p className="text-sm text-slate-400 pl-7">
+                  <p className="text-sm text-zinc-500 pl-7">
                     +{phasePlan.phases.length - 5} more phases
                   </p>
                 )}
@@ -1252,10 +1218,10 @@ Does this look good? You can:
 
         {/* Action Buttons */}
         {phasePlan && (
-          <div className="p-4 border-t border-slate-700/50">
+          <div className="p-4 border-t border-zinc-800">
             <button
               onClick={() => handleAction('start_building')}
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl font-medium transition-all"
+              className="btn-primary w-full py-2.5"
             >
               Start Building
             </button>
@@ -1272,7 +1238,7 @@ Does this look good? You can:
 
   return (
     <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       onClick={onCancel}
     >
       {content}

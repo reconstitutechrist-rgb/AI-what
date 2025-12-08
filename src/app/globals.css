@@ -137,13 +137,20 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Glassmorphism utility class */
+/* Glassmorphism utility class - reduced blur for better readability */
 .glass-panel {
-  background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--glass-border);
-  transition: background-color 0.3s ease, border-color 0.3s ease;
+  background: rgba(24, 24, 27, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(63, 63, 70, 0.5);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Solid surface panel for non-blurred containers */
+.surface-panel {
+  background: #18181b;
+  border: 1px solid #3f3f46;
+  border-radius: 0.75rem;
 }
 
 /* Gradient text utility */
@@ -487,7 +494,53 @@ html {
 
 /* Header container */
 .linear-header {
-  @apply h-16 px-4 flex items-center gap-4
+  @apply h-14 px-4 flex items-center gap-4
          bg-zinc-950 border-b border-zinc-800
          sticky top-0 z-sticky;
+}
+
+/* ============================================
+   Standardized Button System
+   ============================================ */
+
+/* Base button styles */
+.btn {
+  @apply inline-flex items-center justify-center gap-2
+         font-medium rounded-lg transition-colors
+         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-zinc-900;
+}
+
+/* Primary button - main actions */
+.btn-primary {
+  @apply btn px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm;
+}
+
+/* Secondary button - secondary actions */
+.btn-secondary {
+  @apply btn px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-sm border border-zinc-700;
+}
+
+/* Ghost button - minimal style */
+.btn-ghost {
+  @apply btn px-3 py-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 text-sm;
+}
+
+/* Danger button - destructive actions */
+.btn-danger {
+  @apply btn px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm;
+}
+
+/* Icon-only button */
+.btn-icon {
+  @apply btn p-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded-md;
+}
+
+/* Small button variant */
+.btn-sm {
+  @apply px-3 py-1.5 text-xs;
+}
+
+/* Large button variant */
+.btn-lg {
+  @apply px-6 py-3 text-base;
 }

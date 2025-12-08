@@ -1853,15 +1853,15 @@ export default function AIBuilder() {
   // Prevent hydration errors
   if (!isClient) {
     return (
-      <div className="h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <div className="text-slate-400">Loading...</div>
+      <div className="h-full bg-zinc-950 flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-zinc-700 border-t-zinc-400 rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
     <ToastProvider>
-      <div className="h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="h-full bg-zinc-950">
         {/* Header */}
         <BuilderHeader
           projectName={currentComponent?.name || 'Untitled App'}
@@ -2070,16 +2070,27 @@ export default function AIBuilder() {
         {/* Build View - No Plan Yet */}
         {activeView === 'build' && !dynamicPhasePlan && (
           <div className="h-[calc(100vh-120px)] flex items-center justify-center">
-            <div className="text-center max-w-md">
-              <div className="text-6xl mb-4">🏗️</div>
-              <h2 className="text-2xl font-bold text-white mb-2">No Build Plan Yet</h2>
-              <p className="text-slate-400 mb-6">
+            <div className="text-center max-w-md px-4">
+              <div className="w-20 h-20 rounded-2xl bg-zinc-800 flex items-center justify-center mb-6 mx-auto">
+                <svg
+                  className="w-10 h-10 text-zinc-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-xl font-semibold text-zinc-100 mb-2">No Build Plan</h2>
+              <p className="text-sm text-zinc-400 mb-6">
                 Use the Wizard to create an app concept and generate a phased build plan first.
               </p>
-              <button
-                onClick={() => setActiveView('wizard')}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-              >
+              <button onClick={() => setActiveView('wizard')} className="btn-primary">
                 Start with Wizard
               </button>
             </div>

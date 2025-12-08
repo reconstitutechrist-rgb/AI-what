@@ -258,6 +258,14 @@ export const FileIcon: React.FC<IconProps> = (props) => (
   </Icon>
 );
 
+// Lock - for authentication
+export const LockIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </Icon>
+);
+
 // Archive/Zip - for zip export
 export const ArchiveIcon: React.FC<IconProps> = (props) => (
   <Icon {...props}>
@@ -317,5 +325,240 @@ export const BrainIcon: React.FC<IconProps> = (props) => (
   <Icon {...props}>
     <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.54" />
     <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.54" />
+  </Icon>
+);
+
+// ============================================
+// Additional icons for UI overhaul
+// ============================================
+
+// Message Square - alias for chat
+export const MessageSquareIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </Icon>
+);
+
+// Send - for sending messages
+export const SendIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <line x1="22" y1="2" x2="11" y2="13" />
+    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+  </Icon>
+);
+
+// Image - for image upload
+export const ImageIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+    <circle cx="8.5" cy="8.5" r="1.5" />
+    <polyline points="21 15 16 10 5 21" />
+  </Icon>
+);
+
+// Package - for export
+export const PackageIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <line x1="16.5" y1="9.4" x2="7.5" y2="4.21" />
+    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+    <line x1="12" y1="22.08" x2="12" y2="12" />
+  </Icon>
+);
+
+// Fork - for forking apps
+export const ForkIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <circle cx="12" cy="18" r="3" />
+    <circle cx="6" cy="6" r="3" />
+    <circle cx="18" cy="6" r="3" />
+    <path d="M18 9v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9" />
+    <line x1="12" y1="12" x2="12" y2="15" />
+  </Icon>
+);
+
+// Undo - for undo action
+export const UndoIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <path d="M3 7v6h6" />
+    <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+  </Icon>
+);
+
+// Redo - for redo action
+export const RedoIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <path d="M21 7v6h-6" />
+    <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
+  </Icon>
+);
+
+// Star - for favorites
+export const StarIcon: React.FC<IconProps & { filled?: boolean }> = ({
+  filled = false,
+  ...props
+}) => (
+  <Icon {...props} fill={filled ? 'currentColor' : 'none'}>
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </Icon>
+);
+
+// Trash - for delete
+export const TrashIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+  </Icon>
+);
+
+// Search - for search inputs
+export const SearchIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </Icon>
+);
+
+// Loader - for loading states (with spin animation)
+export const LoaderIcon: React.FC<IconProps> = ({ className = '', ...props }) => (
+  <Icon {...props} className={`animate-spin ${className}`}>
+    <line x1="12" y1="2" x2="12" y2="6" />
+    <line x1="12" y1="18" x2="12" y2="22" />
+    <line x1="4.93" y1="4.93" x2="7.76" y2="7.76" />
+    <line x1="16.24" y1="16.24" x2="19.07" y2="19.07" />
+    <line x1="2" y1="12" x2="6" y2="12" />
+    <line x1="18" y1="12" x2="22" y2="12" />
+    <line x1="4.93" y1="19.07" x2="7.76" y2="16.24" />
+    <line x1="16.24" y1="7.76" x2="19.07" y2="4.93" />
+  </Icon>
+);
+
+// Check Circle - for success states
+export const CheckCircleIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <polyline points="22 4 12 14.01 9 11.01" />
+  </Icon>
+);
+
+// Clock - alias for pending states
+export const ClockIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </Icon>
+);
+
+// Pause - for paused states
+export const PauseIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <rect x="6" y="4" width="4" height="16" />
+    <rect x="14" y="4" width="4" height="16" />
+  </Icon>
+);
+
+// Alert Circle - for warnings
+export const AlertCircleIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
+  </Icon>
+);
+
+// Upload - for file uploads
+export const UploadIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="17 8 12 3 7 8" />
+    <line x1="12" y1="3" x2="12" y2="15" />
+  </Icon>
+);
+
+// External Link - for external URLs
+export const ExternalLinkIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+    <polyline points="15 3 21 3 21 9" />
+    <line x1="10" y1="14" x2="21" y2="3" />
+  </Icon>
+);
+
+// Refresh - for refresh/reload
+export const RefreshIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <polyline points="23 4 23 10 17 10" />
+    <polyline points="1 20 1 14 7 14" />
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+  </Icon>
+);
+
+// Alert Triangle - for warnings
+export const AlertTriangleIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </Icon>
+);
+
+// Info - for information callouts
+export const InfoIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="16" x2="12" y2="12" />
+    <line x1="12" y1="8" x2="12.01" y2="8" />
+  </Icon>
+);
+
+// Rotate CCW - for revert/undo
+export const RotateCcwIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <polyline points="1 4 1 10 7 10" />
+    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+  </Icon>
+);
+
+// Map Pin - for version markers
+export const MapPinIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+    <circle cx="12" cy="10" r="3" />
+  </Icon>
+);
+
+// Target - for goals
+export const TargetIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="12" cy="12" r="6" />
+    <circle cx="12" cy="12" r="2" />
+  </Icon>
+);
+
+// Git Branch - for versioning
+export const GitBranchIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <line x1="6" y1="3" x2="6" y2="15" />
+    <circle cx="18" cy="6" r="3" />
+    <circle cx="6" cy="18" r="3" />
+    <path d="M18 9a9 9 0 0 1-9 9" />
+  </Icon>
+);
+
+// Copy - for copy to clipboard
+export const CopyIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </Icon>
+);
+
+// Sparkles - for minor changes/enhancements
+export const SparklesIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" />
+    <path d="M5 19l1-3 3-1-3-1-1-3-1 3-3 1 3 1 1 3z" />
+    <path d="M19 12l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z" />
   </Icon>
 );

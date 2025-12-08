@@ -4,6 +4,16 @@ import React from 'react';
 import { FileCard, FileGrid, FileFilters, FileUploader, StorageStats } from '../storage';
 import type { GeneratedComponent } from '@/types/aiBuilderTypes';
 import type { FileMetadata, StorageStats as StorageStatsType, FileId } from '@/types/storage';
+import {
+  FolderIcon,
+  XIcon,
+  RocketIcon,
+  StarIcon,
+  PackageIcon,
+  TrashIcon,
+  LoaderIcon,
+  LockIcon,
+} from '../ui/Icons';
 
 export interface LibraryModalProps {
   isOpen: boolean;
@@ -91,21 +101,21 @@ export function LibraryModal({
       onClick={onClose}
     >
       <div
-        className="bg-slate-900 rounded-2xl border border-white/10 max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col"
+        className="bg-zinc-900 rounded-xl border border-zinc-800 max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Library Header */}
-        <div className="px-6 py-4 border-b border-white/10 bg-black/20">
+        <div className="px-6 py-4 border-b border-zinc-800">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <span>📂</span>
-              <span>My Content</span>
-              <span className="text-sm font-normal text-slate-400">
+            <h2 className="text-lg font-semibold text-zinc-100 flex items-center gap-2">
+              <FolderIcon size={20} className="text-zinc-400" />
+              My Content
+              <span className="text-sm font-normal text-zinc-500">
                 ({contentTab === 'apps' ? components.length : storageFiles.length})
               </span>
             </h2>
-            <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 transition-all">
-              <span className="text-slate-400 text-xl">✕</span>
+            <button onClick={onClose} className="btn-icon">
+              <XIcon size={18} />
             </button>
           </div>
 
@@ -113,23 +123,25 @@ export function LibraryModal({
           <div className="flex gap-2 mb-4">
             <button
               onClick={() => onContentTabChange('apps')}
-              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 contentTab === 'apps'
-                  ? 'bg-purple-600 text-white shadow-lg'
-                  : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
+                  ? 'bg-zinc-800 text-zinc-100'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
               }`}
             >
-              🚀 Apps ({components.length})
+              <RocketIcon size={16} />
+              Apps ({components.length})
             </button>
             <button
               onClick={() => onContentTabChange('files')}
-              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 contentTab === 'files'
-                  ? 'bg-purple-600 text-white shadow-lg'
-                  : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
+                  ? 'bg-zinc-800 text-zinc-100'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
               }`}
             >
-              📁 Files ({storageFiles.length})
+              <FolderIcon size={16} />
+              Files ({storageFiles.length})
             </button>
           </div>
 
@@ -140,7 +152,7 @@ export function LibraryModal({
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search apps..."
-              className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-4 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
               id="app-search"
               name="app-search"
               autoComplete="off"
@@ -169,9 +181,11 @@ export function LibraryModal({
             // Apps Tab Content
             filteredComponents.length === 0 ? (
               <div className="text-center py-12">
-                <div className="text-6xl mb-4">📭</div>
-                <p className="text-slate-400">
-                  {searchQuery ? 'No components found' : 'No components yet. Start building!'}
+                <div className="w-16 h-16 rounded-2xl bg-zinc-800 flex items-center justify-center mx-auto mb-4">
+                  <FolderIcon size={32} className="text-zinc-600" />
+                </div>
+                <p className="text-sm text-zinc-400">
+                  {searchQuery ? 'No apps match your search' : 'No apps yet. Start building!'}
                 </p>
               </div>
             ) : (
@@ -179,33 +193,41 @@ export function LibraryModal({
                 {filteredComponents.map((comp) => (
                   <div
                     key={comp.id}
-                    className="bg-white/5 rounded-xl border border-white/10 p-4 hover:bg-white/10 transition-all cursor-pointer group"
+                    className="bg-zinc-800/50 rounded-lg border border-zinc-700 p-4 hover:bg-zinc-800 transition-colors cursor-pointer group"
                     onClick={() => onLoadComponent(comp)}
                   >
                     <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors">
+                      <h3 className="font-medium text-zinc-100 group-hover:text-blue-400 transition-colors">
                         {comp.name}
                       </h3>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             onToggleFavorite(comp.id);
                           }}
-                          className="text-xl hover:scale-125 transition-transform"
+                          className="btn-icon p-1.5"
                         >
-                          {comp.isFavorite ? '⭐' : '☆'}
+                          <StarIcon
+                            size={16}
+                            filled={comp.isFavorite}
+                            className={comp.isFavorite ? 'text-yellow-400' : 'text-zinc-500'}
+                          />
                         </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             onExportComponent(comp);
                           }}
-                          className="text-lg hover:scale-125 transition-transform text-green-400 hover:text-green-300"
+                          className="btn-icon p-1.5 text-green-400 hover:text-green-300"
                           title="Export & Deploy"
                           disabled={exportingAppId === comp.id}
                         >
-                          {exportingAppId === comp.id ? '⏳' : '📦'}
+                          {exportingAppId === comp.id ? (
+                            <LoaderIcon size={16} />
+                          ) : (
+                            <PackageIcon size={16} />
+                          )}
                         </button>
                         <button
                           onClick={(e) => {
@@ -214,17 +236,17 @@ export function LibraryModal({
                               onDeleteComponent(comp.id);
                             }
                           }}
-                          className="text-lg hover:scale-125 transition-transform text-red-400 hover:text-red-300"
+                          className="btn-icon p-1.5 text-red-400 hover:text-red-300"
                           title="Delete app"
                         >
-                          🗑️
+                          <TrashIcon size={16} />
                         </button>
                       </div>
                     </div>
-                    <p className="text-sm text-slate-400 line-clamp-2 mb-3">{comp.description}</p>
-                    <div className="flex items-center justify-between text-xs text-slate-500">
+                    <p className="text-sm text-zinc-400 line-clamp-2 mb-3">{comp.description}</p>
+                    <div className="flex items-center justify-between text-xs text-zinc-500">
                       <span>{new Date(comp.timestamp).toLocaleDateString()}</span>
-                      <span className="text-blue-400">→ Load</span>
+                      <span className="text-blue-400">Load →</span>
                     </div>
                   </div>
                 ))}
@@ -235,9 +257,11 @@ export function LibraryModal({
             <>
               {!user ? (
                 <div className="flex flex-col items-center justify-center py-16 px-4">
-                  <div className="text-6xl mb-4">🔒</div>
-                  <h3 className="text-xl font-semibold text-white mb-2">Sign In Required</h3>
-                  <p className="text-slate-400 text-center max-w-md">
+                  <div className="w-16 h-16 rounded-2xl bg-zinc-800 flex items-center justify-center mb-4">
+                    <LockIcon size={32} className="text-zinc-600" />
+                  </div>
+                  <h3 className="text-lg font-medium text-zinc-100 mb-2">Sign In Required</h3>
+                  <p className="text-sm text-zinc-400 text-center max-w-md">
                     Please sign in to access file storage
                   </p>
                 </div>
@@ -268,20 +292,15 @@ export function LibraryModal({
 
                   {/* Bulk Actions */}
                   {selectedFiles.size > 0 && (
-                    <div className="fixed bottom-6 right-6 bg-slate-800 rounded-xl border border-white/20 shadow-2xl p-4">
+                    <div className="fixed bottom-6 right-6 bg-zinc-800 rounded-lg border border-zinc-700 shadow-2xl p-4">
                       <div className="flex items-center gap-3">
-                        <span className="text-white text-sm">{selectedFiles.size} selected</span>
-                        <button
-                          onClick={onBulkDelete}
-                          className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-all"
-                        >
-                          🗑️ Delete Selected
+                        <span className="text-zinc-100 text-sm">{selectedFiles.size} selected</span>
+                        <button onClick={onBulkDelete} className="btn-danger">
+                          <TrashIcon size={16} />
+                          Delete Selected
                         </button>
-                        <button
-                          onClick={onClearSelection}
-                          className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium transition-all"
-                        >
-                          Clear Selection
+                        <button onClick={onClearSelection} className="btn-secondary">
+                          Clear
                         </button>
                       </div>
                     </div>

@@ -457,12 +457,12 @@ export function BuilderHeader({
         ============================================ */}
         <div className="flex items-center gap-3 shrink-0">
           {/* Logo */}
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-            <RocketIcon size={18} className="text-white" />
+          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+            <RocketIcon size={16} className="text-white" />
           </div>
           {/* App Name & Version */}
           <div className="hidden sm:block">
-            <h1 className="font-semibold text-zinc-100 text-sm leading-tight">AI App Builder</h1>
+            <h1 className="font-medium text-zinc-100 text-sm leading-tight">AI App Builder</h1>
             <p className="text-xs text-zinc-500 leading-tight">v{appVersion}</p>
           </div>
         </div>

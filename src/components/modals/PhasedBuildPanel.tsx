@@ -5,6 +5,7 @@ import { PhaseProgressIndicator, PhaseControlPanel, QualityPanel } from '../buil
 import type { BuildPhase, BuildProgress, PhaseId } from '@/types/buildPhases';
 import type { DynamicPhasePlan } from '@/types/dynamicPhases';
 import type { QualityReport, QualityPipelineState, ReviewStrictness } from '@/types/codeReview';
+import { LayersIcon, XIcon, InfoIcon, PlayIcon } from '../ui/Icons';
 
 export interface PhasedBuildPanelProps {
   isOpen: boolean;
@@ -70,23 +71,23 @@ export function PhasedBuildPanel({
 
   const content = (
     <div
-      className={`bg-slate-900 rounded-2xl border border-white/10 ${isFullPage ? 'w-full h-full max-h-full' : 'max-w-4xl w-full max-h-[80vh]'} overflow-hidden flex flex-col shadow-2xl`}
+      className={`bg-zinc-900 rounded-xl border border-zinc-800 ${isFullPage ? 'w-full h-full max-h-full' : 'max-w-4xl w-full max-h-[80vh]'} overflow-hidden flex flex-col shadow-2xl`}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Panel Header */}
-      <div className="px-6 py-4 border-b border-white/10 bg-gradient-to-r from-orange-500/10 to-amber-500/10">
+      <div className="px-6 py-4 border-b border-zinc-800">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center">
-              <span className="text-2xl">🏗️</span>
+            <div className="w-10 h-10 rounded-lg bg-orange-600/20 flex items-center justify-center">
+              <LayersIcon size={20} className="text-orange-400" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">
+              <h2 className="text-lg font-semibold text-zinc-100">
                 {dynamicPlan ? `Building: ${dynamicPlan.appName}` : 'Phase-Driven Build'}
               </h2>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-zinc-400">
                 {dynamicPlan && (
-                  <span className="mr-2 px-1.5 py-0.5 rounded bg-white/10 text-xs">
+                  <span className="mr-2 px-1.5 py-0.5 rounded bg-zinc-800 text-xs">
                     {dynamicPlan.complexity}
                   </span>
                 )}
@@ -95,8 +96,8 @@ export function PhasedBuildPanel({
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 transition-all">
-            <span className="text-slate-400 text-xl">✕</span>
+          <button onClick={onClose} className="btn-icon">
+            <XIcon size={18} />
           </button>
         </div>
       </div>
@@ -144,9 +145,9 @@ export function PhasedBuildPanel({
       </div>
 
       {/* Panel Footer */}
-      <div className="px-6 py-4 border-t border-white/10 bg-black/20 flex justify-between items-center">
-        <div className="flex items-center gap-2 text-xs text-slate-400">
-          <span>💡</span>
+      <div className="px-6 py-4 border-t border-zinc-800 flex justify-between items-center">
+        <div className="flex items-center gap-2 text-xs text-zinc-500">
+          <InfoIcon size={14} />
           <span>Each phase focuses on specific aspects of your app for better quality.</span>
         </div>
         <div className="flex gap-2">
@@ -155,15 +156,13 @@ export function PhasedBuildPanel({
               onResetBuild();
               onClose();
             }}
-            className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium transition-all"
+            className="btn-secondary"
           >
             Reset Build
           </button>
           {currentPhase && currentPhase.status === 'pending' && (
-            <button
-              onClick={onExecuteCurrentPhase}
-              className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-sm font-medium transition-all"
-            >
+            <button onClick={onExecuteCurrentPhase} className="btn-primary">
+              <PlayIcon size={16} />
               Build Current Phase
             </button>
           )}

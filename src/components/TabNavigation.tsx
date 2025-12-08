@@ -78,21 +78,18 @@ export function TabNavigation() {
   const setActiveView = useAppStore((state) => state.setActiveView);
 
   return (
-    <nav className="flex items-center gap-1 px-2 py-1 bg-slate-800/50 border-b border-slate-700">
+    <nav className="flex items-center gap-1 px-4 py-2 bg-zinc-900 border-b border-zinc-800">
       {tabs.map((tab) => {
         const isActive = activeView === tab.id;
         return (
           <button
             key={tab.id}
             onClick={() => setActiveView(tab.id)}
-            className={`
-              flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
-              ${
-                isActive
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-              }
-            `}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              isActive
+                ? 'bg-zinc-800 text-zinc-100'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+            }`}
             title={tab.description}
           >
             {tab.icon}

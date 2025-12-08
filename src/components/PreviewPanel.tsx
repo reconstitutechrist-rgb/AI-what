@@ -4,6 +4,17 @@ import React from 'react';
 import CodePreview from './CodePreview';
 import FullAppPreview from './FullAppPreview';
 import type { GeneratedComponent, ActiveTab } from '../types/aiBuilderTypes';
+import {
+  EyeIcon,
+  CodeIcon,
+  UndoIcon,
+  RedoIcon,
+  ForkIcon,
+  PackageIcon,
+  DownloadIcon,
+  MessageSquareIcon,
+  LoaderIcon,
+} from './ui/Icons';
 
 // ============================================================================
 // PREVIEW PANEL PROPS
@@ -58,61 +69,63 @@ export function PreviewPanel({
   onScreenshot,
 }: PreviewPanelProps) {
   return (
-    <div className="glass-panel rounded-2xl border border-white/10 overflow-hidden shadow-2xl shadow-black/40 h-full flex flex-col">
+    <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden h-full flex flex-col">
       {/* Tabs Header */}
-      <div className="flex items-center gap-2 px-6 py-4 border-b border-white/10 bg-black/30 backdrop-blur-sm">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800 bg-zinc-900/50">
         {/* Tab Buttons */}
         <button
           onClick={() => onTabChange('preview')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
             activeTab === 'preview' || (activeTab === 'chat' && currentComponent)
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
+              ? 'bg-zinc-800 text-zinc-100'
+              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
           }`}
         >
-          👁️ Preview
+          <EyeIcon size={16} />
+          Preview
         </button>
         <button
           onClick={() => onTabChange('code')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
             activeTab === 'code'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
+              ? 'bg-zinc-800 text-zinc-100'
+              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
           }`}
         >
-          💻 Code
+          <CodeIcon size={16} />
+          Code
         </button>
 
         {/* Component Actions (only when component exists) */}
         {currentComponent && (
           <>
             {/* Undo/Redo Controls */}
-            <div className="flex items-center gap-1 ml-2 px-2 py-1 rounded-lg bg-white/5 border border-white/10">
+            <div className="flex items-center gap-1 ml-2">
               <button
                 onClick={onUndo}
                 disabled={!canUndo}
-                className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                className="btn-icon disabled:opacity-30"
                 title={`Undo${undoCount > 0 ? ` (${undoCount})` : ''}`}
               >
-                ↶
+                <UndoIcon size={16} />
               </button>
               <button
                 onClick={onRedo}
                 disabled={!canRedo}
-                className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                className="btn-icon disabled:opacity-30"
                 title={`Redo${redoCount > 0 ? ` (${redoCount})` : ''}`}
               >
-                ↷
+                <RedoIcon size={16} />
               </button>
             </div>
 
             {/* Fork Button */}
             <button
               onClick={() => onFork(currentComponent)}
-              className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 hover:text-white text-sm font-medium transition-all flex items-center gap-2"
+              className="btn-secondary"
               title="Fork this app"
             >
-              <span>🍴</span>
+              <ForkIcon size={16} />
               <span className="hidden lg:inline">Fork</span>
             </button>
           </>
@@ -127,16 +140,13 @@ export function PreviewPanel({
             <button
               onClick={() => onExport(currentComponent)}
               disabled={isExporting}
-              className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition-all hover:shadow-lg hover:shadow-purple-500/20 flex items-center gap-2 disabled:opacity-50"
+              className="btn-primary disabled:opacity-50"
             >
-              <span>{isExporting ? '⏳' : '📦'}</span>
-              <span className="hidden sm:inline">Export & Deploy</span>
+              {isExporting ? <LoaderIcon size={16} /> : <PackageIcon size={16} />}
+              <span className="hidden sm:inline">Export</span>
             </button>
-            <button
-              onClick={onDownload}
-              className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition-all hover:shadow-lg hover:shadow-green-500/20 flex items-center gap-2"
-            >
-              <span>📥</span>
+            <button onClick={onDownload} className="btn-secondary">
+              <DownloadIcon size={16} />
               <span className="hidden sm:inline">Download</span>
             </button>
           </>
@@ -144,15 +154,16 @@ export function PreviewPanel({
       </div>
 
       {/* Preview Content */}
-      <div className="flex-1 p-6 overflow-auto">
+      <div className="flex-1 p-6 overflow-auto min-h-0">
         {!currentComponent ? (
           // Empty State
-          <div className="h-full flex flex-col items-center justify-center text-center">
-            <div className="text-6xl mb-4">💬</div>
-            <h3 className="text-xl font-semibold text-white mb-2">Start Building Your App</h3>
-            <p className="text-slate-400 max-w-md">
-              Describe what you want to build in the chat, and I&apos;ll create a complete app with
-              live preview for you.
+          <div className="h-full flex flex-col items-center justify-center text-center px-4">
+            <div className="w-16 h-16 rounded-2xl bg-zinc-800 flex items-center justify-center mb-4">
+              <MessageSquareIcon size={32} className="text-zinc-600" />
+            </div>
+            <h3 className="text-lg font-medium text-zinc-100 mb-2">Start Building</h3>
+            <p className="text-sm text-zinc-400 max-w-sm">
+              Describe what you want to build in the chat panel, and your app will appear here.
             </p>
           </div>
         ) : (

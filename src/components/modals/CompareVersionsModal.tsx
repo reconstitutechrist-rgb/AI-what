@@ -2,6 +2,16 @@
 
 import React from 'react';
 import type { AppVersion, GeneratedComponent } from '@/types/aiBuilderTypes';
+import {
+  SearchIcon,
+  XIcon,
+  MapPinIcon,
+  ZapIcon,
+  RotateCcwIcon,
+  ForkIcon,
+  InfoIcon,
+  CopyIcon,
+} from '../ui/Icons';
 
 export interface CompareVersionsModalProps {
   isOpen: boolean;
@@ -28,68 +38,60 @@ export function CompareVersionsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl border border-white/10 shadow-2xl max-w-6xl w-full max-h-[85vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-zinc-900 rounded-xl border border-zinc-800 shadow-2xl max-w-6xl w-full max-h-[85vh] overflow-hidden flex flex-col">
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-white/10 bg-gradient-to-r from-purple-500/20 to-blue-500/20">
+        <div className="px-6 py-4 border-b border-zinc-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="text-3xl">🔍</span>
+              <div className="w-10 h-10 rounded-lg bg-purple-600/20 flex items-center justify-center">
+                <SearchIcon size={20} className="text-purple-400" />
+              </div>
               <div>
-                <h2 className="text-2xl font-bold text-white">Compare Versions</h2>
-                <p className="text-sm text-slate-300 mt-1">
+                <h2 className="text-lg font-semibold text-zinc-100">Compare Versions</h2>
+                <p className="text-sm text-zinc-400">
                   Version {version1.versionNumber} vs Version {version2.versionNumber}
                 </p>
               </div>
             </div>
-            <button
-              onClick={handleClose}
-              className="text-slate-400 hover:text-white transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+            <button onClick={handleClose} className="btn-icon">
+              <XIcon size={18} />
             </button>
           </div>
         </div>
 
         {/* Modal Body */}
-        <div className="px-6 py-6 overflow-y-auto max-h-[70vh]">
+        <div className="flex-1 min-h-0 px-6 py-6 overflow-y-auto">
           <div className="grid grid-cols-2 gap-6">
             {/* Version 1 */}
             <div className="space-y-3">
-              <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4">
+              <div className="bg-purple-600/10 border border-purple-600/30 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-2xl">📌</span>
+                  <MapPinIcon size={18} className="text-purple-400" />
                   <div>
-                    <h3 className="text-white font-semibold">Version {version1.versionNumber}</h3>
-                    <p className="text-xs text-slate-400">
+                    <h3 className="text-zinc-100 font-medium">Version {version1.versionNumber}</h3>
+                    <p className="text-xs text-zinc-500">
                       {new Date(version1.timestamp).toLocaleString()}
                     </p>
                   </div>
                 </div>
-                <p className="text-sm text-slate-300">{version1.description}</p>
+                <p className="text-sm text-zinc-300">{version1.description}</p>
               </div>
 
-              <div className="bg-black/20 rounded-xl border border-white/10 p-4">
+              <div className="bg-zinc-800/50 rounded-lg border border-zinc-700 p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-white font-semibold text-sm">Code Preview</h4>
+                  <h4 className="text-zinc-100 font-medium text-sm">Code Preview</h4>
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(version1.code);
-                      alert('Code copied to clipboard!');
                     }}
-                    className="text-xs text-blue-400 hover:text-blue-300"
+                    className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
                   >
+                    <CopyIcon size={12} />
                     Copy
                   </button>
                 </div>
-                <pre className="text-xs text-slate-300 overflow-auto max-h-[400px] p-3 bg-black/40 rounded-lg">
+                <pre className="text-xs text-zinc-300 overflow-auto max-h-[400px] p-3 bg-zinc-900 rounded-lg">
                   <code>{version1.code.substring(0, 1000)}...</code>
                 </pre>
               </div>
@@ -97,33 +99,33 @@ export function CompareVersionsModal({
 
             {/* Version 2 */}
             <div className="space-y-3">
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+              <div className="bg-blue-600/10 border border-blue-600/30 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-2xl">📍</span>
+                  <MapPinIcon size={18} className="text-blue-400" />
                   <div>
-                    <h3 className="text-white font-semibold">Version {version2.versionNumber}</h3>
-                    <p className="text-xs text-slate-400">
+                    <h3 className="text-zinc-100 font-medium">Version {version2.versionNumber}</h3>
+                    <p className="text-xs text-zinc-500">
                       {new Date(version2.timestamp).toLocaleString()}
                     </p>
                   </div>
                 </div>
-                <p className="text-sm text-slate-300">{version2.description}</p>
+                <p className="text-sm text-zinc-300">{version2.description}</p>
               </div>
 
-              <div className="bg-black/20 rounded-xl border border-white/10 p-4">
+              <div className="bg-zinc-800/50 rounded-lg border border-zinc-700 p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-white font-semibold text-sm">Code Preview</h4>
+                  <h4 className="text-zinc-100 font-medium text-sm">Code Preview</h4>
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(version2.code);
-                      alert('Code copied to clipboard!');
                     }}
-                    className="text-xs text-blue-400 hover:text-blue-300"
+                    className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
                   >
+                    <CopyIcon size={12} />
                     Copy
                   </button>
                 </div>
-                <pre className="text-xs text-slate-300 overflow-auto max-h-[400px] p-3 bg-black/40 rounded-lg">
+                <pre className="text-xs text-zinc-300 overflow-auto max-h-[400px] p-3 bg-zinc-900 rounded-lg">
                   <code>{version2.code.substring(0, 1000)}...</code>
                 </pre>
               </div>
@@ -131,9 +133,10 @@ export function CompareVersionsModal({
           </div>
 
           {/* Quick Actions */}
-          <div className="mt-6 p-4 bg-white/5 border border-white/10 rounded-xl">
-            <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-              <span>⚡</span> Quick Actions
+          <div className="mt-6 p-4 bg-zinc-800/50 border border-zinc-700 rounded-lg">
+            <h4 className="text-zinc-100 font-medium mb-3 flex items-center gap-2">
+              <ZapIcon size={16} className="text-zinc-400" />
+              Quick Actions
             </h4>
             <div className="flex gap-3">
               <button
@@ -143,33 +146,32 @@ export function CompareVersionsModal({
                     handleClose();
                   }
                 }}
-                className="flex-1 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition-all"
+                className="btn-primary flex-1"
               >
-                🔄 Revert to Version {version1.versionNumber}
+                <RotateCcwIcon size={16} />
+                Revert to Version {version1.versionNumber}
               </button>
               <button
                 onClick={() => {
                   onForkVersion(version1);
                   handleClose();
                 }}
-                className="flex-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-white text-sm font-medium transition-all"
+                className="btn-secondary flex-1"
               >
-                🍴 Fork Version {version1.versionNumber}
+                <ForkIcon size={16} />
+                Fork Version {version1.versionNumber}
               </button>
             </div>
           </div>
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-4 border-t border-white/10 bg-black/20 flex justify-between items-center">
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <span>💡</span>
+        <div className="px-6 py-4 border-t border-zinc-800 flex justify-between items-center">
+          <div className="flex items-center gap-2 text-xs text-zinc-500">
+            <InfoIcon size={14} />
             <span>Compare code changes between versions</span>
           </div>
-          <button
-            onClick={handleClose}
-            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-all"
-          >
+          <button onClick={handleClose} className="btn-primary">
             Close
           </button>
         </div>
