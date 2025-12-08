@@ -158,7 +158,8 @@ MODIFICATION MODE for "${currentAppName}":
     perfTracker.checkpoint('prompt_built');
 
     // Build conversation context
-    const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const messages: Array<{ role: 'user' | 'assistant'; content: string | any[] }> = [];
 
     if (conversationHistory && Array.isArray(conversationHistory)) {
       conversationHistory.forEach((msg: { role: string; content: string }) => {

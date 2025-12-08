@@ -20,7 +20,8 @@ import type { LayoutDesign } from '@/types/layoutDesign';
 export interface GenerationContext {
   anthropic: Anthropic;
   systemPrompt: string;
-  messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  messages: Array<{ role: 'user' | 'assistant'; content: string | any[] }>;
   modelName: string;
   correctionPrompt?: string; // Added for retry with specific fixes
   phaseContext?: PhaseContext; // Added for multi-phase builds
