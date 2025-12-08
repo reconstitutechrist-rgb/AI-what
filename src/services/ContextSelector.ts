@@ -202,8 +202,7 @@ export class ContextSelector {
             analysis,
             request.intent.features,
             request.intent.dependencies,
-            request.previousPhaseFiles ?? [],
-            state
+            request.previousPhaseFiles ?? []
           );
           score = phaseResult.score;
           reason = phaseResult.reason;

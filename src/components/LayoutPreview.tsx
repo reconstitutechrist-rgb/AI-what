@@ -394,7 +394,7 @@ interface SelectableProps {
   style?: React.CSSProperties;
 }
 
-function Selectable({ id, children, isSelected, onClick, className = '' }: SelectableProps) {
+function Selectable({ id, children, isSelected, onClick, className = '', style }: SelectableProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();

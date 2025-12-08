@@ -328,7 +328,7 @@ export class CodeParser {
     // Function component (function declaration)
     if (ts.isFunctionDeclaration(node) && node.name) {
       const name = node.name.text;
-      if (this.isComponentName(name) && this.returnsJSX(node, sourceFile)) {
+      if (this.isComponentName(name) && this.returnsJSX(node)) {
         return true;
       }
     }
@@ -341,7 +341,7 @@ export class CodeParser {
             decl.initializer &&
             (ts.isArrowFunction(decl.initializer) || ts.isFunctionExpression(decl.initializer))
           ) {
-            if (this.returnsJSX(decl.initializer, sourceFile)) {
+            if (this.returnsJSX(decl.initializer)) {
               return true;
             }
           }

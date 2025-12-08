@@ -187,7 +187,7 @@ export class CodeContextService {
     const result = this.selector.select(this.state, request);
 
     // Build snapshot
-    const snapshot = this.buildSnapshot(result.files, result.excluded);
+    const snapshot = this.buildSnapshot(result.files);
 
     // Cache result
     this.cache.setSnapshot(cacheKey, snapshot);
@@ -278,7 +278,7 @@ export class CodeContextService {
       }
     }
 
-    return this.buildSnapshot(selected, []);
+    return this.buildSnapshot(selected);
   }
 
   // ==========================================================================
