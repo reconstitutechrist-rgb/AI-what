@@ -12,9 +12,6 @@ export type TabSize = 2 | 4;
 export interface GeneralSettings {
   appName: string;
   language: string;
-  timezone: string;
-  dateFormat: string;
-  timeFormat: '12h' | '24h';
 }
 
 // Editor Settings
@@ -31,7 +28,6 @@ export interface EditorSettings {
 // AI Settings
 export interface AISettings {
   defaultModel: string;
-  temperature: number; // 0.0 - 2.0
   maxTokens: number;
   systemPrompt: string;
   responseFormat: 'markdown' | 'plain' | 'code';
@@ -107,9 +103,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   general: {
     appName: 'AI App Builder',
     language: 'en',
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-    dateFormat: 'MM/DD/YYYY',
-    timeFormat: '12h',
   },
   editor: {
     theme: 'vs-dark',
@@ -122,7 +115,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   },
   ai: {
     defaultModel: 'gpt-4',
-    temperature: 0.7,
     maxTokens: 4096,
     systemPrompt: '',
     responseFormat: 'markdown',

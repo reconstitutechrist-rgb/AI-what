@@ -383,31 +383,6 @@ export function SettingsPage({ isOpen, onClose, initialSection = 'general' }: Se
               label="Language"
               description="Select your preferred language"
             />
-            <Select
-              value={settings.general.dateFormat}
-              onChange={(value) => updateGeneralSettings({ dateFormat: value })}
-              options={[
-                { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
-                { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY' },
-                { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' },
-              ]}
-              label="Date Format"
-            />
-            <Select
-              value={settings.general.timeFormat}
-              onChange={(value) => updateGeneralSettings({ timeFormat: value })}
-              options={[
-                { value: '12h', label: '12-hour (AM/PM)' },
-                { value: '24h', label: '24-hour' },
-              ]}
-              label="Time Format"
-            />
-            <TextInput
-              value={settings.general.timezone}
-              onChange={(value) => updateGeneralSettings({ timezone: value })}
-              label="Timezone"
-              description="Your local timezone"
-            />
           </div>
         );
 
@@ -502,16 +477,6 @@ export function SettingsPage({ isOpen, onClose, initialSection = 'general' }: Se
               ]}
               label="Default AI Model"
               description="Select the default model for code generation"
-            />
-            <Slider
-              value={settings.ai.temperature}
-              onChange={(value) => updateAISettings({ temperature: value })}
-              min={0}
-              max={2}
-              step={0.1}
-              label="Temperature (Creativity)"
-              description="Higher values make output more random"
-              formatValue={(v) => v.toFixed(1)}
             />
             <Slider
               value={settings.ai.maxTokens}
