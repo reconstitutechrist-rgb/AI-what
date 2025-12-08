@@ -147,81 +147,6 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
-/**
- * Calculate design completion progress
- * Returns percentages for different categories
- */
-function calculateDesignProgress(design: Partial<LayoutDesign>): {
-  overall: number;
-  colors: number;
-  typography: number;
-  layout: number;
-  components: number;
-} {
-  // Colors category (12 properties)
-  const colorProps = [
-    design.globalStyles?.colors?.primary,
-    design.globalStyles?.colors?.secondary,
-    design.globalStyles?.colors?.accent,
-    design.globalStyles?.colors?.background,
-    design.globalStyles?.colors?.surface,
-    design.globalStyles?.colors?.text,
-    design.globalStyles?.colors?.textMuted,
-    design.globalStyles?.colors?.border,
-    design.globalStyles?.colors?.success,
-    design.globalStyles?.colors?.warning,
-    design.globalStyles?.colors?.error,
-    design.globalStyles?.colors?.info,
-  ];
-  const colorsSet = colorProps.filter(Boolean).length;
-  const colors = Math.round((colorsSet / colorProps.length) * 100);
-
-  // Typography category (7 properties)
-  const typoProps = [
-    design.globalStyles?.typography?.fontFamily,
-    design.globalStyles?.typography?.headingWeight,
-    design.globalStyles?.typography?.bodyWeight,
-    design.globalStyles?.typography?.headingSize,
-    design.globalStyles?.typography?.bodySize,
-    design.globalStyles?.typography?.lineHeight,
-    design.globalStyles?.typography?.letterSpacing,
-  ];
-  const typoSet = typoProps.filter(Boolean).length;
-  const typography = Math.round((typoSet / typoProps.length) * 100);
-
-  // Layout category (10 properties)
-  const layoutProps = [
-    design.basePreferences?.style,
-    design.basePreferences?.colorScheme,
-    design.basePreferences?.layout,
-    design.structure?.type,
-    design.structure?.hasHeader,
-    design.structure?.hasSidebar,
-    design.structure?.hasFooter,
-    design.structure?.headerType,
-    design.structure?.contentLayout,
-    design.structure?.mainContentWidth,
-  ];
-  const layoutSet = layoutProps.filter((v) => v !== undefined).length;
-  const layout = Math.round((layoutSet / layoutProps.length) * 100);
-
-  // Components category (5 main component defined)
-  const componentProps = [
-    design.components?.header?.visible !== undefined,
-    design.components?.sidebar?.visible !== undefined,
-    design.components?.hero?.visible !== undefined,
-    design.components?.cards?.style !== undefined,
-    design.components?.footer?.visible !== undefined,
-  ];
-  const componentsSet = componentProps.filter(Boolean).length;
-  const components = Math.round((componentsSet / componentProps.length) * 100);
-
-  // Overall is weighted average
-  const overall = Math.round(colors * 0.25 + typography * 0.2 + layout * 0.3 + components * 0.25);
-
-  return { overall, colors, typography, layout, components };
-}
-
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -337,157 +262,6 @@ function DraftRecoveryBanner({
           Recover Draft
         </button>
       </div>
-    </div>
-  );
-}
-
-/**
- * Design progress indicator component
- */
-function DesignProgressIndicator({
-  design,
-  isExpanded = false,
-  onToggle,
-}: {
-  design: Partial<LayoutDesign>;
-  isExpanded?: boolean;
-  onToggle?: () => void;
-}) {
-  const progress = useMemo(() => calculateDesignProgress(design), [design]);
-
-  const getProgressColor = (value: number) => {
-    if (value >= 80) return 'bg-green-500';
-    if (value >= 50) return 'bg-yellow-500';
-    if (value >= 25) return 'bg-orange-500';
-    return 'bg-red-500';
-  };
-
-  const getProgressLabel = (value: number) => {
-    if (value >= 80) return 'Complete';
-    if (value >= 50) return 'Good';
-    if (value >= 25) return 'Basic';
-    return 'Starting';
-  };
-
-  return (
-    <div className="bg-slate-800/50 rounded-lg border border-slate-700 overflow-hidden">
-      {/* Collapsed view - just overall progress */}
-      <button
-        type="button"
-        onClick={onToggle}
-        className="w-full px-3 py-2 flex items-center justify-between hover:bg-slate-700/30 transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          <svg
-            className="w-4 h-4 text-slate-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-            />
-          </svg>
-          <span className="text-xs font-medium text-slate-300">Design Progress</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span
-            className={`text-xs font-semibold ${progress.overall >= 50 ? 'text-green-400' : 'text-slate-400'}`}
-          >
-            {progress.overall}%
-          </span>
-          <div className="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden">
-            <div
-              className={`h-full ${getProgressColor(progress.overall)} transition-all duration-300`}
-              style={{ width: `${progress.overall}%` }}
-            />
-          </div>
-          <svg
-            className={`w-4 h-4 text-slate-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-      </button>
-
-      {/* Expanded view - category breakdown */}
-      {isExpanded && (
-        <div className="px-3 pb-3 pt-1 border-t border-slate-700/50">
-          <div className="grid grid-cols-2 gap-2">
-            {/* Colors */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-slate-500 uppercase">Colors</span>
-                <span className="text-xs font-medium text-slate-400">{progress.colors}%</span>
-              </div>
-              <div className="w-full h-1 bg-slate-700 rounded-full overflow-hidden">
-                <div
-                  className={`h-full ${getProgressColor(progress.colors)} transition-all duration-300`}
-                  style={{ width: `${progress.colors}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Typography */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-slate-500 uppercase">Typography</span>
-                <span className="text-xs font-medium text-slate-400">{progress.typography}%</span>
-              </div>
-              <div className="w-full h-1 bg-slate-700 rounded-full overflow-hidden">
-                <div
-                  className={`h-full ${getProgressColor(progress.typography)} transition-all duration-300`}
-                  style={{ width: `${progress.typography}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Layout */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-slate-500 uppercase">Layout</span>
-                <span className="text-xs font-medium text-slate-400">{progress.layout}%</span>
-              </div>
-              <div className="w-full h-1 bg-slate-700 rounded-full overflow-hidden">
-                <div
-                  className={`h-full ${getProgressColor(progress.layout)} transition-all duration-300`}
-                  style={{ width: `${progress.layout}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Components */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-slate-500 uppercase">Components</span>
-                <span className="text-xs font-medium text-slate-400">{progress.components}%</span>
-              </div>
-              <div className="w-full h-1 bg-slate-700 rounded-full overflow-hidden">
-                <div
-                  className={`h-full ${getProgressColor(progress.components)} transition-all duration-300`}
-                  style={{ width: `${progress.components}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Status label */}
-          <div className="mt-2 text-center">
-            <span
-              className={`text-xs font-medium ${progress.overall >= 50 ? 'text-green-400' : 'text-slate-500'}`}
-            >
-              {getProgressLabel(progress.overall)} -{' '}
-              {progress.overall >= 80 ? 'Ready to apply!' : 'Keep customizing'}
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -1071,9 +845,6 @@ export function LayoutBuilderWizard({
 
   // Export menu state
   const [showExportMenu, setShowExportMenu] = useState(false);
-
-  // Progress indicator state
-  const [progressExpanded, setProgressExpanded] = useState(false);
 
   // Pixel-perfect mode state
   const [analysisMode, setAnalysisMode] = useState<'standard' | 'pixel-perfect'>('standard');
@@ -2223,15 +1994,6 @@ export function LayoutBuilderWizard({
 
           {/* Recent changes */}
           <RecentChangesIndicator changes={recentChanges} />
-
-          {/* Design progress indicator */}
-          <div className="px-4 py-2 border-t border-slate-700">
-            <DesignProgressIndicator
-              design={design}
-              isExpanded={progressExpanded}
-              onToggle={() => setProgressExpanded(!progressExpanded)}
-            />
-          </div>
 
           {/* Suggested actions */}
           <SuggestedActionsBar actions={suggestedActions} onAction={handleAction} />
