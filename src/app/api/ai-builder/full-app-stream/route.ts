@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     if (!writerClosed) {
       try {
         await writer.write(encoder.encode(formatSSE(event)));
-      } catch (err) {
+      } catch {
         // Writer was closed (client likely disconnected), mark it and abort AI stream
         writerClosed = true;
         abortController.abort('Client disconnected');
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       abortController.abort('Stream closing');
       try {
         await writer.close();
-      } catch (err) {
+      } catch {
         // Already closed, ignore
       }
     }
@@ -67,6 +67,7 @@ export async function POST(request: Request) {
 
   // Start the generation in the background
   (async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let requestBody: any;
 
     try {
@@ -262,7 +263,6 @@ MODIFICATION MODE for "${currentAppName}":
 
       // Check if client disconnected before starting expensive AI call
       if (writerClosed) {
-        console.log('Client disconnected before AI request - aborting');
         return;
       }
 
@@ -287,7 +287,6 @@ MODIFICATION MODE for "${currentAppName}":
 
       // Monitor abort signal and cancel AI stream if needed
       abortController.signal.addEventListener('abort', () => {
-        console.log('Aborting AI stream:', abortController.signal.reason);
         aiStream.abort();
       });
 
@@ -306,7 +305,6 @@ MODIFICATION MODE for "${currentAppName}":
         for await (const chunk of aiStream) {
           // Check if client disconnected
           if (writerClosed) {
-            console.log('Client disconnected during streaming - stopping');
             break;
           }
 
@@ -501,7 +499,6 @@ MODIFICATION MODE for "${currentAppName}":
       for (let i = 0; i < files.length; i++) {
         // Check if client disconnected
         if (writerClosed) {
-          console.log('Client disconnected during validation - stopping');
           break;
         }
 

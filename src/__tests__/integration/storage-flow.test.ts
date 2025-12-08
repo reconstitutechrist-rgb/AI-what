@@ -15,7 +15,7 @@
 import { StorageService } from '../../services/StorageService';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
-import { BucketName, FilePath, FileId, UserId, StorageErrorCode } from '@/types/storage';
+import { FileId, UserId, StorageErrorCode } from '@/types/storage';
 
 // ============================================================================
 // Mock Setup
@@ -184,7 +184,7 @@ describe('Storage Workflows - Integration Tests', () => {
     });
 
     it('should handle multiple file lifecycle operations', async () => {
-      const { client, getStorage } = createStatefulMockSupabaseClient();
+      const { client, getStorage: _getStorage } = createStatefulMockSupabaseClient();
       const service = new StorageService(client);
 
       // Upload 3 files
@@ -412,6 +412,7 @@ describe('Storage Workflows - Integration Tests', () => {
         },
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const service = new StorageService(mockClient as any);
 
       // First 2 uploads should succeed
