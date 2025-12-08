@@ -264,7 +264,7 @@ function Dropzone({
 
   return (
     <div
-      className={`relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+      className={`relative border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-all ${
         isDragging
           ? 'border-purple-500 bg-purple-500/10'
           : 'border-white/20 hover:border-white/40 hover:bg-white/5'
@@ -283,27 +283,17 @@ function Dropzone({
         onChange={handleFileChange}
       />
 
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center">
-          <UploadIcon className="w-6 h-6 text-slate-400" />
+      <div className="flex items-center justify-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center flex-shrink-0">
+          <UploadIcon className="w-4 h-4 text-slate-400" />
         </div>
-        <div>
-          <p className="text-sm font-medium text-white">
-            Drop images or videos here
+        <div className="text-left">
+          <p className="text-xs font-medium text-white">
+            Drop images/videos or click to browse
           </p>
-          <p className="text-xs text-slate-400 mt-1">
-            or click to browse
+          <p className="text-[10px] text-slate-500">
+            Images up to {MAX_IMAGE_SIZE_MB}MB • Videos up to {MAX_VIDEO_SIZE_MB}MB
           </p>
-        </div>
-        <div className="flex items-center gap-4 text-xs text-slate-500">
-          <span className="flex items-center gap-1">
-            <ImageIcon className="w-3 h-3" />
-            Images up to {MAX_IMAGE_SIZE_MB}MB
-          </span>
-          <span className="flex items-center gap-1">
-            <PlayIcon className="w-3 h-3" />
-            Videos up to {MAX_VIDEO_SIZE_MB}MB
-          </span>
         </div>
       </div>
     </div>
