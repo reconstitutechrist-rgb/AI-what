@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { validateGeneratedCode, autoFixCode, type ValidationError } from '@/utils/codeValidator';
 import { buildFullAppPrompt } from '@/prompts/builder';
 import {
   analytics,
@@ -103,12 +102,12 @@ The user has an existing app loaded. Here is the current state:
 App Name: ${currentAppState.name || 'Unnamed App'}
 App Type: ${currentAppState.appType || 'Unknown'}
 Files in the app:
-${currentAppState.files.map((f: any) => `- ${f.path}`).join('\n')}
+${currentAppState.files.map((f: { path: string }) => `- ${f.path}`).join('\n')}
 
 FILE CONTENTS:
 ${currentAppState.files
   .map(
-    (f: any) => `
+    (f: { path: string; content: string }) => `
 --- ${f.path} ---
 ${f.content}
 --- END ${f.path} ---
@@ -156,17 +155,13 @@ MODIFICATION MODE for "${currentAppName}":
     const systemPrompt = buildFullAppPrompt(baseInstructions, hasImage, isModification);
     const estimatedPromptTokens = Math.round(systemPrompt.length / 4);
 
-    console.log('✅ Phase 3: Using compressed modular prompts');
-    console.log('📊 Token estimate:', estimatedPromptTokens, 'tokens');
-    console.log('Generating app with prompt:', prompt);
-
     perfTracker.checkpoint('prompt_built');
 
     // Build conversation context
-    const messages: any[] = [];
+    const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
 
     if (conversationHistory && Array.isArray(conversationHistory)) {
-      conversationHistory.forEach((msg: any) => {
+      conversationHistory.forEach((msg: { role: string; content: string }) => {
         if (msg.role === 'user') {
           messages.push({ role: 'user', content: msg.content });
         } else if (msg.role === 'assistant') {
@@ -197,8 +192,6 @@ MODIFICATION MODE for "${currentAppName}":
             `Unsupported image type: ${mediaType}. Please use JPEG, PNG, GIF, or WebP.`
           );
         }
-
-        console.log('Image media type:', normalizedType, 'Original:', mediaType);
 
         messages.push({
           role: 'user',
@@ -243,6 +236,7 @@ MODIFICATION MODE for "${currentAppName}":
           }
         : undefined;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any;
     let lastError: GenerationError | null = null;
     let attemptNumber = 1;
@@ -285,11 +279,8 @@ MODIFICATION MODE for "${currentAppName}":
           const retryStrategy = generateRetryStrategy(retryContext, DEFAULT_RETRY_CONFIG);
 
           if (!retryStrategy.shouldRetry) {
-            console.log(`❌ Retry not allowed for error category: ${lastError.category}`);
             throw lastError;
           }
-
-          console.log(`🔄 Retry attempt ${attemptNumber}/${maxRetries} - ${lastError.category}`);
           generationContext.correctionPrompt = retryStrategy.correctionPrompt;
 
           // Wait if retry delay specified
@@ -319,11 +310,6 @@ MODIFICATION MODE for "${currentAppName}":
         perfTracker.checkpoint('validation_complete');
 
         // Success! Break out of retry loop
-        console.log(
-          attemptNumber > 1
-            ? `✅ Retry attempt ${attemptNumber} succeeded!`
-            : '✅ Generation successful on first attempt'
-        );
         break;
       } catch (error) {
         lastError = error as GenerationError;
