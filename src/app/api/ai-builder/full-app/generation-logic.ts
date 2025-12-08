@@ -9,7 +9,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { validateGeneratedCode, autoFixCode, type ValidationError } from '@/utils/codeValidator';
 import type { ErrorCategory } from '@/utils/analytics';
-import { generateImagesForApp, type AppImageGenerationResult } from '@/services/AppImageGenerator';
+import { generateImagesForApp } from '@/services/AppImageGenerator';
 import { injectImageUrls } from '@/utils/imageUrlInjector';
 import type { LayoutDesign } from '@/types/layoutDesign';
 
@@ -20,7 +20,7 @@ import type { LayoutDesign } from '@/types/layoutDesign';
 export interface GenerationContext {
   anthropic: Anthropic;
   systemPrompt: string;
-  messages: any[];
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>;
   modelName: string;
   correctionPrompt?: string; // Added for retry with specific fixes
   phaseContext?: PhaseContext; // Added for multi-phase builds
@@ -97,7 +97,7 @@ export interface GenerationResult {
 export interface GenerationError extends Error {
   category: ErrorCategory;
   originalResponse?: string;
-  validationDetails?: any;
+  validationDetails?: { file: string; errors: ValidationError[] }[];
 }
 
 // ============================================================================
@@ -193,10 +193,6 @@ export function splitPhaseIfNeeded(phase: Phase): Phase[] {
     return [phase];
   }
 
-  console.log(
-    `⚠️ Phase ${phase.number} is too large (${complexity.estimatedTokens} estimated tokens). Splitting...`
-  );
-
   // Separate complex features from simple ones
   const complexFeatures: string[] = [];
   const simpleFeatures: string[] = [];
@@ -247,7 +243,6 @@ export function splitPhaseIfNeeded(phase: Phase): Phase[] {
     });
   });
 
-  console.log(`✅ Split into ${splitPhases.length} sub-phases`);
   return splitPhases;
 }
 
@@ -424,7 +419,8 @@ This is Phase 1 - create the foundation app with these features.`;
   // Subsequent phases: Build on existing code
   try {
     const existingApp = JSON.parse(context.previousPhaseCode);
-    const existingFiles = existingApp.files?.map((f: any) => f.path).join(', ') || 'none';
+    const existingFiles =
+      existingApp.files?.map((f: { path: string }) => f.path).join(', ') || 'none';
 
     return `Continue building the app. This is Phase ${context.phaseNumber}.
 
@@ -449,14 +445,14 @@ ${
   existingApp.files
     ?.slice(0, 3)
     .map(
-      (f: any) => `
+      (f: { path: string; content: string }) => `
 === ${f.path} ===
 ${f.content.substring(0, 1500)}${f.content.length > 1500 ? '...(truncated)' : ''}
 `
     )
     .join('\n') || '(no existing files)'
 }`;
-  } catch (e) {
+  } catch {
     // Fallback if parsing fails
     return `Build ${phase.name}: ${phase.description}
     
@@ -487,17 +483,8 @@ export async function generateFullApp(
   // Add correction prompt if this is a retry
   const enhancedMessages =
     correctionPrompt && attemptNumber > 1
-      ? [...messages, { role: 'user', content: correctionPrompt }]
+      ? [...messages, { role: 'user' as const, content: correctionPrompt }]
       : messages;
-
-  console.log(
-    attemptNumber > 1
-      ? `🔄 Retry attempt ${attemptNumber} with correction prompt`
-      : `Generating ${phaseNumber === 1 ? 'foundation' : `phase ${phaseNumber}`} with Claude Sonnet 4.5...`
-  );
-  console.log(
-    `📊 Token budget: max=${tokenBudget.max_tokens}, thinking=${tokenBudget.thinking_budget}, timeout=${tokenBudget.timeout}ms`
-  );
 
   // Use streaming API with dynamic token budget
   const stream = await anthropic.messages.stream({
@@ -560,17 +547,6 @@ export async function generateFullApp(
     throw error;
   }
 
-  console.log('Generated response length:', responseText.length, 'chars');
-  console.log('Output tokens:', outputTokens);
-
-  // Warn if approaching token limit
-  const tokenLimitPercentage = (outputTokens / tokenBudget.max_tokens) * 100;
-  if (tokenLimitPercentage > 90) {
-    console.warn(
-      `⚠️ Response used ${tokenLimitPercentage.toFixed(1)}% of token limit - may be truncated!`
-    );
-  }
-
   if (!responseText) {
     const error = new Error('No response from Claude') as GenerationError;
     error.category = 'ai_error';
@@ -619,8 +595,6 @@ export async function generateFullApp(
     });
   }
 
-  console.log('Parsed files:', files.length);
-
   if (files.length === 0) {
     const error = new Error('No files generated in response') as GenerationError;
     error.category = 'parsing_error';
@@ -635,16 +609,9 @@ export async function generateFullApp(
   const truncationInfo = detectTruncation(responseText, files);
 
   if (truncationInfo.isTruncated) {
-    console.warn(`⚠️ TRUNCATION DETECTED: ${truncationInfo.reason}`);
-    console.warn(`   Salvageable files: ${truncationInfo.salvageableFiles}/${files.length}`);
-    console.warn(`   Last complete file: ${truncationInfo.lastCompleteFile || 'none'}`);
-
     // Filter to only complete files
     if (truncationInfo.salvageableFiles > 0 && truncationInfo.salvageableFiles < files.length) {
       const completeFiles = files.slice(0, truncationInfo.salvageableFiles);
-      console.log(
-        `📁 Keeping ${completeFiles.length} complete files, discarding ${files.length - completeFiles.length} incomplete`
-      );
       files.length = 0;
       files.push(...completeFiles);
     }
@@ -653,7 +620,6 @@ export async function generateFullApp(
   // ============================================================================
   // VALIDATION LAYER
   // ============================================================================
-  console.log('🔍 Validating generated code...');
 
   const validationErrors: Array<{ file: string; errors: ValidationError[] }> = [];
   let totalErrors = 0;
@@ -669,12 +635,10 @@ export async function generateFullApp(
       const validation = await validateGeneratedCode(file.content, file.path);
 
       if (!validation.valid) {
-        console.log(`⚠️ Found ${validation.errors.length} error(s) in ${file.path}`);
         totalErrors += validation.errors.length;
 
         const fixedCode = autoFixCode(file.content, validation.errors);
         if (fixedCode !== file.content) {
-          console.log(`✅ Auto-fixed errors in ${file.path}`);
           file.content = fixedCode;
           autoFixedCount += validation.errors.filter((e) => e.type === 'UNCLOSED_STRING').length;
 
@@ -693,15 +657,6 @@ export async function generateFullApp(
         }
       }
     }
-  }
-
-  if (totalErrors > 0) {
-    console.log(`📊 Validation Summary:`);
-    console.log(`   Total errors found: ${totalErrors}`);
-    console.log(`   Auto-fixed: ${autoFixedCount}`);
-    console.log(`   Remaining: ${totalErrors - autoFixedCount}`);
-  } else {
-    console.log(`✅ All code validated successfully`);
   }
 
   // If validation failed on first attempt with unfixed errors, throw for retry
@@ -740,8 +695,6 @@ export async function generateFullApp(
   const { imageOptions } = context;
 
   if (imageOptions?.generateImages) {
-    console.log('🎨 Starting image generation for app...');
-
     try {
       // Extract features from files if not provided
       const features = imageOptions.features || extractFeaturesFromFiles(files);
@@ -760,14 +713,8 @@ export async function generateFullApp(
         }
       );
 
-      console.log(
-        `✅ Image generation complete. Cost: $${images.totalCost.toFixed(2)}, Time: ${images.generationTime}ms`
-      );
-
       // Inject image URLs into generated code
       if (!images.fallbackUsed || images.hero || images.cards.length > 0) {
-        console.log('🔧 Injecting image URLs into generated code...');
-
         const injectionResult = injectImageUrls(
           files.map((f) => ({ path: f.path, content: f.content })),
           images
@@ -789,8 +736,6 @@ export async function generateFullApp(
           content: injectionResult.imageConstantsFile.content,
           description: 'Image constants file with generated image URLs',
         });
-
-        console.log(`✅ Injected ${injectionResult.imagesInjected} images into code`);
       }
 
       // Build image result metadata
