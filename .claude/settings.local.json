@@ -47,7 +47,8 @@
       "Bash(git -C \"c:\\AI-app\" checkout -- src/components/LayoutBuilderWizard.tsx)",
       "Bash(powershell -Command:*)",
       "Bash(node -e:*)",
-      "Bash(git -C \"c:\\AI-app\" diff --stat src/components/LayoutBuilderWizard.tsx)"
+      "Bash(git -C \"c:\\AI-app\" diff --stat src/components/LayoutBuilderWizard.tsx)",
+      "Bash(git -C \"c:\\AI-app\" commit -m \"$(cat <<''EOF''\nrefactor(conversation-wizard): extract hooks and sub-components from NaturalConversationWizard\n\nExtract reusable hooks:\n- useDraftPersistence: handles auto-save/recovery of conversation state\n- usePhaseGeneration: handles phase generation and context building\n\nExtract UI sub-components to src/components/conversation-wizard/:\n- RecoveryPromptDialog: draft recovery modal\n- MessageBubble: chat message with markdown rendering\n- SuggestedActionsBar: action buttons\n- PendingImagesPreview: image upload preview\n- ChatInputArea: text input with file upload\n- WizardHeader: header with layout import\n- ConceptSummaryPanel: side panel summary\n\nResults:\n- NaturalConversationWizard.tsx: 1,312 → 602 lines (-54%)\n- Fixed phasePlan state duplication between hooks\n- Fixed React key props using array indices\n- Removed non-null assertion with proper guard\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []

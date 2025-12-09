@@ -1,0 +1,332 @@
+import { useState, useEffect, useCallback } from 'react';
+import type {
+  AppConcept,
+  TechnicalRequirements,
+  UIPreferences,
+  UserRole,
+} from '@/types/appConcept';
+import type { DynamicPhasePlan } from '@/types/dynamicPhases';
+import type { LayoutDesign } from '@/types/layoutDesign';
+import {
+  segmentConversation,
+  getHighImportanceSegments,
+  buildContextFromSegments,
+} from '@/utils/conversationSegmentation';
+import { buildStructuredContext, structuredContextToSummary } from '@/utils/structuredExtraction';
+
+/**
+ * Phase generation hook for wizard components
+ * Handles building context and generating implementation phases
+ */
+
+interface Message {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: Date;
+  attachments?: string[];
+}
+
+interface WizardState {
+  name?: string;
+  description?: string;
+  purpose?: string;
+  targetUsers?: string;
+  features: Array<{ name: string; description?: string; priority: 'high' | 'medium' | 'low' }>;
+  technical: Partial<TechnicalRequirements>;
+  uiPreferences: Partial<UIPreferences>;
+  roles?: Array<{ name: string; capabilities: string[] }>;
+  workflows?: Array<{
+    name: string;
+    description?: string;
+    steps: string[];
+    involvedRoles: string[];
+  }>;
+  isComplete: boolean;
+  readyForPhases: boolean;
+}
+
+interface UsePhaseGenerationOptions {
+  wizardState: WizardState;
+  messages: Message[];
+  importedLayoutDesign: LayoutDesign | null;
+  phasePlan: DynamicPhasePlan | null;
+  setPhasePlan: React.Dispatch<React.SetStateAction<DynamicPhasePlan | null>>;
+  onShowToast: (opts: { type: 'success' | 'info' | 'error'; message: string }) => void;
+  onAddMessage: (message: Message) => void;
+}
+
+interface UsePhaseGenerationReturn {
+  isGeneratingPhases: boolean;
+  generatePhases: () => Promise<void>;
+  buildConversationContext: () => string;
+  convertRolesToUserRoles: () => UserRole[] | undefined;
+  extractWorkflowsFromConversation: () => WizardState['workflows'] | undefined;
+  formatPhasePlanMessage: (plan: DynamicPhasePlan) => string;
+}
+
+export function usePhaseGeneration({
+  wizardState,
+  messages,
+  importedLayoutDesign,
+  phasePlan,
+  setPhasePlan,
+  onShowToast,
+  onAddMessage,
+}: UsePhaseGenerationOptions): UsePhaseGenerationReturn {
+  const [isGeneratingPhases, setIsGeneratingPhases] = useState(false);
+
+  /**
+   * Build conversation context summary for phase generation
+   * Uses structured extraction and segmentation for rich detail preservation
+   */
+  const buildConversationContext = useCallback((): string => {
+    const relevantMessages = messages.filter((m) => m.role !== 'system');
+    if (relevantMessages.length === 0) return '';
+
+    // Convert to ChatMessage format for extraction
+    const chatMessages = relevantMessages.map((m) => ({
+      id: m.id,
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+      timestamp: m.timestamp.toISOString(),
+    }));
+
+    const contextParts: string[] = [];
+
+    // For large conversations, use segmentation to preserve important context
+    if (chatMessages.length > 20) {
+      const segmentationResult = segmentConversation(chatMessages);
+      const highImportanceSegments = getHighImportanceSegments(segmentationResult);
+
+      if (highImportanceSegments.length > 0) {
+        const segmentContext = buildContextFromSegments(highImportanceSegments, 2000);
+        contextParts.push('=== KEY CONVERSATION SEGMENTS ===');
+        contextParts.push(segmentContext);
+        contextParts.push('');
+      }
+    }
+
+    // Build structured context with rich feature/role/workflow extraction
+    const structuredContext = buildStructuredContext(chatMessages);
+    const structuredSummary = structuredContextToSummary(structuredContext);
+
+    // Add structured extraction
+    if (structuredSummary) {
+      contextParts.push('=== STRUCTURED REQUIREMENTS ===');
+      contextParts.push(structuredSummary);
+      contextParts.push('');
+    }
+
+    // Also include condensed recent conversation for immediate context
+    const conversationSummary = relevantMessages
+      .slice(-10) // Focus on most recent messages
+      .map(
+        (m) =>
+          `${m.role.toUpperCase()}: ${m.content.slice(0, 250)}${m.content.length > 250 ? '...' : ''}`
+      )
+      .join('\n\n');
+
+    contextParts.push('=== RECENT CONVERSATION ===');
+    contextParts.push(conversationSummary);
+
+    return contextParts.join('\n');
+  }, [messages]);
+
+  /**
+   * Convert wizard roles to AppConcept UserRole format
+   */
+  const convertRolesToUserRoles = useCallback((): UserRole[] | undefined => {
+    if (!wizardState.roles || wizardState.roles.length === 0) return undefined;
+
+    return wizardState.roles.map((role) => ({
+      name: role.name,
+      capabilities: role.capabilities,
+    }));
+  }, [wizardState.roles]);
+
+  /**
+   * Extract workflows from conversation messages for AppConcept
+   */
+  const extractWorkflowsFromConversation = useCallback(() => {
+    const relevantMessages = messages.filter((m) => m.role !== 'system');
+    if (relevantMessages.length === 0) return undefined;
+
+    const chatMessages = relevantMessages.map((m) => ({
+      id: m.id,
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+      timestamp: m.timestamp.toISOString(),
+    }));
+
+    const structuredContext = buildStructuredContext(chatMessages);
+
+    if (structuredContext.workflows.length === 0) return undefined;
+
+    return structuredContext.workflows.map((w) => ({
+      name: w.name,
+      description: w.description || w.triggerCondition,
+      steps: w.steps.map((s) => s.action),
+      involvedRoles: w.involvedRoles,
+    }));
+  }, [messages]);
+
+  /**
+   * Format the phase plan as a readable message
+   */
+  const formatPhasePlanMessage = useCallback((plan: DynamicPhasePlan): string => {
+    let message = `## Implementation Plan: ${plan.appName}
+
+**Complexity:** ${plan.complexity}
+**Total Phases:** ${plan.totalPhases}
+**Estimated Time:** ${plan.estimatedTotalTime}
+
+---
+
+### Phases:
+
+`;
+
+    for (const phase of plan.phases) {
+      message += `**Phase ${phase.number}: ${phase.name}** (${phase.estimatedTime})
+${phase.description}
+`;
+      if (phase.features.length > 0 && phase.features.length <= 5) {
+        message += `- ${phase.features.join('\n- ')}\n`;
+      }
+      message += '\n';
+    }
+
+    message += `---
+
+Does this look good? You can:
+- **Start building** to begin with Phase 1
+- Ask me to **adjust** any phases
+- Add or remove features before starting`;
+
+    return message;
+  }, []);
+
+  /**
+   * Generate implementation phases
+   */
+  const generatePhases = useCallback(async () => {
+    if (!wizardState.name || wizardState.features.length === 0) {
+      onShowToast({
+        type: 'error',
+        message: 'Please complete the app concept before generating phases.',
+      });
+      return;
+    }
+
+    setIsGeneratingPhases(true);
+
+    try {
+      // Build complete concept with ALL details from the conversation
+      const concept: AppConcept = {
+        name: wizardState.name,
+        description: wizardState.description || `A ${wizardState.name} application`,
+        purpose: wizardState.purpose || wizardState.description || '',
+        targetUsers: wizardState.targetUsers || 'General users',
+        coreFeatures: wizardState.features.map((f, i) => ({
+          id: `feature-${i}`,
+          name: f.name,
+          description: f.description || '',
+          priority: f.priority,
+        })),
+        uiPreferences: {
+          style: 'modern',
+          colorScheme: 'auto',
+          layout: 'single-page',
+          ...wizardState.uiPreferences,
+        } as UIPreferences,
+        technical: {
+          needsAuth: false,
+          needsDatabase: false,
+          needsAPI: false,
+          needsFileUpload: false,
+          needsRealtime: false,
+          ...wizardState.technical,
+        } as TechnicalRequirements,
+        roles: convertRolesToUserRoles(),
+        workflows: extractWorkflowsFromConversation(),
+        conversationContext: buildConversationContext(),
+        layoutDesign: importedLayoutDesign || undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Convert messages to ChatMessage format for phase context extraction
+      const conversationMessages = messages.map((m) => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        timestamp: m.timestamp.toISOString(),
+      }));
+
+      // Call phase generation API with conversation for context extraction
+      const response = await fetch('/api/wizard/generate-phases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          concept,
+          conversationMessages,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate phases');
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.plan) {
+        setPhasePlan(data.plan);
+
+        // Add message showing the plan
+        const planMessage: Message = {
+          id: `plan-${Date.now()}`,
+          role: 'assistant',
+          content: formatPhasePlanMessage(data.plan),
+          timestamp: new Date(),
+        };
+        onAddMessage(planMessage);
+      }
+    } catch (err) {
+      console.error('Phase generation error:', err);
+      onShowToast({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to generate phases',
+      });
+    } finally {
+      setIsGeneratingPhases(false);
+    }
+  }, [
+    wizardState,
+    messages,
+    importedLayoutDesign,
+    onShowToast,
+    onAddMessage,
+    convertRolesToUserRoles,
+    extractWorkflowsFromConversation,
+    buildConversationContext,
+    formatPhasePlanMessage,
+  ]);
+
+  // Auto-trigger phase generation when ready
+  useEffect(() => {
+    if (wizardState.readyForPhases && !phasePlan && !isGeneratingPhases) {
+      generatePhases();
+    }
+  }, [wizardState.readyForPhases, phasePlan, isGeneratingPhases, generatePhases]);
+
+  return {
+    isGeneratingPhases,
+    generatePhases,
+    buildConversationContext,
+    convertRolesToUserRoles,
+    extractWorkflowsFromConversation,
+    formatPhasePlanMessage,
+  };
+}
