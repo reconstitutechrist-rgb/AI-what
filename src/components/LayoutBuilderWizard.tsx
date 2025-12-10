@@ -83,6 +83,9 @@ import {
   RecentChangesIndicator,
   TemplatePicker,
   ChatInput,
+  TemplatesMenu,
+  ToolsMenu,
+  DesignSidePanel,
 } from '@/components/layout-builder';
 import { useLayoutPanelStore } from '@/stores/useLayoutPanelStore';
 
@@ -309,6 +312,7 @@ export function LayoutBuilderWizard({
   // Animation detection data
   const [detectedAnimations, setDetectedAnimations] = useState<DetectedAnimation[]>([]);
   const [showReferenceMediaPanel, _setShowReferenceMediaPanel] = useState(true);
+  const [showDesignSidePanel, setShowDesignSidePanel] = useState(true);
 
   // Data states for advanced features
   const [customAnimation, setCustomAnimation] = useState<CustomAnimation | null>(null);
@@ -1028,88 +1032,35 @@ export function LayoutBuilderWizard({
           )}
         </div>
         <div className="flex items-center gap-3">
-          {/* Templates button */}
-          <button
-            onClick={() => setShowTemplatePicker(true)}
-            className="px-3 py-1.5 text-sm text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2"
-            title="Choose a design template"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
-              />
-            </svg>
-            Templates
-          </button>
+          {/* Templates Dropdown Menu */}
+          <TemplatesMenu
+            onOpenTemplates={() => setShowTemplatePicker(true)}
+            onOpenBlueprints={() => setShowArchitectureTemplates(true)}
+            onOpenHistory={() => setShowVersionHistory(true)}
+            historyCount={versionHistory.length}
+          />
 
-          {/* Architecture Blueprints button */}
-          <button
-            onClick={() => setShowArchitectureTemplates(true)}
-            className="px-3 py-1.5 text-sm text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2"
-            title="Choose an architecture blueprint"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-              />
-            </svg>
-            Blueprints
-          </button>
+          {/* Tools Dropdown Menu */}
+          <ToolsMenu
+            onExportJSON={handleExportJSON}
+            onExportCSS={handleExportCSS}
+            onExportTailwind={handleExportTailwind}
+            onExportReact={handleExportReact}
+            onExportTokens={handleExportTokens}
+            onCopyCSS={handleCopyCSS}
+            onImport={() => importInputRef.current?.click()}
+            onOpenCodePreview={() => setShowCodePreview(true)}
+            onOpenShortcuts={() => setShowKeyboardShortcuts(true)}
+            onOpenAnimationTimeline={() => setShowAnimationTimeline(true)}
+            onOpenLayerPanel={() => setShowLayerPanel(true)}
+            onOpenDarkModeEditor={() => setShowDarkModeEditor(true)}
+            onOpenBreakpointEditor={() => setShowBreakpointEditor(true)}
+            onOpenPerformanceReport={() => setShowPerformanceReport(true)}
+            analysisMode={analysisMode}
+            onToggleAnalysisMode={handleTogglePixelPerfectMode}
+          />
 
-          {/* Pixel-Perfect Mode Toggle */}
-          <button
-            onClick={handleTogglePixelPerfectMode}
-            className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-2 ${
-              analysisMode === 'pixel-perfect'
-                ? 'bg-purple-600 text-white'
-                : 'text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700'
-            }`}
-            title={
-              analysisMode === 'pixel-perfect'
-                ? 'Switch to standard mode'
-                : 'Enable pixel-perfect replication mode'
-            }
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-              />
-            </svg>
-            {analysisMode === 'pixel-perfect' ? 'Pixel-Perfect' : 'Standard'}
-          </button>
-
-          {/* Video Upload Button */}
-          <button
-            onClick={() => videoInputRef.current?.click()}
-            disabled={isProcessingVideo}
-            className="px-3 py-1.5 text-sm text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-2"
-            title="Upload video reference for animation detection"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-              />
-            </svg>
-            {isProcessingVideo ? 'Processing...' : 'Video'}
-          </button>
+          {/* Hidden file inputs */}
           <input
             ref={videoInputRef}
             type="file"
@@ -1141,303 +1092,35 @@ export function LayoutBuilderWizard({
             </button>
           )}
 
-          {/* Export/Import/History buttons */}
-          <div className="flex items-center gap-1">
-            {/* Export dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setShowExportMenu(!showExportMenu)}
-                className={`p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors ${showExportMenu ? 'bg-slate-700 text-white' : ''}`}
-                title="Export design"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                  />
-                </svg>
-              </button>
-              {showExportMenu && (
-                <>
-                  {/* Backdrop to close menu */}
-                  <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)} />
-                  {/* Dropdown menu */}
-                  <div className="absolute right-0 top-full mt-1 w-56 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 py-1 overflow-hidden">
-                    <div className="px-3 py-2 border-b border-slate-700">
-                      <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-                        Export Format
-                      </span>
-                    </div>
-                    <button
-                      onClick={handleExportJSON}
-                      className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2"
-                    >
-                      <svg
-                        className="w-4 h-4 text-blue-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
-                      JSON (Full Design)
-                    </button>
-                    <button
-                      onClick={handleExportCSS}
-                      className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2"
-                    >
-                      <svg
-                        className="w-4 h-4 text-purple-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                        />
-                      </svg>
-                      CSS Variables
-                    </button>
-                    <button
-                      onClick={handleExportTailwind}
-                      className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2"
-                    >
-                      <svg
-                        className="w-4 h-4 text-cyan-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-                        />
-                      </svg>
-                      Tailwind Config
-                    </button>
-                    <button
-                      onClick={handleExportReact}
-                      className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2"
-                    >
-                      <svg
-                        className="w-4 h-4 text-green-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                      React Component
-                    </button>
-                    <button
-                      onClick={handleExportTokens}
-                      className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2"
-                    >
-                      <svg
-                        className="w-4 h-4 text-yellow-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                        />
-                      </svg>
-                      Design Tokens (Figma)
-                    </button>
-                    <div className="border-t border-slate-700 mt-1 pt-1">
-                      <button
-                        onClick={handleCopyCSS}
-                        className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2"
-                      >
-                        <svg
-                          className="w-4 h-4 text-slate-400"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
-                          />
-                        </svg>
-                        Copy CSS to Clipboard
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-            <button
-              onClick={() => importInputRef.current?.click()}
-              className="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
-              title="Import design from JSON file"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={() => setShowVersionHistory(true)}
-              className="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors relative"
-              title="View version history"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              {versionHistory.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 text-[10px] bg-blue-600 text-white rounded-full flex items-center justify-center">
-                  {versionHistory.length > 9 ? '9+' : versionHistory.length}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setShowCodePreview(true)}
-              className="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
-              title="View generated code"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={() => setShowKeyboardShortcuts(true)}
-              className="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
-              title="Keyboard shortcuts (?)"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </button>
-            {/* Divider */}
-            <div className="w-px h-6 bg-slate-700" />
-            {/* Advanced Tools */}
-            <button
-              onClick={() => setShowAnimationTimeline(true)}
-              className="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
-              title="Animation Timeline"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={() => setShowLayerPanel(true)}
-              className="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
-              title="Layer Panel (z-index)"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={() => setShowDarkModeEditor(true)}
-              className="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
-              title="Dark Mode Colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={() => setShowBreakpointEditor(true)}
-              className="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
-              title="Responsive Breakpoints"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={() => setShowPerformanceReport(true)}
-              className="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
-              title="Performance Report"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                />
-              </svg>
-            </button>
-            <input
-              ref={importInputRef}
-              type="file"
-              accept=".json"
-              onChange={handleImportFile}
-              className="hidden"
-            />
-          </div>
+          {/* Design Panel Toggle */}
+          <button
+            onClick={() => setShowDesignSidePanel(!showDesignSidePanel)}
+            className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-2 ${
+              showDesignSidePanel
+                ? 'bg-slate-700 text-white'
+                : 'text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700'
+            }`}
+            title="Toggle design panel"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 5a1 1 0 011-1h4a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zm0 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"
+              />
+            </svg>
+            Design
+          </button>
+
+          {/* Hidden import file input */}
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleImportFile}
+            className="hidden"
+          />
 
           {/* Undo/Redo buttons */}
           <div className="flex items-center gap-1 mr-2">
@@ -1687,191 +1370,21 @@ export function LayoutBuilderWizard({
         </div>
 
         {/* Preview panel (right) */}
-        <div className="w-1/2 min-h-0 flex flex-col bg-slate-950">
-          {/* Analysis Progress Indicator */}
+        <div className="w-1/2 min-h-0 flex flex-col bg-slate-950 relative">
+          {/* Compact Analysis Progress Indicator */}
           {analysisProgress.state.isAnalyzing && (
-            <div className="p-4 border-b border-slate-700">
+            <div className="p-2 border-b border-slate-700">
               <AnalysisProgressIndicator
                 state={analysisProgress.state}
                 onCancel={analysisProgress.cancel}
-                showDetails={true}
-                compact={false}
+                showDetails={false}
+                compact={true}
               />
             </div>
           )}
 
-          {/* Pixel-Perfect Mode Indicator with Panel Toggles */}
-          {analysisMode === 'pixel-perfect' && !analysisProgress.state.isAnalyzing && (
-            <div className="px-4 py-2 bg-purple-500/20 border-b border-purple-500/30">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <svg
-                    className="w-4 h-4 text-purple-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                    />
-                  </svg>
-                  <span className="text-sm text-purple-300">
-                    Pixel-Perfect Mode{' '}
-                    {referenceImages.length > 0 ? `(${referenceImages.length} ref)` : ''}
-                  </span>
-                </div>
-                {/* Panel toggle buttons */}
-                <div className="flex items-center gap-2">
-                  {detectedAnimations.length > 0 && (
-                    <button
-                      onClick={() => setShowAnimationPanel(!showAnimationPanel)}
-                      className={`text-xs px-2 py-1 rounded flex items-center gap-1 transition-colors ${
-                        showAnimationPanel
-                          ? 'bg-purple-500/30 text-purple-300'
-                          : 'text-purple-400 hover:text-purple-300 hover:bg-purple-500/20'
-                      }`}
-                    >
-                      <svg
-                        className="w-3 h-3"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 10V3L4 14h7v7l9-11h-7z"
-                        />
-                      </svg>
-                      Animations ({detectedAnimations.length})
-                    </button>
-                  )}
-                  {pixelPerfectAnalysis && (
-                    <button
-                      onClick={() => setShowSpecSheetPanel(!showSpecSheetPanel)}
-                      className={`text-xs px-2 py-1 rounded flex items-center gap-1 transition-colors ${
-                        showSpecSheetPanel
-                          ? 'bg-purple-500/30 text-purple-300'
-                          : 'text-purple-400 hover:text-purple-300 hover:bg-purple-500/20'
-                      }`}
-                    >
-                      <svg
-                        className="w-3 h-3"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
-                      Specs
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Animation Panel - Shows detected animations from video analysis */}
-          {showAnimationPanel && detectedAnimations.length > 0 && (
-            <div className="border-b border-slate-700 max-h-80 overflow-hidden">
-              <AnimationPanel
-                animations={detectedAnimations}
-                onEditAnimation={(id, updates) => {
-                  setDetectedAnimations((prev) =>
-                    prev.map((a) => (a.id === id ? { ...a, ...updates } : a))
-                  );
-                }}
-                onApplyAnimation={(animation, targetElement) => {
-                  // Apply animation to design - could update globalStyles.effects
-                  success(`Applied ${animation.type} animation to ${targetElement || 'element'}`);
-                }}
-                onRemoveAnimation={(id) => {
-                  setDetectedAnimations((prev) => prev.filter((a) => a.id !== id));
-                  if (detectedAnimations.length <= 1) {
-                    setShowAnimationPanel(false);
-                  }
-                }}
-                className="h-full"
-              />
-            </div>
-          )}
-
-          {/* Spec Sheet Panel - Shows design specifications from analysis */}
-          {showSpecSheetPanel && pixelPerfectAnalysis && (
-            <div className="border-b border-slate-700 max-h-96 overflow-hidden">
-              <SpecSheetPanel
-                analysis={pixelPerfectAnalysis}
-                onExport={(format, _content) => {
-                  // Use existing export handler which generates content internally
-                  if (
-                    format === 'json' ||
-                    format === 'css' ||
-                    format === 'tailwind' ||
-                    format === 'figma'
-                  ) {
-                    handleExportSpecSheet(format);
-                  }
-                }}
-                onClose={() => setShowSpecSheetPanel(false)}
-                className="h-full"
-              />
-            </div>
-          )}
-
-          {/* Selected element indicator */}
-          {selectedElement && (
-            <div className="px-4 py-2 bg-blue-500/20 border-b border-blue-500/30 flex items-center justify-between">
-              <span className="text-sm text-blue-300">
-                Selected: <strong>{selectedElement}</strong>
-              </span>
-              <button
-                onClick={() => setSelectedElement(null)}
-                className="text-xs text-blue-400 hover:text-blue-300"
-              >
-                Clear selection
-              </button>
-            </div>
-          )}
-
-          {/* Design Control Panel (hidden in comparison view) */}
-          {!showComparisonView && (
-            <div className="px-4 pt-4">
-              <DesignControlPanel
-                effectsSettings={design.globalStyles?.effects}
-                colorSettings={design.globalStyles?.colors}
-                onEffectsChange={handleEffectsChange}
-                onColorChange={handleColorSettingsChange}
-                primaryColor={design.globalStyles?.colors?.primary}
-                onPrimaryColorChange={handlePrimaryColorChange}
-                typographySettings={design.globalStyles?.typography}
-                onTypographyChange={handleTypographyChange}
-                spacingSettings={design.globalStyles?.spacing}
-                onSpacingChange={handleSpacingChange}
-                showGridOverlay={showGridOverlay}
-                onGridOverlayToggle={setShowGridOverlay}
-                layoutDesign={design as LayoutDesign}
-                onAccessibilityFix={handleAccessibilityFix}
-              />
-            </div>
-          )}
-
-          {/* Layout Preview or Comparison View */}
-          <div className="flex-1 min-h-0 overflow-hidden" id="layout-preview-container">
+          {/* Layout Preview - FULL SPACE */}
+          <div className="flex-1 min-h-0 overflow-hidden relative" id="layout-preview-container">
             {showComparisonView && referenceImages.length > 0 ? (
               <DesignComparison
                 referenceImage={referenceImages[0]}
@@ -1918,6 +1431,45 @@ export function LayoutBuilderWizard({
                   onGridOverlayToggle={setShowGridOverlay}
                 />
               </div>
+            )}
+
+            {/* Design Side Panel - positioned on right edge */}
+            {!showComparisonView && (
+              <DesignSidePanel
+                isOpen={showDesignSidePanel}
+                onToggle={() => setShowDesignSidePanel(!showDesignSidePanel)}
+                effectsSettings={design.globalStyles?.effects}
+                colorSettings={design.globalStyles?.colors}
+                onEffectsChange={handleEffectsChange}
+                onColorChange={handleColorSettingsChange}
+                primaryColor={design.globalStyles?.colors?.primary}
+                onPrimaryColorChange={handlePrimaryColorChange}
+                typographySettings={design.globalStyles?.typography}
+                onTypographyChange={handleTypographyChange}
+                spacingSettings={design.globalStyles?.spacing}
+                onSpacingChange={handleSpacingChange}
+                showGridOverlay={showGridOverlay}
+                onGridOverlayToggle={setShowGridOverlay}
+                layoutDesign={design as LayoutDesign}
+                onAccessibilityFix={handleAccessibilityFix}
+                detectedAnimations={detectedAnimations}
+                onEditAnimation={(id, updates) => {
+                  setDetectedAnimations((prev) =>
+                    prev.map((a) => (a.id === id ? { ...a, ...updates } : a))
+                  );
+                }}
+                onApplyAnimation={(animation, targetElement) => {
+                  success(`Applied ${animation.type} animation to ${targetElement || 'element'}`);
+                }}
+                onRemoveAnimation={(id) => {
+                  setDetectedAnimations((prev) => prev.filter((a) => a.id !== id));
+                }}
+                pixelPerfectAnalysis={pixelPerfectAnalysis}
+                onExportSpecSheet={handleExportSpecSheet}
+                selectedElement={selectedElement}
+                onClearSelection={() => setSelectedElement(null)}
+                analysisMode={analysisMode}
+              />
             )}
           </div>
         </div>
