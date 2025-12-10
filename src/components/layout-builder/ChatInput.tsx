@@ -42,25 +42,22 @@ export function ChatInput({
 
   return (
     <form onSubmit={handleSubmit} className="border-t border-slate-700 p-4">
-      {/* Capture toggle */}
+      {/* Capture preview button */}
       <div className="flex items-center gap-2 mb-3">
         <button
           type="button"
-          onClick={() => setIncludeCapture(!includeCapture)}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-            includeCapture
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-          }`}
-        >
-          {includeCapture ? 'Attached' : 'Attach Preview'}
-        </button>
-
-        <button
-          type="button"
-          onClick={onCapture}
+          onClick={() => {
+            if (!isCapturing) {
+              onCapture();
+              setIncludeCapture(true);
+            }
+          }}
           disabled={isCapturing}
-          className="px-3 py-1.5 rounded-lg bg-slate-700 text-slate-300 hover:bg-slate-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm font-medium transition-colors flex items-center gap-1.5"
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
+            includeCapture
+              ? 'bg-green-600 text-white'
+              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+          } ${isCapturing ? 'opacity-75 cursor-not-allowed' : ''}`}
         >
           {isCapturing ? (
             <>
@@ -81,10 +78,48 @@ export function ChatInput({
               </svg>
               Capturing...
             </>
+          ) : includeCapture ? (
+            <>
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              Preview Attached
+            </>
           ) : (
-            'Capture Now'
+            <>
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              Capture Preview
+            </>
           )}
         </button>
+
+        {includeCapture && (
+          <button
+            type="button"
+            onClick={() => setIncludeCapture(false)}
+            className="text-xs text-slate-400 hover:text-slate-300"
+          >
+            Remove
+          </button>
+        )}
 
         {hasSelection && (
           <span className="text-xs text-blue-400 ml-auto">

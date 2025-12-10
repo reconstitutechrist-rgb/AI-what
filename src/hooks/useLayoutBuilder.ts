@@ -18,6 +18,7 @@ import type {
   SuggestedAction,
   DesignChange,
   MessageError,
+  DetectedAnimation,
 } from '@/types/layoutDesign';
 import type { UIPreferences, AppConcept } from '@/types/appConcept';
 
@@ -53,6 +54,27 @@ export interface DesignVersion {
   savedAt: string;
   trigger: 'save' | 'apply' | 'manual';
   description?: string;
+}
+
+/**
+ * Generated background from DALL-E
+ */
+export interface GeneratedBackground {
+  url: string;
+  targetElement: string;
+  prompt: string;
+}
+
+/**
+ * Options for the useLayoutBuilder hook
+ */
+export interface UseLayoutBuilderOptions {
+  /** Callback when animations are received from AI chat */
+  onAnimationsReceived?: (animations: DetectedAnimation[]) => void;
+  /** Callback when backgrounds are generated via DALL-E */
+  onBackgroundsGenerated?: (backgrounds: GeneratedBackground[]) => void;
+  /** Callback when tools are used by the AI */
+  onToolsUsed?: (toolNames: string[]) => void;
 }
 
 interface UseLayoutBuilderReturn {
@@ -341,7 +363,9 @@ function categorizeError(error: unknown, statusCode?: number): MessageError {
 // HOOK IMPLEMENTATION
 // ============================================================================
 
-export function useLayoutBuilder(): UseLayoutBuilderReturn {
+export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayoutBuilderReturn {
+  const { onAnimationsReceived, onBackgroundsGenerated, onToolsUsed } = options;
+
   // Store state
   const {
     currentLayoutDesign,
@@ -598,6 +622,25 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
         // Track recent changes
         if (data.designChanges && data.designChanges.length > 0) {
           setRecentChanges(data.designChanges);
+        }
+
+        // Handle tool outputs: animations from AI
+        if (data.animations && data.animations.length > 0 && onAnimationsReceived) {
+          onAnimationsReceived(data.animations);
+        }
+
+        // Handle tool outputs: generated backgrounds from DALL-E
+        if (
+          data.generatedBackgrounds &&
+          data.generatedBackgrounds.length > 0 &&
+          onBackgroundsGenerated
+        ) {
+          onBackgroundsGenerated(data.generatedBackgrounds);
+        }
+
+        // Track which tools were used
+        if (data.toolsUsed && data.toolsUsed.length > 0 && onToolsUsed) {
+          onToolsUsed(data.toolsUsed);
         }
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {

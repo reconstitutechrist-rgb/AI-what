@@ -35,6 +35,12 @@ interface AnimationPanelProps {
   onCreateCustom?: () => void;
   showCreateCustomButton?: boolean;
   className?: string;
+  /** Available elements to select as animation targets */
+  availableElements?: Array<{ selector: string; name: string; category: string }>;
+  /** Currently selected element in the preview */
+  selectedElement?: string | null;
+  /** Callback to enable element selection mode in preview */
+  onEnableElementSelection?: () => void;
 }
 
 type CodeFormat = 'css' | 'tailwind' | 'framer';
@@ -137,16 +143,26 @@ function AnimationCard({
   onEdit,
   onApply,
   onRemove,
+  availableElements = [],
+  selectedElement,
+  onEnableElementSelection,
 }: {
   animation: DetectedAnimation;
   onEdit?: (updates: Partial<DetectedAnimation>) => void;
   onApply?: (targetElement: string) => void;
   onRemove?: () => void;
+  availableElements?: Array<{ selector: string; name: string; category: string }>;
+  selectedElement?: string | null;
+  onEnableElementSelection?: () => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [codeFormat, setCodeFormat] = useState<CodeFormat>('css');
   const [copiedCode, setCopiedCode] = useState(false);
+  const [showElementDropdown, setShowElementDropdown] = useState(false);
+
+  // Use the animation's targetElement or the selectedElement from props
+  const currentTargetElement = animation.targetElement || selectedElement;
 
   const getTypeColor = (type: string) => {
     const colors: Record<string, string> = {
@@ -263,6 +279,15 @@ const variants = {
             <span>{animation.easing}</span>
             <span className="text-purple-400">{Math.round(animation.confidence * 100)}% match</span>
           </div>
+          {/* Show target element if bound */}
+          {currentTargetElement && (
+            <div className="flex items-center gap-1 mt-1.5">
+              <span className="text-xs text-green-400">
+                Target:{' '}
+                <code className="px-1 py-0.5 bg-slate-800 rounded">{currentTargetElement}</code>
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Quick Actions */}
@@ -293,6 +318,121 @@ const variants = {
       {/* Expanded Content */}
       {isExpanded && (
         <div className="border-t border-white/10 p-4 space-y-4">
+          {/* Target Element Selector */}
+          <div className="bg-slate-800/50 rounded-lg p-3">
+            <label className="text-xs text-slate-400 mb-2 block">Target Element</label>
+            <div className="relative">
+              <button
+                onClick={() => setShowElementDropdown(!showElementDropdown)}
+                className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-lg text-sm text-left flex items-center justify-between hover:border-purple-500/50 transition-colors"
+              >
+                <span className={currentTargetElement ? 'text-white' : 'text-slate-500'}>
+                  {currentTargetElement || 'Select element...'}
+                </span>
+                <ChevronDownIcon className="w-4 h-4 text-slate-400" />
+              </button>
+
+              {/* Dropdown Menu */}
+              {showElementDropdown && (
+                <div className="absolute z-20 w-full mt-1 bg-slate-800 border border-white/10 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                  {/* Click to select option */}
+                  {onEnableElementSelection && (
+                    <button
+                      onClick={() => {
+                        onEnableElementSelection();
+                        setShowElementDropdown(false);
+                      }}
+                      className="w-full px-3 py-2.5 text-left text-sm text-purple-400 hover:bg-purple-500/20 flex items-center gap-2 border-b border-white/10"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"
+                        />
+                      </svg>
+                      Click to select in preview...
+                    </button>
+                  )}
+
+                  {/* Available elements */}
+                  {availableElements.length > 0 ? (
+                    <>
+                      {/* Group by category */}
+                      {['sections', 'components', 'interactive'].map((category) => {
+                        const categoryElements = availableElements.filter(
+                          (el) => el.category === category
+                        );
+                        if (categoryElements.length === 0) return null;
+
+                        return (
+                          <div key={category}>
+                            <div className="px-3 py-1.5 text-[10px] uppercase text-slate-500 bg-slate-900/50 sticky top-0">
+                              {category}
+                            </div>
+                            {categoryElements.map((el) => (
+                              <button
+                                key={el.selector}
+                                onClick={() => {
+                                  onEdit?.({ targetElement: el.selector });
+                                  setShowElementDropdown(false);
+                                }}
+                                className={`w-full px-3 py-2 text-left text-sm hover:bg-slate-700 flex items-center justify-between ${
+                                  currentTargetElement === el.selector
+                                    ? 'bg-purple-500/20 text-purple-300'
+                                    : 'text-slate-300'
+                                }`}
+                              >
+                                <span>{el.name}</span>
+                                <code className="text-xs text-slate-500">{el.selector}</code>
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </>
+                  ) : (
+                    <div className="px-3 py-4 text-sm text-slate-500 text-center">
+                      No elements available
+                    </div>
+                  )}
+
+                  {/* Use selected element option */}
+                  {selectedElement && selectedElement !== currentTargetElement && (
+                    <button
+                      onClick={() => {
+                        onEdit?.({ targetElement: selectedElement });
+                        setShowElementDropdown(false);
+                      }}
+                      className="w-full px-3 py-2.5 text-left text-sm text-green-400 hover:bg-green-500/20 border-t border-white/10 flex items-center gap-2"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      Use selected: {selectedElement}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Animation Properties */}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -416,10 +556,28 @@ const variants = {
           {/* Apply Button */}
           {onApply && (
             <button
-              onClick={() => onApply('selected-element')}
-              className="w-full py-2 bg-purple-500 hover:bg-purple-600 rounded-lg text-sm font-medium text-white transition-colors"
+              onClick={() => {
+                const target = currentTargetElement || selectedElement || 'selected-element';
+                onApply(target);
+              }}
+              disabled={!currentTargetElement && !selectedElement}
+              className={`w-full py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                currentTargetElement || selectedElement
+                  ? 'bg-purple-500 hover:bg-purple-600 text-white'
+                  : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+              }`}
             >
-              Apply to Selected Element
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              {currentTargetElement || selectedElement
+                ? `Apply to ${currentTargetElement || selectedElement}`
+                : 'Select an element first'}
             </button>
           )}
         </div>
@@ -441,6 +599,9 @@ export function AnimationPanel({
   onCreateCustom,
   showCreateCustomButton = true,
   className = '',
+  availableElements = [],
+  selectedElement,
+  onEnableElementSelection,
 }: AnimationPanelProps) {
   const [filter, setFilter] = useState<string>('all');
 
@@ -527,6 +688,9 @@ export function AnimationPanel({
                 onApplyAnimation ? (target) => onApplyAnimation(animation, target) : undefined
               }
               onRemove={onRemoveAnimation ? () => onRemoveAnimation(animation.id) : undefined}
+              availableElements={availableElements}
+              selectedElement={selectedElement}
+              onEnableElementSelection={onEnableElementSelection}
             />
           ))
         )}

@@ -604,6 +604,16 @@ export interface LayoutChatResponse {
   quickAnalysis?: QuickAnalysis;
   /** Extracted context from user message (purpose, target users, requirements) */
   extractedContext?: DesignContext;
+  /** Animations created via apply_animation tool */
+  animations?: DetectedAnimation[];
+  /** Background images generated via generate_background tool (DALL-E) */
+  generatedBackgrounds?: Array<{
+    url: string;
+    targetElement: string;
+    prompt: string;
+  }>;
+  /** List of tools that were used in this response */
+  toolsUsed?: string[];
 }
 
 // ============================================================================
@@ -1317,7 +1327,14 @@ export interface DetectedAnimation {
     | 'page-transition'
     | 'loading'
     | 'micro-interaction'
-    | 'custom';
+    | 'custom'
+    // Background animation types (DALL-E compatible)
+    | 'gradient-shift'
+    | 'particle-flow'
+    | 'wave'
+    | 'morph'
+    | 'aurora'
+    | 'noise-texture';
   element: string; // Description of animated element
   property: string; // CSS property being animated
   fromValue: string;
@@ -1334,6 +1351,11 @@ export interface DetectedAnimation {
   confidence: number;
   matchedPreset?: string;
   presetConfidence?: number;
+  // NEW: Element targeting for animation binding
+  targetElement?: string; // CSS selector or element ID to apply animation to
+  // NEW: DALL-E generated background support
+  generatedImageUrl?: string; // URL of AI-generated background image
+  generatedPrompt?: string; // Prompt used to generate the image
 }
 
 /**

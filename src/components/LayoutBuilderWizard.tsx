@@ -203,6 +203,51 @@ export function LayoutBuilderWizard({
   onApplyToAppConcept,
   isFullPage = false,
 }: LayoutBuilderWizardProps) {
+  // State for generated backgrounds (from DALL-E) - declared early for handler reference
+  const [generatedBackgrounds, setGeneratedBackgrounds] = useState<
+    Array<{ url: string; targetElement: string; prompt: string }>
+  >([]);
+
+  // Animation detection data - declared early for handler reference
+  const [detectedAnimations, setDetectedAnimations] = useState<DetectedAnimation[]>([]);
+
+  // Toast notifications - declared early for handler reference
+  const { toasts, success, error, info, dismiss } = useToast();
+
+  // Handlers for tool outputs from AI chat
+  const handleAnimationsReceived = useCallback((animations: DetectedAnimation[]) => {
+    setDetectedAnimations((prev) => {
+      // Merge new animations, avoiding duplicates by ID
+      const existingIds = new Set(prev.map((a) => a.id));
+      const newAnimations = animations.filter((a) => !existingIds.has(a.id));
+      return [...prev, ...newAnimations];
+    });
+  }, []);
+
+  const handleBackgroundsGenerated = useCallback(
+    (backgrounds: Array<{ url: string; targetElement: string; prompt: string }>) => {
+      setGeneratedBackgrounds((prev) => [...prev, ...backgrounds]);
+      // Show a success toast for each background
+      backgrounds.forEach((bg) => {
+        success(`Background generated for ${bg.targetElement}`);
+      });
+    },
+    [success]
+  );
+
+  const handleToolsUsed = useCallback(
+    (toolNames: string[]) => {
+      // Log tools used for debugging/analytics
+      if (toolNames.includes('generate_background')) {
+        info('Generating background image...');
+      }
+      if (toolNames.includes('apply_animation')) {
+        info('Applying animation...');
+      }
+    },
+    [info]
+  );
+
   const {
     messages,
     design,
@@ -234,14 +279,15 @@ export function LayoutBuilderWizard({
     restoreVersion,
     deleteVersion,
     hasUnsavedChanges,
-  } = useLayoutBuilder();
+  } = useLayoutBuilder({
+    onAnimationsReceived: handleAnimationsReceived,
+    onBackgroundsGenerated: handleBackgroundsGenerated,
+    onToolsUsed: handleToolsUsed,
+  });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
-
-  // Toast notifications
-  const { toasts, success, error, info, dismiss } = useToast();
 
   // Panel visibility state (from Zustand store)
   const {
@@ -309,8 +355,7 @@ export function LayoutBuilderWizard({
   const [_videoThumbnail, setVideoThumbnail] = useState<string | null>(null);
   const [isProcessingVideo, setIsProcessingVideo] = useState(false);
 
-  // Animation detection data
-  const [detectedAnimations, setDetectedAnimations] = useState<DetectedAnimation[]>([]);
+  // Reference media panel state
   const [showReferenceMediaPanel, _setShowReferenceMediaPanel] = useState(true);
   const [showDesignSidePanel, setShowDesignSidePanel] = useState(true);
 

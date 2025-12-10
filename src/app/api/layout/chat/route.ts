@@ -29,6 +29,9 @@ import {
 } from '@/utils/designPatterns';
 import { parseDesignDescription } from '@/utils/designLanguageParser';
 import { DesignReplicator } from '@/services/designReplicator';
+import { getDalleService, getImageCost } from '@/services/dalleService';
+import { getAnimationPreset, ANIMATION_PRESETS } from '@/data/animationPresets';
+import type { DetectedAnimation } from '@/types/layoutDesign';
 
 // Vercel serverless function config
 export const maxDuration = 60;
@@ -255,6 +258,402 @@ const ExtractionResponseSchema = z.object({
   updates: DesignUpdatesSchema.optional().default({}),
   changes: z.array(DesignChangeSchema).optional().default([]),
 });
+
+// ============================================================================
+// TOOL DEFINITIONS FOR ANIMATION & BACKGROUND GENERATION
+// ============================================================================
+
+const LAYOUT_BUILDER_TOOLS: Anthropic.Tool[] = [
+  {
+    name: 'generate_background',
+    description:
+      'Generate a custom background image using DALL-E 3. Use this when the user asks for a generated background, custom image, or AI-created visual asset. Returns the generated image URL and cost info.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        prompt: {
+          type: 'string',
+          description:
+            'Detailed description of the background to generate. Include style, colors, mood, and pattern preferences.',
+        },
+        targetElement: {
+          type: 'string',
+          description:
+            'CSS selector or element name where the background should be applied (e.g., ".hero-section", "header", "body")',
+        },
+        style: {
+          type: 'string',
+          enum: ['abstract', 'geometric', 'gradient', 'texture', 'natural', 'vivid'],
+          description: 'Visual style for the generated background',
+        },
+        quality: {
+          type: 'string',
+          enum: ['standard', 'hd'],
+          description: 'Image quality - standard ($0.04) or hd ($0.08-0.12)',
+        },
+      },
+      required: ['prompt', 'targetElement'],
+    },
+  },
+  {
+    name: 'apply_animation',
+    description:
+      'Apply an animation to a specific element in the layout. Use this when the user wants to add motion, transitions, or effects to elements. Can use preset animations or create custom ones.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        animationType: {
+          type: 'string',
+          description:
+            'Type of animation (fade, slide, scale, rotate, gradient-shift, particle-flow, wave, morph, aurora, noise-texture, etc.)',
+        },
+        targetElement: {
+          type: 'string',
+          description: 'CSS selector or element name to apply animation to',
+        },
+        presetId: {
+          type: 'string',
+          description:
+            'Optional: ID of a preset animation to use (e.g., fadeIn, hoverLift, gradientShift)',
+        },
+        duration: {
+          type: 'string',
+          description: 'Animation duration (e.g., "0.3s", "2s", "500ms")',
+        },
+        easing: {
+          type: 'string',
+          description:
+            'Easing function (e.g., "ease-out", "ease-in-out", "cubic-bezier(0.4, 0, 0.2, 1)")',
+        },
+        delay: {
+          type: 'string',
+          description: 'Animation delay (e.g., "0.1s")',
+        },
+        iterations: {
+          type: 'string',
+          description: 'Number of iterations ("1", "3", "infinite")',
+        },
+      },
+      required: ['animationType', 'targetElement'],
+    },
+  },
+  {
+    name: 'list_elements',
+    description:
+      'List the available elements in the current layout that can be selected for animation or styling. Use this when the user needs to choose an element or when clarification is needed about which element to target.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        category: {
+          type: 'string',
+          enum: ['all', 'sections', 'components', 'interactive'],
+          description: 'Filter elements by category',
+        },
+      },
+      required: [],
+    },
+  },
+];
+
+// ============================================================================
+// TOOL EXECUTION HANDLERS
+// ============================================================================
+
+interface ToolResult {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+  cost?: number;
+  remaining?: number;
+}
+
+/**
+ * Execute the generate_background tool
+ */
+async function executeGenerateBackground(input: {
+  prompt: string;
+  targetElement: string;
+  style?: string;
+  quality?: 'standard' | 'hd';
+}): Promise<ToolResult> {
+  const dalleService = getDalleService();
+
+  if (!dalleService.checkAvailability()) {
+    return {
+      success: false,
+      error: 'DALL-E service not available. OPENAI_API_KEY not configured.',
+    };
+  }
+
+  try {
+    const quality = input.quality || 'standard';
+    const size = '1024x1024';
+    const cost = getImageCost(quality, size);
+
+    // Build enhanced prompt for background generation
+    const enhancedPrompt = `Create a web application background image. ${input.prompt}
+
+Style: ${input.style || 'abstract'}
+Requirements:
+- Suitable as a website background for ${input.targetElement}
+- Must not be distracting, allowing content to remain readable
+- Professional, modern aesthetic
+- No text or logos`;
+
+    const result = await dalleService.generateImage({
+      prompt: enhancedPrompt,
+      size,
+      quality,
+      style: input.style === 'vivid' ? 'vivid' : 'natural',
+    });
+
+    return {
+      success: true,
+      data: {
+        imageUrl: result.url,
+        revisedPrompt: result.revisedPrompt,
+        targetElement: input.targetElement,
+        size,
+        quality,
+      },
+      cost,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to generate background image',
+    };
+  }
+}
+
+/**
+ * Execute the apply_animation tool
+ */
+function executeApplyAnimation(input: {
+  animationType: string;
+  targetElement: string;
+  presetId?: string;
+  duration?: string;
+  easing?: string;
+  delay?: string;
+  iterations?: string;
+}): ToolResult {
+  // If preset ID provided, use the preset
+  let animation: Partial<DetectedAnimation> = {};
+
+  if (input.presetId) {
+    const preset = getAnimationPreset(input.presetId);
+    if (preset) {
+      animation = {
+        id: `anim_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        type: input.animationType as DetectedAnimation['type'],
+        element: `Animation for ${input.targetElement}`,
+        targetElement: input.targetElement,
+        property: 'transform',
+        fromValue: '0',
+        toValue: '1',
+        duration: input.duration || `${preset.duration}ms`,
+        easing: input.easing || preset.easing,
+        delay: input.delay,
+        iterations:
+          input.iterations === 'infinite' ? 'infinite' : parseInt(input.iterations || '1'),
+        cssKeyframes: preset.css.keyframes,
+        cssAnimation: preset.css.animation,
+        tailwindConfig: preset.tailwind,
+        framerMotionVariants: preset.framerMotion,
+        confidence: 1,
+        matchedPreset: preset.id,
+        presetConfidence: 1,
+      };
+    }
+  }
+
+  // If no preset or preset not found, create custom animation
+  if (!animation.id) {
+    animation = {
+      id: `anim_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type: input.animationType as DetectedAnimation['type'],
+      element: `Custom animation for ${input.targetElement}`,
+      targetElement: input.targetElement,
+      property: getPropertyForAnimationType(input.animationType),
+      fromValue: '0',
+      toValue: '1',
+      duration: input.duration || '0.3s',
+      easing: input.easing || 'ease-out',
+      delay: input.delay,
+      iterations: input.iterations === 'infinite' ? 'infinite' : parseInt(input.iterations || '1'),
+      confidence: 0.9,
+    };
+  }
+
+  return {
+    success: true,
+    data: {
+      animation,
+      targetElement: input.targetElement,
+      message: `Applied ${input.animationType} animation to ${input.targetElement}`,
+    },
+  };
+}
+
+/**
+ * Get the CSS property for an animation type
+ */
+function getPropertyForAnimationType(type: string): string {
+  const propertyMap: Record<string, string> = {
+    fade: 'opacity',
+    slide: 'transform',
+    scale: 'transform',
+    rotate: 'transform',
+    'color-change': 'background-color',
+    blur: 'filter',
+    parallax: 'transform',
+    'hover-effect': 'transform',
+    'scroll-reveal': 'opacity, transform',
+    'page-transition': 'opacity, transform',
+    loading: 'transform',
+    'micro-interaction': 'transform',
+    'gradient-shift': 'background-position',
+    'particle-flow': 'transform',
+    wave: 'transform',
+    morph: 'border-radius',
+    aurora: 'opacity, transform',
+    'noise-texture': 'transform',
+  };
+  return propertyMap[type] || 'transform';
+}
+
+/**
+ * Execute the list_elements tool
+ */
+function executeListElements(currentDesign: Partial<LayoutDesign>, category?: string): ToolResult {
+  // Build list of available elements based on current design
+  const elements: Array<{ selector: string; name: string; category: string }> = [];
+
+  // Add structure elements
+  if (currentDesign.structure?.hasHeader || currentDesign.components?.header?.visible) {
+    elements.push({ selector: 'header', name: 'Header', category: 'sections' });
+    elements.push({ selector: '.nav-item', name: 'Navigation Items', category: 'interactive' });
+  }
+
+  if (currentDesign.components?.hero?.visible) {
+    elements.push({ selector: '.hero-section', name: 'Hero Section', category: 'sections' });
+    elements.push({ selector: '.hero-title', name: 'Hero Title', category: 'components' });
+    elements.push({ selector: '.hero-subtitle', name: 'Hero Subtitle', category: 'components' });
+    if (currentDesign.components.hero.hasCTA) {
+      elements.push({ selector: '.hero-cta', name: 'Hero CTA Button', category: 'interactive' });
+    }
+  }
+
+  if (currentDesign.structure?.hasSidebar || currentDesign.components?.sidebar?.visible) {
+    elements.push({ selector: '.sidebar', name: 'Sidebar', category: 'sections' });
+  }
+
+  // Add card elements if cards are configured
+  if (currentDesign.components?.cards) {
+    elements.push({ selector: '.card', name: 'Card Component', category: 'components' });
+    elements.push({ selector: '.card-grid', name: 'Card Grid', category: 'sections' });
+  }
+
+  if (currentDesign.structure?.hasFooter || currentDesign.components?.footer?.visible) {
+    elements.push({ selector: 'footer', name: 'Footer', category: 'sections' });
+  }
+
+  // Always include common elements
+  elements.push({ selector: 'body', name: 'Page Background', category: 'sections' });
+  elements.push({ selector: '.main-content', name: 'Main Content Area', category: 'sections' });
+  elements.push({ selector: '.button', name: 'Buttons', category: 'interactive' });
+  elements.push({ selector: '.section', name: 'Content Sections', category: 'sections' });
+
+  // Filter by category if specified
+  const filteredElements =
+    category && category !== 'all' ? elements.filter((el) => el.category === category) : elements;
+
+  return {
+    success: true,
+    data: {
+      elements: filteredElements,
+      totalCount: filteredElements.length,
+      availablePresets: ANIMATION_PRESETS.slice(0, 10).map((p) => ({
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        description: p.description,
+      })),
+    },
+  };
+}
+
+/**
+ * Process tool calls from Claude's response
+ */
+async function processToolCalls(
+  toolUseBlocks: Anthropic.ToolUseBlock[],
+  currentDesign: Partial<LayoutDesign>
+): Promise<{
+  results: Array<{ toolName: string; result: ToolResult }>;
+  animations: DetectedAnimation[];
+  generatedImages: Array<{ url: string; targetElement: string; prompt: string }>;
+}> {
+  const results: Array<{ toolName: string; result: ToolResult }> = [];
+  const animations: DetectedAnimation[] = [];
+  const generatedImages: Array<{ url: string; targetElement: string; prompt: string }> = [];
+
+  for (const toolUse of toolUseBlocks) {
+    let result: ToolResult;
+    const input = toolUse.input as Record<string, unknown>;
+
+    switch (toolUse.name) {
+      case 'generate_background':
+        result = await executeGenerateBackground({
+          prompt: input.prompt as string,
+          targetElement: input.targetElement as string,
+          style: input.style as string | undefined,
+          quality: input.quality as 'standard' | 'hd' | undefined,
+        });
+        if (result.success && result.data) {
+          const data = result.data as {
+            imageUrl: string;
+            targetElement: string;
+            revisedPrompt: string;
+          };
+          generatedImages.push({
+            url: data.imageUrl,
+            targetElement: data.targetElement,
+            prompt: data.revisedPrompt,
+          });
+        }
+        break;
+
+      case 'apply_animation':
+        result = executeApplyAnimation({
+          animationType: input.animationType as string,
+          targetElement: input.targetElement as string,
+          presetId: input.presetId as string | undefined,
+          duration: input.duration as string | undefined,
+          easing: input.easing as string | undefined,
+          delay: input.delay as string | undefined,
+          iterations: input.iterations as string | undefined,
+        });
+        if (result.success && result.data) {
+          const data = result.data as { animation: DetectedAnimation };
+          animations.push(data.animation);
+        }
+        break;
+
+      case 'list_elements':
+        result = executeListElements(currentDesign, input.category as string | undefined);
+        break;
+
+      default:
+        result = { success: false, error: `Unknown tool: ${toolUse.name}` };
+    }
+
+    results.push({ toolName: toolUse.name, result });
+  }
+
+  return { results, animations, generatedImages };
+}
 
 // ============================================================================
 // DESIGN EXTRACTION
@@ -933,18 +1332,74 @@ export async function POST(request: Request) {
       );
     }
 
-    // Call Claude API
+    // Call Claude API with tools enabled
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4096,
       temperature: 0.7,
       system: systemPrompt,
       messages,
+      tools: LAYOUT_BUILDER_TOOLS,
     });
 
-    // Extract response text
-    const textBlock = response.content.find((block) => block.type === 'text');
-    const assistantMessage = textBlock && textBlock.type === 'text' ? textBlock.text : '';
+    // Process response - may contain tool_use blocks
+    let assistantMessage = '';
+    const toolUseBlocks: Anthropic.ToolUseBlock[] = [];
+    let processedAnimations: DetectedAnimation[] = [];
+    let generatedImages: Array<{ url: string; targetElement: string; prompt: string }> = [];
+    const toolResults: Array<{ toolName: string; result: ToolResult }> = [];
+
+    // Extract text and tool_use blocks from response
+    for (const block of response.content) {
+      if (block.type === 'text') {
+        assistantMessage += block.text;
+      } else if (block.type === 'tool_use') {
+        toolUseBlocks.push(block);
+      }
+    }
+
+    // Process any tool calls
+    if (toolUseBlocks.length > 0) {
+      const toolProcessingResult = await processToolCalls(toolUseBlocks, currentDesign);
+      toolResults.push(...toolProcessingResult.results);
+      processedAnimations = toolProcessingResult.animations;
+      generatedImages = toolProcessingResult.generatedImages;
+
+      // If tools were called, we might need to continue the conversation
+      // to get Claude's final response incorporating tool results
+      if (response.stop_reason === 'tool_use') {
+        // Build tool results message
+        const toolResultsContent: Anthropic.ToolResultBlockParam[] = toolUseBlocks.map(
+          (toolUse, index) => ({
+            type: 'tool_result' as const,
+            tool_use_id: toolUse.id,
+            content: JSON.stringify(toolResults[index]?.result || { error: 'Unknown error' }),
+          })
+        );
+
+        // Continue conversation with tool results
+        const continuationMessages: Anthropic.MessageParam[] = [
+          ...messages,
+          { role: 'assistant', content: response.content },
+          { role: 'user', content: toolResultsContent },
+        ];
+
+        const continuationResponse = await anthropic.messages.create({
+          model: 'claude-sonnet-4-5-20250929',
+          max_tokens: 2048,
+          temperature: 0.7,
+          system: systemPrompt,
+          messages: continuationMessages,
+          tools: LAYOUT_BUILDER_TOOLS,
+        });
+
+        // Extract final text response
+        const finalTextBlock = continuationResponse.content.find((block) => block.type === 'text');
+        if (finalTextBlock && finalTextBlock.type === 'text') {
+          assistantMessage = finalTextBlock.text;
+        }
+      }
+    }
 
     // Extract design updates from the response
     const { updates: extractedUpdates, changes } = await extractDesignUpdates(
@@ -1006,7 +1461,12 @@ export async function POST(request: Request) {
       updatedDesign.designContext = extractedContext;
     }
 
-    const result: LayoutChatResponse = {
+    // Build extended result with tool outputs
+    const result: LayoutChatResponse & {
+      animations?: DetectedAnimation[];
+      generatedBackgrounds?: Array<{ url: string; targetElement: string; prompt: string }>;
+      toolsUsed?: string[];
+    } = {
       message: assistantMessage,
       updatedDesign,
       suggestedActions,
@@ -1027,6 +1487,10 @@ export async function POST(request: Request) {
       quickAnalysis: quickAnalysisResult || undefined,
       // Include extracted context if detected from user message
       extractedContext: extractedContext || undefined,
+      // Include tool outputs: animations and generated backgrounds
+      animations: processedAnimations.length > 0 ? processedAnimations : undefined,
+      generatedBackgrounds: generatedImages.length > 0 ? generatedImages : undefined,
+      toolsUsed: toolResults.length > 0 ? toolResults.map((t) => t.toolName) : undefined,
     };
 
     return NextResponse.json(result);
