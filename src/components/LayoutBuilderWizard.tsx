@@ -289,10 +289,7 @@ export function LayoutBuilderWizard({
     showExtractedColors,
     showTemplatePicker,
     showVersionHistory,
-    showExportMenu,
     showComparisonView,
-    showAnimationPanel,
-    showSpecSheetPanel,
     showGridOverlay,
     showKeyboardShortcuts,
     showCodePreview,
@@ -316,7 +313,6 @@ export function LayoutBuilderWizard({
   const setShowExportMenu = (v: boolean) => setPanel('exportMenu', v);
   const setShowComparisonView = (v: boolean) => setPanel('comparisonView', v);
   const setShowAnimationPanel = (v: boolean) => setPanel('animationPanel', v);
-  const setShowSpecSheetPanel = (v: boolean) => setPanel('specSheetPanel', v);
   // useCallback for setters passed as props to child components
   const setShowGridOverlay = useCallback((v: boolean) => setPanel('gridOverlay', v), [setPanel]);
   const setShowKeyboardShortcuts = (v: boolean) => setPanel('keyboardShortcuts', v);
