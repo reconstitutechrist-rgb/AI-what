@@ -12,18 +12,12 @@ import { useLayoutBuilder } from '@/hooks/useLayoutBuilder';
 import { useToast } from '@/hooks/useToast';
 import { useAnalysisProgress } from '@/hooks/useAnalysisProgress';
 import { LayoutPreview } from '@/components/LayoutPreview';
-import { DesignControlPanel } from '@/components/DesignControlPanel';
 import { AnalysisProgressIndicator } from '@/components/AnalysisProgressIndicator';
 import { DesignComparison } from '@/components/DesignComparison';
 import { ToastContainer } from '@/components/ui/Toast';
-import { SpecSheetPanel } from '@/components/SpecSheetPanel';
-import { AnimationPanel } from '@/components/AnimationPanel';
 import { CodePreviewPanel } from '@/components/CodePreviewPanel';
 import { KeyboardShortcutsPanel } from '@/components/KeyboardShortcutsPanel';
 import type {
-  LayoutMessage,
-  SuggestedAction,
-  DesignChange,
   EffectsSettings,
   ColorSettings,
   LayoutDesign,
@@ -34,7 +28,6 @@ import type {
 } from '@/types/layoutDesign';
 import type { UIPreferences } from '@/types/appConcept';
 import {
-  DESIGN_TEMPLATES,
   type DesignTemplate,
   mapArchitectureToLayout,
   generateArchitecturePrompt,

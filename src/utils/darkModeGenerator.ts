@@ -235,7 +235,7 @@ export function adjustForDarkMode(
   const hsl = hexToHsl(hex);
 
   // Start with the original color
-  let adjusted = { ...hsl };
+  const adjusted = { ...hsl };
 
   // If the color is too dark for dark backgrounds, lighten it
   if (hsl.l < 40) {
