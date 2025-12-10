@@ -1101,8 +1101,6 @@ export function LayoutBuilderWizard({
             onOpenDarkModeEditor={() => setShowDarkModeEditor(true)}
             onOpenBreakpointEditor={() => setShowBreakpointEditor(true)}
             onOpenPerformanceReport={() => setShowPerformanceReport(true)}
-            analysisMode={analysisMode}
-            onToggleAnalysisMode={handleTogglePixelPerfectMode}
           />
 
           {/* Hidden file inputs */}

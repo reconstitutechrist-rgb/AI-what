@@ -19,9 +19,6 @@ interface ToolsMenuProps {
   onOpenDarkModeEditor: () => void;
   onOpenBreakpointEditor: () => void;
   onOpenPerformanceReport: () => void;
-  // Analysis mode
-  analysisMode?: 'standard' | 'pixel-perfect';
-  onToggleAnalysisMode?: () => void;
 }
 
 /**
@@ -42,8 +39,6 @@ export function ToolsMenu({
   onOpenDarkModeEditor,
   onOpenBreakpointEditor,
   onOpenPerformanceReport,
-  analysisMode = 'standard',
-  onToggleAnalysisMode,
 }: ToolsMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeSubmenu, setActiveSubmenu] = useState<'export' | null>(null);
@@ -298,52 +293,6 @@ export function ToolsMenu({
             </svg>
             Import Design
           </button>
-
-          <div className="border-t border-slate-700 my-1" />
-          <div className="px-3 py-1.5">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-              Analysis Mode
-            </span>
-          </div>
-
-          {onToggleAnalysisMode && (
-            <button
-              onClick={() => handleItemClick(onToggleAnalysisMode)}
-              className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <svg
-                  className={`w-4 h-4 ${analysisMode === 'pixel-perfect' ? 'text-purple-400' : 'text-slate-400'}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                  />
-                </svg>
-                <span>Pixel-Perfect Mode</span>
-              </div>
-              <span
-                className={`px-2 py-0.5 text-xs rounded-full ${
-                  analysisMode === 'pixel-perfect'
-                    ? 'bg-purple-500/30 text-purple-300'
-                    : 'bg-slate-600 text-slate-400'
-                }`}
-              >
-                {analysisMode === 'pixel-perfect' ? 'ON' : 'OFF'}
-              </span>
-            </button>
-          )}
 
           <div className="border-t border-slate-700 my-1" />
           <div className="px-3 py-1.5">
