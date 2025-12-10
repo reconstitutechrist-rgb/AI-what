@@ -130,6 +130,87 @@ export interface EffectsSettings {
   animations: 'none' | 'subtle' | 'smooth' | 'playful';
   blur: 'none' | 'subtle' | 'medium' | 'strong';
   gradients: boolean;
+  // Advanced Effects (AI-controllable)
+  advancedEffects?: AdvancedEffectsConfig;
+}
+
+// ============================================================================
+// Advanced Effects Types (AI-Controllable)
+// ============================================================================
+
+export interface AdvancedEffectsConfig {
+  glassmorphism?: GlassmorphismConfig;
+  neumorphism?: NeumorphismConfig;
+  gradientBorder?: GradientBorderConfig;
+  textEffect?: TextEffectConfig;
+  customShadow?: CustomShadowConfig;
+}
+
+export interface GlassmorphismConfig {
+  enabled: boolean;
+  blur: number; // px
+  opacity: number; // 0-1
+  saturation: number; // 0-200%
+  borderOpacity: number;
+  targetElement?: string;
+}
+
+export interface NeumorphismConfig {
+  enabled: boolean;
+  style: 'flat' | 'pressed' | 'convex' | 'concave';
+  intensity: 'subtle' | 'medium' | 'strong';
+  lightAngle: number; // degrees
+  targetElement?: string;
+}
+
+export interface GradientBorderConfig {
+  enabled: boolean;
+  colors: string[];
+  angle: number;
+  width: number;
+  animated?: boolean;
+  targetElement?: string;
+}
+
+export interface TextEffectConfig {
+  type: 'gradient' | 'glow' | 'outline' | 'shadow' | 'none';
+  colors?: string[];
+  intensity?: 'subtle' | 'medium' | 'strong';
+  targetElement?: string;
+}
+
+export interface CustomShadowConfig {
+  layers: Array<{
+    offsetX: number;
+    offsetY: number;
+    blur: number;
+    spread: number;
+    color: string;
+    inset?: boolean;
+  }>;
+  targetElement?: string;
+}
+
+// Component State Types (AI-Controllable)
+export type ComponentStateType = 'hover' | 'active' | 'focus' | 'disabled' | 'loading';
+
+export interface AppliedComponentState {
+  state: ComponentStateType;
+  presetId: string;
+  targetElement: string;
+  css?: string;
+  tailwind?: string;
+}
+
+// Micro-Interaction Types (AI-Controllable)
+export type MicroInteractionTrigger = 'hover' | 'click' | 'focus' | 'scroll';
+
+export interface AppliedMicroInteraction {
+  interactionId: string;
+  targetElement: string;
+  trigger: MicroInteractionTrigger;
+  css?: string;
+  tailwind?: string;
 }
 
 export interface GlobalStyles {

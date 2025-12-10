@@ -31,7 +31,49 @@ import { parseDesignDescription } from '@/utils/designLanguageParser';
 import { DesignReplicator } from '@/services/designReplicator';
 import { getDalleService, getImageCost } from '@/services/dalleService';
 import { getAnimationPreset, ANIMATION_PRESETS } from '@/data/animationPresets';
-import type { DetectedAnimation } from '@/types/layoutDesign';
+import {
+  getAdvancedEffectPreset,
+  ADVANCED_EFFECT_PRESETS,
+  type AdvancedEffectPreset,
+} from '@/data/advancedEffectsPresets';
+import {
+  getComponentStatePreset,
+  COMPONENT_STATE_PRESETS,
+  type ComponentStatePreset,
+} from '@/data/componentStatePresets';
+import {
+  getMicroInteractionPreset,
+  MICRO_INTERACTION_PRESETS,
+  type MicroInteractionPreset,
+} from '@/data/microInteractionPresets';
+import type {
+  DetectedAnimation,
+  AppliedComponentState,
+  AppliedMicroInteraction,
+} from '@/types/layoutDesign';
+
+// Phase 4: External API Service Integrations
+import {
+  generateColorPalette,
+  generatePaletteVariations,
+  type GeneratedPalette,
+  type ColormindModel,
+} from '@/services/colormindService';
+import { searchIcons, getIcon } from '@/services/iconifyService';
+import {
+  searchLottieAnimations,
+  getCategories as getLottieCategories,
+} from '@/services/lottieService';
+import {
+  identifyFontFromImage,
+  getGoogleFontsAlternatives,
+  getFontPairings,
+  generateFontCSS,
+  type FontIdentificationResult,
+  type FontMatch,
+} from '@/services/fontIdentificationService';
+import { auditAccessibility, checkColorContrast } from '@/services/accessibilityAuditService';
+import { generateComponent, getAvailableTemplates } from '@/services/v0Service';
 
 // Vercel serverless function config
 export const maxDuration = 60;
@@ -353,6 +395,366 @@ const LAYOUT_BUILDER_TOOLS: Anthropic.Tool[] = [
       required: [],
     },
   },
+  {
+    name: 'apply_effect',
+    description:
+      'Apply advanced visual effects like glassmorphism, neumorphism, gradient borders, text gradients, or glow effects to elements. Use this when the user asks for glass effects, soft shadows, gradient borders, neon text, or other modern CSS effects.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        effectType: {
+          type: 'string',
+          enum: ['glassmorphism', 'neumorphism', 'gradient-border', 'text-effect', 'shadow'],
+          description: 'Type of advanced effect to apply',
+        },
+        presetId: {
+          type: 'string',
+          description:
+            'Preset ID (e.g., glass-subtle, glass-dark, neu-flat, neu-pressed, gradient-border-rainbow, text-gradient-purple, text-glow-green, shadow-elevated)',
+        },
+        targetElement: {
+          type: 'string',
+          description: 'CSS selector or element name to apply effect to',
+        },
+        customConfig: {
+          type: 'object',
+          description: 'Optional custom configuration to override preset defaults',
+        },
+      },
+      required: ['effectType', 'targetElement'],
+    },
+  },
+  {
+    name: 'apply_component_state',
+    description:
+      'Apply interactive state styling (hover, active, focus, disabled, loading) to UI components. Use this when the user wants hover effects, focus rings, button press feedback, disabled states, or loading animations.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        state: {
+          type: 'string',
+          enum: ['hover', 'active', 'focus', 'disabled', 'loading'],
+          description: 'Component state to style',
+        },
+        presetId: {
+          type: 'string',
+          description:
+            'Preset ID (e.g., hover-lift, hover-glow, hover-scale, focus-ring, active-press, disabled-muted, loading-pulse)',
+        },
+        targetElement: {
+          type: 'string',
+          description: 'Component selector to apply state styling',
+        },
+      },
+      required: ['state', 'targetElement'],
+    },
+  },
+  {
+    name: 'apply_micro_interaction',
+    description:
+      'Apply micro-interactions like ripple effects, magnetic pull, 3D tilt, bounce animations, or typewriter effects. Use this when the user wants click ripples, elements that follow the cursor, card tilting, scroll animations, or text typing effects.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        interactionId: {
+          type: 'string',
+          enum: [
+            'ripple',
+            'ripple-dark',
+            'magnetic',
+            'tilt-3d',
+            'float',
+            'wobble',
+            'jello',
+            'shine',
+            'bounce-in',
+            'slide-up',
+            'slide-left',
+            'slide-right',
+            'zoom-in',
+            'flip-in',
+            'stagger-children',
+            'heartbeat',
+            'rubber-band',
+            'shake',
+          ],
+          description: 'Micro-interaction type to apply',
+        },
+        targetElement: {
+          type: 'string',
+          description: 'Element to add interaction to',
+        },
+        trigger: {
+          type: 'string',
+          enum: ['hover', 'click', 'focus', 'scroll'],
+          description: 'What triggers the interaction',
+        },
+      },
+      required: ['interactionId', 'targetElement'],
+    },
+  },
+  {
+    name: 'apply_custom_css',
+    description:
+      'Apply arbitrary custom CSS to any element. Use this when the user wants precise pixel-level control, custom styles not covered by presets, or any CSS property/value combination. This tool removes all preset limitations and allows expert-level design control.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        targetElement: {
+          type: 'string',
+          description:
+            'CSS selector or element name to apply styles to (e.g., ".hero-section", "header", ".card:hover")',
+        },
+        css: {
+          type: 'string',
+          description:
+            'Raw CSS properties to apply (e.g., "padding: 24px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);")',
+        },
+        cssVariables: {
+          type: 'object',
+          description:
+            'Optional CSS custom properties/variables to define (e.g., {"--primary-color": "#6366f1", "--spacing-unit": "8px"})',
+        },
+        pseudoSelectors: {
+          type: 'object',
+          description:
+            'Optional CSS for pseudo-selectors like :hover, :focus, :active, ::before, ::after (e.g., {":hover": "transform: scale(1.05);", "::after": "content: \\"\\"; position: absolute;"})',
+        },
+        mediaQueries: {
+          type: 'object',
+          description:
+            'Optional responsive CSS for different breakpoints (e.g., {"@media (max-width: 768px)": "padding: 12px; font-size: 14px;"})',
+        },
+        keyframes: {
+          type: 'string',
+          description:
+            'Optional @keyframes animation definition (e.g., "@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }")',
+        },
+      },
+      required: ['targetElement', 'css'],
+    },
+  },
+  // ============================================================================
+  // PHASE 4: EXTERNAL API INTEGRATION TOOLS
+  // ============================================================================
+  {
+    name: 'generate_color_palette',
+    description:
+      'Generate a harmonious color palette using AI (Colormind). Use when the user wants color suggestions, a cohesive color scheme, or asks for palette recommendations. Can generate from scratch or from a seed color. Returns 5 colors with role assignments (primary, secondary, accent, background, surface) plus CSS variables and Tailwind config.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        seedColor: {
+          type: 'string',
+          description: 'Optional starting hex color to build palette around (e.g., "#6366F1")',
+        },
+        model: {
+          type: 'string',
+          enum: ['default', 'ui'],
+          description:
+            'Generation model: "default" for general palettes, "ui" for interface-focused colors',
+        },
+        generateVariations: {
+          type: 'boolean',
+          description: 'Generate light, dark, and muted variations of the palette',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'search_icons',
+    description:
+      'Search for icons across multiple icon libraries (150K+ icons). Use when the user needs icons for buttons, navigation, features, or any UI element. Returns SVG icons from popular sets like Heroicons, Lucide, Material Design, Tabler, and Phosphor.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Search query (e.g., "shopping cart", "settings", "user", "arrow")',
+        },
+        iconSets: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Specific icon sets to search: heroicons, lucide, mdi, tabler, ph, carbon, fa6-solid, fa6-regular',
+        },
+        style: {
+          type: 'string',
+          enum: ['outline', 'solid', 'all'],
+          description: 'Icon style preference',
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum number of results (default: 10)',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'get_icon',
+    description:
+      'Get a specific icon by ID with customization options. Returns the SVG markup, React component code, and CSS usage examples.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        iconId: {
+          type: 'string',
+          description:
+            'Full icon ID in format "prefix:name" (e.g., "heroicons:shopping-cart", "lucide:settings")',
+        },
+        size: {
+          type: 'number',
+          description: 'Icon size in pixels (default: 24)',
+        },
+        color: {
+          type: 'string',
+          description: 'Icon color as hex (e.g., "#6366F1") or CSS color name',
+        },
+      },
+      required: ['iconId'],
+    },
+  },
+  {
+    name: 'search_lottie_animations',
+    description:
+      'Search for Lottie animations for loading states, success/error feedback, transitions, and UI illustrations. Use when the user wants animated assets, loading spinners, success checkmarks, or decorative animations.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Search query (e.g., "loading", "success", "error", "confetti", "toggle")',
+        },
+        category: {
+          type: 'string',
+          enum: [
+            'loading',
+            'success',
+            'error',
+            'warning',
+            'ui',
+            'icons',
+            'illustrations',
+            'transitions',
+          ],
+          description: 'Animation category to filter by',
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum number of results (default: 5)',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'identify_font',
+    description:
+      'Identify fonts or get Google Fonts alternatives for a known font name. Use when the user asks about fonts, wants font suggestions, or needs Google Fonts equivalents for commercial fonts like Helvetica, Gotham, or Proxima Nova.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        fontName: {
+          type: 'string',
+          description:
+            'Font name to find alternatives for (e.g., "Helvetica", "Gotham", "Proxima Nova")',
+        },
+        imageBase64: {
+          type: 'string',
+          description: 'Optional base64 image data for font identification from a screenshot',
+        },
+        includePairings: {
+          type: 'boolean',
+          description: 'Include font pairing suggestions',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'audit_accessibility',
+    description:
+      'Run a WCAG accessibility audit on HTML content. Use when the user wants to check accessibility, ensure compliance, or find issues with their design. Returns violations with impact levels and fix suggestions.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        html: {
+          type: 'string',
+          description: 'HTML content to audit',
+        },
+        wcagLevel: {
+          type: 'string',
+          enum: ['A', 'AA', 'AAA'],
+          description: 'WCAG compliance level to check (default: AA)',
+        },
+        includeImpact: {
+          type: 'array',
+          items: { type: 'string', enum: ['critical', 'serious', 'moderate', 'minor'] },
+          description: 'Impact levels to include in results',
+        },
+      },
+      required: ['html'],
+    },
+  },
+  {
+    name: 'check_color_contrast',
+    description:
+      'Check the color contrast ratio between foreground and background colors for WCAG compliance. Use when verifying text readability or color accessibility.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        foreground: {
+          type: 'string',
+          description: 'Foreground (text) color as hex (e.g., "#333333")',
+        },
+        background: {
+          type: 'string',
+          description: 'Background color as hex (e.g., "#FFFFFF")',
+        },
+      },
+      required: ['foreground', 'background'],
+    },
+  },
+  {
+    name: 'generate_ui_component',
+    description:
+      'Generate a production-ready React + Tailwind component from a natural language description. Use when the user wants a complex UI component like a pricing table, data table, user card, or form. Returns TypeScript React code with proper types.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        prompt: {
+          type: 'string',
+          description:
+            'Description of the component to generate (e.g., "A pricing table with 3 tiers", "A user profile card with avatar and stats")',
+        },
+        framework: {
+          type: 'string',
+          enum: ['react', 'nextjs'],
+          description: 'Target framework (default: react)',
+        },
+        styling: {
+          type: 'string',
+          enum: ['tailwind', 'css-modules', 'styled-components'],
+          description: 'Styling approach (default: tailwind)',
+        },
+        includeTypes: {
+          type: 'boolean',
+          description: 'Include TypeScript types (default: true)',
+        },
+        darkMode: {
+          type: 'boolean',
+          description: 'Include dark mode support',
+        },
+        responsive: {
+          type: 'boolean',
+          description: 'Include responsive design (default: true)',
+        },
+      },
+      required: ['prompt'],
+    },
+  },
 ];
 
 // ============================================================================
@@ -585,6 +987,676 @@ function executeListElements(currentDesign: Partial<LayoutDesign>, category?: st
 }
 
 /**
+ * Execute the apply_effect tool
+ */
+function executeApplyEffect(input: {
+  effectType: string;
+  targetElement: string;
+  presetId?: string;
+  customConfig?: Record<string, unknown>;
+}): ToolResult {
+  const { effectType, targetElement, presetId, customConfig } = input;
+
+  // Try to find a preset
+  let preset: AdvancedEffectPreset | undefined;
+  if (presetId) {
+    preset = getAdvancedEffectPreset(presetId);
+  } else {
+    // Find a default preset for the effect type
+    preset = ADVANCED_EFFECT_PRESETS.find((p) => p.type === effectType);
+  }
+
+  if (!preset) {
+    return {
+      success: false,
+      error: `No preset found for effect type "${effectType}"${presetId ? ` with id "${presetId}"` : ''}. Available presets: ${ADVANCED_EFFECT_PRESETS.filter(
+        (p) => p.type === effectType
+      )
+        .map((p) => p.id)
+        .join(', ')}`,
+    };
+  }
+
+  return {
+    success: true,
+    data: {
+      effect: {
+        id: preset.id,
+        name: preset.name,
+        type: preset.type,
+        targetElement,
+        css: preset.css,
+        tailwind: preset.tailwind,
+        config: customConfig ? { ...preset.config, ...customConfig } : preset.config,
+      },
+      message: `Applied ${preset.name} effect to ${targetElement}`,
+      availablePresets: ADVANCED_EFFECT_PRESETS.filter((p) => p.type === effectType).map((p) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+      })),
+    },
+  };
+}
+
+/**
+ * Execute the apply_component_state tool
+ */
+function executeApplyComponentState(input: {
+  state: string;
+  targetElement: string;
+  presetId?: string;
+}): ToolResult {
+  const { state, targetElement, presetId } = input;
+
+  // Try to find a preset
+  let preset: ComponentStatePreset | undefined;
+  if (presetId) {
+    preset = getComponentStatePreset(presetId);
+  } else {
+    // Find a default preset for the state
+    preset = COMPONENT_STATE_PRESETS.find((p) => p.state === state);
+  }
+
+  if (!preset) {
+    return {
+      success: false,
+      error: `No preset found for state "${state}"${presetId ? ` with id "${presetId}"` : ''}. Available presets: ${COMPONENT_STATE_PRESETS.filter(
+        (p) => p.state === state
+      )
+        .map((p) => p.id)
+        .join(', ')}`,
+    };
+  }
+
+  const appliedState: AppliedComponentState = {
+    state: preset.state,
+    presetId: preset.id,
+    targetElement,
+    css: `${preset.css.base} ${preset.css.transition}`.trim(),
+    tailwind: preset.tailwind,
+  };
+
+  return {
+    success: true,
+    data: {
+      componentState: appliedState,
+      preset: {
+        id: preset.id,
+        name: preset.name,
+        description: preset.description,
+        css: preset.css,
+        tailwind: preset.tailwind,
+        framerMotion: preset.framerMotion,
+      },
+      message: `Applied ${preset.name} to ${targetElement}`,
+      availablePresets: COMPONENT_STATE_PRESETS.filter((p) => p.state === state).map((p) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+      })),
+    },
+  };
+}
+
+/**
+ * Execute the apply_micro_interaction tool
+ */
+function executeApplyMicroInteraction(input: {
+  interactionId: string;
+  targetElement: string;
+  trigger?: string;
+}): ToolResult {
+  const { interactionId, targetElement, trigger } = input;
+
+  const preset = getMicroInteractionPreset(interactionId);
+
+  if (!preset) {
+    return {
+      success: false,
+      error: `No micro-interaction found with id "${interactionId}". Available interactions: ${MICRO_INTERACTION_PRESETS.map((p) => p.id).join(', ')}`,
+    };
+  }
+
+  const appliedInteraction: AppliedMicroInteraction = {
+    interactionId: preset.id,
+    targetElement,
+    trigger: (trigger as AppliedMicroInteraction['trigger']) || preset.trigger,
+    css: `${preset.css.keyframes}\n${preset.css.base || ''}\n${preset.css.animation}`.trim(),
+    tailwind: preset.tailwind,
+  };
+
+  return {
+    success: true,
+    data: {
+      microInteraction: appliedInteraction,
+      preset: {
+        id: preset.id,
+        name: preset.name,
+        description: preset.description,
+        trigger: preset.trigger,
+        css: preset.css,
+        tailwind: preset.tailwind,
+        framerMotion: preset.framerMotion,
+        requiresJS: preset.requiresJS,
+      },
+      message: `Applied ${preset.name} to ${targetElement}`,
+      note: preset.requiresJS
+        ? 'This interaction requires JavaScript for full functionality (e.g., mouse tracking).'
+        : undefined,
+    },
+  };
+}
+
+/**
+ * Custom CSS application result type
+ */
+interface AppliedCustomCSS {
+  id: string;
+  targetElement: string;
+  css: string;
+  cssVariables?: Record<string, string>;
+  pseudoSelectors?: Record<string, string>;
+  mediaQueries?: Record<string, string>;
+  keyframes?: string;
+  generatedStyleBlock: string;
+}
+
+/**
+ * Execute the apply_custom_css tool
+ * Allows arbitrary CSS injection for expert-level design control
+ */
+function executeApplyCustomCSS(input: {
+  targetElement: string;
+  css: string;
+  cssVariables?: Record<string, string>;
+  pseudoSelectors?: Record<string, string>;
+  mediaQueries?: Record<string, string>;
+  keyframes?: string;
+}): ToolResult {
+  const { targetElement, css, cssVariables, pseudoSelectors, mediaQueries, keyframes } = input;
+
+  // Validate target element isn't empty
+  if (!targetElement.trim()) {
+    return {
+      success: false,
+      error: 'Target element selector cannot be empty',
+    };
+  }
+
+  // Validate CSS isn't empty
+  if (!css.trim()) {
+    return {
+      success: false,
+      error: 'CSS properties cannot be empty',
+    };
+  }
+
+  // Build the complete style block
+  let generatedStyleBlock = '';
+
+  // Add CSS variables if provided (at :root level)
+  if (cssVariables && Object.keys(cssVariables).length > 0) {
+    const varsCSS = Object.entries(cssVariables)
+      .map(([key, value]) => `  ${key}: ${value};`)
+      .join('\n');
+    generatedStyleBlock += `:root {\n${varsCSS}\n}\n\n`;
+  }
+
+  // Add keyframes if provided
+  if (keyframes) {
+    generatedStyleBlock += `${keyframes}\n\n`;
+  }
+
+  // Add main element styles
+  generatedStyleBlock += `${targetElement} {\n  ${css
+    .split(';')
+    .filter((s) => s.trim())
+    .map((s) => s.trim())
+    .join(';\n  ')};\n}\n`;
+
+  // Add pseudo-selector styles
+  if (pseudoSelectors && Object.keys(pseudoSelectors).length > 0) {
+    for (const [pseudo, styles] of Object.entries(pseudoSelectors)) {
+      const selector = pseudo.startsWith(':')
+        ? `${targetElement}${pseudo}`
+        : `${targetElement}:${pseudo}`;
+      generatedStyleBlock += `\n${selector} {\n  ${styles
+        .split(';')
+        .filter((s) => s.trim())
+        .map((s) => s.trim())
+        .join(';\n  ')};\n}\n`;
+    }
+  }
+
+  // Add media query styles
+  if (mediaQueries && Object.keys(mediaQueries).length > 0) {
+    for (const [query, styles] of Object.entries(mediaQueries)) {
+      const mediaQuery = query.startsWith('@media') ? query : `@media ${query}`;
+      generatedStyleBlock += `\n${mediaQuery} {\n  ${targetElement} {\n    ${styles
+        .split(';')
+        .filter((s) => s.trim())
+        .map((s) => s.trim())
+        .join(';\n    ')};\n  }\n}\n`;
+    }
+  }
+
+  const appliedCSS: AppliedCustomCSS = {
+    id: `custom_css_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+    targetElement,
+    css,
+    cssVariables,
+    pseudoSelectors,
+    mediaQueries,
+    keyframes,
+    generatedStyleBlock: generatedStyleBlock.trim(),
+  };
+
+  return {
+    success: true,
+    data: {
+      customCSS: appliedCSS,
+      message: `Applied custom CSS to ${targetElement}`,
+      styleBlock: generatedStyleBlock.trim(),
+      properties: {
+        baseStyles: css,
+        hasVariables: !!(cssVariables && Object.keys(cssVariables).length > 0),
+        hasPseudoSelectors: !!(pseudoSelectors && Object.keys(pseudoSelectors).length > 0),
+        hasMediaQueries: !!(mediaQueries && Object.keys(mediaQueries).length > 0),
+        hasKeyframes: !!keyframes,
+      },
+    },
+  };
+}
+
+// ============================================================================
+// PHASE 4: EXTERNAL API TOOL EXECUTORS
+// ============================================================================
+
+/**
+ * Execute the generate_color_palette tool (Colormind API)
+ */
+async function executeGenerateColorPalette(input: {
+  seedColor?: string;
+  model?: string;
+  generateVariations?: boolean;
+}): Promise<ToolResult> {
+  try {
+    const { seedColor, model = 'default', generateVariations: includeVariations = false } = input;
+
+    // Generate the main palette
+    const palette = await generateColorPalette({
+      seedColor,
+      model: model as ColormindModel,
+    });
+
+    // Generate variations if requested (uses the primary color as seed)
+    let variations: GeneratedPalette[] | undefined;
+    if (includeVariations && palette.roles.primary) {
+      variations = await generatePaletteVariations(palette.roles.primary, 3);
+    }
+
+    return {
+      success: true,
+      data: {
+        palette: {
+          colors: palette.colors,
+          roles: palette.roles,
+          css: palette.css,
+        },
+        variations:
+          variations && variations.length > 0
+            ? variations.map((v, i) => ({
+                name: ['Variation 1', 'Variation 2', 'Variation 3'][i],
+                colors: v.colors,
+                roles: v.roles,
+              }))
+            : undefined,
+        message: `Generated ${includeVariations && variations ? `${1 + variations.length} palettes (main + variations)` : 'a harmonious color palette'} ${seedColor ? `based on ${seedColor}` : 'from scratch'}`,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to generate color palette',
+    };
+  }
+}
+
+/**
+ * Execute the search_icons tool (Iconify API)
+ */
+async function executeSearchIcons(input: {
+  query: string;
+  iconSets?: string[];
+  style?: string;
+  limit?: number;
+}): Promise<ToolResult> {
+  try {
+    const { query, iconSets, style = 'all', limit = 10 } = input;
+
+    const results = await searchIcons({
+      query,
+      iconSets: iconSets as Parameters<typeof searchIcons>[0]['iconSets'],
+      style: style as 'outline' | 'solid' | 'all',
+      limit,
+    });
+
+    return {
+      success: true,
+      data: {
+        icons: results.map((icon) => ({
+          id: icon.fullId,
+          name: icon.name,
+          prefix: icon.prefix,
+          title: icon.title,
+        })),
+        totalResults: results.length,
+        message: `Found ${results.length} icons matching "${query}"`,
+        suggestion:
+          results.length > 0
+            ? `Use get_icon with iconId "${results[0].fullId}" to get the SVG and usage code`
+            : 'Try a different search query',
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to search icons',
+    };
+  }
+}
+
+/**
+ * Execute the get_icon tool (Iconify API)
+ */
+async function executeGetIcon(input: {
+  iconId: string;
+  size?: number;
+  color?: string;
+}): Promise<ToolResult> {
+  try {
+    const { iconId, size = 24, color } = input;
+
+    const icon = await getIcon(iconId, { size, color });
+
+    if (!icon) {
+      return {
+        success: false,
+        error: `Icon "${iconId}" not found. Make sure the format is "prefix:name" (e.g., "heroicons:home")`,
+      };
+    }
+
+    return {
+      success: true,
+      data: {
+        id: icon.id,
+        svg: icon.svg,
+        svgDataUri: icon.svgDataUri,
+        react: icon.react,
+        css: icon.css,
+        size: icon.size,
+        message: `Retrieved icon "${iconId}" (${size}x${size}px)`,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get icon',
+    };
+  }
+}
+
+/**
+ * Execute the search_lottie_animations tool (LottieFiles)
+ */
+async function executeSearchLottieAnimations(input: {
+  query: string;
+  category?: string;
+  limit?: number;
+}): Promise<ToolResult> {
+  try {
+    const { query, category, limit = 5 } = input;
+
+    const results = await searchLottieAnimations({
+      query,
+      category: category as Parameters<typeof searchLottieAnimations>[0]['category'],
+      limit,
+    });
+
+    return {
+      success: true,
+      data: {
+        animations: results.animations.map((anim) => ({
+          id: anim.id,
+          name: anim.name,
+          lottieUrl: anim.lottieUrl,
+          previewUrl: anim.previewUrl,
+          tags: anim.tags,
+          duration: anim.duration,
+        })),
+        totalResults: results.total,
+        hasMore: results.hasMore,
+        message: `Found ${results.animations.length} Lottie animations for "${query}"`,
+        categories: getLottieCategories().map((c) => c.id),
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to search Lottie animations',
+    };
+  }
+}
+
+/**
+ * Execute the identify_font tool (WhatTheFont / Google Fonts)
+ */
+async function executeIdentifyFont(input: {
+  fontName?: string;
+  imageBase64?: string;
+  includePairings?: boolean;
+}): Promise<ToolResult> {
+  try {
+    const { fontName, imageBase64, includePairings = false } = input;
+
+    if (!fontName && !imageBase64) {
+      return {
+        success: false,
+        error: 'Either fontName or imageBase64 must be provided',
+      };
+    }
+
+    let alternatives: FontMatch[] = [];
+    let identificationResult: FontIdentificationResult | null = null;
+    let pairings: Array<{ heading: string; body: string; reason: string }> = [];
+
+    if (fontName) {
+      // Get Google Fonts alternatives for a known font
+      alternatives = getGoogleFontsAlternatives(fontName);
+
+      if (includePairings && alternatives.length > 0) {
+        pairings = getFontPairings(alternatives[0].name);
+      }
+    }
+
+    if (imageBase64) {
+      // Identify font from image
+      identificationResult = await identifyFontFromImage(imageBase64);
+    }
+
+    return {
+      success: true,
+      data: {
+        alternatives:
+          alternatives.length > 0
+            ? alternatives.map((alt) => ({
+                name: alt.name,
+                family: alt.family,
+                confidence: alt.confidence,
+                googleFontsUrl: alt.googleFontsUrl,
+              }))
+            : undefined,
+        identification: identificationResult,
+        pairings: pairings.length > 0 ? pairings : undefined,
+        css: alternatives.length > 0 ? generateFontCSS(alternatives[0].name) : undefined,
+        message: fontName
+          ? `Found ${alternatives.length} Google Fonts alternatives for "${fontName}"`
+          : 'Font identification requires WhatTheFont API access',
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to identify font',
+    };
+  }
+}
+
+/**
+ * Execute the audit_accessibility tool (axe-core)
+ */
+async function executeAuditAccessibility(input: {
+  html: string;
+  wcagLevel?: string;
+  includeImpact?: string[];
+}): Promise<ToolResult> {
+  try {
+    const { html, wcagLevel = 'AA', includeImpact } = input;
+
+    const result = await auditAccessibility({
+      html,
+      wcagLevel: wcagLevel as 'A' | 'AA' | 'AAA',
+      includeImpact: includeImpact as ('critical' | 'serious' | 'moderate' | 'minor')[] | undefined,
+    });
+
+    return {
+      success: true,
+      data: {
+        score: result.score,
+        summary: result.summary,
+        violations: result.violations.map((v) => ({
+          id: v.id,
+          description: v.description,
+          impact: v.impact,
+          wcagCriteria: v.wcagCriteria,
+          help: v.help,
+          helpUrl: v.helpUrl,
+          nodeCount: v.nodes.length,
+          fixes: v.nodes.slice(0, 3).map((n) => n.fix), // Show first 3 fixes
+        })),
+        passes: result.passes,
+        recommendations: result.recommendations,
+        message:
+          result.violations.length === 0
+            ? `Accessibility audit passed! Score: ${result.score}/100`
+            : `Found ${result.violations.length} accessibility issues. Score: ${result.score}/100`,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to run accessibility audit',
+    };
+  }
+}
+
+/**
+ * Execute the check_color_contrast tool
+ */
+function executeCheckColorContrast(input: { foreground: string; background: string }): ToolResult {
+  try {
+    const { foreground, background } = input;
+
+    const result = checkColorContrast(foreground, background);
+
+    return {
+      success: true,
+      data: {
+        ratio: result.ratio,
+        passAA: result.passAA,
+        passAAA: result.passAAA,
+        passLargeAA: result.passLargeAA,
+        message: `Contrast ratio: ${result.ratio}:1 - ${result.passAA ? '✓ Passes WCAG AA' : '✗ Fails WCAG AA'} (normal text), ${result.passLargeAA ? '✓ Passes' : '✗ Fails'} (large text)`,
+        requirements: {
+          'WCAG AA (normal text)': '4.5:1 minimum',
+          'WCAG AA (large text)': '3:1 minimum',
+          'WCAG AAA (normal text)': '7:1 minimum',
+        },
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to check color contrast',
+    };
+  }
+}
+
+/**
+ * Execute the generate_ui_component tool (v0.dev style)
+ */
+async function executeGenerateUIComponent(input: {
+  prompt: string;
+  framework?: string;
+  styling?: string;
+  includeTypes?: boolean;
+  darkMode?: boolean;
+  responsive?: boolean;
+}): Promise<ToolResult> {
+  try {
+    const {
+      prompt,
+      framework = 'react',
+      styling = 'tailwind',
+      includeTypes = true,
+      darkMode = false,
+      responsive = true,
+    } = input;
+
+    const result = await generateComponent({
+      prompt,
+      framework: framework as 'react' | 'nextjs',
+      styling: styling as 'tailwind' | 'css-modules' | 'styled-components',
+      includeTypes,
+      darkMode,
+      responsive,
+    });
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error || 'Failed to generate component',
+      };
+    }
+
+    return {
+      success: true,
+      data: {
+        component: result.component
+          ? {
+              name: result.component.name,
+              code: result.component.code,
+              dependencies: result.component.dependencies,
+              files: result.component.files,
+            }
+          : undefined,
+        usage: result.usage,
+        availableTemplates: getAvailableTemplates(),
+        message: result.component
+          ? `Generated "${result.component.name}" component with ${result.component.dependencies.length} dependencies`
+          : 'Component generation requires v0.dev API access',
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to generate UI component',
+    };
+  }
+}
+
+/**
  * Process tool calls from Claude's response
  */
 async function processToolCalls(
@@ -643,6 +1715,113 @@ async function processToolCalls(
 
       case 'list_elements':
         result = executeListElements(currentDesign, input.category as string | undefined);
+        break;
+
+      case 'apply_effect':
+        result = executeApplyEffect({
+          effectType: input.effectType as string,
+          targetElement: input.targetElement as string,
+          presetId: input.presetId as string | undefined,
+          customConfig: input.customConfig as Record<string, unknown> | undefined,
+        });
+        break;
+
+      case 'apply_component_state':
+        result = executeApplyComponentState({
+          state: input.state as string,
+          targetElement: input.targetElement as string,
+          presetId: input.presetId as string | undefined,
+        });
+        break;
+
+      case 'apply_micro_interaction':
+        result = executeApplyMicroInteraction({
+          interactionId: input.interactionId as string,
+          targetElement: input.targetElement as string,
+          trigger: input.trigger as string | undefined,
+        });
+        break;
+
+      case 'apply_custom_css':
+        result = executeApplyCustomCSS({
+          targetElement: input.targetElement as string,
+          css: input.css as string,
+          cssVariables: input.cssVariables as Record<string, string> | undefined,
+          pseudoSelectors: input.pseudoSelectors as Record<string, string> | undefined,
+          mediaQueries: input.mediaQueries as Record<string, string> | undefined,
+          keyframes: input.keyframes as string | undefined,
+        });
+        break;
+
+      // ================================================================
+      // PHASE 4: EXTERNAL API INTEGRATION TOOL CASES
+      // ================================================================
+
+      case 'generate_color_palette':
+        result = await executeGenerateColorPalette({
+          seedColor: input.seedColor as string | undefined,
+          model: input.model as string | undefined,
+          generateVariations: input.generateVariations as boolean | undefined,
+        });
+        break;
+
+      case 'search_icons':
+        result = await executeSearchIcons({
+          query: input.query as string,
+          iconSets: input.iconSets as string[] | undefined,
+          style: input.style as string | undefined,
+          limit: input.limit as number | undefined,
+        });
+        break;
+
+      case 'get_icon':
+        result = await executeGetIcon({
+          iconId: input.iconId as string,
+          size: input.size as number | undefined,
+          color: input.color as string | undefined,
+        });
+        break;
+
+      case 'search_lottie_animations':
+        result = await executeSearchLottieAnimations({
+          query: input.query as string,
+          category: input.category as string | undefined,
+          limit: input.limit as number | undefined,
+        });
+        break;
+
+      case 'identify_font':
+        result = await executeIdentifyFont({
+          fontName: input.fontName as string | undefined,
+          imageBase64: input.imageBase64 as string | undefined,
+          includePairings: input.includePairings as boolean | undefined,
+        });
+        break;
+
+      case 'audit_accessibility':
+        result = await executeAuditAccessibility({
+          html: input.html as string,
+          wcagLevel: input.wcagLevel as string | undefined,
+          includeImpact: input.includeImpact as string[] | undefined,
+        });
+        break;
+
+      case 'check_color_contrast':
+        result = executeCheckColorContrast({
+          foreground: input.foreground as string,
+          background: input.background as string,
+        });
+        break;
+
+      case 'generate_ui_component':
+        result = await executeGenerateUIComponent({
+          prompt: input.prompt as string,
+          framework: input.framework as string | undefined,
+          styling: input.styling as string | undefined,
+          includeTypes: input.includeTypes as boolean | undefined,
+          darkMode: input.darkMode as boolean | undefined,
+          responsive: input.responsive as boolean | undefined,
+        });
         break;
 
       default:
