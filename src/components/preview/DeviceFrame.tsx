@@ -9,26 +9,15 @@ import React from 'react';
 export type DeviceType =
   | 'iphone-se'
   | 'iphone-14'
-  | 'iphone-14-pro-max'
-  | 'pixel-7'
-  | 'galaxy-s23'
-  | 'ipad-mini'
-  | 'ipad-air'
-  | 'ipad-pro-11'
-  | 'ipad-pro-12'
-  | 'surface-pro'
-  | 'macbook-air'
-  | 'macbook-pro-14'
-  | 'macbook-pro-16'
+  | 'ipad'
+  | 'ipad-pro'
+  | 'laptop'
   | 'desktop-hd'
-  | 'desktop-2k'
-  | 'desktop-4k'
   | 'none';
 
 export interface DeviceFrameProps {
   device: DeviceType;
   orientation: 'portrait' | 'landscape';
-  scale: number;
   width: number;
   height: number | 'auto';
   children: React.ReactNode;
@@ -91,59 +80,8 @@ const DEVICE_CONFIGS: Record<string, DeviceFrameConfig> = {
     hasCamera: false,
     cameraPosition: 'top',
   },
-  // iPhone 14 Pro Max - Dynamic Island
-  'iphone-14-pro-max': {
-    bezelWidth: 12,
-    bezelRadius: 52,
-    screenRadius: 44,
-    hasNotch: false,
-    notchWidth: 0,
-    notchHeight: 0,
-    hasDynamicIsland: true,
-    hasHomeButton: false,
-    hasPunchHole: false,
-    punchHolePosition: 'center',
-    frameColor: '#1a1a1a',
-    buttonColor: '#2a2a2a',
-    hasCamera: false,
-    cameraPosition: 'top',
-  },
-  // Pixel 7 - Punch hole center
-  'pixel-7': {
-    bezelWidth: 10,
-    bezelRadius: 32,
-    screenRadius: 24,
-    hasNotch: false,
-    notchWidth: 0,
-    notchHeight: 0,
-    hasDynamicIsland: false,
-    hasHomeButton: false,
-    hasPunchHole: true,
-    punchHolePosition: 'center',
-    frameColor: '#2d2d2d',
-    buttonColor: '#3d3d3d',
-    hasCamera: false,
-    cameraPosition: 'top',
-  },
-  // Galaxy S23 - Punch hole center
-  'galaxy-s23': {
-    bezelWidth: 10,
-    bezelRadius: 36,
-    screenRadius: 28,
-    hasNotch: false,
-    notchWidth: 0,
-    notchHeight: 0,
-    hasDynamicIsland: false,
-    hasHomeButton: false,
-    hasPunchHole: true,
-    punchHolePosition: 'center',
-    frameColor: '#1e1e1e',
-    buttonColor: '#2e2e2e',
-    hasCamera: false,
-    cameraPosition: 'top',
-  },
-  // iPad Mini
-  'ipad-mini': {
+  // iPad (standard)
+  ipad: {
     bezelWidth: 20,
     bezelRadius: 36,
     screenRadius: 20,
@@ -159,62 +97,11 @@ const DEVICE_CONFIGS: Record<string, DeviceFrameConfig> = {
     hasCamera: true,
     cameraPosition: 'top',
   },
-  // iPad Air
-  'ipad-air': {
-    bezelWidth: 20,
-    bezelRadius: 40,
-    screenRadius: 24,
-    hasNotch: false,
-    notchWidth: 0,
-    notchHeight: 0,
-    hasDynamicIsland: false,
-    hasHomeButton: false,
-    hasPunchHole: false,
-    punchHolePosition: 'center',
-    frameColor: '#2a2a2a',
-    buttonColor: '#3a3a3a',
-    hasCamera: true,
-    cameraPosition: 'top',
-  },
-  // iPad Pro 11"
-  'ipad-pro-11': {
+  // iPad Pro
+  'ipad-pro': {
     bezelWidth: 18,
     bezelRadius: 40,
     screenRadius: 24,
-    hasNotch: false,
-    notchWidth: 0,
-    notchHeight: 0,
-    hasDynamicIsland: false,
-    hasHomeButton: false,
-    hasPunchHole: false,
-    punchHolePosition: 'center',
-    frameColor: '#1a1a1a',
-    buttonColor: '#2a2a2a',
-    hasCamera: true,
-    cameraPosition: 'top',
-  },
-  // iPad Pro 12.9"
-  'ipad-pro-12': {
-    bezelWidth: 18,
-    bezelRadius: 40,
-    screenRadius: 24,
-    hasNotch: false,
-    notchWidth: 0,
-    notchHeight: 0,
-    hasDynamicIsland: false,
-    hasHomeButton: false,
-    hasPunchHole: false,
-    punchHolePosition: 'center',
-    frameColor: '#1a1a1a',
-    buttonColor: '#2a2a2a',
-    hasCamera: true,
-    cameraPosition: 'top',
-  },
-  // Surface Pro
-  'surface-pro': {
-    bezelWidth: 16,
-    bezelRadius: 12,
-    screenRadius: 4,
     hasNotch: false,
     notchWidth: 0,
     notchHeight: 0,
@@ -376,7 +263,6 @@ function SideButtons({ height, side }: { height: number; side: 'left' | 'right' 
 export function DeviceFrame({
   device,
   orientation,
-  scale,
   width,
   height,
   children,
@@ -384,16 +270,8 @@ export function DeviceFrame({
 }: DeviceFrameProps) {
   // Get device configuration
   const config = DEVICE_CONFIGS[device] || DEFAULT_CONFIG;
-  const isMobile = [
-    'iphone-se',
-    'iphone-14',
-    'iphone-14-pro-max',
-    'pixel-7',
-    'galaxy-s23',
-  ].includes(device);
-  const isTablet = ['ipad-mini', 'ipad-air', 'ipad-pro-11', 'ipad-pro-12', 'surface-pro'].includes(
-    device
-  );
+  const isMobile = ['iphone-se', 'iphone-14'].includes(device);
+  const isTablet = ['ipad', 'ipad-pro'].includes(device);
   const showFrame = isMobile || isTablet;
   const isLandscape = orientation === 'landscape';
 
@@ -413,22 +291,11 @@ export function DeviceFrame({
       <div
         className={`relative bg-zinc-900 rounded-lg overflow-hidden shadow-2xl ${className}`}
         style={{
-          width: width * scale,
-          height: height === 'auto' ? 'auto' : actualHeight * scale,
-          transform: `scale(1)`,
-          transformOrigin: 'top left',
+          width: width,
+          height: height === 'auto' ? 'auto' : actualHeight,
         }}
       >
-        <div
-          style={{
-            width: width,
-            height: height === 'auto' ? '100%' : actualHeight,
-            transform: `scale(${scale})`,
-            transformOrigin: 'top left',
-          }}
-        >
-          {children}
-        </div>
+        {children}
       </div>
     );
   }
@@ -437,88 +304,76 @@ export function DeviceFrame({
     <div
       className={`relative ${className}`}
       style={{
-        width: frameWidth * scale,
-        height: frameHeight * scale,
+        width: frameWidth,
+        height: frameHeight,
       }}
     >
-      {/* Outer frame container with scale */}
+      {/* Device frame */}
       <div
+        className="relative shadow-2xl"
         style={{
           width: frameWidth,
           height: frameHeight,
-          transform: `scale(${scale})`,
-          transformOrigin: 'top left',
+          backgroundColor: config.frameColor,
+          borderRadius: config.bezelRadius,
+          padding: config.bezelWidth,
+          paddingBottom: config.hasHomeButton ? config.bezelWidth + 60 : config.bezelWidth,
         }}
       >
-        {/* Device frame */}
+        {/* Side buttons for mobile devices */}
+        {/* Side buttons - hide in landscape for simplicity */}
+        {isMobile && !isLandscape && (
+          <>
+            <SideButtons height={frameHeight} side="left" />
+            <SideButtons height={frameHeight} side="right" />
+          </>
+        )}
+
+        {/* Screen area */}
         <div
-          className="relative shadow-2xl"
+          className="relative bg-black overflow-hidden"
           style={{
-            width: frameWidth,
-            height: frameHeight,
-            backgroundColor: config.frameColor,
-            borderRadius: config.bezelRadius,
-            padding: config.bezelWidth,
-            paddingBottom: config.hasHomeButton ? config.bezelWidth + 60 : config.bezelWidth,
+            width: displayWidth,
+            height: displayHeight,
+            borderRadius: config.screenRadius,
           }}
         >
-          {/* Side buttons for mobile devices */}
-          {/* Side buttons - hide in landscape for simplicity */}
-          {isMobile && !isLandscape && (
-            <>
-              <SideButtons height={frameHeight} side="left" />
-              <SideButtons height={frameHeight} side="right" />
-            </>
+          {/* Notch - only show in portrait */}
+          {config.hasNotch && !isLandscape && (
+            <IPhoneNotch width={config.notchWidth} height={config.notchHeight} />
           )}
 
-          {/* Screen area */}
-          <div
-            className="relative bg-black overflow-hidden"
-            style={{
-              width: displayWidth,
-              height: displayHeight,
-              borderRadius: config.screenRadius,
-            }}
-          >
-            {/* Notch - only show in portrait */}
-            {config.hasNotch && !isLandscape && (
-              <IPhoneNotch width={config.notchWidth} height={config.notchHeight} />
-            )}
+          {/* Dynamic Island - only show in portrait */}
+          {config.hasDynamicIsland && !isLandscape && <DynamicIsland />}
 
-            {/* Dynamic Island - only show in portrait */}
-            {config.hasDynamicIsland && !isLandscape && <DynamicIsland />}
+          {/* Punch Hole Camera - only show in portrait */}
+          {config.hasPunchHole && !isLandscape && <PunchHole position={config.punchHolePosition} />}
 
-            {/* Punch Hole Camera - only show in portrait */}
-            {config.hasPunchHole && !isLandscape && (
-              <PunchHole position={config.punchHolePosition} />
-            )}
+          {/* Front Camera for tablets - only show in portrait */}
+          {config.hasCamera && isTablet && !isLandscape && (
+            <FrontCamera position={config.cameraPosition} />
+          )}
 
-            {/* Front Camera for tablets - only show in portrait */}
-            {config.hasCamera && isTablet && !isLandscape && (
-              <FrontCamera position={config.cameraPosition} />
-            )}
-
-            {/* Content */}
-            <div className="w-full h-full overflow-hidden">{children}</div>
-          </div>
-
-          {/* Home Button - only show in portrait */}
-          {config.hasHomeButton && !isLandscape && <HomeButton />}
+          {/* Content */}
+          <div className="w-full h-full overflow-hidden">{children}</div>
         </div>
 
-        {/* Device shadow/reflection */}
-        <div
-          className="absolute inset-0 rounded-[inherit] pointer-events-none"
-          style={{
-            borderRadius: config.bezelRadius,
-            boxShadow: `
-              0 0 0 1px rgba(255,255,255,0.1) inset,
-              0 25px 50px -12px rgba(0,0,0,0.5),
-              0 0 100px rgba(0,0,0,0.3)
-            `,
-          }}
-        />
+        {/* Home Button - only show in portrait */}
+        {config.hasHomeButton && !isLandscape && <HomeButton />}
       </div>
+
+      {/* Device shadow/reflection */}
+      <div
+        className="absolute inset-0 rounded-[inherit] pointer-events-none"
+        style={{
+          borderRadius: config.bezelRadius,
+          boxShadow: `
+            0 0 0 1px rgba(255,255,255,0.1) inset,
+            0 25px 50px -12px rgba(0,0,0,0.5),
+            0 0 100px rgba(0,0,0,0.3)
+          `,
+        }}
+      />
     </div>
   );
 }

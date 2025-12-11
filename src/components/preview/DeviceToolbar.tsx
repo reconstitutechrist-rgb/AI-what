@@ -17,8 +17,6 @@ export interface DeviceToolbarProps {
   showDeviceFrame: boolean;
   onSelectDevice: (deviceId: string) => void;
   onToggleOrientation: () => void;
-  onSetScale: (scale: number) => void;
-  onSetWidth: (width: number) => void;
   onResetToDefault: () => void;
   onToggleConsole: () => void;
   onToggleDeviceFrame: () => void;
@@ -143,54 +141,6 @@ function DeviceSelector({
   );
 }
 
-// Scale slider component
-function ScaleSlider({
-  scale,
-  onSetScale,
-}: {
-  scale: number;
-  onSetScale: (scale: number) => void;
-}) {
-  const scalePercentage = Math.round(scale * 100);
-
-  return (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={() => onSetScale(Math.max(0.25, scale - 0.25))}
-        className="w-6 h-6 flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white transition-colors text-sm"
-        title="Zoom out"
-      >
-        −
-      </button>
-      <div className="flex items-center gap-1.5">
-        <input
-          type="range"
-          min={25}
-          max={200}
-          step={25}
-          value={scalePercentage}
-          onChange={(e) => onSetScale(parseInt(e.target.value) / 100)}
-          className="w-20 h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-        />
-        <button
-          onClick={() => onSetScale(1)}
-          className="text-xs text-zinc-400 hover:text-white min-w-[40px] text-center"
-          title="Reset to 100%"
-        >
-          {scalePercentage}%
-        </button>
-      </div>
-      <button
-        onClick={() => onSetScale(Math.min(2, scale + 0.25))}
-        className="w-6 h-6 flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white transition-colors text-sm"
-        title="Zoom in"
-      >
-        +
-      </button>
-    </div>
-  );
-}
-
 // Breakpoint indicator badge
 function BreakpointBadge({ breakpoint }: { breakpoint: string }) {
   const colors: Record<string, string> = {
@@ -223,24 +173,14 @@ export function DeviceToolbar({
   showDeviceFrame,
   onSelectDevice,
   onToggleOrientation,
-  onSetScale,
   onResetToDefault,
   onToggleConsole,
   onToggleDeviceFrame,
   className = '',
 }: DeviceToolbarProps) {
-  const { width, height, scale, orientation, devicePreset } = state;
+  const { width, height, orientation, devicePreset } = state;
   const isMobileOrTablet =
-    devicePreset &&
-    ![
-      'macbook-air',
-      'macbook-pro-14',
-      'macbook-pro-16',
-      'desktop-hd',
-      'desktop-2k',
-      'desktop-4k',
-      'none',
-    ].includes(devicePreset);
+    devicePreset && ['iphone-se', 'iphone-14', 'ipad', 'ipad-pro'].includes(devicePreset);
 
   return (
     <div
@@ -277,12 +217,6 @@ export function DeviceToolbar({
             </svg>
           </button>
         )}
-
-        {/* Divider */}
-        <div className="w-px h-6 bg-zinc-700" />
-
-        {/* Scale slider */}
-        <ScaleSlider scale={scale} onSetScale={onSetScale} />
 
         {/* Divider */}
         <div className="w-px h-6 bg-zinc-700" />

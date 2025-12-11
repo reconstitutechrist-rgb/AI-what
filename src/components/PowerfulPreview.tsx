@@ -24,10 +24,9 @@ interface PowerfulPreviewProps {
   appDataJson: string;
   isFullscreen?: boolean;
   onCaptureReady?: (captureFunc: () => Promise<string | null>) => void;
-  // New responsive preview props
+  // Responsive preview props
   devicePreset?: string | null;
   orientation?: 'portrait' | 'landscape';
-  scale?: number;
   previewWidth?: number;
   previewHeight?: number | 'auto';
   showDeviceFrame?: boolean;
@@ -43,7 +42,6 @@ export default function PowerfulPreview({
   // Responsive preview props with defaults
   devicePreset = null,
   orientation = 'portrait',
-  scale = 1,
   previewWidth = 1280,
   previewHeight = 'auto',
   showDeviceFrame = true,
@@ -53,19 +51,7 @@ export default function PowerfulPreview({
 }: PowerfulPreviewProps) {
   // Determine if touch simulation should be active (mobile/tablet devices only)
   const isMobileOrTablet =
-    devicePreset &&
-    [
-      'iphone-se',
-      'iphone-14',
-      'iphone-14-pro-max',
-      'pixel-7',
-      'galaxy-s23',
-      'ipad-mini',
-      'ipad-air',
-      'ipad-pro-11',
-      'ipad-pro-12',
-      'surface-pro',
-    ].includes(devicePreset);
+    devicePreset && ['iphone-se', 'iphone-14', 'ipad', 'ipad-pro'].includes(devicePreset);
   const shouldEnableTouchSimulation = enableTouchSimulation && isMobileOrTablet;
   // Parse JSON with error handling to prevent crashes
   const appData = useMemo((): FullAppData | null => {
@@ -256,8 +242,8 @@ h1, h2, h3, h4, h5, h6 {
             </div>
           )}
 
-          {/* Device frame with touch simulation */}
-          {showDeviceFrame && devicePreset && devicePreset !== 'none' ? (
+          {/* Device frame with touch simulation - for mobile/tablet */}
+          {showDeviceFrame && isMobileOrTablet ? (
             <TouchSimulator
               enabled={shouldEnableTouchSimulation}
               iframeSelector=".sp-preview-iframe"
@@ -265,7 +251,6 @@ h1, h2, h3, h4, h5, h6 {
               <DeviceFrame
                 device={devicePreset as DeviceType}
                 orientation={orientation}
-                scale={scale}
                 width={previewWidth}
                 height={previewHeight}
               >
@@ -310,43 +295,33 @@ h1, h2, h3, h4, h5, h6 {
               </SandpackLayout>
             </div>
           ) : (
-            /* Desktop device with specific dimensions and scaling */
+            /* Desktop/Laptop device - show at actual size with scroll if needed */
             <div
-              className="bg-white rounded-lg overflow-hidden shadow-2xl transition-all duration-300"
+              className="bg-white rounded-lg overflow-auto shadow-2xl"
               style={{
-                width: previewWidth * scale,
-                height: previewHeight === 'auto' ? '100%' : (previewHeight as number) * scale,
+                width: previewWidth,
+                height: typeof previewHeight === 'number' ? previewHeight : '100%',
                 maxWidth: '100%',
                 maxHeight: '100%',
               }}
             >
-              <div
+              <SandpackLayout
                 style={{
-                  width: previewWidth,
-                  height: previewHeight === 'auto' ? '100%' : previewHeight,
-                  transform: `scale(${scale})`,
-                  transformOrigin: 'top left',
+                  height: '100%',
+                  width: '100%',
+                  border: 'none',
+                  borderRadius: 0,
                 }}
               >
-                <SandpackLayout
+                <SandpackPreview
+                  showOpenInCodeSandbox={false}
+                  showRefreshButton={true}
                   style={{
                     height: '100%',
                     width: '100%',
-                    border: 'none',
-                    borderRadius: 0,
                   }}
-                >
-                  <SandpackPreview
-                    showOpenInCodeSandbox={false}
-                    showRefreshButton={true}
-                    style={{
-                      height: '100%',
-                      width: '100%',
-                      minHeight: isFullscreen ? '100vh' : '600px',
-                    }}
-                  />
-                </SandpackLayout>
-              </div>
+                />
+              </SandpackLayout>
             </div>
           )}
         </div>

@@ -26,7 +26,6 @@ export interface DevicePreset {
 export interface ResponsivePreviewState {
   width: number;
   height: number | 'auto';
-  scale: number;
   orientation: 'portrait' | 'landscape';
   activeBreakpoint: string | null;
   devicePreset: string | null;
@@ -40,7 +39,6 @@ export interface UseResponsivePreviewReturn {
   // Actions
   setWidth: (width: number) => void;
   setHeight: (height: number | 'auto') => void;
-  setScale: (scale: number) => void;
   toggleOrientation: () => void;
   selectBreakpoint: (breakpointId: string) => void;
   selectDevicePreset: (deviceId: string) => void;
@@ -66,75 +64,18 @@ const DEFAULT_BREAKPOINTS: BreakpointConfig = {
 };
 
 const DEVICE_PRESETS: DevicePreset[] = [
-  // Mobile devices
+  // Mobile devices - simplified to common sizes
   { id: 'iphone-se', name: 'iPhone SE', width: 375, height: 667, category: 'mobile', icon: '📱' },
   { id: 'iphone-14', name: 'iPhone 14', width: 390, height: 844, category: 'mobile', icon: '📱' },
-  {
-    id: 'iphone-14-pro-max',
-    name: 'iPhone 14 Pro Max',
-    width: 430,
-    height: 932,
-    category: 'mobile',
-    icon: '📱',
-  },
-  { id: 'pixel-7', name: 'Pixel 7', width: 412, height: 915, category: 'mobile', icon: '📱' },
-  { id: 'galaxy-s23', name: 'Galaxy S23', width: 360, height: 780, category: 'mobile', icon: '📱' },
 
-  // Tablets
-  { id: 'ipad-mini', name: 'iPad Mini', width: 768, height: 1024, category: 'tablet', icon: '📲' },
-  { id: 'ipad-air', name: 'iPad Air', width: 820, height: 1180, category: 'tablet', icon: '📲' },
-  {
-    id: 'ipad-pro-11',
-    name: 'iPad Pro 11"',
-    width: 834,
-    height: 1194,
-    category: 'tablet',
-    icon: '📲',
-  },
-  {
-    id: 'ipad-pro-12',
-    name: 'iPad Pro 12.9"',
-    width: 1024,
-    height: 1366,
-    category: 'tablet',
-    icon: '📲',
-  },
-  {
-    id: 'surface-pro',
-    name: 'Surface Pro',
-    width: 912,
-    height: 1368,
-    category: 'tablet',
-    icon: '📲',
-  },
+  // Tablets - simplified to common sizes
+  { id: 'ipad', name: 'iPad', width: 768, height: 1024, category: 'tablet', icon: '📲' },
+  { id: 'ipad-pro', name: 'iPad Pro', width: 1024, height: 1366, category: 'tablet', icon: '📲' },
 
-  // Laptops
-  {
-    id: 'macbook-air',
-    name: 'MacBook Air',
-    width: 1280,
-    height: 832,
-    category: 'laptop',
-    icon: '💻',
-  },
-  {
-    id: 'macbook-pro-14',
-    name: 'MacBook Pro 14"',
-    width: 1512,
-    height: 982,
-    category: 'laptop',
-    icon: '💻',
-  },
-  {
-    id: 'macbook-pro-16',
-    name: 'MacBook Pro 16"',
-    width: 1728,
-    height: 1117,
-    category: 'laptop',
-    icon: '💻',
-  },
+  // Laptops - one common size
+  { id: 'laptop', name: 'Laptop', width: 1280, height: 800, category: 'laptop', icon: '💻' },
 
-  // Desktops
+  // Desktops - one common size
   {
     id: 'desktop-hd',
     name: 'Desktop HD',
@@ -143,28 +84,11 @@ const DEVICE_PRESETS: DevicePreset[] = [
     category: 'desktop',
     icon: '🖥️',
   },
-  {
-    id: 'desktop-2k',
-    name: 'Desktop 2K',
-    width: 2560,
-    height: 1440,
-    category: 'desktop',
-    icon: '🖥️',
-  },
-  {
-    id: 'desktop-4k',
-    name: 'Desktop 4K',
-    width: 3840,
-    height: 2160,
-    category: 'desktop',
-    icon: '🖥️',
-  },
 ];
 
 const DEFAULT_STATE: ResponsivePreviewState = {
   width: 1280,
   height: 'auto',
-  scale: 1,
   orientation: 'portrait',
   activeBreakpoint: null,
   devicePreset: null,
@@ -198,14 +122,6 @@ export function useResponsivePreview(
     setState((prev) => ({
       ...prev,
       height,
-    }));
-  }, []);
-
-  // Set scale
-  const setScale = useCallback((scale: number) => {
-    setState((prev) => ({
-      ...prev,
-      scale: Math.max(0.25, Math.min(2, scale)),
     }));
   }, []);
 
@@ -295,7 +211,6 @@ export function useResponsivePreview(
     breakpoints,
     setWidth,
     setHeight,
-    setScale,
     toggleOrientation,
     selectBreakpoint,
     selectDevicePreset,

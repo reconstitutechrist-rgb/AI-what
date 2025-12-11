@@ -46,8 +46,6 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
     currentBreakpointName,
     selectDevicePreset,
     toggleOrientation,
-    setScale,
-    setWidth,
     resetToDefault,
   } = useResponsivePreview();
 
@@ -251,8 +249,6 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
           showDeviceFrame={showDeviceFrame}
           onSelectDevice={handleSelectDevice}
           onToggleOrientation={toggleOrientation}
-          onSetScale={setScale}
-          onSetWidth={setWidth}
           onResetToDefault={resetToDefault}
           onToggleConsole={handleToggleConsole}
           onToggleDeviceFrame={handleToggleDeviceFrame}
@@ -269,7 +265,6 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
               onCaptureReady={handleCaptureReady}
               devicePreset={responsiveState.devicePreset}
               orientation={responsiveState.orientation}
-              scale={responsiveState.scale}
               previewWidth={responsiveState.width}
               previewHeight={responsiveState.height}
               showDeviceFrame={showDeviceFrame}
@@ -356,8 +351,6 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
           showDeviceFrame={showDeviceFrame}
           onSelectDevice={handleSelectDevice}
           onToggleOrientation={toggleOrientation}
-          onSetScale={setScale}
-          onSetWidth={setWidth}
           onResetToDefault={resetToDefault}
           onToggleConsole={handleToggleConsole}
           onToggleDeviceFrame={handleToggleDeviceFrame}
@@ -403,7 +396,6 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
           onCaptureReady={handleCaptureReady}
           devicePreset={responsiveState.devicePreset}
           orientation={responsiveState.orientation}
-          scale={responsiveState.scale}
           previewWidth={responsiveState.width}
           previewHeight={responsiveState.height}
           showDeviceFrame={showDeviceFrame}
