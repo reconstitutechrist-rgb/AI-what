@@ -295,16 +295,8 @@ h1, h2, h3, h4, h5, h6 {
               </SandpackLayout>
             </div>
           ) : (
-            /* Desktop/Laptop device - show at actual size with scroll if needed */
-            <div
-              className="bg-white rounded-lg overflow-auto shadow-2xl"
-              style={{
-                width: previewWidth,
-                height: typeof previewHeight === 'number' ? previewHeight : '100%',
-                maxWidth: '100%',
-                maxHeight: '100%',
-              }}
-            >
+            /* Desktop/Laptop device - fill container like responsive mode */
+            <div className="w-full h-full bg-white">
               <SandpackLayout
                 style={{
                   height: '100%',
