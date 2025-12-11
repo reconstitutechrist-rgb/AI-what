@@ -52,6 +52,7 @@ interface BuilderResponse {
   responseType: ResponseType;
   shouldTriggerBuild: boolean;
   shouldTriggerModify: boolean;
+  shouldTriggerDesign: boolean;
   tokensUsed: {
     input: number;
     output: number;
@@ -69,7 +70,12 @@ function analyzeResponseType(
   userMessage: string,
   aiResponse: string,
   hasCurrentApp: boolean
-): { responseType: ResponseType; shouldTriggerBuild: boolean; shouldTriggerModify: boolean } {
+): {
+  responseType: ResponseType;
+  shouldTriggerBuild: boolean;
+  shouldTriggerModify: boolean;
+  shouldTriggerDesign: boolean;
+} {
   const lowerResponse = aiResponse.toLowerCase();
 
   // Check if AI is asking for clarification
@@ -83,6 +89,7 @@ function analyzeResponseType(
       responseType: RESPONSE_TYPES.CLARIFY,
       shouldTriggerBuild: false,
       shouldTriggerModify: false,
+      shouldTriggerDesign: false,
     };
   }
 
@@ -112,6 +119,7 @@ function analyzeResponseType(
       responseType: RESPONSE_TYPES.BUILD,
       shouldTriggerBuild: true,
       shouldTriggerModify: false,
+      shouldTriggerDesign: false,
     };
   }
 
@@ -121,6 +129,34 @@ function analyzeResponseType(
       responseType: RESPONSE_TYPES.MODIFY,
       shouldTriggerBuild: false,
       shouldTriggerModify: true,
+      shouldTriggerDesign: false,
+    };
+  }
+
+  // Check for design/layout modification requests (only if not build or modify)
+  // Design requests are visual changes: colors, fonts, spacing, effects, etc.
+  const designPatterns = [
+    /^(change|update|fix|make|adjust)\s+(the\s+)?(color|font|background|shadow|spacing|border|style|header|footer|sidebar|card|button)/i,
+    /(more|less)\s+(rounded|subtle|dark|light|spacious|compact|bold|soft)/i,
+    /change\s+.*\s+to\s+#[0-9A-Fa-f]{3,6}/i, // "change X to #color"
+    /(glassmorphism|neumorphism|gradient|animation|effect|hover\s+effect)/i,
+    /subtler|bolder|darker|lighter|bigger|smaller/i,
+    /(increase|decrease|reduce)\s+(the\s+)?(font\s+size|padding|margin|spacing|gap|border|shadow|opacity)/i,
+    /make\s+(it|the|this)\s+(look|appear|feel)\s+(more|less)/i,
+    /(add|remove|apply)\s+(a\s+)?(shadow|border|gradient|animation|effect|glow|blur)/i,
+  ];
+  const isDesignRequest =
+    hasCurrentApp &&
+    !isExplicitBuild &&
+    !isModification &&
+    designPatterns.some((p) => p.test(userMessage.trim()));
+
+  if (isDesignRequest) {
+    return {
+      responseType: RESPONSE_TYPES.DESIGN,
+      shouldTriggerBuild: false,
+      shouldTriggerModify: false,
+      shouldTriggerDesign: true,
     };
   }
 
@@ -129,6 +165,7 @@ function analyzeResponseType(
     responseType: RESPONSE_TYPES.QUESTION,
     shouldTriggerBuild: false,
     shouldTriggerModify: false,
+    shouldTriggerDesign: false,
   };
 }
 
@@ -220,17 +257,15 @@ export async function POST(request: Request) {
 
     // Analyze response type
     const hasCurrentApp = !!(currentAppState?.files && currentAppState.files.length > 0);
-    const { responseType, shouldTriggerBuild, shouldTriggerModify } = analyzeResponseType(
-      message,
-      assistantMessage,
-      hasCurrentApp
-    );
+    const { responseType, shouldTriggerBuild, shouldTriggerModify, shouldTriggerDesign } =
+      analyzeResponseType(message, assistantMessage, hasCurrentApp);
 
     const result: BuilderResponse = {
       message: assistantMessage,
       responseType,
       shouldTriggerBuild,
       shouldTriggerModify,
+      shouldTriggerDesign,
       tokensUsed: {
         input: response.usage.input_tokens,
         output: response.usage.output_tokens,

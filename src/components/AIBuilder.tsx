@@ -84,6 +84,8 @@ import {
   parseAppFiles,
   getDeploymentInstructions,
 } from '../utils/exportApp';
+import { captureLayoutPreview } from '../utils/screenshotCapture';
+import type { LayoutDesign, DesignChange } from '../types/layoutDesign';
 
 // Services
 import { createClient } from '@/utils/supabase/client';
@@ -1696,6 +1698,129 @@ export default function AIBuilder() {
         return;
       }
 
+      // Builder Expert: Check if we should trigger design changes (ACT mode)
+      // This handles visual/layout modifications like colors, fonts, spacing, effects
+      if (currentMode === 'ACT' && data?.shouldTriggerDesign && currentComponent) {
+        // Capture preview screenshot for AI vision
+        let previewScreenshot: string | undefined;
+        try {
+          const captureResult = await captureLayoutPreview('sandpack-preview');
+          if (captureResult.success && captureResult.dataUrl) {
+            previewScreenshot = captureResult.dataUrl;
+          }
+        } catch (captureError) {
+          console.warn('Failed to capture preview for design chat:', captureError);
+          // Continue without screenshot - AI can still use layoutDesign JSON
+        }
+
+        const designRequestBody = {
+          message: userInput,
+          conversationHistory: chatMessages.slice(-20).map((m) => ({
+            role: m.role === 'user' ? 'user' : 'assistant',
+            content: m.content,
+          })),
+          previewScreenshot,
+          currentLayoutDesign: appConcept?.layoutDesign || undefined,
+        };
+
+        const designingMessage: ChatMessage = {
+          id: generateId(),
+          role: 'assistant',
+          content: '🎨 **Updating design...**\n\nAnalyzing your layout and applying changes.',
+          timestamp: new Date().toISOString(),
+        };
+        setChatMessages((prev) => [...prev, designingMessage]);
+
+        try {
+          const designResponse = await fetch('/api/builder/design-chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(designRequestBody),
+          });
+
+          const designData = await designResponse.json();
+
+          if (designData?.error) {
+            throw new Error(designData.error);
+          }
+
+          // Update appConcept.layoutDesign with the merged design
+          if (designData?.updatedDesign && Object.keys(designData.updatedDesign).length > 0) {
+            const currentLayoutDesign = (appConcept?.layoutDesign || {}) as Partial<LayoutDesign>;
+            const updatedDesign = designData.updatedDesign as Partial<LayoutDesign>;
+            const mergedDesign = {
+              ...currentLayoutDesign,
+              ...updatedDesign,
+              globalStyles: {
+                ...currentLayoutDesign?.globalStyles,
+                ...updatedDesign?.globalStyles,
+                colors: {
+                  ...currentLayoutDesign?.globalStyles?.colors,
+                  ...updatedDesign?.globalStyles?.colors,
+                },
+                typography: {
+                  ...currentLayoutDesign?.globalStyles?.typography,
+                  ...updatedDesign?.globalStyles?.typography,
+                },
+                spacing: {
+                  ...currentLayoutDesign?.globalStyles?.spacing,
+                  ...updatedDesign?.globalStyles?.spacing,
+                },
+                effects: {
+                  ...currentLayoutDesign?.globalStyles?.effects,
+                  ...updatedDesign?.globalStyles?.effects,
+                },
+              },
+            } as LayoutDesign;
+
+            // Update appConcept with new layoutDesign
+            if (appConcept) {
+              setAppConcept({
+                ...appConcept,
+                layoutDesign: mergedDesign,
+                updatedAt: new Date().toISOString(),
+              });
+            }
+          }
+
+          // Build response message with design changes
+          let responseContent = designData?.message || 'Design updated successfully.';
+
+          // Add design change summary if available
+          if (designData?.designChanges && designData.designChanges.length > 0) {
+            const changesSummary = (designData.designChanges as DesignChange[])
+              .slice(0, 5)
+              .map((c: DesignChange) => `• **${c.property}**: ${c.reason}`)
+              .join('\n');
+            responseContent += `\n\n**Changes applied:**\n${changesSummary}`;
+          }
+
+          // Add tool usage info if tools were used
+          if (designData?.toolsUsed && designData.toolsUsed.length > 0) {
+            responseContent += `\n\n_Tools used: ${designData.toolsUsed.join(', ')}_`;
+          }
+
+          const designResultMessage: ChatMessage = {
+            id: generateId(),
+            role: 'assistant',
+            content: responseContent,
+            timestamp: new Date().toISOString(),
+          };
+          setChatMessages((prev) => [...prev, designResultMessage]);
+        } catch (designError) {
+          console.error('Design chat error:', designError);
+          const errorMessage: ChatMessage = {
+            id: generateId(),
+            role: 'assistant',
+            content: `❌ Failed to update design: ${designError instanceof Error ? designError.message : 'Unknown error'}. Please try again.`,
+            timestamp: new Date().toISOString(),
+          };
+          setChatMessages((prev) => [...prev, errorMessage]);
+        }
+
+        return;
+      }
+
       // Handle diff response
       if (data?.changeType === 'MODIFICATION' && data?.files) {
         setPendingDiff({
@@ -1919,6 +2044,17 @@ export default function AIBuilder() {
                     onViewComponent={() => setActiveTab('preview')}
                     streamingProgress={streaming.progress}
                     isStreamingActive={streaming.isStreaming}
+                    hasLayoutDesign={!!appConcept?.layoutDesign}
+                    onCapturePreview={async () => {
+                      try {
+                        const result = await captureLayoutPreview('sandpack-preview');
+                        if (result.success && result.dataUrl) {
+                          setUploadedImage(result.dataUrl);
+                        }
+                      } catch (err) {
+                        console.error('Failed to capture preview:', err);
+                      }
+                    }}
                   />
                 </div>
               </ResizablePanel>

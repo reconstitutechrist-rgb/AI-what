@@ -173,6 +173,7 @@ export const RESPONSE_TYPES = {
   BUILD: 'build', // Generate new app/component
   MODIFY: 'modify', // Edit existing code
   CLARIFY: 'clarify', // Need more info from user
+  DESIGN: 'design', // Design/layout modification (colors, fonts, spacing, effects)
 } as const;
 
 export type ResponseType = (typeof RESPONSE_TYPES)[keyof typeof RESPONSE_TYPES];

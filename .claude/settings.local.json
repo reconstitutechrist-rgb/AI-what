@@ -60,7 +60,9 @@
       "Bash(git -C:*)",
       "Bash(cd:*)",
       "Bash(wc:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(npx husky init)",
+      "Bash(npx prettier:*)"
     ],
     "deny": [],
     "ask": []

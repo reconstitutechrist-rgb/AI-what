@@ -16,6 +16,7 @@ import {
   LoaderIcon,
   LayersIcon,
   EyeIcon,
+  CameraIcon,
 } from './ui/Icons';
 
 // ============================================================================
@@ -130,6 +131,10 @@ export interface ChatPanelProps {
   // Streaming progress (optional)
   streamingProgress?: StreamingProgressType;
   isStreamingActive?: boolean;
+
+  // Design mode capture (optional)
+  hasLayoutDesign?: boolean;
+  onCapturePreview?: () => Promise<void>;
 }
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({
@@ -149,6 +154,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   onViewComponent,
   streamingProgress,
   isStreamingActive,
+  hasLayoutDesign,
+  onCapturePreview,
 }) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -303,6 +310,18 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               name="chat-panel-image-upload"
             />
           </label>
+
+          {/* Capture Preview Button - shown when layout design exists */}
+          {hasLayoutDesign && onCapturePreview && (
+            <button
+              onClick={onCapturePreview}
+              className="btn-icon"
+              title="Capture current preview for design feedback"
+              disabled={isGenerating}
+            >
+              <CameraIcon size={18} />
+            </button>
+          )}
 
           <input
             type="text"
