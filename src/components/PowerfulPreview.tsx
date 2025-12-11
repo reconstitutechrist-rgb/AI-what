@@ -53,6 +53,8 @@ export default function PowerfulPreview({
   const isMobileOrTablet =
     devicePreset && ['iphone-se', 'iphone-14', 'ipad', 'ipad-pro'].includes(devicePreset);
   const shouldEnableTouchSimulation = enableTouchSimulation && isMobileOrTablet;
+  // Only center the preview for mobile/tablet device frames - everything else fills container
+  const shouldCenterDevice = isMobileOrTablet && showDeviceFrame;
   // Parse JSON with error handling to prevent crashes
   const appData = useMemo((): FullAppData | null => {
     try {
@@ -227,12 +229,12 @@ h1, h2, h3, h4, h5, h6 {
           externalResources: ['https://cdn.tailwindcss.com'],
         }}
       >
-        {/* Main preview area - fill in responsive mode, center for device frames */}
+        {/* Main preview area - center only for mobile/tablet device frames, fill for everything else */}
         <div
           className={`flex-1 flex bg-zinc-950 overflow-auto relative ${
-            !devicePreset || devicePreset === 'none'
-              ? 'p-0' // Responsive mode: no padding, fill container
-              : 'items-center justify-center p-4' // Device mode: center the frame
+            shouldCenterDevice
+              ? 'items-center justify-center p-4' // Mobile/tablet device frames: centered
+              : 'p-0' // Responsive, desktop, laptop: fill container
           }`}
         >
           {/* Full-stack warning badge */}
@@ -242,7 +244,7 @@ h1, h2, h3, h4, h5, h6 {
             </div>
           )}
 
-          {/* Device frame with touch simulation - for mobile/tablet */}
+          {/* Device frame with touch simulation - for mobile/tablet only */}
           {showDeviceFrame && isMobileOrTablet ? (
             <TouchSimulator
               enabled={shouldEnableTouchSimulation}
@@ -273,29 +275,8 @@ h1, h2, h3, h4, h5, h6 {
                 </SandpackLayout>
               </DeviceFrame>
             </TouchSimulator>
-          ) : !devicePreset || devicePreset === 'none' ? (
-            /* Responsive mode - fill entire container */
-            <div className="w-full h-full bg-white">
-              <SandpackLayout
-                style={{
-                  height: '100%',
-                  width: '100%',
-                  border: 'none',
-                  borderRadius: 0,
-                }}
-              >
-                <SandpackPreview
-                  showOpenInCodeSandbox={false}
-                  showRefreshButton={true}
-                  style={{
-                    height: '100%',
-                    width: '100%',
-                  }}
-                />
-              </SandpackLayout>
-            </div>
           ) : (
-            /* Desktop/Laptop device - fill container like responsive mode */
+            /* Responsive, Desktop, Laptop - fill entire container */
             <div className="w-full h-full bg-white">
               <SandpackLayout
                 style={{
