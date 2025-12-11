@@ -277,10 +277,10 @@ h1, h2, h3, h4, h5, h6 {
             </TouchSimulator>
           ) : (
             /* Responsive, Desktop, Laptop - fill entire container */
-            <div className="w-full flex-1 flex flex-col bg-white">
+            <div className="w-full h-full bg-white">
               <SandpackLayout
                 style={{
-                  flex: 1,
+                  height: '100%',
                   width: '100%',
                   border: 'none',
                   borderRadius: 0,
