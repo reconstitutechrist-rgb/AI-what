@@ -29,7 +29,6 @@ interface PowerfulPreviewProps {
   orientation?: 'portrait' | 'landscape';
   previewWidth?: number;
   previewHeight?: number | 'auto';
-  showDeviceFrame?: boolean;
   enableTouchSimulation?: boolean;
   showConsole?: boolean;
   onConsoleToggle?: () => void;
@@ -44,7 +43,6 @@ export default function PowerfulPreview({
   orientation = 'portrait',
   previewWidth = 1280,
   previewHeight = 'auto',
-  showDeviceFrame = true,
   enableTouchSimulation = true,
   showConsole = false,
   onConsoleToggle,

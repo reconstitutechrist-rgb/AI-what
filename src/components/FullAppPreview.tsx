@@ -267,7 +267,6 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
               orientation={responsiveState.orientation}
               previewWidth={responsiveState.width}
               previewHeight={responsiveState.height}
-              showDeviceFrame={showDeviceFrame}
               enableTouchSimulation={true}
               showConsole={showConsole}
               onConsoleToggle={handleToggleConsole}
@@ -398,7 +397,6 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
           orientation={responsiveState.orientation}
           previewWidth={responsiveState.width}
           previewHeight={responsiveState.height}
-          showDeviceFrame={showDeviceFrame}
           enableTouchSimulation={true}
           showConsole={showConsole}
           onConsoleToggle={handleToggleConsole}
