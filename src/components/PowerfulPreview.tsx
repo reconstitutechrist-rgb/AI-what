@@ -287,20 +287,20 @@ h1, h2, h3, h4, h5, h6 {
             <div
               className="bg-white rounded-lg overflow-hidden shadow-2xl transition-all duration-300"
               style={{
-                width: previewWidth * scale,
-                height: previewHeight === 'auto' ? '100%' : (previewHeight as number) * scale,
+                // In responsive mode (no device), fill container; with device selected, use dimensions
+                width: !devicePreset || devicePreset === 'none' ? '100%' : previewWidth * scale,
+                height:
+                  !devicePreset || devicePreset === 'none'
+                    ? '100%'
+                    : previewHeight === 'auto'
+                      ? '100%'
+                      : (previewHeight as number) * scale,
                 maxWidth: '100%',
                 maxHeight: '100%',
               }}
             >
-              <div
-                style={{
-                  width: previewWidth,
-                  height: previewHeight === 'auto' ? '100%' : previewHeight,
-                  transform: `scale(${scale})`,
-                  transformOrigin: 'top left',
-                }}
-              >
+              {!devicePreset || devicePreset === 'none' ? (
+                // True responsive mode - fill container without scaling
                 <SandpackLayout
                   style={{
                     height: '100%',
@@ -315,11 +315,40 @@ h1, h2, h3, h4, h5, h6 {
                     style={{
                       height: '100%',
                       width: '100%',
-                      minHeight: isFullscreen ? '100vh' : '600px',
+                      minHeight: isFullscreen ? '100vh' : '500px',
                     }}
                   />
                 </SandpackLayout>
-              </div>
+              ) : (
+                // Desktop device with specific dimensions and scaling
+                <div
+                  style={{
+                    width: previewWidth,
+                    height: previewHeight === 'auto' ? '100%' : previewHeight,
+                    transform: `scale(${scale})`,
+                    transformOrigin: 'top left',
+                  }}
+                >
+                  <SandpackLayout
+                    style={{
+                      height: '100%',
+                      width: '100%',
+                      border: 'none',
+                      borderRadius: 0,
+                    }}
+                  >
+                    <SandpackPreview
+                      showOpenInCodeSandbox={false}
+                      showRefreshButton={true}
+                      style={{
+                        height: '100%',
+                        width: '100%',
+                        minHeight: isFullscreen ? '100vh' : '600px',
+                      }}
+                    />
+                  </SandpackLayout>
+                </div>
+              )}
             </div>
           )}
         </div>

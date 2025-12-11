@@ -91,7 +91,7 @@ function DeviceSelector({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-56 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-50 overflow-hidden">
+        <div className="absolute top-full left-0 mt-1 w-56 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-[200] overflow-hidden">
           {/* Responsive (no device) option */}
           <button
             onClick={() => {
