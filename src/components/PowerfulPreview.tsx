@@ -241,8 +241,14 @@ h1, h2, h3, h4, h5, h6 {
           externalResources: ['https://cdn.tailwindcss.com'],
         }}
       >
-        {/* Main preview area */}
-        <div className="flex-1 flex items-center justify-center bg-zinc-950 overflow-auto p-4 relative">
+        {/* Main preview area - fill in responsive mode, center for device frames */}
+        <div
+          className={`flex-1 flex bg-zinc-950 overflow-auto relative ${
+            !devicePreset || devicePreset === 'none'
+              ? 'p-0' // Responsive mode: no padding, fill container
+              : 'items-center justify-center p-4' // Device mode: center the frame
+          }`}
+        >
           {/* Full-stack warning badge */}
           {appData.appType === 'FULL_STACK' && (
             <div className="absolute top-4 left-4 bg-yellow-500/90 text-yellow-900 px-4 py-2 rounded-lg text-sm font-medium shadow-lg z-50">
@@ -282,25 +288,46 @@ h1, h2, h3, h4, h5, h6 {
                 </SandpackLayout>
               </DeviceFrame>
             </TouchSimulator>
+          ) : !devicePreset || devicePreset === 'none' ? (
+            /* Responsive mode - fill entire container */
+            <div className="w-full h-full bg-white">
+              <SandpackLayout
+                style={{
+                  height: '100%',
+                  width: '100%',
+                  border: 'none',
+                  borderRadius: 0,
+                }}
+              >
+                <SandpackPreview
+                  showOpenInCodeSandbox={false}
+                  showRefreshButton={true}
+                  style={{
+                    height: '100%',
+                    width: '100%',
+                  }}
+                />
+              </SandpackLayout>
+            </div>
           ) : (
-            /* No device frame - responsive/desktop mode */
+            /* Desktop device with specific dimensions and scaling */
             <div
               className="bg-white rounded-lg overflow-hidden shadow-2xl transition-all duration-300"
               style={{
-                // In responsive mode (no device), fill container; with device selected, use dimensions
-                width: !devicePreset || devicePreset === 'none' ? '100%' : previewWidth * scale,
-                height:
-                  !devicePreset || devicePreset === 'none'
-                    ? '100%'
-                    : previewHeight === 'auto'
-                      ? '100%'
-                      : (previewHeight as number) * scale,
+                width: previewWidth * scale,
+                height: previewHeight === 'auto' ? '100%' : (previewHeight as number) * scale,
                 maxWidth: '100%',
                 maxHeight: '100%',
               }}
             >
-              {!devicePreset || devicePreset === 'none' ? (
-                // True responsive mode - fill container without scaling
+              <div
+                style={{
+                  width: previewWidth,
+                  height: previewHeight === 'auto' ? '100%' : previewHeight,
+                  transform: `scale(${scale})`,
+                  transformOrigin: 'top left',
+                }}
+              >
                 <SandpackLayout
                   style={{
                     height: '100%',
@@ -315,40 +342,11 @@ h1, h2, h3, h4, h5, h6 {
                     style={{
                       height: '100%',
                       width: '100%',
-                      minHeight: isFullscreen ? '100vh' : '500px',
+                      minHeight: isFullscreen ? '100vh' : '600px',
                     }}
                   />
                 </SandpackLayout>
-              ) : (
-                // Desktop device with specific dimensions and scaling
-                <div
-                  style={{
-                    width: previewWidth,
-                    height: previewHeight === 'auto' ? '100%' : previewHeight,
-                    transform: `scale(${scale})`,
-                    transformOrigin: 'top left',
-                  }}
-                >
-                  <SandpackLayout
-                    style={{
-                      height: '100%',
-                      width: '100%',
-                      border: 'none',
-                      borderRadius: 0,
-                    }}
-                  >
-                    <SandpackPreview
-                      showOpenInCodeSandbox={false}
-                      showRefreshButton={true}
-                      style={{
-                        height: '100%',
-                        width: '100%',
-                        minHeight: isFullscreen ? '100vh' : '600px',
-                      }}
-                    />
-                  </SandpackLayout>
-                </div>
-              )}
+              </div>
             </div>
           )}
         </div>

@@ -345,25 +345,27 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
   // Normal (non-fullscreen) content - shows the preview with a fullscreen button
   const normalContent = (
     <div className="h-full w-full flex flex-col relative">
-      {/* Device Toolbar */}
-      <DeviceToolbar
-        state={responsiveState}
-        devicePresets={devicePresets}
-        breakpoints={breakpoints}
-        currentBreakpointName={currentBreakpointName}
-        showConsole={showConsole}
-        showDeviceFrame={showDeviceFrame}
-        onSelectDevice={handleSelectDevice}
-        onToggleOrientation={toggleOrientation}
-        onSetScale={setScale}
-        onSetWidth={setWidth}
-        onResetToDefault={resetToDefault}
-        onToggleConsole={handleToggleConsole}
-        onToggleDeviceFrame={handleToggleDeviceFrame}
-      />
+      {/* Device Toolbar - wrapped with z-index to ensure dropdown appears above preview */}
+      <div className="relative z-[150] flex-shrink-0">
+        <DeviceToolbar
+          state={responsiveState}
+          devicePresets={devicePresets}
+          breakpoints={breakpoints}
+          currentBreakpointName={currentBreakpointName}
+          showConsole={showConsole}
+          showDeviceFrame={showDeviceFrame}
+          onSelectDevice={handleSelectDevice}
+          onToggleOrientation={toggleOrientation}
+          onSetScale={setScale}
+          onSetWidth={setWidth}
+          onResetToDefault={resetToDefault}
+          onToggleConsole={handleToggleConsole}
+          onToggleDeviceFrame={handleToggleDeviceFrame}
+        />
+      </div>
 
       {/* Preview area */}
-      <div className="flex-1 relative min-h-0">
+      <div className="flex-1 relative min-h-0 overflow-hidden">
         {/* Floating action buttons */}
         <div className="absolute top-4 right-4 z-[100] flex items-center gap-2">
           {/* Capture for AI button */}
