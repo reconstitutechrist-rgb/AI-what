@@ -98,6 +98,7 @@ export async function POST(request: Request) {
       const {
         prompt,
         conversationHistory,
+        contextSummary,
         isModification,
         currentAppName,
         image,
@@ -109,6 +110,7 @@ export async function POST(request: Request) {
       } = requestBody as {
         prompt: string;
         conversationHistory?: Array<{ role: string; content: string }>;
+        contextSummary?: string; // Compressed context from older messages
         isModification?: boolean;
         currentAppName?: string;
         image?: string;
@@ -225,6 +227,18 @@ MODIFICATION MODE for "${currentAppName}":
 
       // Build conversation context
       const messages: Anthropic.MessageParam[] = [];
+
+      // Add compressed context summary if available (provides context from older messages)
+      if (contextSummary) {
+        messages.push({
+          role: 'user',
+          content: `[Context from earlier conversation]\n${contextSummary}`,
+        });
+        messages.push({
+          role: 'assistant',
+          content: 'I understand the context. Proceeding with the request.',
+        });
+      }
 
       if (conversationHistory && Array.isArray(conversationHistory)) {
         conversationHistory.forEach((msg: { role: string; content: string }) => {

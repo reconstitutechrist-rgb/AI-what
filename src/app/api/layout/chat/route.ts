@@ -2578,7 +2578,7 @@ export async function POST(request: Request) {
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4096,
       temperature: 0.7,
-      system: systemPrompt,
+      system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
       messages,
       tools: LAYOUT_BUILDER_TOOLS,
     });
@@ -2629,7 +2629,7 @@ export async function POST(request: Request) {
           model: 'claude-sonnet-4-5-20250929',
           max_tokens: 2048,
           temperature: 0.7,
-          system: systemPrompt,
+          system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
           messages: continuationMessages,
           tools: LAYOUT_BUILDER_TOOLS,
         });

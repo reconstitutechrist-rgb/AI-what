@@ -42,6 +42,7 @@ interface CurrentAppState {
 interface BuilderRequest {
   message: string;
   conversationHistory: BuilderMessage[];
+  contextSummary?: string; // Compressed context from older messages
   currentAppState?: CurrentAppState;
   image?: string; // Base64 encoded image
   hasImage?: boolean;
@@ -176,7 +177,7 @@ function analyzeResponseType(
 export async function POST(request: Request) {
   try {
     const body: BuilderRequest = await request.json();
-    const { message, conversationHistory, currentAppState, image, hasImage } = body;
+    const { message, conversationHistory, contextSummary, currentAppState, image, hasImage } = body;
 
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json({ error: 'Anthropic API key not configured' }, { status: 500 });
@@ -188,6 +189,18 @@ export async function POST(request: Request) {
 
     // Build conversation messages
     const messages: Anthropic.MessageParam[] = [];
+
+    // Add compressed context summary if available (provides context from older messages)
+    if (contextSummary) {
+      messages.push({
+        role: 'user',
+        content: `[Context from earlier conversation]\n${contextSummary}`,
+      });
+      messages.push({
+        role: 'assistant',
+        content: 'I understand the context from the earlier conversation. How can I help you now?',
+      });
+    }
 
     // Add conversation history
     for (const msg of conversationHistory) {

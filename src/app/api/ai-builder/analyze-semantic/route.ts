@@ -58,8 +58,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<SemanticA
           content: body.prompt,
         },
       ],
-      system:
-        'You are a code review expert. Analyze code for semantic correctness, requirements coverage, and potential issues. Always respond with valid JSON matching the requested format.',
+      system: [
+        {
+          type: 'text',
+          text: 'You are a code review expert. Analyze code for semantic correctness, requirements coverage, and potential issues. Always respond with valid JSON matching the requested format.',
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
     });
 
     // Extract text content from response

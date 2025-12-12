@@ -55,6 +55,7 @@ import {
 } from '@/hooks';
 import { useDynamicBuildPhases } from '@/hooks/useDynamicBuildPhases';
 import { useStreamingGeneration } from '@/hooks/useStreamingGeneration';
+import { useSmartContext } from '@/hooks/useSmartContext';
 
 // Context Compression
 import {
@@ -330,6 +331,9 @@ export default function AIBuilder() {
     storageService,
   });
 
+  // Smart context management (compression + semantic memory combined)
+  const smartContext = useSmartContext();
+
   // Message sender utilities
   const messageSender = useMessageSender({
     chatMessages,
@@ -408,6 +412,13 @@ export default function AIBuilder() {
         timestamp: new Date().toISOString(),
       };
       setChatMessages((prev) => [...prev, notification]);
+
+      // Store semantic memories from the conversation for cross-session learning
+      // This extracts preferences, decisions, and patterns for future builds
+      // Uses useSmartContext hook which handles initialization and error cases
+      smartContext.storeConversationMemories(chatMessages).catch((err) => {
+        console.warn('[SemanticMemory] Failed to store memories:', err);
+      });
     },
     onError: (error, phase) => {
       const notification: ChatMessage = {
@@ -419,6 +430,96 @@ export default function AIBuilder() {
       setChatMessages((prev) => [...prev, notification]);
     },
   });
+
+  // Helper: Compress conversation history for ACT mode requests
+  // Uses the same compression as PLAN mode to reduce token usage
+  const compressForACTMode = useCallback(
+    (
+      messages: ChatMessage[],
+      maxTokens = 50000
+    ): { history: Array<{ role: 'user' | 'assistant'; content: string }>; summary?: string } => {
+      // Filter out system messages and map to API format
+      const filteredMessages = messages
+        .filter((m) => m.role !== 'system')
+        .map((m) => ({
+          id: m.id,
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+          timestamp: m.timestamp,
+        }));
+
+      // Check if compression is needed
+      if (needsCompression(filteredMessages, maxTokens)) {
+        const compressed = compressConversation(filteredMessages, {
+          maxTokens,
+          preserveLastN: 30, // Keep more recent for ACT mode context
+        });
+
+        return {
+          history: compressed.recentMessages.map((m) => ({
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+          })),
+          summary:
+            compressed.summary.messageCount > 0 ? buildCompressedContext(compressed) : undefined,
+        };
+      }
+
+      // No compression needed - return last 50 messages
+      return {
+        history: filteredMessages.slice(-50).map((m) => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        })),
+      };
+    },
+    []
+  );
+
+  // Helper: Build smart context with compression + semantic memories
+  // This is an async version that uses the useSmartContext hook
+  // Prefixed with _ as it's prepared for future use when callers are refactored to async
+  const _buildSmartContextForRequest = useCallback(
+    async (
+      messages: ChatMessage[],
+      query: string,
+      maxTokens = 50000
+    ): Promise<{
+      history: Array<{ role: 'user' | 'assistant'; content: string }>;
+      contextSummary?: string;
+      memoriesContext?: string;
+    }> => {
+      // If smart context is ready and memory is enabled, use it
+      if (smartContext.isInitialized && smartContext.isMemoryEnabled) {
+        const result = await smartContext.buildSmartContext(messages, query, {
+          maxTokens,
+          preserveLastN: 30,
+          includeMemories: true,
+        });
+
+        return {
+          history: result.compressed.recentMessages.map((m) => ({
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+          })),
+          contextSummary:
+            result.compressed.summary.messageCount > 0
+              ? buildCompressedContext(result.compressed)
+              : undefined,
+          memoriesContext: result.memoriesContext || undefined,
+        };
+      }
+
+      // Fallback to regular compression
+      const compressed = compressForACTMode(messages, maxTokens);
+      return {
+        history: compressed.history,
+        contextSummary: compressed.summary,
+      };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [smartContext.isInitialized, smartContext.isMemoryEnabled, compressForACTMode]
+  );
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -1545,12 +1646,14 @@ export default function AIBuilder() {
         // ACT mode: Use builder expert for intelligent intent detection
         // The builder expert handles questions, builds, and modifications
         endpoint = '/api/builder/chat';
+
+        // Compress conversation history for token efficiency
+        const compressed = compressForACTMode(chatMessages);
+
         fetchBody = JSON.stringify({
           message: userInput,
-          conversationHistory: chatMessages.slice(-50).map((m) => ({
-            role: m.role === 'user' ? 'user' : 'assistant',
-            content: m.content,
-          })),
+          conversationHistory: compressed.history,
+          contextSummary: compressed.summary,
           currentAppState: currentComponent
             ? {
                 name: currentComponent.name,
@@ -1587,9 +1690,13 @@ export default function AIBuilder() {
       // Builder Expert: Check if we should trigger build/modify (ACT mode)
       if (currentMode === 'ACT' && data?.shouldTriggerBuild) {
         // The builder expert decided this needs a full build - call streaming generation
+        // Use compressed conversation for token efficiency
+        const buildCompressed = compressForACTMode(chatMessages);
+
         const buildRequestBody: Record<string, unknown> = {
           prompt: userInput,
-          conversationHistory: chatMessages.slice(-50),
+          conversationHistory: buildCompressed.history,
+          contextSummary: buildCompressed.summary,
           isModification: false,
           image: uploadedImage || undefined,
           hasImage: !!uploadedImage,
@@ -1643,9 +1750,13 @@ export default function AIBuilder() {
 
       // Builder Expert: Check if we should trigger modify (ACT mode)
       if (currentMode === 'ACT' && data?.shouldTriggerModify && currentComponent) {
+        // Use compressed conversation for token efficiency
+        const modifyCompressed = compressForACTMode(chatMessages);
+
         const modifyRequestBody: Record<string, unknown> = {
           prompt: userInput,
-          conversationHistory: chatMessages.slice(-50),
+          conversationHistory: modifyCompressed.history,
+          contextSummary: modifyCompressed.summary,
           isModification: true,
           currentAppName: currentComponent.name,
           currentAppState: JSON.parse(currentComponent.code),
