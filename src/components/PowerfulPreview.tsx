@@ -242,6 +242,7 @@ h1, h2, h3, h4, h5, h6 {
           recompileMode: 'immediate',
           externalResources: ['https://cdn.tailwindcss.com'],
         }}
+        style={{ height: '100%', width: '100%' }}
       >
         {/* Flex wrapper - SandpackProvider adds wrapper divs that break outer flex layout */}
         <div className="flex w-full h-full">
