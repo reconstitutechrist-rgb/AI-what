@@ -205,39 +205,6 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
         </div>
       )}
 
-      {/* Floating buttons when in fullscreen preview mode */}
-      {activeTab === 'preview' && (
-        <div className="fixed top-4 right-4 z-[110] flex items-center gap-2">
-          {/* Capture for AI button */}
-          <button
-            onClick={handleCapture}
-            disabled={isCapturing}
-            className="px-4 py-2 rounded-lg bg-black/80 hover:bg-black text-white backdrop-blur-sm transition-all flex items-center gap-2 shadow-xl border border-white/20 disabled:opacity-50"
-            title="Capture for AI"
-          >
-            {isCapturing ? (
-              <span className="text-lg animate-spin">⟳</span>
-            ) : captureSuccess ? (
-              <span className="text-lg text-green-400">✓</span>
-            ) : (
-              <span className="text-lg">📷</span>
-            )}
-            <span className="text-sm font-medium">
-              {isCapturing ? 'Capturing...' : captureSuccess ? 'Captured!' : 'Capture'}
-            </span>
-          </button>
-          {/* Exit Fullscreen button */}
-          <button
-            onClick={() => setIsFullscreen(false)}
-            className="px-4 py-2 rounded-lg bg-black/80 hover:bg-black text-white backdrop-blur-sm transition-all flex items-center gap-2 shadow-xl border border-white/20"
-            title="Exit Fullscreen"
-          >
-            <span className="text-lg">⤓</span>
-            <span className="text-sm font-medium">Exit Fullscreen</span>
-          </button>
-        </div>
-      )}
-
       {/* Device Toolbar for fullscreen mode */}
       {activeTab === 'preview' && (
         <DeviceToolbar
@@ -252,6 +219,11 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
           onResetToDefault={resetToDefault}
           onToggleConsole={handleToggleConsole}
           onToggleDeviceFrame={handleToggleDeviceFrame}
+          onCapture={handleCapture}
+          isCapturing={isCapturing}
+          captureSuccess={captureSuccess}
+          onFullscreen={() => setIsFullscreen(false)}
+          isFullscreen={true}
         />
       )}
 
@@ -354,42 +326,16 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
           onResetToDefault={resetToDefault}
           onToggleConsole={handleToggleConsole}
           onToggleDeviceFrame={handleToggleDeviceFrame}
+          onCapture={handleCapture}
+          isCapturing={isCapturing}
+          captureSuccess={captureSuccess}
+          onFullscreen={() => setIsFullscreen(true)}
+          isFullscreen={false}
         />
       </div>
 
       {/* Preview area */}
       <div className="flex-1 relative min-h-0 overflow-hidden">
-        {/* Floating action buttons */}
-        <div className="absolute top-4 right-4 z-[100] flex items-center gap-2">
-          {/* Capture for AI button */}
-          <button
-            onClick={handleCapture}
-            disabled={isCapturing}
-            className="px-4 py-2 rounded-lg bg-black/80 hover:bg-black text-white backdrop-blur-sm transition-all flex items-center gap-2 shadow-xl border border-white/20 disabled:opacity-50"
-            title="Capture for AI"
-          >
-            {isCapturing ? (
-              <span className="text-lg animate-spin">⟳</span>
-            ) : captureSuccess ? (
-              <span className="text-lg text-green-400">✓</span>
-            ) : (
-              <span className="text-lg">📷</span>
-            )}
-            <span className="text-sm font-medium">
-              {isCapturing ? 'Capturing...' : captureSuccess ? 'Captured!' : 'Capture'}
-            </span>
-          </button>
-          {/* Fullscreen button */}
-          <button
-            onClick={() => setIsFullscreen(true)}
-            className="px-4 py-2 rounded-lg bg-black/80 hover:bg-black text-white backdrop-blur-sm transition-all flex items-center gap-2 shadow-xl border border-white/20"
-            title="Enter Fullscreen"
-          >
-            <span className="text-lg">⤢</span>
-            <span className="text-sm font-medium">Fullscreen</span>
-          </button>
-        </div>
-
         <PowerfulPreview
           appDataJson={appDataJson}
           isFullscreen={false}

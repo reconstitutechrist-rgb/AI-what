@@ -20,6 +20,12 @@ export interface DeviceToolbarProps {
   onResetToDefault: () => void;
   onToggleConsole: () => void;
   onToggleDeviceFrame: () => void;
+  // Capture and Fullscreen props
+  onCapture?: () => void;
+  isCapturing?: boolean;
+  captureSuccess?: boolean;
+  onFullscreen?: () => void;
+  isFullscreen?: boolean;
   className?: string;
 }
 
@@ -158,6 +164,11 @@ export function DeviceToolbar({
   onResetToDefault,
   onToggleConsole,
   onToggleDeviceFrame,
+  onCapture,
+  isCapturing = false,
+  captureSuccess = false,
+  onFullscreen,
+  isFullscreen = false,
   className = '',
 }: DeviceToolbarProps) {
   const { width, height, orientation, devicePreset } = state;
@@ -213,6 +224,40 @@ export function DeviceToolbar({
 
         {/* Breakpoint badge */}
         <BreakpointBadge breakpoint={currentBreakpointName} />
+      </div>
+
+      {/* Center: Capture and Fullscreen buttons */}
+      <div className="flex items-center gap-2">
+        {/* Capture for AI button */}
+        {onCapture && (
+          <button
+            onClick={onCapture}
+            disabled={isCapturing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 disabled:opacity-50"
+            title="Capture for AI"
+          >
+            {isCapturing ? (
+              <span className="animate-spin">⟳</span>
+            ) : captureSuccess ? (
+              <span className="text-green-400">✓</span>
+            ) : (
+              <span>📷</span>
+            )}
+            <span>{isCapturing ? 'Capturing...' : captureSuccess ? 'Captured!' : 'Capture'}</span>
+          </button>
+        )}
+
+        {/* Fullscreen button */}
+        {onFullscreen && (
+          <button
+            onClick={onFullscreen}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
+            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+          >
+            <span>{isFullscreen ? '⤓' : '⤢'}</span>
+            <span>{isFullscreen ? 'Exit' : 'Fullscreen'}</span>
+          </button>
+        )}
       </div>
 
       {/* Right side: Toggle buttons */}

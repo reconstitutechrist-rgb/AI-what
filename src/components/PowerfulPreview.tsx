@@ -256,6 +256,7 @@ h1, h2, h3, h4, h5, h6 {
             )}
 
             {/* All devices render through DeviceFrame when enabled */}
+            {/* Key forces remount on device change to prevent white screen issues */}
             <TouchSimulator
               enabled={shouldEnableTouchSimulation}
               iframeSelector=".sp-preview-iframe"
@@ -268,6 +269,7 @@ h1, h2, h3, h4, h5, h6 {
                   height={previewHeight === 'auto' ? 800 : previewHeight}
                 >
                   <SandpackLayout
+                    key={`${devicePreset}-${orientation}-${previewWidth}`}
                     style={{
                       height: '100%',
                       width: '100%',
@@ -287,6 +289,7 @@ h1, h2, h3, h4, h5, h6 {
                 </DeviceFrame>
               ) : (
                 <SandpackLayout
+                  key={`no-frame-${previewWidth}-${previewHeight}`}
                   style={{
                     height: previewHeight === 'auto' ? 800 : previewHeight,
                     width: previewWidth,
