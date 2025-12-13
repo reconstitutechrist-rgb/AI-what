@@ -134,11 +134,11 @@
   },
   "techStack": {
     "frontend": [
-      "Next.js 15.5",
-      "React 19",
-      "TypeScript 5.2",
-      "Tailwind CSS",
-      "Zustand 4.5"
+      "Next.js 15.5.7",
+      "React 19.2.1",
+      "TypeScript 5.2.2",
+      "Tailwind CSS 3.3.5",
+      "Zustand 4.5.7"
     ],
     "backend": [
       "Next.js API Routes",
