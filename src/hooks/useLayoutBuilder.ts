@@ -20,6 +20,7 @@ import type {
   DesignChange,
   MessageError,
   DetectedAnimation,
+  LayoutWorkflowState,
 } from '@/types/layoutDesign';
 import type { UIPreferences, AppConcept } from '@/types/appConcept';
 import type { ChatMessage } from '@/types/aiBuilderTypes';
@@ -77,6 +78,8 @@ export interface UseLayoutBuilderOptions {
   onBackgroundsGenerated?: (backgrounds: GeneratedBackground[]) => void;
   /** Callback when tools are used by the AI */
   onToolsUsed?: (toolNames: string[]) => void;
+  /** Enable automatic design analysis after screenshot capture */
+  autoAnalyze?: boolean;
 }
 
 interface UseLayoutBuilderReturn {
@@ -402,6 +405,7 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
   const [referenceImages, setReferenceImages] = useState<string[]>([]);
   const [lastCapture, setLastCapture] = useState<string | null>(null);
   const [suggestedActions, setSuggestedActions] = useState<SuggestedAction[]>([]);
+  const [workflowState, setWorkflowState] = useState<LayoutWorkflowState | undefined>(undefined);
   const [recentChanges, setRecentChanges] = useState<DesignChange[]>([]);
 
   // Draft recovery state
@@ -560,6 +564,7 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
           previewScreenshot: screenshot || undefined,
           referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
           memoriesContext: memoriesContext || undefined, // Include cross-session memories
+          workflowState: workflowState, // Include workflow state for multi-step workflows
         };
 
         const response = await fetch('/api/layout/chat', {
@@ -662,6 +667,11 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
         // Track which tools were used
         if (data.toolsUsed && data.toolsUsed.length > 0 && onToolsUsed) {
           onToolsUsed(data.toolsUsed);
+        }
+
+        // Update workflow state if returned
+        if (data.workflowState) {
+          setWorkflowState(data.workflowState);
         }
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {

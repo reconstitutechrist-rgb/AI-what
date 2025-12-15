@@ -62,7 +62,8 @@
       "Bash(wc:*)",
       "Bash(ls:*)",
       "Bash(npx husky init)",
-      "Bash(npx prettier:*)"
+      "Bash(npx prettier:*)",
+      "Bash(npm run lint:*)"
     ],
     "deny": [],
     "ask": []
