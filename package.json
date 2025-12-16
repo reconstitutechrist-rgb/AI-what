@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "generate:versions": "tsx scripts/generate-versions.ts",
+    "predev": "npm run generate:versions",
+    "prebuild": "npm run generate:versions",
     "dev": "next dev",
     "dev:mock": "set NEXT_PUBLIC_MOCK_AI=true && next dev",
     "dev:debug": "set NEXT_PUBLIC_DEBUG_PANEL=true && set NEXT_PUBLIC_DEBUG_STATE=true && set NEXT_PUBLIC_DEBUG_API=true && next dev",

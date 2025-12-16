@@ -1,7 +1,11 @@
 /**
  * Compressed full-app examples
  * Reduced from ~2400 tokens to ~1059 tokens (56% reduction)
+ *
+ * Uses dynamic version injection from versions.generated.ts
  */
+
+import { VERSIONS } from '@/config/versions';
 
 export const FULLAPP_EXAMPLES_COMPRESSED = `
 EXAMPLES:
@@ -64,7 +68,7 @@ export default function App() {
   );
 }
 ===DEPENDENCIES===
-react: ^18.2.0
+react: ${VERSIONS.react}
 ===SETUP===
 Frontend-only, runs in preview. Uses localStorage.
 ===END===
@@ -131,8 +135,10 @@ model Post {
 ===FILE:.env.example===
 DATABASE_URL="postgresql://user:pass@localhost:5432/db"
 ===DEPENDENCIES===
-next: ^14.0.0
-prisma: ^5.0.0
+next: ${VERSIONS.next}
+react: ${VERSIONS.react}
+typescript: ${VERSIONS.typescript}
+prisma: ${VERSIONS.prisma}
 ===SETUP===
 1. npm install
 2. Copy .env.example to .env

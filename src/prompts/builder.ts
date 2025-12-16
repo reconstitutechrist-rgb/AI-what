@@ -11,6 +11,7 @@ import { FRONTEND_RULES_COMPRESSED } from './full-app/frontend-rules-compressed'
 import { FULLSTACK_RULES_COMPRESSED } from './full-app/fullstack-rules-compressed';
 import { FULLAPP_EXAMPLES_COMPRESSED } from './full-app/examples-compressed';
 import { buildDesignTokenPrompt } from './designTokenPrompt';
+import { VERSION_INSTRUCTIONS } from '@/config/versions';
 import type { LayoutDesign } from '@/types/layoutDesign';
 
 /**
@@ -120,6 +121,8 @@ ${DELIMITER_FORMAT}
 APPLICATION TYPE DETECTION:
 - FRONTEND_ONLY: UI components, calculators, games, dashboards (preview sandbox)
 - FULL_STACK: Database, auth, API routes, file uploads (local dev required)
+
+${VERSION_INSTRUCTIONS}
 
 ${FRONTEND_RULES_COMPRESSED}
 
