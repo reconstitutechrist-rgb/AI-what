@@ -1,6 +1,6 @@
 /**
  * AUTO-GENERATED - DO NOT EDIT
- * Generated: 2025-12-16T21:44:50.317Z
+ * Generated: 2025-12-16T22:06:53.137Z
  * Source: package.json + curated-versions.ts
  *
  * Run 'npm run generate:versions' to regenerate
@@ -10,7 +10,7 @@
 export const PROJECT_VERSIONS = {
   react: '^19.2.1',
   'react-dom': '^19.2.1',
-  next: '^15.5.7',
+  next: '^15.5.9',
   typescript: '^5.2.2',
   tailwindcss: '^3.3.5',
   autoprefixer: '^10.4.16',
@@ -76,7 +76,7 @@ export const VERSIONS = {
   'tailwind-merge': '^2.5.0',
   react: '^19.2.1',
   'react-dom': '^19.2.1',
-  next: '^15.5.7',
+  next: '^15.5.9',
   typescript: '^5.2.2',
   tailwindcss: '^3.3.5',
   autoprefixer: '^10.4.16',
