@@ -13,3 +13,5 @@ export { TemplatesMenu } from './TemplatesMenu';
 export { ToolsMenu } from './ToolsMenu';
 export { DesignSidePanel } from './DesignSidePanel';
 export { MediaUploadZone } from './MediaUploadZone';
+export { LintPanel } from './LintPanel';
+export { ShadcnPreview } from './ShadcnPreview';

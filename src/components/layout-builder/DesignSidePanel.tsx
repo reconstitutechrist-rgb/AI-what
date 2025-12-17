@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { DesignControlPanel } from '@/components/DesignControlPanel';
 import { AnimationPanel } from '@/components/AnimationPanel';
 import { SpecSheetPanel } from '@/components/SpecSheetPanel';
+import { LintPanel } from '@/components/layout-builder/LintPanel';
+import { ShadcnPreview } from '@/components/layout-builder/ShadcnPreview';
+import { lintDesign } from '@/utils/designLinter';
 import type {
   EffectsSettings,
   ColorSettings,
@@ -14,7 +17,7 @@ import type {
   CompleteDesignAnalysis,
 } from '@/types/layoutDesign';
 
-type TabId = 'design' | 'animation' | 'specs';
+type TabId = 'design' | 'animation' | 'specs' | 'lint' | 'shadcn';
 
 interface DesignSidePanelProps {
   isOpen: boolean;
@@ -84,8 +87,18 @@ export function DesignSidePanel({
   const hasAnimations = detectedAnimations.length > 0;
   const hasSpecs = pixelPerfectAnalysis !== null;
 
+  // Run lint check on design
+  const lintResult = useMemo(() => lintDesign(layoutDesign), [layoutDesign]);
+  const lintIssueCount = lintResult.issues.length;
+
   // Available tabs based on current state
-  const tabs: { id: TabId; label: string; available: boolean; badge?: number }[] = [
+  const tabs: {
+    id: TabId;
+    label: string;
+    available: boolean;
+    badge?: number;
+    badgeColor?: string;
+  }[] = [
     { id: 'design', label: 'Design', available: true },
     {
       id: 'animation',
@@ -94,13 +107,38 @@ export function DesignSidePanel({
       badge: detectedAnimations.length,
     },
     { id: 'specs', label: 'Specs', available: hasSpecs },
+    {
+      id: 'lint',
+      label: 'Lint',
+      available: true,
+      badge: lintIssueCount > 0 ? lintIssueCount : undefined,
+      badgeColor:
+        lintResult.summary.errors > 0
+          ? 'bg-red-600'
+          : lintResult.summary.warnings > 0
+            ? 'bg-yellow-600'
+            : 'bg-blue-600',
+    },
+    {
+      id: 'shadcn',
+      label: 'Preview',
+      available: true,
+    },
   ];
 
   const availableTabs = tabs.filter((t) => t.available);
 
   // Reset to design tab if current tab becomes unavailable
   React.useEffect(() => {
-    if (!tabs.find((t) => t.id === activeTab)?.available) {
+    // Check availability directly based on tab id and state values
+    const isCurrentTabAvailable =
+      activeTab === 'design' ||
+      activeTab === 'lint' ||
+      activeTab === 'shadcn' ||
+      (activeTab === 'animation' && hasAnimations) ||
+      (activeTab === 'specs' && hasSpecs);
+
+    if (!isCurrentTabAvailable) {
       setActiveTab('design');
     }
   }, [activeTab, hasAnimations, hasSpecs]);
@@ -187,7 +225,9 @@ export function DesignSidePanel({
               >
                 {tab.label}
                 {tab.badge && tab.badge > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.5 text-[10px] bg-purple-600 text-white rounded-full">
+                  <span
+                    className={`ml-1.5 px-1.5 py-0.5 text-[10px] ${tab.badgeColor || 'bg-purple-600'} text-white rounded-full`}
+                  >
                     {tab.badge}
                   </span>
                 )}
@@ -232,9 +272,9 @@ export function DesignSidePanel({
             />
           )}
 
-          {activeTab === 'specs' && hasSpecs && (
+          {activeTab === 'specs' && hasSpecs && pixelPerfectAnalysis && (
             <SpecSheetPanel
-              analysis={pixelPerfectAnalysis!}
+              analysis={pixelPerfectAnalysis}
               onExport={(format) => {
                 if (
                   format === 'json' ||
@@ -249,6 +289,14 @@ export function DesignSidePanel({
               className="h-full"
             />
           )}
+
+          {activeTab === 'lint' && (
+            <div className="p-4">
+              <LintPanel design={layoutDesign} />
+            </div>
+          )}
+
+          {activeTab === 'shadcn' && <ShadcnPreview design={layoutDesign} />}
         </div>
       </div>
     </>

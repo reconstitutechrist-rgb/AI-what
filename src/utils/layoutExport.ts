@@ -6,9 +6,108 @@
  * - Tailwind CSS configuration
  * - CSS custom properties (variables)
  * - Design tokens (Figma-compatible JSON)
+ * - shadcn/ui theme (globals.css)
  */
 
 import type { LayoutDesign, GridConfig } from '@/types/layoutDesign';
+
+// ============================================================================
+// COLOR CONVERSION UTILITIES
+// ============================================================================
+
+/**
+ * Convert hex color to HSL values (without hsl() wrapper)
+ * Returns format: "210 40% 98%" for shadcn/ui compatibility
+ */
+function hexToHSL(hex: string): string {
+  // Validate input
+  if (!hex || typeof hex !== 'string') return '0 0% 50%';
+
+  // Remove # if present
+  hex = hex.replace(/^#/, '').trim();
+
+  // Handle shorthand hex
+  if (hex.length === 3) {
+    hex = hex
+      .split('')
+      .map((c) => c + c)
+      .join('');
+  }
+
+  // Validate length
+  if (hex.length !== 6) return '0 0% 50%';
+
+  const r = parseInt(hex.substring(0, 2), 16) / 255;
+  const g = parseInt(hex.substring(2, 4), 16) / 255;
+  const b = parseInt(hex.substring(4, 6), 16) / 255;
+
+  // Check for NaN values
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return '0 0% 50%';
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+    switch (max) {
+      case r:
+        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+        break;
+      case g:
+        h = ((b - r) / d + 2) / 6;
+        break;
+      case b:
+        h = ((r - g) / d + 4) / 6;
+        break;
+    }
+  }
+
+  // Format: "H S% L%" (shadcn format without hsl() wrapper)
+  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+}
+
+/**
+ * Generate a foreground color (light or dark) based on background luminance
+ */
+function getForegroundHSL(backgroundHex: string): string {
+  // Validate input
+  if (!backgroundHex || typeof backgroundHex !== 'string') return '210 40% 98%';
+
+  const hex = backgroundHex.replace(/^#/, '').trim();
+  if (hex.length < 6) return '210 40% 98%';
+
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  // Check for NaN values
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return '210 40% 98%';
+
+  // Calculate relative luminance
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+  // Return light text for dark backgrounds, dark text for light backgrounds
+  return luminance > 0.5 ? '222.2 84% 4.9%' : '210 40% 98%';
+}
+
+/**
+ * Adjust HSL lightness for generating variants
+ */
+function adjustLightness(hex: string, amount: number): string {
+  const hsl = hexToHSL(hex);
+  const parts = hsl.split(' ');
+  const h = parts[0];
+  const s = parts[1];
+  const l = parseInt(parts[2]);
+
+  const newL = Math.max(0, Math.min(100, l + amount));
+  return `${h} ${s} ${newL}%`;
+}
 
 // ============================================================================
 // CSS VARIABLES EXPORT
@@ -121,6 +220,133 @@ export function exportToCSSVariables(design: LayoutDesign): string {
   ];
 
   return lines.join('\n');
+}
+
+// ============================================================================
+// SHADCN/UI THEME EXPORT
+// ============================================================================
+
+/**
+ * Export LayoutDesign to shadcn/ui globals.css format
+ * Generates CSS variables in HSL format compatible with shadcn/ui components
+ */
+export function exportToShadcnTheme(design: LayoutDesign): string {
+  const { globalStyles } = design;
+  const { colors, effects } = globalStyles;
+
+  // Convert hex colors to HSL format
+  const primary = hexToHSL(colors.primary);
+  const primaryForeground = getForegroundHSL(colors.primary);
+  const secondary = hexToHSL(colors.secondary || colors.primary);
+  const secondaryForeground = getForegroundHSL(colors.secondary || colors.primary);
+  const accent = hexToHSL(colors.accent || colors.primary);
+  const accentForeground = getForegroundHSL(colors.accent || colors.primary);
+  const background = hexToHSL(colors.background);
+  const foreground = hexToHSL(colors.text);
+  const card = hexToHSL(colors.surface);
+  const cardForeground = hexToHSL(colors.text);
+  const muted = adjustLightness(colors.background, -5);
+  const mutedForeground = hexToHSL(colors.textMuted);
+  const border = hexToHSL(colors.border);
+  const input = hexToHSL(colors.border);
+  const ring = hexToHSL(colors.primary);
+
+  // Status colors
+  const destructive = hexToHSL(colors.error || '#EF4444');
+  const destructiveForeground = getForegroundHSL(colors.error || '#EF4444');
+
+  // Get border radius value
+  const radiusMap: Record<string, string> = {
+    none: '0',
+    sm: '0.3rem',
+    md: '0.5rem',
+    lg: '0.75rem',
+    xl: '1rem',
+    full: '9999px',
+  };
+  const radius = radiusMap[effects.borderRadius] || '0.5rem';
+
+  // Generate dark mode colors (invert light/dark)
+  const darkBackground = hexToHSL(colors.text);
+  const darkForeground = hexToHSL(colors.background);
+  const darkCard = adjustLightness(colors.text, 5);
+  const darkCardForeground = hexToHSL(colors.background);
+  const darkMuted = adjustLightness(colors.text, 10);
+  const darkMutedForeground = adjustLightness(colors.background, -20);
+  const darkBorder = adjustLightness(colors.text, 15);
+
+  const css = `@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: ${background};
+    --foreground: ${foreground};
+    --card: ${card};
+    --card-foreground: ${cardForeground};
+    --popover: ${card};
+    --popover-foreground: ${cardForeground};
+    --primary: ${primary};
+    --primary-foreground: ${primaryForeground};
+    --secondary: ${secondary};
+    --secondary-foreground: ${secondaryForeground};
+    --muted: ${muted};
+    --muted-foreground: ${mutedForeground};
+    --accent: ${accent};
+    --accent-foreground: ${accentForeground};
+    --destructive: ${destructive};
+    --destructive-foreground: ${destructiveForeground};
+    --border: ${border};
+    --input: ${input};
+    --ring: ${ring};
+    --radius: ${radius};
+    --chart-1: ${hexToHSL(colors.primary)};
+    --chart-2: ${hexToHSL(colors.secondary || colors.primary)};
+    --chart-3: ${hexToHSL(colors.accent || colors.primary)};
+    --chart-4: ${hexToHSL(colors.success || '#22C55E')};
+    --chart-5: ${hexToHSL(colors.warning || '#F59E0B')};
+  }
+
+  .dark {
+    --background: ${darkBackground};
+    --foreground: ${darkForeground};
+    --card: ${darkCard};
+    --card-foreground: ${darkCardForeground};
+    --popover: ${darkCard};
+    --popover-foreground: ${darkCardForeground};
+    --primary: ${primary};
+    --primary-foreground: ${primaryForeground};
+    --secondary: ${darkMuted};
+    --secondary-foreground: ${darkForeground};
+    --muted: ${darkMuted};
+    --muted-foreground: ${darkMutedForeground};
+    --accent: ${darkMuted};
+    --accent-foreground: ${darkForeground};
+    --destructive: ${destructive};
+    --destructive-foreground: ${destructiveForeground};
+    --border: ${darkBorder};
+    --input: ${darkBorder};
+    --ring: ${primary};
+    --chart-1: ${hexToHSL(colors.primary)};
+    --chart-2: ${hexToHSL(colors.secondary || colors.primary)};
+    --chart-3: ${hexToHSL(colors.accent || colors.primary)};
+    --chart-4: ${hexToHSL(colors.success || '#22C55E')};
+    --chart-5: ${hexToHSL(colors.warning || '#F59E0B')};
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+`;
+
+  return css;
 }
 
 // ============================================================================
@@ -550,7 +776,7 @@ export function exportGridConfigToCSS(config: GridConfig): string {
 // ============================================================================
 
 export interface ExportOptions {
-  format: 'css' | 'tailwind' | 'tokens' | 'react' | 'all';
+  format: 'css' | 'tailwind' | 'tokens' | 'react' | 'shadcn' | 'all';
   includeComments?: boolean;
 }
 
@@ -559,6 +785,7 @@ export interface ExportResult {
   tailwind?: string;
   tokens?: object;
   react?: string;
+  shadcn?: string;
 }
 
 /**
@@ -581,6 +808,10 @@ export function exportLayout(design: LayoutDesign, options: ExportOptions): Expo
 
   if (options.format === 'all' || options.format === 'react') {
     result.react = exportToReactComponent(design);
+  }
+
+  if (options.format === 'all' || options.format === 'shadcn') {
+    result.shadcn = exportToShadcnTheme(design);
   }
 
   return result;

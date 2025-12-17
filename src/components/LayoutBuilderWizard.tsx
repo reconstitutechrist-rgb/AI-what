@@ -44,9 +44,12 @@ import {
   exportToTailwindConfig,
   exportToFigmaTokens,
   exportToReactComponent,
+  exportToShadcnTheme,
   downloadExport,
   copyToClipboard,
 } from '@/utils/layoutExport';
+import { importDesignTokens, mergeDesigns } from '@/utils/layoutImport';
+import { generateDesignDocs, downloadDocs } from '@/utils/designSystemDocs';
 import { exportSpecSheet, downloadSpecSheet } from '@/utils/specSheetExport';
 import {
   validateVideoFile,
@@ -831,6 +834,30 @@ export function LayoutBuilderWizard({
     setShowExportMenu(false);
   }, [design, success]);
 
+  // Handle export - shadcn/ui Theme
+  const handleExportShadcn = useCallback(() => {
+    const shadcnTheme = exportToShadcnTheme(design as LayoutDesign);
+    downloadExport(shadcnTheme, 'globals.css', 'text/css');
+    success('shadcn/ui theme exported');
+    setShowExportMenu(false);
+  }, [design, success]);
+
+  // Handle export - Documentation (Markdown)
+  const handleExportDocsMarkdown = useCallback(() => {
+    const docs = generateDesignDocs(design, 'markdown');
+    downloadDocs(docs, `${design.name || 'design-system'}.md`);
+    success('Documentation exported as Markdown');
+    setShowExportMenu(false);
+  }, [design, success]);
+
+  // Handle export - Documentation (HTML)
+  const handleExportDocsHtml = useCallback(() => {
+    const docs = generateDesignDocs(design, 'html');
+    downloadDocs(docs, `${design.name || 'design-system'}.html`);
+    success('Documentation exported as HTML');
+    setShowExportMenu(false);
+  }, [design, success]);
+
   // Handle copy CSS to clipboard
   const handleCopyCSS = useCallback(async () => {
     const css = exportToCSSVariables(design as LayoutDesign);
@@ -849,22 +876,56 @@ export function LayoutBuilderWizard({
       const file = e.target.files?.[0];
       if (!file) return;
 
-      if (!file.name.endsWith('.json')) {
-        error('Please select a JSON file');
+      const fileName = file.name.toLowerCase();
+
+      // Handle full design JSON import (original behavior)
+      if (fileName.endsWith('.json') && !fileName.includes('components')) {
+        const result = await importDesign(file);
+        if (result) {
+          success('Design imported successfully');
+        } else {
+          error('Failed to import design. Please check the file format.');
+        }
         e.target.value = '';
         return;
       }
 
-      const result = await importDesign(file);
-      if (result) {
-        success('Design imported successfully');
-      } else {
-        error('Failed to import design. Please check the file format.');
+      // Handle design token imports (CSS, Tailwind, shadcn)
+      try {
+        const content = await file.text();
+        const importResult = importDesignTokens(content);
+
+        if (importResult.success) {
+          // Merge imported tokens with current design
+          const mergedDesign = mergeDesigns(design, importResult.design);
+          updateDesign(mergedDesign);
+
+          const formatName =
+            importResult.format === 'css'
+              ? 'CSS variables'
+              : importResult.format === 'tailwind'
+                ? 'Tailwind config'
+                : importResult.format === 'shadcn'
+                  ? 'shadcn/ui config'
+                  : 'design tokens';
+
+          success(`Imported ${formatName} successfully`);
+
+          // Show warnings if any
+          if (importResult.warnings.length > 0) {
+            console.info('Import warnings:', importResult.warnings);
+          }
+        } else {
+          error(importResult.warnings[0] || 'Failed to import design tokens');
+        }
+      } catch (err) {
+        error('Failed to read file');
+        console.error('Import error:', err);
       }
 
       e.target.value = '';
     },
-    [importDesign, success, error]
+    [importDesign, design, updateDesign, success, error]
   );
 
   // Handle version restore
@@ -1098,6 +1159,9 @@ export function LayoutBuilderWizard({
             onExportTailwind={handleExportTailwind}
             onExportReact={handleExportReact}
             onExportTokens={handleExportTokens}
+            onExportShadcn={handleExportShadcn}
+            onExportDocsMarkdown={handleExportDocsMarkdown}
+            onExportDocsHtml={handleExportDocsHtml}
             onCopyCSS={handleCopyCSS}
             onImport={() => importInputRef.current?.click()}
             onOpenCodePreview={() => setShowCodePreview(true)}
@@ -1160,11 +1224,11 @@ export function LayoutBuilderWizard({
             Design
           </button>
 
-          {/* Hidden import file input */}
+          {/* Hidden import file input - accepts JSON, CSS, JS/TS configs */}
           <input
             ref={importInputRef}
             type="file"
-            accept=".json"
+            accept=".json,.css,.js,.ts,.mjs,.cjs"
             onChange={handleImportFile}
             className="hidden"
           />
