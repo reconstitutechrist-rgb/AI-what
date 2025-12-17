@@ -70,3 +70,15 @@ export { useTheme } from './useTheme';
 // Element Inspector hook (dev tool)
 export { useElementInspector } from './useElementInspector';
 export type { UseElementInspectorOptions, UseElementInspectorReturn } from './useElementInspector';
+
+// Send message hook (extracted from AIBuilder)
+export { useSendMessage } from './useSendMessage';
+export type { UseSendMessageOptions, UseSendMessageReturn, WizardState } from './useSendMessage';
+
+// Version handlers hook (extracted from AIBuilder)
+export { useVersionHandlers } from './useVersionHandlers';
+export type { UseVersionHandlersOptions, UseVersionHandlersReturn } from './useVersionHandlers';
+
+// App CRUD hook (extracted from AIBuilder)
+export { useAppCrud } from './useAppCrud';
+export type { UseAppCrudOptions, UseAppCrudReturn } from './useAppCrud';
