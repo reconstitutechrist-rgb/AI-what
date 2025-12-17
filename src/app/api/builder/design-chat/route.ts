@@ -28,12 +28,9 @@ import {
 import type { ChatMessage } from '@/types/aiBuilderTypes';
 import { getDalleService, getImageCost } from '@/services/dalleService';
 import { getAnimationPreset } from '@/data/animationPresets';
-import { getAdvancedEffectPreset, type AdvancedEffectPreset } from '@/data/advancedEffectsPresets';
-import { getComponentStatePreset, type ComponentStatePreset } from '@/data/componentStatePresets';
-import {
-  getMicroInteractionPreset,
-  type MicroInteractionPreset,
-} from '@/data/microInteractionPresets';
+import { getAdvancedEffectPreset } from '@/data/advancedEffectsPresets';
+import { getComponentStatePreset } from '@/data/componentStatePresets';
+import { getMicroInteractionPreset } from '@/data/microInteractionPresets';
 
 // External API Service Integrations
 import {
@@ -42,18 +39,30 @@ import {
   type ColormindModel,
 } from '@/services/colormindService';
 import { searchIcons, getIcon, type IconSetId } from '@/services/iconifyService';
-import {
-  searchLottieAnimations,
-  getCategories as getLottieCategories,
-} from '@/services/lottieService';
+import { searchLottieAnimations } from '@/services/lottieService';
 import {
   getGoogleFontsAlternatives,
   getFontPairings,
   generateFontCSS,
-  type FontMatch,
 } from '@/services/fontIdentificationService';
 import { auditAccessibility, checkColorContrast } from '@/services/accessibilityAuditService';
 import { generateComponent, getAvailableTemplates } from '@/services/v0Service';
+
+// AI Enhancement Imports (Phase 5 tools)
+import { analyzeDesign } from '@/utils/designAnalyzer';
+import { critiqueDesign, formatCritiqueReport } from '@/utils/designCritiqueEngine';
+import { generateDesignVariants, type VariationStyle } from '@/utils/variantGenerator';
+import {
+  getWorkflow,
+  getAllWorkflows,
+  createWorkflowState,
+  getWorkflowProgress,
+  formatWorkflowStatus,
+  type WorkflowState,
+} from '@/data/designWorkflows';
+import { generateDesignSystem, type ExportFormat } from '@/services/designSystemGenerator';
+import { analyzeExtractedStyles, formatAnalysisReport } from '@/services/competitorAnalyzer';
+import type { CritiquePrinciple } from '@/data/designCritiqueRules';
 
 // Vercel/Railway serverless function config
 export const maxDuration = 60;
@@ -80,6 +89,16 @@ interface DesignChatRequest {
   selectedElement?: string;
   /** Cross-session memories context from semantic memory (P0-P1 Phase 7b) */
   memoriesContext?: string;
+  /** Workflow state for multi-step design workflows */
+  workflowState?: {
+    workflowId: string;
+    workflowType: string;
+    currentStepIndex: number;
+    completedSteps: string[];
+    skippedSteps: string[];
+    stepNotes: Record<string, string>;
+    startedAt: string;
+  };
 }
 
 interface DesignChatResponse {
@@ -93,6 +112,16 @@ interface DesignChatResponse {
   tokensUsed: {
     input: number;
     output: number;
+  };
+  /** Updated workflow state to persist across requests */
+  workflowState?: {
+    workflowId: string;
+    workflowType: string;
+    currentStepIndex: number;
+    completedSteps: string[];
+    skippedSteps: string[];
+    stepNotes: Record<string, string>;
+    startedAt: string;
   };
 }
 
@@ -396,6 +425,295 @@ const LAYOUT_BUILDER_TOOLS: Anthropic.Tool[] = [
         background: { type: 'string', description: 'Background color as hex' },
       },
       required: ['foreground', 'background'],
+    },
+  },
+  // ============================================================================
+  // MISSING ORIGINAL TOOLS (4)
+  // ============================================================================
+  {
+    name: 'list_elements',
+    description:
+      'List all available design elements that can be targeted for styling, animations, or effects. Returns a structured list of header, navigation, hero, cards, sidebar, footer elements.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        category: {
+          type: 'string',
+          enum: ['all', 'sections', 'interactive', 'content', 'effects'],
+          description: 'Filter by element category',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'get_icon',
+    description: 'Get a specific icon by name from one of the icon libraries.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        iconSet: {
+          type: 'string',
+          enum: ['heroicons', 'lucide', 'material-design', 'tabler', 'phosphor'],
+          description: 'Icon library to use',
+        },
+        iconName: {
+          type: 'string',
+          description: 'Name of the icon to retrieve',
+        },
+        variant: {
+          type: 'string',
+          enum: ['outline', 'solid', 'filled'],
+          description: 'Icon variant/style',
+        },
+      },
+      required: ['iconSet', 'iconName'],
+    },
+  },
+  {
+    name: 'audit_accessibility',
+    description:
+      'Run a full WCAG accessibility audit on the current design. Checks color contrast, touch targets, focus indicators, and more.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        level: {
+          type: 'string',
+          enum: ['A', 'AA', 'AAA'],
+          description: 'WCAG conformance level to check against (default: AA)',
+        },
+        includeRecommendations: {
+          type: 'boolean',
+          description: 'Include fix recommendations (default: true)',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'generate_ui_component',
+    description:
+      'Generate a UI component using v0.dev style generation. Creates React/Tailwind components from descriptions.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        description: {
+          type: 'string',
+          description: 'Natural language description of the component to generate',
+        },
+        componentType: {
+          type: 'string',
+          enum: ['button', 'card', 'form', 'modal', 'navigation', 'table', 'custom'],
+          description: 'Type of component to generate',
+        },
+        styling: {
+          type: 'string',
+          enum: ['tailwind', 'css-modules', 'styled-components'],
+          description: 'Styling approach (default: tailwind)',
+        },
+      },
+      required: ['description'],
+    },
+  },
+  // ============================================================================
+  // NEW AI ENHANCEMENT TOOLS (8)
+  // ============================================================================
+  {
+    name: 'analyze_design_proactively',
+    description:
+      'Proactively analyze the current design for issues, inconsistencies, and opportunities. Returns a scored assessment with actionable suggestions.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        analysisDepth: {
+          type: 'string',
+          enum: ['quick', 'standard', 'thorough'],
+          description: 'How deep to analyze (default: standard)',
+        },
+        focusAreas: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: [
+              'color',
+              'typography',
+              'spacing',
+              'hierarchy',
+              'consistency',
+              'accessibility',
+              'contrast',
+            ],
+          },
+          description: 'Specific areas to focus analysis on',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'critique_design',
+    description:
+      'Provide honest, constructive criticism of the design based on established design principles. Returns severity-ranked issues with actionable fixes.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        focusAreas: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: [
+              'visual-hierarchy',
+              'color-theory',
+              'typography',
+              'spacing-rhythm',
+              'consistency',
+              'accessibility',
+              'usability',
+              'modern-trends',
+            ],
+          },
+          description: 'Design principles to evaluate',
+        },
+        severityThreshold: {
+          type: 'string',
+          enum: ['all', 'major-only', 'critical-only'],
+          description: 'Minimum severity to report (default: all)',
+        },
+        includeStrengths: {
+          type: 'boolean',
+          description: 'Include what the design does well (default: true)',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'generate_design_variants',
+    description:
+      'Generate multiple design variations for A/B comparison. Each variant includes trade-offs, pros/cons, and best-use scenarios.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        variationStyle: {
+          type: 'string',
+          enum: ['subtle', 'moderate', 'dramatic'],
+          description: 'How different the variants should be from current design',
+        },
+        count: {
+          type: 'number',
+          description: 'Number of variants to generate (1-5, default: 3)',
+        },
+        focusOn: {
+          type: 'string',
+          enum: ['colors', 'typography', 'spacing', 'overall'],
+          description: 'What aspect to vary (default: overall)',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'start_design_workflow',
+    description:
+      'Start a guided multi-step design workflow for a specific design goal. Workflows include landing-page, dashboard, e-commerce, portfolio, blog, and saas-app.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        workflowType: {
+          type: 'string',
+          enum: ['landing-page', 'dashboard', 'e-commerce', 'portfolio', 'blog', 'saas-app'],
+          description: 'Type of design workflow to start',
+        },
+      },
+      required: ['workflowType'],
+    },
+  },
+  {
+    name: 'advance_workflow',
+    description:
+      'Move to the next step in the current design workflow, mark the current step as complete, skip a step, or go back.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['next', 'previous', 'skip', 'complete-step', 'abandon'],
+          description: 'Workflow navigation action',
+        },
+        stepNotes: {
+          type: 'string',
+          description: 'Optional notes about the current step completion',
+        },
+      },
+      required: ['action'],
+    },
+  },
+  {
+    name: 'get_workflow_status',
+    description:
+      'Get the current workflow progress, next recommended actions, and what has been completed.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'generate_design_system',
+    description:
+      'Extract all design decisions into a formal design system with tokens, documentation, and export formats.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        outputFormats: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: [
+              'style-dictionary',
+              'figma-tokens',
+              'tailwind-config',
+              'css-variables',
+              'scss-variables',
+              'json',
+            ],
+          },
+          description: 'Export formats to generate',
+        },
+        includeDocumentation: {
+          type: 'boolean',
+          description: 'Generate usage documentation (default: true)',
+        },
+        namespace: {
+          type: 'string',
+          description: 'Token namespace prefix (e.g., "app", "brand")',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'analyze_competitor_website',
+    description:
+      'Capture and analyze a competitor website design, extracting colors, typography, spacing, and patterns. Compares with current design.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        url: {
+          type: 'string',
+          description: 'URL of the website to analyze (e.g., "stripe.com")',
+        },
+        compareWithCurrent: {
+          type: 'boolean',
+          description: 'Compare findings with current design (default: true)',
+        },
+        extractionDepth: {
+          type: 'string',
+          enum: ['colors-only', 'visual-basics', 'full-analysis'],
+          description: 'How much detail to extract',
+        },
+      },
+      required: ['url'],
     },
   },
 ];
@@ -735,6 +1053,974 @@ function executeCheckColorContrast(input: { foreground: string; background: stri
 }
 
 // ============================================================================
+// WORKFLOW STATE MANAGEMENT
+// ============================================================================
+
+// Workflow state type for request/response
+interface DesignChatWorkflowState {
+  workflowId: string;
+  workflowType: string;
+  currentStepIndex: number;
+  completedSteps: string[];
+  skippedSteps: string[];
+  stepNotes: Record<string, string>;
+  startedAt: string;
+}
+
+// Workflow state - initialized from request, updated during processing
+let currentWorkflowState: WorkflowState | null = null;
+
+/**
+ * Initialize workflow state from request
+ */
+function initializeWorkflowState(requestState?: DesignChatWorkflowState): void {
+  if (requestState) {
+    currentWorkflowState = {
+      workflowId: requestState.workflowId,
+      workflowType: requestState.workflowType,
+      currentStepIndex: requestState.currentStepIndex,
+      completedSteps: [...requestState.completedSteps],
+      skippedSteps: [...requestState.skippedSteps],
+      stepNotes: { ...requestState.stepNotes },
+      startedAt: requestState.startedAt,
+    };
+  } else {
+    currentWorkflowState = null;
+  }
+}
+
+/**
+ * Get current workflow state for response
+ */
+function getWorkflowStateForResponse(): DesignChatWorkflowState | undefined {
+  if (!currentWorkflowState) return undefined;
+  return {
+    workflowId: currentWorkflowState.workflowId,
+    workflowType: currentWorkflowState.workflowType,
+    currentStepIndex: currentWorkflowState.currentStepIndex,
+    completedSteps: currentWorkflowState.completedSteps,
+    skippedSteps: currentWorkflowState.skippedSteps,
+    stepNotes: currentWorkflowState.stepNotes,
+    startedAt: currentWorkflowState.startedAt,
+  };
+}
+
+/**
+ * Get letter grade from numeric score
+ */
+function getGradeFromScore(score: number): string {
+  if (score >= 90) return 'A';
+  if (score >= 80) return 'B';
+  if (score >= 70) return 'C';
+  if (score >= 60) return 'D';
+  return 'F';
+}
+
+// ============================================================================
+// ADDITIONAL HANDLER FUNCTIONS (Phase 5 - AI Enhancements)
+// ============================================================================
+
+/**
+ * Execute the list_elements tool
+ */
+function executeListElements(currentDesign: Partial<LayoutDesign>, category?: string): ToolResult {
+  // Build list of available elements based on current design
+  const elements: Array<{ selector: string; name: string; category: string }> = [];
+
+  // Add structure elements
+  if (currentDesign.structure?.hasHeader || currentDesign.components?.header?.visible) {
+    elements.push({ selector: 'header', name: 'Header', category: 'sections' });
+    elements.push({ selector: '.nav-item', name: 'Navigation Items', category: 'interactive' });
+  }
+
+  if (currentDesign.components?.hero?.visible) {
+    elements.push({ selector: '.hero-section', name: 'Hero Section', category: 'sections' });
+    elements.push({ selector: '.hero-title', name: 'Hero Title', category: 'components' });
+    elements.push({ selector: '.hero-subtitle', name: 'Hero Subtitle', category: 'components' });
+    if (currentDesign.components.hero.hasCTA) {
+      elements.push({ selector: '.hero-cta', name: 'Hero CTA Button', category: 'interactive' });
+    }
+  }
+
+  if (currentDesign.structure?.hasSidebar || currentDesign.components?.sidebar?.visible) {
+    elements.push({ selector: '.sidebar', name: 'Sidebar', category: 'sections' });
+  }
+
+  // Add card elements if cards are configured
+  if (currentDesign.components?.cards) {
+    elements.push({ selector: '.card', name: 'Card Component', category: 'components' });
+    elements.push({ selector: '.card-grid', name: 'Card Grid', category: 'sections' });
+  }
+
+  if (currentDesign.structure?.hasFooter || currentDesign.components?.footer?.visible) {
+    elements.push({ selector: 'footer', name: 'Footer', category: 'sections' });
+  }
+
+  // Always include common elements
+  elements.push({ selector: 'body', name: 'Page Background', category: 'sections' });
+  elements.push({ selector: '.main-content', name: 'Main Content Area', category: 'sections' });
+  elements.push({ selector: '.button', name: 'Buttons', category: 'interactive' });
+  elements.push({ selector: '.section', name: 'Content Sections', category: 'sections' });
+
+  // Filter by category if specified
+  const filteredElements =
+    category && category !== 'all' ? elements.filter((el) => el.category === category) : elements;
+
+  return {
+    success: true,
+    data: {
+      elements: filteredElements,
+      totalCount: filteredElements.length,
+      categories: ['all', 'sections', 'interactive', 'components'],
+    },
+  };
+}
+
+/**
+ * Execute the get_icon tool
+ */
+async function executeGetIcon(input: {
+  iconSet: string;
+  iconName: string;
+  variant?: string;
+}): Promise<ToolResult> {
+  try {
+    const { iconSet, iconName, variant } = input;
+
+    // Map iconSet names to Iconify prefixes
+    const prefixMap: Record<string, string> = {
+      heroicons: variant === 'solid' ? 'heroicons-solid' : 'heroicons-outline',
+      lucide: 'lucide',
+      'material-design': 'mdi',
+      tabler: 'tabler',
+      phosphor: variant === 'filled' ? 'ph-fill' : 'ph',
+    };
+
+    const prefix = prefixMap[iconSet] || iconSet;
+    const iconId = `${prefix}:${iconName}`;
+
+    const icon = await getIcon(iconId, { size: 24 });
+
+    if (!icon) {
+      return {
+        success: false,
+        error: `Icon "${iconName}" not found in ${iconSet}. Try searching with search_icons first.`,
+      };
+    }
+
+    return {
+      success: true,
+      data: {
+        id: icon.id,
+        svg: icon.svg,
+        svgDataUri: icon.svgDataUri,
+        react: icon.react,
+        css: icon.css,
+        message: `Retrieved ${iconName} from ${iconSet}`,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get icon',
+    };
+  }
+}
+
+/**
+ * Execute the audit_accessibility tool
+ */
+async function executeAuditAccessibility(
+  currentDesign: Partial<LayoutDesign>,
+  input: {
+    level?: string;
+    includeRecommendations?: boolean;
+  }
+): Promise<ToolResult> {
+  try {
+    const { level = 'AA', includeRecommendations = true } = input;
+
+    // Build a basic HTML representation from the design for auditing
+    const colors = currentDesign.globalStyles?.colors;
+    const html = `
+      <html>
+        <body style="background-color: ${colors?.background || '#ffffff'}; color: ${colors?.text || '#000000'}">
+          <header>
+            <nav><a href="#">Navigation</a></nav>
+          </header>
+          <main>
+            <h1 style="color: ${colors?.primary || '#000000'}">Page Title</h1>
+            <p>Content text</p>
+            <button style="background: ${colors?.primary || '#007bff'}; color: white">Button</button>
+          </main>
+        </body>
+      </html>
+    `;
+
+    const result = await auditAccessibility({
+      html,
+      wcagLevel: level as 'A' | 'AA' | 'AAA',
+    });
+
+    return {
+      success: true,
+      data: {
+        score: result.score,
+        summary: result.summary,
+        violations: result.violations.map((v) => ({
+          id: v.id,
+          description: v.description,
+          impact: v.impact,
+          wcagCriteria: v.wcagCriteria,
+          help: v.help,
+          helpUrl: v.helpUrl,
+          nodeCount: v.nodes.length,
+          fixes: includeRecommendations ? v.nodes.slice(0, 3).map((n) => n.fix) : undefined,
+        })),
+        passes: result.passes,
+        recommendations: includeRecommendations ? result.recommendations : undefined,
+        message:
+          result.violations.length === 0
+            ? `✅ Accessibility audit passed! Score: ${result.score}/100`
+            : `Found ${result.violations.length} accessibility issues. Score: ${result.score}/100`,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to run accessibility audit',
+    };
+  }
+}
+
+/**
+ * Execute the generate_ui_component tool
+ */
+async function executeGenerateUIComponent(input: {
+  description: string;
+  componentType?: string;
+  styling?: string;
+}): Promise<ToolResult> {
+  try {
+    const { description, componentType = 'custom', styling = 'tailwind' } = input;
+
+    const result = await generateComponent({
+      prompt: description,
+      framework: 'react',
+      styling: styling as 'tailwind' | 'css-modules' | 'styled-components',
+      includeTypes: true,
+      darkMode: false,
+      responsive: true,
+    });
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error || 'Failed to generate component',
+      };
+    }
+
+    return {
+      success: true,
+      data: {
+        component: result.component
+          ? {
+              name: result.component.name,
+              code: result.component.code,
+              dependencies: result.component.dependencies,
+              files: result.component.files,
+            }
+          : undefined,
+        usage: result.usage,
+        availableTemplates: getAvailableTemplates(),
+        message: result.component
+          ? `Generated "${result.component.name}" component (${componentType})`
+          : 'Component generation requires v0.dev API access',
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to generate UI component',
+    };
+  }
+}
+
+/**
+ * Execute the analyze_design_proactively tool
+ */
+function executeAnalyzeDesignProactively(
+  currentDesign: Partial<LayoutDesign>,
+  input: {
+    analysisDepth?: string;
+    focusAreas?: string[];
+  }
+): ToolResult {
+  try {
+    const depth = (input.analysisDepth || 'standard') as 'quick' | 'standard' | 'thorough';
+    const focusAreas = input.focusAreas as
+      | (
+          | 'color'
+          | 'typography'
+          | 'spacing'
+          | 'hierarchy'
+          | 'consistency'
+          | 'accessibility'
+          | 'contrast'
+        )[]
+      | undefined;
+
+    const analysis = analyzeDesign(currentDesign, depth, focusAreas);
+
+    // Build summary message
+    const criticalCount = analysis.autoDetectedIssues.filter(
+      (i) => i.severity === 'critical'
+    ).length;
+    const warningCount = analysis.autoDetectedIssues.filter((i) => i.severity === 'warning').length;
+    const infoCount = analysis.autoDetectedIssues.filter((i) => i.severity === 'info').length;
+
+    let gradeEmoji = '🎉';
+    if (analysis.designScore < 60) gradeEmoji = '⚠️';
+    else if (analysis.designScore < 80) gradeEmoji = '👍';
+
+    const message = `${gradeEmoji} Design Score: ${analysis.designScore}/100 (Grade: ${analysis.grade || getGradeFromScore(analysis.designScore)})
+
+Issues Found: ${criticalCount} critical, ${warningCount} warnings, ${infoCount} info
+Top Areas for Improvement: ${Object.entries(analysis.scoreBreakdown)
+      .sort(([, a], [, b]) => a - b)
+      .slice(0, 3)
+      .map(([area, score]) => `${area} (${score}/100)`)
+      .join(', ')}`;
+
+    return {
+      success: true,
+      data: {
+        score: analysis.designScore,
+        grade: analysis.grade || getGradeFromScore(analysis.designScore),
+        scoreBreakdown: analysis.scoreBreakdown,
+        issues: analysis.autoDetectedIssues,
+        opportunities: analysis.opportunities,
+        message,
+        analysisDepth: depth,
+        timestamp: new Date().toISOString(),
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to analyze design',
+    };
+  }
+}
+
+/**
+ * Execute the critique_design tool
+ */
+function executeCritiqueDesign(
+  currentDesign: Partial<LayoutDesign>,
+  input: {
+    focusAreas?: string[];
+    severityThreshold?: string;
+    includeStrengths?: boolean;
+  }
+): ToolResult {
+  try {
+    const critique = critiqueDesign(currentDesign, {
+      focusAreas: input.focusAreas as CritiquePrinciple[] | undefined,
+      severityThreshold: (input.severityThreshold as 'all' | 'major' | 'critical') || 'all',
+      includeStrengths: input.includeStrengths ?? true,
+    });
+
+    // Build formatted message
+    const criticalCount = critique.priorityFixes.filter((f) => f.severity === 'critical').length;
+    const majorCount = critique.priorityFixes.filter((f) => f.severity === 'major').length;
+    const minorCount = critique.priorityFixes.filter((f) => f.severity === 'minor').length;
+
+    let gradeEmoji = '🎉';
+    if (critique.overallScore < 60) gradeEmoji = '😬';
+    else if (critique.overallScore < 70) gradeEmoji = '🤔';
+    else if (critique.overallScore < 80) gradeEmoji = '👍';
+
+    // Format report for AI to use
+    const report = formatCritiqueReport(critique);
+
+    const message = `${gradeEmoji} Design Critique: ${critique.overallScore}/100 (Grade: ${critique.grade})
+
+Issues: ${criticalCount} critical, ${majorCount} major, ${minorCount} minor
+Strengths: ${critique.strengths.length} identified
+
+${critique.summary}`;
+
+    return {
+      success: true,
+      data: {
+        score: critique.overallScore,
+        grade: critique.grade,
+        principleScores: critique.principleScores,
+        priorityFixes: critique.priorityFixes,
+        strengths: critique.strengths,
+        quickFixActions: critique.quickFixActions,
+        report,
+        message,
+        timestamp: new Date().toISOString(),
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to critique design',
+    };
+  }
+}
+
+/**
+ * Execute the generate_design_variants tool
+ */
+function executeGenerateDesignVariants(
+  currentDesign: Partial<LayoutDesign>,
+  input: {
+    variationStyle?: string;
+    count?: number;
+    focusOn?: string;
+  }
+): ToolResult {
+  try {
+    const variants = generateDesignVariants(currentDesign, {
+      targetElement: input.focusOn || 'global',
+      variantCount: input.count || 3,
+      variationStyle: (input.variationStyle as VariationStyle) || 'moderate',
+    });
+
+    // Build formatted message
+    const variantNames = variants.variants.map((v) => v.name).join(', ');
+
+    const message = `Generated ${variants.variants.length} design variants: ${variantNames}
+
+${variants.variants
+  .map(
+    (v, i) => `**${i + 1}. ${v.name}**
+${v.description}
+Best for: ${v.bestFor.join(', ')}`
+  )
+  .join('\n\n')}
+
+${variants.comparisonNotes}`;
+
+    return {
+      success: true,
+      data: {
+        baseDesign: variants.baseDesign,
+        variants: variants.variants.map((v) => ({
+          id: v.id,
+          name: v.name,
+          description: v.description,
+          changes: v.changes,
+          tradeOffs: v.tradeOffs,
+          bestFor: v.bestFor,
+          previewDescription: v.previewDescription,
+        })),
+        comparisonNotes: variants.comparisonNotes,
+        message,
+        timestamp: new Date().toISOString(),
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to generate design variants',
+    };
+  }
+}
+
+/**
+ * Execute the start_design_workflow tool
+ */
+function executeStartDesignWorkflow(input: { workflowType: string }): ToolResult {
+  try {
+    const workflow = getWorkflow(input.workflowType);
+    if (!workflow) {
+      const available = getAllWorkflows()
+        .map((w) => w.id)
+        .join(', ');
+      return {
+        success: false,
+        error: `Unknown workflow type: ${input.workflowType}. Available: ${available}`,
+      };
+    }
+
+    // Create new workflow state
+    currentWorkflowState = createWorkflowState(input.workflowType);
+    if (!currentWorkflowState) {
+      return { success: false, error: 'Failed to create workflow state' };
+    }
+
+    const firstStep = workflow.steps[0];
+
+    const message = `**Starting: ${workflow.name}**
+${workflow.description}
+
+This workflow has ${workflow.steps.length} steps. Let's begin!
+
+---
+
+**Step 1/${workflow.steps.length}: ${firstStep.name}**
+${firstStep.description}
+
+**Suggested Actions:**
+${firstStep.suggestedActions.map((a) => `- ${a}`).join('\n')}
+
+**Tips:**
+${firstStep.tips.map((t) => `💡 ${t}`).join('\n')}
+
+Let me know when you're ready to work on this step, or say "next" to skip ahead.`;
+
+    return {
+      success: true,
+      data: {
+        workflowId: workflow.id,
+        workflowName: workflow.name,
+        totalSteps: workflow.steps.length,
+        currentStep: {
+          index: 0,
+          id: firstStep.id,
+          name: firstStep.name,
+          description: firstStep.description,
+          suggestedActions: firstStep.suggestedActions,
+          tips: firstStep.tips,
+        },
+        state: currentWorkflowState,
+        message,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to start workflow',
+    };
+  }
+}
+
+/**
+ * Execute the advance_workflow tool
+ */
+function executeAdvanceWorkflow(input: { action: string; stepNotes?: string }): ToolResult {
+  try {
+    if (!currentWorkflowState) {
+      return {
+        success: false,
+        error: 'No active workflow. Use start_design_workflow to begin.',
+      };
+    }
+
+    const workflow = getWorkflow(currentWorkflowState.workflowId);
+    if (!workflow) {
+      return { success: false, error: 'Workflow not found' };
+    }
+
+    const currentStep = workflow.steps[currentWorkflowState.currentStepIndex];
+
+    switch (input.action) {
+      case 'complete-step':
+      case 'next': {
+        // Mark current step as complete
+        if (currentStep && !currentWorkflowState.completedSteps.includes(currentStep.id)) {
+          currentWorkflowState.completedSteps.push(currentStep.id);
+        }
+        if (input.stepNotes && currentStep) {
+          currentWorkflowState.stepNotes[currentStep.id] = input.stepNotes;
+        }
+
+        // Move to next step
+        currentWorkflowState.currentStepIndex++;
+
+        if (currentWorkflowState.currentStepIndex >= workflow.steps.length) {
+          // Workflow complete
+          const message = `🎉 **Workflow Complete: ${workflow.name}**
+
+You've completed all ${workflow.steps.length} steps!
+
+**Completed Steps:**
+${workflow.steps.map((s, i) => `${i + 1}. ${s.name} ✓`).join('\n')}
+
+Your design is ready! Would you like me to:
+- Run a critique to check for any issues
+- Generate variants for comparison
+- Start a new workflow`;
+
+          return {
+            success: true,
+            data: {
+              workflowComplete: true,
+              progress: 100,
+              completedSteps: currentWorkflowState.completedSteps,
+              message,
+            },
+          };
+        }
+
+        const nextStep = workflow.steps[currentWorkflowState.currentStepIndex];
+        const progress = getWorkflowProgress(currentWorkflowState);
+
+        const message = `✓ Step completed! Moving to next step.
+
+---
+
+**Step ${currentWorkflowState.currentStepIndex + 1}/${workflow.steps.length}: ${nextStep.name}** (${progress}% complete)
+${nextStep.description}
+
+**Suggested Actions:**
+${nextStep.suggestedActions.map((a) => `- ${a}`).join('\n')}
+
+**Tips:**
+${nextStep.tips.map((t) => `💡 ${t}`).join('\n')}`;
+
+        return {
+          success: true,
+          data: {
+            progress,
+            currentStep: {
+              index: currentWorkflowState.currentStepIndex,
+              id: nextStep.id,
+              name: nextStep.name,
+              description: nextStep.description,
+              suggestedActions: nextStep.suggestedActions,
+              tips: nextStep.tips,
+            },
+            state: currentWorkflowState,
+            message,
+          },
+        };
+      }
+
+      case 'skip': {
+        if (currentStep) {
+          currentWorkflowState.skippedSteps.push(currentStep.id);
+        }
+        currentWorkflowState.currentStepIndex++;
+
+        if (currentWorkflowState.currentStepIndex >= workflow.steps.length) {
+          return {
+            success: true,
+            data: {
+              workflowComplete: true,
+              progress: 100,
+              message: '🎉 Workflow complete (with skipped steps).',
+            },
+          };
+        }
+
+        const nextStep = workflow.steps[currentWorkflowState.currentStepIndex];
+        return {
+          success: true,
+          data: {
+            skipped: currentStep?.id,
+            progress: getWorkflowProgress(currentWorkflowState),
+            currentStep: { index: currentWorkflowState.currentStepIndex, ...nextStep },
+            message: `Skipped "${currentStep?.name}". Now on: ${nextStep.name}`,
+          },
+        };
+      }
+
+      case 'previous': {
+        if (currentWorkflowState.currentStepIndex > 0) {
+          currentWorkflowState.currentStepIndex--;
+          const prevStep = workflow.steps[currentWorkflowState.currentStepIndex];
+          return {
+            success: true,
+            data: {
+              progress: getWorkflowProgress(currentWorkflowState),
+              currentStep: { index: currentWorkflowState.currentStepIndex, ...prevStep },
+              message: `Going back to: ${prevStep.name}`,
+            },
+          };
+        }
+        return { success: false, error: 'Already at the first step' };
+      }
+
+      case 'abandon': {
+        currentWorkflowState = null;
+        return {
+          success: true,
+          data: {
+            abandoned: true,
+            message: 'Workflow abandoned. You can start a new one anytime.',
+          },
+        };
+      }
+
+      default:
+        return { success: false, error: `Unknown action: ${input.action}` };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to advance workflow',
+    };
+  }
+}
+
+/**
+ * Execute the get_workflow_status tool
+ */
+function executeGetWorkflowStatus(): ToolResult {
+  try {
+    if (!currentWorkflowState) {
+      const workflows = getAllWorkflows();
+      return {
+        success: true,
+        data: {
+          hasActiveWorkflow: false,
+          availableWorkflows: workflows.map((w) => ({
+            id: w.id,
+            name: w.name,
+            description: w.description,
+            steps: w.steps.length,
+          })),
+          message: `No active workflow. Available workflows:
+${workflows.map((w) => `- **${w.name}** (${w.id}): ${w.description}`).join('\n')}
+
+Say "start [workflow-type] workflow" to begin.`,
+        },
+      };
+    }
+
+    const workflow = getWorkflow(currentWorkflowState.workflowId);
+    if (!workflow) {
+      return { success: false, error: 'Workflow not found' };
+    }
+
+    const currentStep = workflow.steps[currentWorkflowState.currentStepIndex];
+    const progress = getWorkflowProgress(currentWorkflowState);
+    const status = formatWorkflowStatus(currentWorkflowState);
+
+    // Store for use in map callback (avoids non-null assertions)
+    const completedSteps = currentWorkflowState.completedSteps;
+    const skippedSteps = currentWorkflowState.skippedSteps;
+    const currentStepIdx = currentWorkflowState.currentStepIndex;
+
+    const message = `${status}
+
+**Current Step: ${currentStep?.name || 'Complete'}**
+${currentStep?.description || ''}
+
+**Progress:**
+${workflow.steps
+  .map((s, i) => {
+    const isComplete = completedSteps.includes(s.id);
+    const isSkipped = skippedSteps.includes(s.id);
+    const isCurrent = i === currentStepIdx;
+    const icon = isComplete ? '✓' : isSkipped ? '⊘' : isCurrent ? '→' : '○';
+    return `${icon} ${i + 1}. ${s.name}`;
+  })
+  .join('\n')}`;
+
+    return {
+      success: true,
+      data: {
+        hasActiveWorkflow: true,
+        workflowId: currentWorkflowState.workflowId,
+        workflowName: workflow.name,
+        progress,
+        currentStepIndex: currentWorkflowState.currentStepIndex,
+        currentStep: currentStep
+          ? {
+              id: currentStep.id,
+              name: currentStep.name,
+              description: currentStep.description,
+            }
+          : null,
+        completedSteps: currentWorkflowState.completedSteps,
+        skippedSteps: currentWorkflowState.skippedSteps,
+        totalSteps: workflow.steps.length,
+        message,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get workflow status',
+    };
+  }
+}
+
+/**
+ * Execute the generate_design_system tool
+ */
+function executeGenerateDesignSystem(
+  currentDesign: Partial<LayoutDesign>,
+  input: {
+    outputFormats?: string[];
+    includeDocumentation?: boolean;
+    namespace?: string;
+  }
+): ToolResult {
+  try {
+    // Validate output formats
+    const validFormats: ExportFormat[] = [
+      'style-dictionary',
+      'figma-tokens',
+      'tailwind-config',
+      'css-variables',
+      'scss-variables',
+      'json',
+    ];
+
+    const requestedFormats = (input.outputFormats || [
+      'css-variables',
+      'tailwind-config',
+      'json',
+    ]) as ExportFormat[];
+
+    const invalidFormats = requestedFormats.filter((f) => !validFormats.includes(f));
+    if (invalidFormats.length > 0) {
+      return {
+        success: false,
+        error: `Invalid formats: ${invalidFormats.join(', ')}. Valid formats: ${validFormats.join(', ')}`,
+      };
+    }
+
+    // Generate the design system
+    const designSystem = generateDesignSystem(currentDesign, {
+      outputFormats: requestedFormats,
+      includeDocumentation: input.includeDocumentation ?? true,
+      namespace: input.namespace || 'app',
+    });
+
+    // Format a summary message
+    const tokenCounts = {
+      colors: Object.keys(designSystem.tokens.colors).length,
+      typography: Object.keys(designSystem.tokens.typography).length,
+      spacing: Object.keys(designSystem.tokens.spacing).length,
+      borderRadius: Object.keys(designSystem.tokens.borderRadius).length,
+      shadows: Object.keys(designSystem.tokens.shadows).length,
+      animations: Object.keys(designSystem.tokens.animations).length,
+    };
+
+    const totalTokens = Object.values(tokenCounts).reduce((a, b) => a + b, 0);
+
+    const exportSummary = Object.entries(designSystem.exports)
+      .filter(([, value]) => value)
+      .map(([format]) => format)
+      .join(', ');
+
+    const message = `**Design System Generated**
+
+**Tokens Extracted:** ${totalTokens} total
+- Colors: ${tokenCounts.colors}
+- Typography: ${tokenCounts.typography}
+- Spacing: ${tokenCounts.spacing}
+- Border Radius: ${tokenCounts.borderRadius}
+- Shadows: ${tokenCounts.shadows}
+- Animations: ${tokenCounts.animations}
+
+**Export Formats:** ${exportSummary}
+
+${input.includeDocumentation !== false ? '**Documentation:** Included with usage guidelines\n' : ''}
+The design system is ready for export. You can copy the generated code from the exports below.`;
+
+    return {
+      success: true,
+      data: {
+        metadata: designSystem.metadata,
+        tokenCounts,
+        totalTokens,
+        exports: designSystem.exports,
+        documentation: designSystem.documentation,
+        message,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to generate design system',
+    };
+  }
+}
+
+/**
+ * Execute the analyze_competitor_website tool
+ */
+async function executeAnalyzeCompetitorWebsite(
+  currentDesign: Partial<LayoutDesign>,
+  input: {
+    url: string;
+    compareWithCurrent?: boolean;
+    extractionDepth?: string;
+  }
+): Promise<ToolResult> {
+  try {
+    // Validate URL
+    let url = input.url.trim();
+    if (!url) {
+      return { success: false, error: 'URL is required' };
+    }
+
+    // Normalize URL
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url;
+    }
+
+    // Call the capture-website API route
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const captureResponse = await fetch(`${baseUrl}/api/layout/capture-website`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url,
+        extractStyles: input.extractionDepth !== 'colors-only',
+        viewport: { width: 1440, height: 900 },
+      }),
+    });
+
+    if (!captureResponse.ok) {
+      const errorData = await captureResponse.json();
+      return {
+        success: false,
+        error: errorData.error || `Failed to capture website (${captureResponse.status})`,
+      };
+    }
+
+    const captureData = await captureResponse.json();
+
+    if (!captureData.success) {
+      return { success: false, error: captureData.error || 'Failed to capture website' };
+    }
+
+    // Analyze the extracted styles
+    const analysis = analyzeExtractedStyles(
+      url,
+      {
+        styles: captureData.extractedStyles || [],
+        computedStyles: captureData.computedStyles || {},
+      },
+      input.compareWithCurrent !== false ? currentDesign : undefined
+    );
+
+    // Include screenshot if available
+    if (captureData.screenshotBase64) {
+      analysis.screenshotBase64 = captureData.screenshotBase64;
+    }
+
+    // Generate the report
+    const report = formatAnalysisReport(analysis);
+
+    return {
+      success: true,
+      data: {
+        analysis,
+        report,
+        message: `Successfully analyzed ${url}. Here's what I found:`,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to analyze competitor website',
+    };
+  }
+}
+
+// ============================================================================
 // PROCESS TOOL CALLS
 // ============================================================================
 
@@ -859,6 +2145,93 @@ async function processToolCalls(
         result = executeCheckColorContrast({
           foreground: input.foreground as string,
           background: input.background as string,
+        });
+        break;
+
+      // ================================================================
+      // NEW TOOLS (Phase 5 - AI Enhancements)
+      // ================================================================
+
+      case 'list_elements':
+        result = executeListElements(currentDesign, input.category as string | undefined);
+        break;
+
+      case 'get_icon':
+        result = await executeGetIcon({
+          iconSet: input.iconSet as string,
+          iconName: input.iconName as string,
+          variant: input.variant as string | undefined,
+        });
+        break;
+
+      case 'audit_accessibility':
+        result = await executeAuditAccessibility(currentDesign, {
+          level: input.level as string | undefined,
+          includeRecommendations: input.includeRecommendations as boolean | undefined,
+        });
+        break;
+
+      case 'generate_ui_component':
+        result = await executeGenerateUIComponent({
+          description: input.description as string,
+          componentType: input.componentType as string | undefined,
+          styling: input.styling as string | undefined,
+        });
+        break;
+
+      case 'analyze_design_proactively':
+        result = executeAnalyzeDesignProactively(currentDesign, {
+          analysisDepth: input.analysisDepth as string | undefined,
+          focusAreas: input.focusAreas as string[] | undefined,
+        });
+        break;
+
+      case 'critique_design':
+        result = executeCritiqueDesign(currentDesign, {
+          focusAreas: input.focusAreas as string[] | undefined,
+          severityThreshold: input.severityThreshold as string | undefined,
+          includeStrengths: input.includeStrengths as boolean | undefined,
+        });
+        break;
+
+      case 'generate_design_variants':
+        result = executeGenerateDesignVariants(currentDesign, {
+          variationStyle: input.variationStyle as string | undefined,
+          count: input.count as number | undefined,
+          focusOn: input.focusOn as string | undefined,
+        });
+        break;
+
+      case 'start_design_workflow':
+        result = executeStartDesignWorkflow({
+          workflowType: input.workflowType as string,
+        });
+        break;
+
+      case 'advance_workflow':
+        result = executeAdvanceWorkflow({
+          action: input.action as string,
+          stepNotes: input.stepNotes as string | undefined,
+        });
+        break;
+
+      case 'get_workflow_status':
+        result = executeGetWorkflowStatus();
+        break;
+
+      case 'generate_design_system':
+        result = executeGenerateDesignSystem(currentDesign, {
+          outputFormats: input.outputFormats as string[] | undefined,
+          includeDocumentation: input.includeDocumentation as boolean | undefined,
+          namespace: input.namespace as string | undefined,
+        });
+        break;
+
+      case 'analyze_competitor_website':
+        result = await executeAnalyzeCompetitorWebsite(currentDesign, {
+          url: input.url as string,
+          compareWithCurrent: input.compareWithCurrent as boolean | undefined,
+          extractionDepth: input.extractionDepth as string | undefined,
         });
         break;
 
@@ -1052,11 +2425,15 @@ export async function POST(request: Request) {
       currentLayoutDesign,
       selectedElement,
       memoriesContext, // Cross-session memories (P0-P1 Phase 7b)
+      workflowState, // Workflow state for multi-step workflows
     } = body;
 
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json({ error: 'Anthropic API key not configured' }, { status: 500 });
     }
+
+    // Initialize workflow state from request (for serverless persistence)
+    initializeWorkflowState(workflowState);
 
     // Build Claude messages with smart compression (P0-P1 optimization)
     const messages: Anthropic.MessageParam[] = [];
@@ -1232,6 +2609,7 @@ export async function POST(request: Request) {
             input: response.usage.input_tokens + finalResponse.usage.input_tokens,
             output: response.usage.output_tokens + finalResponse.usage.output_tokens,
           },
+          workflowState: getWorkflowStateForResponse(),
         };
 
         return NextResponse.json(result);
@@ -1266,6 +2644,7 @@ export async function POST(request: Request) {
         input: response.usage.input_tokens,
         output: response.usage.output_tokens,
       },
+      workflowState: getWorkflowStateForResponse(),
     };
 
     return NextResponse.json(result);
@@ -1286,10 +2665,13 @@ export async function POST(request: Request) {
 export async function GET() {
   return NextResponse.json({
     name: 'Builder Design Chat',
-    version: '1.0',
-    description: 'AI-powered design editing for the main AI Builder',
+    version: '2.0',
+    description:
+      'AI-powered design editing for the main AI Builder with full parity to Layout Builder',
     tools: LAYOUT_BUILDER_TOOLS.map((t) => t.name),
+    toolCount: LAYOUT_BUILDER_TOOLS.length,
     features: [
+      // Core capabilities
       'Vision capability (sees preview screenshots)',
       'DALL-E background generation',
       'Animation presets',
@@ -1301,6 +2683,17 @@ export async function GET() {
       'Lottie animation search',
       'Font identification',
       'Color contrast checking',
+      // New AI Enhancement features
+      'List targetable design elements',
+      'Get specific icons by name',
+      'Full WCAG accessibility audit',
+      'UI component generation (v0.dev style)',
+      'Proactive design analysis with scoring',
+      'Detailed design critique with recommendations',
+      'A/B design variant generation',
+      'Multi-step guided design workflows',
+      'Design system token export',
+      'Competitor website analysis',
     ],
   });
 }
