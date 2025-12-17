@@ -43,6 +43,8 @@ export interface UseDynamicBuildPhasesOptions {
   onPhaseStart?: (phase: DynamicPhase) => void;
   onPhaseComplete?: (phase: DynamicPhase, result: PhaseExecutionResult) => void;
   onBuildComplete?: (plan: DynamicPhasePlan) => void;
+  onBuildFailed?: (error: Error, phase?: DynamicPhase) => void;
+  onPlanInitialized?: (plan: DynamicPhasePlan) => void;
   onError?: (error: Error, phase?: DynamicPhase) => void;
 }
 
@@ -102,7 +104,14 @@ export interface UseDynamicBuildPhasesReturn {
 export function useDynamicBuildPhases(
   options: UseDynamicBuildPhasesOptions = {}
 ): UseDynamicBuildPhasesReturn {
-  const { onPhaseStart, onPhaseComplete, onBuildComplete, onError } = options;
+  const {
+    onPhaseStart,
+    onPhaseComplete,
+    onBuildComplete,
+    onBuildFailed,
+    onPlanInitialized,
+    onError,
+  } = options;
 
   // Track mounted state
   const mountedRef = useRef(true);
@@ -175,16 +184,22 @@ export function useDynamicBuildPhases(
   /**
    * Initialize with a new plan
    */
-  const initializePlan = useCallback((newPlan: DynamicPhasePlan) => {
-    if (!mountedRef.current) return;
+  const initializePlan = useCallback(
+    (newPlan: DynamicPhasePlan) => {
+      if (!mountedRef.current) return;
 
-    const newManager = new PhaseExecutionManager(newPlan);
-    setManager(newManager);
-    setPlan(newPlan);
-    setIsBuilding(false);
-    setIsPaused(false);
-    setAccumulatedCodeState('');
-  }, []);
+      const newManager = new PhaseExecutionManager(newPlan);
+      setManager(newManager);
+      setPlan(newPlan);
+      setIsBuilding(false);
+      setIsPaused(false);
+      setAccumulatedCodeState('');
+
+      // Notify about plan initialization (for documentation capture)
+      onPlanInitialized?.(newPlan);
+    },
+    [onPlanInitialized]
+  );
 
   /**
    * Start executing a specific phase

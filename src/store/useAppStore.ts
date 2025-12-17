@@ -41,6 +41,7 @@ import type { LayoutDesign } from '@/types/layoutDesign';
 import type { PhaseId } from '@/types/buildPhases';
 import type { FileMetadata, StorageStats } from '@/types/storage';
 import type { DeploymentInstructions } from '@/utils/exportApp';
+import type { ProjectDocumentation } from '@/types/projectDocumentation';
 
 // ============================================================================
 // STORE STATE INTERFACE
@@ -219,6 +220,28 @@ interface DataSlice {
 }
 
 /**
+ * Documentation slice state for Project Documentation System
+ */
+type DocumentationPanelTab = 'concept' | 'design' | 'plan' | 'progress';
+
+interface DocumentationSlice {
+  // Current documentation
+  currentDocumentation: ProjectDocumentation | null;
+  // Loading states
+  isLoadingDocumentation: boolean;
+  isSavingDocumentation: boolean;
+  // Panel state
+  showDocumentationPanel: boolean;
+  documentationPanelTab: DocumentationPanelTab;
+  // Actions
+  setCurrentDocumentation: (doc: ProjectDocumentation | null) => void;
+  setIsLoadingDocumentation: (loading: boolean) => void;
+  setIsSavingDocumentation: (saving: boolean) => void;
+  setShowDocumentationPanel: (show: boolean) => void;
+  setDocumentationPanelTab: (tab: DocumentationPanelTab) => void;
+}
+
+/**
  * File storage slice state
  */
 interface FileStorageSlice {
@@ -260,6 +283,7 @@ export interface AppState
     VersionControlSlice,
     UISlice,
     DataSlice,
+    DocumentationSlice,
     FileStorageSlice {}
 
 // ============================================================================
@@ -453,6 +477,21 @@ export const useAppStore = create<AppState>()(
         })),
 
       // ========================================================================
+      // DOCUMENTATION SLICE
+      // ========================================================================
+      currentDocumentation: null,
+      isLoadingDocumentation: false,
+      isSavingDocumentation: false,
+      showDocumentationPanel: false,
+      documentationPanelTab: 'concept',
+
+      setCurrentDocumentation: (doc) => set({ currentDocumentation: doc }),
+      setIsLoadingDocumentation: (loading) => set({ isLoadingDocumentation: loading }),
+      setIsSavingDocumentation: (saving) => set({ isSavingDocumentation: saving }),
+      setShowDocumentationPanel: (show) => set({ showDocumentationPanel: show }),
+      setDocumentationPanelTab: (tab) => set({ documentationPanelTab: tab }),
+
+      // ========================================================================
       // FILE STORAGE SLICE
       // ========================================================================
       contentTab: 'apps',
@@ -605,6 +644,20 @@ export const useFileStorageState = () =>
       storageStats: state.storageStats,
       uploadingFiles: state.uploadingFiles,
       deletingFiles: state.deletingFiles,
+    }))
+  );
+
+/**
+ * Select documentation state
+ */
+export const useDocumentationState = () =>
+  useAppStore(
+    useShallow((state) => ({
+      currentDocumentation: state.currentDocumentation,
+      isLoadingDocumentation: state.isLoadingDocumentation,
+      isSavingDocumentation: state.isSavingDocumentation,
+      showDocumentationPanel: state.showDocumentationPanel,
+      documentationPanelTab: state.documentationPanelTab,
     }))
   );
 

@@ -185,6 +185,76 @@ export interface Database {
         };
         Relationships: [];
       };
+      project_documentation: {
+        Row: {
+          id: string;
+          app_id: string;
+          user_id: string;
+          project_name: string;
+          project_description: string | null;
+          concept_snapshot: Json | null;
+          layout_snapshot: Json | null;
+          plan_snapshot: Json | null;
+          build_status: 'planning' | 'ready' | 'building' | 'completed' | 'failed' | 'paused';
+          build_started_at: string | null;
+          build_completed_at: string | null;
+          phase_executions: Json;
+          stats: Json;
+          notes: string | null;
+          tags: string[] | null;
+          created_at: string;
+          updated_at: string;
+          version: number;
+        };
+        Insert: {
+          id?: string;
+          app_id: string;
+          user_id: string;
+          project_name: string;
+          project_description?: string | null;
+          concept_snapshot?: Json | null;
+          layout_snapshot?: Json | null;
+          plan_snapshot?: Json | null;
+          build_status?: 'planning' | 'ready' | 'building' | 'completed' | 'failed' | 'paused';
+          build_started_at?: string | null;
+          build_completed_at?: string | null;
+          phase_executions?: Json;
+          stats?: Json;
+          notes?: string | null;
+          tags?: string[] | null;
+          created_at?: string;
+          updated_at?: string;
+          version?: number;
+        };
+        Update: {
+          id?: string;
+          app_id?: string;
+          user_id?: string;
+          project_name?: string;
+          project_description?: string | null;
+          concept_snapshot?: Json | null;
+          layout_snapshot?: Json | null;
+          plan_snapshot?: Json | null;
+          build_status?: 'planning' | 'ready' | 'building' | 'completed' | 'failed' | 'paused';
+          build_started_at?: string | null;
+          build_completed_at?: string | null;
+          phase_executions?: Json;
+          stats?: Json;
+          notes?: string | null;
+          tags?: string[] | null;
+          created_at?: string;
+          updated_at?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'project_documentation_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useAppStore, type MainView } from '@/store/useAppStore';
+import { FileIcon } from './ui/Icons';
 
 interface TabConfig {
   id: MainView;
@@ -76,9 +77,13 @@ const tabs: TabConfig[] = [
 export function TabNavigation() {
   const activeView = useAppStore((state) => state.activeView);
   const setActiveView = useAppStore((state) => state.setActiveView);
+  const showDocumentationPanel = useAppStore((state) => state.showDocumentationPanel);
+  const setShowDocumentationPanel = useAppStore((state) => state.setShowDocumentationPanel);
+  const currentDocumentation = useAppStore((state) => state.currentDocumentation);
 
   return (
     <nav className="flex items-center gap-1 px-4 py-2 bg-zinc-900 border-b border-zinc-800">
+      {/* Main navigation tabs */}
       {tabs.map((tab) => {
         const isActive = activeView === tab.id;
         return (
@@ -97,6 +102,26 @@ export function TabNavigation() {
           </button>
         );
       })}
+
+      {/* Spacer to push Project Docs to far right */}
+      <div className="flex-1" />
+
+      {/* Project Documentation button */}
+      <button
+        onClick={() => setShowDocumentationPanel(!showDocumentationPanel)}
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+          showDocumentationPanel
+            ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+            : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+        }`}
+        title="View project documentation"
+      >
+        <FileIcon size={16} />
+        <span>Project Docs</span>
+        {currentDocumentation && (
+          <span className="w-2 h-2 rounded-full bg-green-400" title="Documentation available" />
+        )}
+      </button>
     </nav>
   );
 }

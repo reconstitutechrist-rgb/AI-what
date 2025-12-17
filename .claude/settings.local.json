@@ -63,7 +63,10 @@
       "Bash(ls:*)",
       "Bash(npx husky init)",
       "Bash(npx prettier:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(npm run generate:versions:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npm run typecheck:*)"
     ],
     "deny": [],
     "ask": []

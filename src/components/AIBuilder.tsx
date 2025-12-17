@@ -15,7 +15,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAppStore } from '@/store/useAppStore';
+import { useAppStore, type MainView } from '@/store/useAppStore';
 
 // Extracted components
 import { ChatPanel } from './ChatPanel';
@@ -57,6 +57,10 @@ import {
 import { useDynamicBuildPhases } from '@/hooks/useDynamicBuildPhases';
 import { useStreamingGeneration } from '@/hooks/useStreamingGeneration';
 import { useSmartContext } from '@/hooks/useSmartContext';
+import { useProjectDocumentation } from '@/hooks/useProjectDocumentation';
+
+// Documentation components
+import { ProjectDocumentationPanel } from './documentation';
 
 // Context Compression
 import {
@@ -338,6 +342,12 @@ export default function AIBuilder() {
   // Smart context management (compression + semantic memory combined)
   const smartContext = useSmartContext();
 
+  // Project documentation hook for auto-capture
+  const projectDocumentation = useProjectDocumentation({
+    userId: user?.id || null,
+    appId: currentComponent?.id || null,
+  });
+
   // Message sender utilities
   const messageSender = useMessageSender({
     chatMessages,
@@ -388,6 +398,11 @@ export default function AIBuilder() {
 
   // Dynamic build phases hook (replaces useBuildPhases)
   const dynamicBuildPhases = useDynamicBuildPhases({
+    onPlanInitialized: (plan) => {
+      // Capture plan snapshot to documentation
+      projectDocumentation.capturePlanSnapshot(plan);
+      projectDocumentation.startBuild();
+    },
     onPhaseStart: (phase) => {
       const notification: ChatMessage = {
         id: generateId(),
@@ -396,6 +411,14 @@ export default function AIBuilder() {
         timestamp: new Date().toISOString(),
       };
       setChatMessages((prev) => [...prev, notification]);
+
+      // Record phase start in documentation
+      projectDocumentation.recordPhaseStart(phase.number, phase.name, {
+        domain: phase.domain,
+        features: phase.features,
+        description: phase.description,
+        estimatedTokens: phase.estimatedTokens,
+      });
     },
     onPhaseComplete: (phase, result) => {
       const notification: ChatMessage = {
@@ -407,6 +430,16 @@ export default function AIBuilder() {
         timestamp: new Date().toISOString(),
       };
       setChatMessages((prev) => [...prev, notification]);
+
+      // Record phase completion in documentation
+      projectDocumentation.recordPhaseComplete(phase.number, {
+        success: result.success,
+        generatedCode: result.generatedCode,
+        generatedFiles: result.generatedFiles,
+        implementedFeatures: result.implementedFeatures,
+        errors: result.errors,
+        tokensUsed: result.tokensUsed,
+      });
     },
     onBuildComplete: (plan) => {
       const notification: ChatMessage = {
@@ -417,12 +450,19 @@ export default function AIBuilder() {
       };
       setChatMessages((prev) => [...prev, notification]);
 
+      // Mark build as complete in documentation
+      projectDocumentation.completeBuild();
+
       // Store semantic memories from the conversation for cross-session learning
       // This extracts preferences, decisions, and patterns for future builds
       // Uses useSmartContext hook which handles initialization and error cases
       smartContext.storeConversationMemories(chatMessages).catch((err) => {
         console.warn('[SemanticMemory] Failed to store memories:', err);
       });
+    },
+    onBuildFailed: (error, phase) => {
+      // Record build failure in documentation
+      projectDocumentation.failBuild(`${phase ? `Phase ${phase.number}: ` : ''}${error.message}`);
     },
     onError: (error, phase) => {
       const notification: ChatMessage = {
@@ -772,6 +812,155 @@ export default function AIBuilder() {
       });
     }
   }, [dynamicBuildPhases.plan, dynamicBuildPhases.phases, setNewAppStagePlan]);
+
+  // ============================================================================
+  // AUTO-CAPTURE EFFECTS FOR PROJECT DOCUMENTATION
+  // ============================================================================
+
+  // Auto-create documentation when a new app is created
+  // This effect watches for: currentComponent exists + no documentation + not loading
+  const docCreationAttemptedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    // Skip if no app, no user, or already loading/saving
+    if (
+      !currentComponent?.id ||
+      !user?.id ||
+      projectDocumentation.isLoading ||
+      projectDocumentation.isSaving
+    ) {
+      return;
+    }
+
+    // Skip if documentation already exists for this app
+    if (projectDocumentation.documentation?.appId === currentComponent.id) {
+      return;
+    }
+
+    // Skip if we already attempted to create for this app ID
+    if (docCreationAttemptedRef.current === currentComponent.id) {
+      return;
+    }
+
+    // Mark that we're attempting creation for this app
+    docCreationAttemptedRef.current = currentComponent.id;
+
+    // Create documentation for this app
+    const createDocs = async () => {
+      const doc = await projectDocumentation.getOrCreateDocumentation(
+        currentComponent.name || 'Untitled App'
+      );
+
+      if (doc) {
+        // If we have a pending concept from wizard, capture it
+        if (appConcept && appConcept.name) {
+          await projectDocumentation.captureConceptSnapshot(appConcept, {
+            source: 'wizard',
+          });
+        }
+
+        // If we have a pending plan from wizard, it will be captured
+        // when dynamicBuildPhases.initializePlan is called (via onPlanInitialized callback)
+        // But if plan already exists, capture it now
+        if (dynamicPhasePlan && !projectDocumentation.documentation?.planSnapshot) {
+          await projectDocumentation.capturePlanSnapshot(dynamicPhasePlan);
+        }
+      }
+    };
+
+    createDocs().catch((err) => {
+      console.error('Failed to auto-create documentation:', err);
+    });
+  }, [
+    currentComponent?.id,
+    currentComponent?.name,
+    user?.id,
+    projectDocumentation,
+    appConcept,
+    dynamicPhasePlan,
+  ]);
+
+  // Track previous activeView for layout capture on tab switch
+  const previousActiveViewRef = useRef<MainView>(activeView);
+
+  // Capture layout design when switching away from layout tab
+  useEffect(() => {
+    const previousView = previousActiveViewRef.current;
+    previousActiveViewRef.current = activeView;
+
+    // If we're switching away from layout view and have a layout design, capture it
+    if (
+      previousView === 'layout' &&
+      activeView !== 'layout' &&
+      currentComponent?.id &&
+      projectDocumentation.documentation
+    ) {
+      const currentLayoutDesign = useAppStore.getState().currentLayoutDesign;
+      if (currentLayoutDesign) {
+        // Capture layout snapshot (screenshot capture would be added separately if needed)
+        projectDocumentation.captureLayoutSnapshot(currentLayoutDesign).catch((err) => {
+          console.error('Failed to capture layout snapshot:', err);
+        });
+      }
+    }
+  }, [activeView, currentComponent?.id, projectDocumentation]);
+
+  // Track previous mode for capturing when switching PLAN -> ACT
+  const previousModeForDocRef = useRef<'PLAN' | 'ACT'>(currentMode);
+
+  // Capture builder chat context when switching from PLAN to ACT mode
+  useEffect(() => {
+    const previousMode = previousModeForDocRef.current;
+    previousModeForDocRef.current = currentMode;
+
+    // If switching from PLAN to ACT and have documentation, capture the planning context
+    if (
+      previousMode === 'PLAN' &&
+      currentMode === 'ACT' &&
+      projectDocumentation.documentation &&
+      chatMessages.length > 1
+    ) {
+      projectDocumentation
+        .captureBuilderChatSnapshot(chatMessages, {
+          name: currentComponent?.name,
+          description: wizardState.description,
+        })
+        .catch((err) => {
+          console.error('Failed to capture builder chat snapshot:', err);
+        });
+    }
+  }, [
+    currentMode,
+    chatMessages,
+    currentComponent?.name,
+    wizardState.description,
+    projectDocumentation,
+  ]);
+
+  // Auto-capture builder chat every 15 messages in PLAN mode
+  useEffect(() => {
+    if (
+      currentMode === 'PLAN' &&
+      projectDocumentation.documentation &&
+      chatMessages.length > 1 &&
+      projectDocumentation.shouldCaptureAtMessageCount(chatMessages.length)
+    ) {
+      projectDocumentation
+        .captureBuilderChatSnapshot(chatMessages, {
+          name: currentComponent?.name,
+          description: wizardState.description,
+        })
+        .catch((err) => {
+          console.error('Failed to auto-capture builder chat:', err);
+        });
+    }
+  }, [
+    chatMessages.length,
+    currentMode,
+    currentComponent?.name,
+    wizardState.description,
+    projectDocumentation,
+  ]);
 
   // ============================================================================
   // HANDLERS
@@ -2741,6 +2930,9 @@ export default function AIBuilder() {
             generatedCode={dynamicBuildPhases.accumulatedCode}
           />
         )}
+
+        {/* Project Documentation Panel */}
+        <ProjectDocumentationPanel />
       </div>
     </ToastProvider>
   );
