@@ -102,6 +102,38 @@ export async function POST(request: Request) {
       updatedAt: new Date().toISOString(),
     };
 
+    // Auto-detect memory and state infrastructure needs from features
+    // Only run detection if the flags aren't already explicitly set
+    if (
+      normalizedConcept.technical.stateComplexity === undefined ||
+      normalizedConcept.technical.needsContextPersistence === undefined ||
+      normalizedConcept.technical.needsStateHistory === undefined
+    ) {
+      const detectedMemoryNeeds = DynamicPhaseGenerator.detectMemoryNeeds(
+        normalizedConcept.coreFeatures,
+        normalizedConcept.description
+      );
+
+      const detectedStateComplexity = DynamicPhaseGenerator.inferStateComplexity(
+        normalizedConcept.coreFeatures
+      );
+
+      // Apply detected values only if not already set
+      if (normalizedConcept.technical.stateComplexity === undefined) {
+        normalizedConcept.technical.stateComplexity = detectedStateComplexity;
+      }
+      if (normalizedConcept.technical.needsContextPersistence === undefined) {
+        normalizedConcept.technical.needsContextPersistence =
+          detectedMemoryNeeds.needsContextPersistence;
+      }
+      if (normalizedConcept.technical.needsStateHistory === undefined) {
+        normalizedConcept.technical.needsStateHistory = detectedMemoryNeeds.needsStateHistory;
+      }
+      if (normalizedConcept.technical.needsCaching === undefined) {
+        normalizedConcept.technical.needsCaching = detectedMemoryNeeds.needsCaching;
+      }
+    }
+
     // Generate phase plan
     const generator = new DynamicPhaseGenerator(config);
     const result = generator.generatePhasePlan(normalizedConcept);
