@@ -132,6 +132,19 @@ const PHASE_KEYWORDS: Record<FeatureDomain, string[]> = {
   'ui-role': ['dashboard', 'view', 'role', 'access', 'permission', 'portal'],
   testing: ['test', 'mock', 'fixture', 'assertion', 'coverage'],
   polish: ['animation', 'transition', 'loading', 'error', 'empty state', 'ux', 'feedback'],
+  i18n: [
+    'i18n',
+    'l10n',
+    'internationalization',
+    'localization',
+    'translate',
+    'translation',
+    'language',
+    'multilingual',
+    'multi-language',
+    'locale',
+    'languages',
+  ],
 };
 
 /**
@@ -547,6 +560,26 @@ export class DynamicPhaseGenerator {
       });
     }
 
+    // Internationalization (multi-language support)
+    if (tech.needsI18n) {
+      const languages = tech.i18nLanguages?.join(', ') || 'English, Spanish';
+      implicit.push({
+        originalFeature: {
+          id: 'implicit-i18n',
+          name: 'Internationalization',
+          description: `Multi-language support for: ${languages}`,
+          priority: 'high',
+        },
+        domain: 'i18n',
+        complexity: 'complex',
+        estimatedTokens: 4000,
+        requiresOwnPhase: true,
+        suggestedPhaseName: 'Internationalization Setup',
+        dependencies: [],
+        keywords: ['i18n', 'localization', 'translate', 'language'],
+      });
+    }
+
     return implicit;
   }
 
@@ -891,6 +924,7 @@ export class DynamicPhaseGenerator {
       setup: 'Project Setup',
       database: 'Database',
       auth: 'Authentication',
+      i18n: 'Internationalization',
       'core-entity': 'Core Features',
       feature: 'Features',
       'ui-component': 'UI Components',

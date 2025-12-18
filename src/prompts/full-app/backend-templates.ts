@@ -521,6 +521,144 @@ main()
 `.trim();
 
 /**
+ * Internationalization template using next-intl.
+ * Included when needsI18n: true
+ */
+export const I18N_TEMPLATE = `
+### next-intl Implementation
+
+When internationalization is required, include these files:
+
+===FILE:src/i18n/config.ts===
+export const locales = ['en', 'es', 'fr'] as const;
+export const defaultLocale = 'en' as const;
+export type Locale = (typeof locales)[number];
+
+===FILE:src/i18n/request.ts===
+import { getRequestConfig } from 'next-intl/server';
+import { locales, defaultLocale } from './config';
+
+export default getRequestConfig(async ({ locale }) => {
+  if (!locales.includes(locale as any)) locale = defaultLocale;
+  return {
+    messages: (await import(\`../messages/\${locale}.json\`)).default,
+  };
+});
+
+===FILE:messages/en.json===
+{
+  "common": {
+    "welcome": "Welcome",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Try Again",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search"
+  },
+  "nav": {
+    "home": "Home",
+    "about": "About",
+    "contact": "Contact",
+    "settings": "Settings"
+  },
+  "auth": {
+    "login": "Log In",
+    "logout": "Log Out",
+    "signup": "Sign Up",
+    "email": "Email",
+    "password": "Password"
+  }
+}
+
+===FILE:messages/es.json===
+{
+  "common": {
+    "welcome": "Bienvenido",
+    "loading": "Cargando...",
+    "error": "Algo salió mal",
+    "retry": "Intentar de nuevo",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "search": "Buscar"
+  },
+  "nav": {
+    "home": "Inicio",
+    "about": "Acerca de",
+    "contact": "Contacto",
+    "settings": "Configuración"
+  },
+  "auth": {
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión",
+    "signup": "Registrarse",
+    "email": "Correo electrónico",
+    "password": "Contraseña"
+  }
+}
+
+===FILE:src/components/LanguageSwitcher.tsx===
+'use client';
+import { useLocale } from 'next-intl';
+import { useRouter, usePathname } from 'next/navigation';
+import { locales } from '@/i18n/config';
+
+const languageNames: Record<string, string> = {
+  en: 'English',
+  es: 'Español',
+  fr: 'Français',
+};
+
+export function LanguageSwitcher() {
+  const locale = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const handleChange = (newLocale: string) => {
+    const newPath = pathname.replace(\`/\${locale}\`, \`/\${newLocale}\`);
+    router.push(newPath);
+  };
+
+  return (
+    <select
+      value={locale}
+      onChange={(e) => handleChange(e.target.value)}
+      className="border rounded px-2 py-1 bg-white dark:bg-slate-800"
+      aria-label="Select language"
+    >
+      {locales.map((loc) => (
+        <option key={loc} value={loc}>
+          {languageNames[loc] || loc}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+===FILE:src/i18n/middleware.ts===
+import createMiddleware from 'next-intl/middleware';
+import { locales, defaultLocale } from './config';
+
+export default createMiddleware({
+  locales,
+  defaultLocale,
+});
+
+export const config = {
+  matcher: ['/', '/(en|es|fr)/:path*'],
+};
+
+===DEPENDENCIES===
+next-intl: ^3.0.0
+`.trim();
+
+/**
  * Get backend templates based on technical requirements.
  * Only includes templates for features that are actually needed.
  *
@@ -544,6 +682,10 @@ export function getBackendTemplates(tech: TechnicalRequirements): string {
 
   if (tech.needsDatabase) {
     templates.push(DATABASE_SEED_TEMPLATE);
+  }
+
+  if (tech.needsI18n) {
+    templates.push(I18N_TEMPLATE);
   }
 
   if (templates.length === 0) {
@@ -583,6 +725,12 @@ export function getBackendTemplatesMinimal(tech: TechnicalRequirements): string 
 
   if (tech.needsDatabase) {
     features.push('- Database: Include prisma/seed.ts with sample data');
+  }
+
+  if (tech.needsI18n) {
+    features.push(
+      '- i18n: Use next-intl with locale config, messages JSON files, and LanguageSwitcher component'
+    );
   }
 
   if (features.length === 0) {

@@ -81,6 +81,10 @@ export interface TechnicalRequirements {
   needsContextPersistence?: boolean; // Cross-session memory, conversation history, user preferences
   needsCaching?: boolean; // Performance caching layer, memoization
   needsOfflineSupport?: boolean; // Offline-first, service workers, local sync
+
+  // Internationalization
+  needsI18n?: boolean; // Multi-language support
+  i18nLanguages?: string[]; // e.g., ['en', 'es', 'fr', 'de']
 }
 
 export interface DataModel {

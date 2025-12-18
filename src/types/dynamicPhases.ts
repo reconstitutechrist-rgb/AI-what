@@ -26,6 +26,7 @@ export type FeatureDomain =
   | 'setup' // Project structure, config, dependencies
   | 'database' // Schema, ORM, migrations, seed data
   | 'auth' // Authentication, authorization, sessions
+  | 'i18n' // Internationalization, multi-language support
   | 'core-entity' // Main business objects (products, orders, users)
   | 'feature' // Standard app features
   | 'ui-component' // Reusable UI components
@@ -333,7 +334,7 @@ export const DEFAULT_PHASE_GENERATOR_CONFIG: PhaseGeneratorConfig = {
   minFeaturesPerPhase: 1,
   minPhases: 2,
   maxPhases: 30,
-  alwaysSeparateDomains: ['auth', 'database', 'real-time', 'offline', 'integration'],
+  alwaysSeparateDomains: ['auth', 'database', 'real-time', 'offline', 'integration', 'i18n'],
   complexityMultipliers: {
     simple: 1.0,
     moderate: 1.5,
@@ -562,6 +563,26 @@ export const COMPLEX_FEATURE_PATTERNS: ComplexFeaturePattern[] = [
     requiresOwnPhase: true,
     baseTokenEstimate: 4000,
     suggestedName: 'Admin Panel',
+  },
+  // Internationalization
+  {
+    patterns: [
+      'internationali',
+      'i18n',
+      'l10n',
+      'locali',
+      'multi-language',
+      'multilingual',
+      'translate',
+      'translation',
+      'multiple languages',
+      'language support',
+    ],
+    domain: 'i18n',
+    complexity: 'complex',
+    requiresOwnPhase: true,
+    baseTokenEstimate: 4000,
+    suggestedName: 'Internationalization Setup',
   },
 ];
 
