@@ -36,7 +36,7 @@ export async function GET() {
       success: true,
       integrations: (integrations || []).map((i) => ({
         id: i.id,
-        provider: i.provider,
+        provider: i.provider as 'vercel' | 'netlify',
         accountId: i.account_id,
         accountName: i.account_name,
         connectedAt: i.created_at,

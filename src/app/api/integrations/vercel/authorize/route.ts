@@ -19,6 +19,9 @@ export async function GET() {
     );
   }
 
+  // Get base URL for redirects
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
   // Verify user is authenticated
   const supabase = await createClient();
   const {
@@ -27,7 +30,9 @@ export async function GET() {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    return NextResponse.redirect(new URL('/login?redirect=/api/integrations/vercel/authorize'));
+    return NextResponse.redirect(
+      new URL('/login?redirect=/api/integrations/vercel/authorize', baseUrl)
+    );
   }
 
   // Generate CSRF state token

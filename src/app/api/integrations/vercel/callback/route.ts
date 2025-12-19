@@ -59,16 +59,26 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL('/?error=vercel_oauth_invalid_params', baseUrl));
   }
 
+  // Validate required env vars
+  const clientId = process.env.VERCEL_CLIENT_ID;
+  const clientSecret = process.env.VERCEL_CLIENT_SECRET;
+  const redirectUri = process.env.VERCEL_REDIRECT_URI;
+
+  if (!clientId || !clientSecret || !redirectUri) {
+    console.error('Missing Vercel OAuth configuration');
+    return NextResponse.redirect(new URL('/?error=vercel_not_configured', baseUrl));
+  }
+
   try {
     // Exchange code for tokens
     const tokenResponse = await fetch('https://api.vercel.com/v2/oauth/access_token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
-        client_id: process.env.VERCEL_CLIENT_ID!,
-        client_secret: process.env.VERCEL_CLIENT_SECRET!,
+        client_id: clientId,
+        client_secret: clientSecret,
         code,
-        redirect_uri: process.env.VERCEL_REDIRECT_URI!,
+        redirect_uri: redirectUri,
       }),
     });
 
