@@ -45,6 +45,8 @@ export interface Database {
           code: string;
           metadata: Json | null;
           is_public: boolean;
+          preview_slug: string | null;
+          preview_enabled: boolean;
           version: number;
           created_at: string;
           updated_at: string;
@@ -57,6 +59,8 @@ export interface Database {
           code: string;
           metadata?: Json | null;
           is_public?: boolean;
+          preview_slug?: string | null;
+          preview_enabled?: boolean;
           version?: number;
           created_at?: string;
           updated_at?: string;
@@ -69,6 +73,8 @@ export interface Database {
           code?: string;
           metadata?: Json | null;
           is_public?: boolean;
+          preview_slug?: string | null;
+          preview_enabled?: boolean;
           version?: number;
           created_at?: string;
           updated_at?: string;

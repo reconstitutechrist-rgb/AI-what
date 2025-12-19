@@ -1,10 +1,21 @@
 # User Deployment Features - Implementation Plan
 
+## Implementation Status
+
+| Phase       | Feature                 | Status       |
+| ----------- | ----------------------- | ------------ |
+| **Phase 1** | Instant Preview URLs    | **COMPLETE** |
+| **Phase 2** | One-Click Vercel Deploy | Pending      |
+
+**Last Updated:** 2025-12-18
+
+---
+
 ## Summary
 
 Implement **Phase 1 + Phase 2**:
 
-1. **Phase 1:** Instant Preview URLs - shareable links like `/preview/abc123`
+1. **Phase 1:** Instant Preview URLs - shareable links like `/preview/abc123` **[COMPLETE]**
 2. **Phase 2:** One-Click Deploy to Vercel - OAuth-based deployment
 
 **Scope:** Phase 1 + Phase 2 (Phase 3 mobile deployment deferred)
@@ -13,14 +24,20 @@ Implement **Phase 1 + Phase 2**:
 
 ## What Already Exists
 
-| Component            | Status  | Location                                                      |
-| -------------------- | ------- | ------------------------------------------------------------- |
-| Share button UI      | Ready   | `src/components/ProjectDropdown.tsx` (has `onShare` callback) |
-| Deployment modal     | Ready   | `src/components/modals/DeploymentModal.tsx`                   |
-| Export functionality | Ready   | `src/utils/exportApp.ts`                                      |
-| Database sync        | Ready   | `src/hooks/useDatabaseSync.ts`                                |
-| Supabase types       | Partial | `src/types/supabase.ts` (missing preview fields)              |
-| `is_public` field    | Exists  | In `generated_apps` table but unused                          |
+| Component            | Status       | Location                                                   |
+| -------------------- | ------------ | ---------------------------------------------------------- |
+| Share button UI      | **Complete** | `src/components/ProjectDropdown.tsx` (wired to ShareModal) |
+| ShareModal           | **Complete** | `src/components/modals/ShareModal.tsx`                     |
+| Preview page         | **Complete** | `src/app/preview/[slug]/page.tsx`                          |
+| Preview API          | **Complete** | `src/app/api/preview/[slug]/route.ts`                      |
+| Share API            | **Complete** | `src/app/api/apps/[id]/share/route.ts`                     |
+| Deployment types     | **Complete** | `src/types/deployment.ts`                                  |
+| Supabase types       | **Complete** | `src/types/supabase.ts` (preview fields added)             |
+| Database sync        | **Complete** | `src/hooks/useDatabaseSync.ts` (preview fields handled)    |
+| Deployment modal     | Ready        | `src/components/modals/DeploymentModal.tsx`                |
+| Export functionality | Ready        | `src/utils/exportApp.ts`                                   |
+
+> **Note:** Database migration has been applied to Supabase.
 
 ---
 
@@ -38,11 +55,11 @@ Implement **Phase 1 + Phase 2**:
 
 ---
 
-# PHASE 1: Instant Preview URLs
+# PHASE 1: Instant Preview URLs [COMPLETE]
 
-## Step 1: Database Migration
+## Step 1: Database Migration [COMPLETE]
 
-**Run in Supabase SQL Editor:**
+**Run in Supabase SQL Editor:** _(Already executed)_
 
 ```sql
 -- Add preview fields to generated_apps
@@ -59,13 +76,13 @@ CREATE POLICY "Public preview access" ON generated_apps
   FOR SELECT USING (is_public = true AND preview_enabled = true);
 ```
 
-## Step 2: Install Dependencies
+## Step 2: Install Dependencies [COMPLETE]
 
 ```bash
 npm install nanoid
 ```
 
-## Step 3: Create Types
+## Step 3: Create Types [COMPLETE]
 
 **Create:** `src/types/deployment.ts`
 
@@ -137,7 +154,7 @@ export const OAuthCallbackSchema = z.object({
 });
 ```
 
-## Step 4: Update Supabase Types
+## Step 4: Update Supabase Types [COMPLETE]
 
 **Modify:** `src/types/supabase.ts`
 
@@ -157,7 +174,7 @@ preview_slug?: string | null;
 preview_enabled?: boolean;
 ```
 
-## Step 5: Create Preview API Route
+## Step 5: Create Preview API Route [COMPLETE]
 
 **Create:** `src/app/api/preview/[slug]/route.ts`
 
@@ -237,7 +254,7 @@ export async function GET(request: Request, { params }: { params: { slug: string
 }
 ```
 
-## Step 6: Create Share API Route
+## Step 6: Create Share API Route [COMPLETE]
 
 **Create:** `src/app/api/apps/[id]/share/route.ts`
 
@@ -363,7 +380,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
 }
 ```
 
-## Step 7: Create Preview Page
+## Step 7: Create Preview Page [COMPLETE]
 
 **Create:** `src/app/preview/[slug]/layout.tsx`
 
@@ -497,7 +514,7 @@ export default function PreviewPage() {
 }
 ```
 
-## Step 8: Create PreviewBanner Component
+## Step 8: Create PreviewBanner Component [COMPLETE]
 
 **Create:** `src/components/preview/PreviewBanner.tsx`
 
@@ -531,7 +548,7 @@ export default function PreviewBanner({ appTitle }: PreviewBannerProps) {
 }
 ```
 
-## Step 9: Create ShareModal Component
+## Step 9: Create ShareModal Component [COMPLETE]
 
 **Create:** `src/components/modals/ShareModal.tsx`
 
@@ -721,7 +738,7 @@ export default function ShareModal({
 }
 ```
 
-## Step 10: Update Middleware
+## Step 10: Update Middleware [COMPLETE]
 
 **Modify:** `src/middleware.ts`
 
@@ -734,7 +751,7 @@ export const config = {
 };
 ```
 
-## Step 11: Wire Up in AIBuilder
+## Step 11: Wire Up in AIBuilder [COMPLETE]
 
 **Modify:** `src/components/AIBuilder.tsx`
 
@@ -765,7 +782,7 @@ const [showShareModal, setShowShareModal] = useState(false);
 <ProjectDropdown onShare={() => setShowShareModal(true)} />
 ```
 
-## Step 12: Update useDatabaseSync
+## Step 12: Update useDatabaseSync [COMPLETE]
 
 **Modify:** `src/hooks/useDatabaseSync.ts`
 
@@ -1547,32 +1564,39 @@ Add Vercel connection and deploy UI (integrate with existing modal).
 
 ## Files to Create (14 files)
 
-| File                                                 | Phase | Purpose                              |
-| ---------------------------------------------------- | ----- | ------------------------------------ |
-| `src/types/deployment.ts`                            | 1+2   | All deployment types and Zod schemas |
-| `src/app/preview/[slug]/page.tsx`                    | 1     | Public preview page                  |
-| `src/app/preview/[slug]/layout.tsx`                  | 1     | Minimal preview layout               |
-| `src/app/api/preview/[slug]/route.ts`                | 1     | GET public app data                  |
-| `src/app/api/apps/[id]/share/route.ts`               | 1     | POST/DELETE share toggle             |
-| `src/components/modals/ShareModal.tsx`               | 1     | Share UI with toggle + copy          |
-| `src/components/preview/PreviewBanner.tsx`           | 1     | "Built with AI App Builder" footer   |
-| `src/services/TokenEncryption.ts`                    | 2     | AES-256-GCM token encryption         |
-| `src/services/DeploymentService.ts`                  | 2     | Vercel API integration               |
-| `src/hooks/useDeployment.ts`                         | 2     | Deployment state management          |
-| `src/app/api/integrations/vercel/authorize/route.ts` | 2     | Start OAuth                          |
-| `src/app/api/integrations/vercel/callback/route.ts`  | 2     | OAuth callback                       |
-| `src/app/api/integrations/status/route.ts`           | 2     | Check connections                    |
-| `src/app/api/deploy/vercel/route.ts`                 | 2     | Deploy to Vercel                     |
+| File                                                 | Phase | Status   | Purpose                              |
+| ---------------------------------------------------- | ----- | -------- | ------------------------------------ |
+| `src/types/deployment.ts`                            | 1+2   | **Done** | All deployment types and Zod schemas |
+| `src/app/preview/[slug]/page.tsx`                    | 1     | **Done** | Public preview page                  |
+| `src/app/preview/[slug]/layout.tsx`                  | 1     | **Done** | Minimal preview layout               |
+| `src/app/api/preview/[slug]/route.ts`                | 1     | **Done** | GET public app data                  |
+| `src/app/api/apps/[id]/share/route.ts`               | 1     | **Done** | POST/DELETE share toggle             |
+| `src/components/modals/ShareModal.tsx`               | 1     | **Done** | Share UI with toggle + copy          |
+| `src/components/preview/PreviewBanner.tsx`           | 1     | **Done** | "Built with AI App Builder" footer   |
+| `src/services/TokenEncryption.ts`                    | 2     | Pending  | AES-256-GCM token encryption         |
+| `src/services/DeploymentService.ts`                  | 2     | Pending  | Vercel API integration               |
+| `src/hooks/useDeployment.ts`                         | 2     | Pending  | Deployment state management          |
+| `src/app/api/integrations/vercel/authorize/route.ts` | 2     | Pending  | Start OAuth                          |
+| `src/app/api/integrations/vercel/callback/route.ts`  | 2     | Pending  | OAuth callback                       |
+| `src/app/api/integrations/status/route.ts`           | 2     | Pending  | Check connections                    |
+| `src/app/api/deploy/vercel/route.ts`                 | 2     | Pending  | Deploy to Vercel                     |
 
 ## Files to Modify (5 files)
 
-| File                                        | Changes                                          |
-| ------------------------------------------- | ------------------------------------------------ |
-| `src/types/supabase.ts`                     | Add preview fields + user_integrations table     |
-| `src/middleware.ts`                         | Allow /preview/_ and /api/preview/_ without auth |
-| `src/components/AIBuilder.tsx`              | Add share button + ShareModal                    |
-| `src/hooks/useDatabaseSync.ts`              | Handle preview_slug, preview_enabled             |
-| `src/components/modals/DeploymentModal.tsx` | Add Vercel OAuth + deploy UI                     |
+| File                                        | Phase | Status        | Changes                                          |
+| ------------------------------------------- | ----- | ------------- | ------------------------------------------------ |
+| `src/types/supabase.ts`                     | 1+2   | **Done** (P1) | Add preview fields + user_integrations table     |
+| `src/middleware.ts`                         | 1     | **Done**      | Allow /preview/_ and /api/preview/_ without auth |
+| `src/components/AIBuilder.tsx`              | 1     | **Done**      | Add share button + ShareModal                    |
+| `src/hooks/useDatabaseSync.ts`              | 1     | **Done**      | Handle preview_slug, preview_enabled             |
+| `src/components/modals/DeploymentModal.tsx` | 2     | Pending       | Add Vercel OAuth + deploy UI                     |
+
+## Additional Files Modified (Phase 1)
+
+| File                          | Changes                                      |
+| ----------------------------- | -------------------------------------------- |
+| `src/types/aiBuilderTypes.ts` | Added `previewSlug`, `previewEnabled` fields |
+| `src/store/useAppStore.ts`    | Added `showShareModal` state                 |
 
 ---
 
@@ -1617,10 +1641,10 @@ CREATE POLICY "Users manage own integrations" ON user_integrations
 
 ---
 
-## Dependencies
+## Dependencies [INSTALLED]
 
 ```bash
-npm install nanoid
+npm install nanoid  # Already installed
 ```
 
 ---
@@ -1653,17 +1677,24 @@ npm install nanoid
 
 ## Security Checklist
 
-- [ ] RLS ensures only public apps accessible via preview
-- [ ] Validate user owns app before sharing/deploying
+### Phase 1 (Preview URLs)
+
+- [x] RLS ensures only public apps accessible via preview
+- [x] Validate user owns app before sharing
+- [x] No secrets in client-side code
+
+### Phase 2 (Vercel Deploy)
+
 - [ ] CSRF protection in OAuth flow (state param)
 - [ ] Encrypt tokens at rest (AES-256-GCM)
-- [ ] No secrets in client-side code
+- [ ] Validate user owns app before deploying
 
 ---
 
 ## Notes
 
-- Preview uses existing `PowerfulPreview.tsx` Sandpack component
+- Preview uses `FullAppPreview.tsx` Sandpack component (updated from original plan)
 - Existing `is_public` field finally gets used
 - ZIP export remains as fallback option
 - Can add Netlify later with same pattern
+- **Phase 1 uses `nanoid` for generating 12-character preview slugs**

@@ -82,6 +82,10 @@ export interface GeneratedComponent {
   versions?: AppVersion[];
   /** Phase build progress - null when complete or not applicable */
   stagePlan?: StagePlan | null;
+  /** Preview sharing - slug for public preview URL */
+  previewSlug?: string | null;
+  /** Preview sharing - whether preview is enabled */
+  previewEnabled?: boolean;
 }
 
 // ============================================================================

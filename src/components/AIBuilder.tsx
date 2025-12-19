@@ -42,6 +42,7 @@ import {
   PhasedBuildPanel,
   NameAppModal,
 } from './modals';
+import ShareModal from './modals/ShareModal';
 
 // Build system components
 import { PhaseDetailView } from './build';
@@ -238,6 +239,8 @@ export default function AIBuilder() {
     setShowAdvancedPhasedBuild,
     showNameAppModal,
     setShowNameAppModal,
+    showShareModal,
+    setShowShareModal,
     activeView,
     setActiveView,
     searchQuery,
@@ -1557,6 +1560,7 @@ export default function AIBuilder() {
           currentMode={currentMode}
           onModeChange={setCurrentMode}
           onNewApp={handleNewApp}
+          onShare={currentComponent ? () => setShowShareModal(true) : undefined}
         />
 
         {/* Tab Navigation */}
@@ -1827,6 +1831,15 @@ export default function AIBuilder() {
           }
           appName={exportingApp?.name}
         />
+
+        {currentComponent && (
+          <ShareModal
+            isOpen={showShareModal}
+            onClose={() => setShowShareModal(false)}
+            appId={currentComponent.id}
+            appTitle={currentComponent.name}
+          />
+        )}
 
         <DiffPreviewModal
           isOpen={showDiffPreview}

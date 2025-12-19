@@ -79,7 +79,9 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - api/ai-builder (AI builder endpoints - already have their own auth)
+     * - preview (public preview pages - no auth required)
+     * - api/preview (public preview API - no auth required)
      */
-    '/((?!_next/static|_next/image|favicon.ico|api/ai-builder|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/ai-builder|preview|api/preview|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

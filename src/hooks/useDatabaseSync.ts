@@ -77,6 +77,8 @@ function componentToDb(component: GeneratedComponent, userId: string): DbGenerat
       stagePlan: component.stagePlan || null,
     } as unknown as Database['public']['Tables']['generated_apps']['Row']['metadata'],
     is_public: false,
+    preview_slug: component.previewSlug || null,
+    preview_enabled: component.previewEnabled ?? true,
     version: (component.versions?.length || 0) + 1,
   };
 }
@@ -96,6 +98,8 @@ function dbToComponent(dbApp: DbGeneratedApp): GeneratedComponent {
     conversationHistory: metadata.conversationHistory || [],
     versions: metadata.versions || [],
     stagePlan: metadata.stagePlan ?? null,
+    previewSlug: dbApp.preview_slug || null,
+    previewEnabled: dbApp.preview_enabled ?? true,
   };
 }
 
