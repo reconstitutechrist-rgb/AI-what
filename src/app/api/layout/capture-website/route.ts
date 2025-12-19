@@ -119,9 +119,7 @@ if (typeof process !== 'undefined') {
 // STYLE EXTRACTION
 // ============================================================================
 
-async function extractPageStyles(
-  page: Page
-): Promise<{
+async function extractPageStyles(page: Page): Promise<{
   styles: Array<{ property: string; value: string }>;
   computedStyles: Record<string, string>;
 }> {
