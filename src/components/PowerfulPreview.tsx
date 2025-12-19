@@ -1,9 +1,15 @@
 'use client';
 
-import React, { useMemo, useEffect, useCallback } from 'react';
-import { SandpackProvider, SandpackPreview, SandpackLayout } from '@codesandbox/sandpack-react';
+import React, { useMemo, useEffect, useCallback, useState } from 'react';
+import {
+  SandpackProvider,
+  SandpackPreview,
+  SandpackLayout,
+  useSandpack,
+} from '@codesandbox/sandpack-react';
 import { DeviceFrame, TouchSimulator, ConsolePanel } from './preview';
 import type { DeviceType } from './preview/DeviceFrame';
+import ErrorBoundary from './ErrorBoundary';
 
 interface AppFile {
   path: string;
@@ -35,6 +41,59 @@ interface PowerfulPreviewProps {
   showDeviceFrame?: boolean;
 }
 
+/**
+ * Inner component that monitors Sandpack status and shows error UI if bundler fails.
+ * Must be a child of SandpackProvider to use useSandpack hook.
+ */
+function SandpackErrorMonitor({
+  children,
+  onRetry,
+}: {
+  children: React.ReactNode;
+  onRetry: () => void;
+}) {
+  const { sandpack } = useSandpack();
+  const { status, error } = sandpack;
+
+  // Show error UI if Sandpack encountered an error
+  if (status === 'timeout' || error) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-zinc-900">
+        <div className="text-center p-6 max-w-md">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-red-500/20 flex items-center justify-center">
+            <svg
+              className="w-6 h-6 text-red-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+          <p className="text-red-400 mb-2 font-medium">Preview failed to load</p>
+          <p className="text-zinc-500 text-sm mb-4">
+            {error?.message ||
+              'The bundler encountered an error. This can happen with certain code patterns.'}
+          </p>
+          <button
+            onClick={onRetry}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+          >
+            Retry Preview
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
+
 export default function PowerfulPreview({
   appDataJson,
   isFullscreen = false,
@@ -49,6 +108,9 @@ export default function PowerfulPreview({
   onConsoleToggle,
   showDeviceFrame = true,
 }: PowerfulPreviewProps) {
+  // State for error recovery - changing key forces Sandpack to remount
+  const [retryCount, setRetryCount] = useState(0);
+
   // Determine if touch simulation should be active (mobile/tablet devices only)
   const isMobileOrTablet =
     devicePreset && ['iphone-se', 'iphone-14', 'ipad', 'ipad-pro'].includes(devicePreset);
@@ -218,7 +280,12 @@ h1, h2, h3, h4, h5, h6 {
     return { sandpackFiles: files, dependencies: deps };
   }, [appData]);
 
-  // Handle parse error or missing files (after hooks to satisfy React rules)
+  // Callback for retry from error monitor - must be before early return
+  const handleRetry = useCallback(() => {
+    setRetryCount((c) => c + 1);
+  }, []);
+
+  // Handle parse error or missing files (after all hooks to satisfy React rules)
   if (!appData || !appData.files || !Array.isArray(appData.files) || appData.files.length === 0) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-slate-900">
@@ -240,91 +307,101 @@ h1, h2, h3, h4, h5, h6 {
         height: isFullscreen ? '100vh' : '100%',
       }}
     >
-      <SandpackProvider
-        template="react-ts"
-        theme="dark"
-        files={sandpackFiles}
-        customSetup={{
-          dependencies,
-        }}
-        options={{
-          autorun: true,
-          autoReload: true,
-          recompileMode: 'immediate',
-          externalResources: ['https://cdn.tailwindcss.com'],
-        }}
-        style={{ height: '100%', width: '100%' }}
-      >
-        {/* Flex wrapper - SandpackProvider adds wrapper divs that break outer flex layout */}
-        <div className="flex w-full h-full">
-          {/* Main preview area - always centered */}
-          <div className="flex-1 flex flex-col bg-zinc-950 overflow-auto relative items-center justify-center p-4">
-            {/* Full-stack warning badge */}
-            {appData.appType === 'FULL_STACK' && (
-              <div className="absolute top-4 left-4 bg-yellow-500/90 text-yellow-900 px-4 py-2 rounded-lg text-sm font-medium shadow-lg z-50">
-                ⚠️ Preview mode: Backend features disabled
-              </div>
-            )}
+      <ErrorBoundary>
+        <SandpackProvider
+          key={retryCount}
+          template="react-ts"
+          theme="dark"
+          files={sandpackFiles}
+          customSetup={{
+            dependencies,
+          }}
+          options={{
+            autorun: true,
+            autoReload: true,
+            recompileMode: 'immediate',
+            externalResources: ['https://cdn.tailwindcss.com'],
+            // Use explicit bundler URL to avoid service worker issues
+            bundlerURL: 'https://sandpack-bundler.codesandbox.io',
+            // Lazy init helps avoid race conditions in bundler initialization
+            initMode: 'lazy',
+          }}
+          style={{ height: '100%', width: '100%' }}
+        >
+          {/* SandpackErrorMonitor catches bundler errors via useSandpack hook */}
+          <SandpackErrorMonitor onRetry={handleRetry}>
+            {/* Flex wrapper - SandpackProvider adds wrapper divs that break outer flex layout */}
+            <div className="flex w-full h-full">
+              {/* Main preview area - always centered */}
+              <div className="flex-1 flex flex-col bg-zinc-950 overflow-auto relative items-center justify-center p-4">
+                {/* Full-stack warning badge */}
+                {appData.appType === 'FULL_STACK' && (
+                  <div className="absolute top-4 left-4 bg-yellow-500/90 text-yellow-900 px-4 py-2 rounded-lg text-sm font-medium shadow-lg z-50">
+                    ⚠️ Preview mode: Backend features disabled
+                  </div>
+                )}
 
-            {/* All devices render through DeviceFrame when enabled */}
-            {/* Key forces remount on device change to prevent white screen issues */}
-            <TouchSimulator
-              enabled={shouldEnableTouchSimulation}
-              iframeSelector=".sp-preview-iframe"
-            >
-              {showDeviceFrame ? (
-                <DeviceFrame
-                  device={(devicePreset as DeviceType) || 'laptop'}
-                  orientation={orientation}
-                  width={previewWidth}
-                  height={previewHeight === 'auto' ? 800 : previewHeight}
+                {/* All devices render through DeviceFrame when enabled */}
+                {/* Key forces remount on device change to prevent white screen issues */}
+                <TouchSimulator
+                  enabled={shouldEnableTouchSimulation}
+                  iframeSelector=".sp-preview-iframe"
                 >
-                  <SandpackLayout
-                    key={`${devicePreset}-${orientation}-${previewWidth}`}
-                    style={{
-                      height: '100%',
-                      width: '100%',
-                      border: 'none',
-                      borderRadius: 0,
-                    }}
-                  >
-                    <SandpackPreview
-                      showOpenInCodeSandbox={false}
-                      showRefreshButton={true}
+                  {showDeviceFrame ? (
+                    <DeviceFrame
+                      device={(devicePreset as DeviceType) || 'laptop'}
+                      orientation={orientation}
+                      width={previewWidth}
+                      height={previewHeight === 'auto' ? 800 : previewHeight}
+                    >
+                      <SandpackLayout
+                        key={`${devicePreset}-${orientation}-${previewWidth}`}
+                        style={{
+                          height: '100%',
+                          width: '100%',
+                          border: 'none',
+                          borderRadius: 0,
+                        }}
+                      >
+                        <SandpackPreview
+                          showOpenInCodeSandbox={false}
+                          showRefreshButton={true}
+                          style={{
+                            height: '100%',
+                            width: '100%',
+                          }}
+                        />
+                      </SandpackLayout>
+                    </DeviceFrame>
+                  ) : (
+                    <SandpackLayout
+                      key={`no-frame-${previewWidth}-${previewHeight}`}
                       style={{
-                        height: '100%',
-                        width: '100%',
+                        height: previewHeight === 'auto' ? 800 : previewHeight,
+                        width: previewWidth,
+                        border: 'none',
+                        borderRadius: 8,
                       }}
-                    />
-                  </SandpackLayout>
-                </DeviceFrame>
-              ) : (
-                <SandpackLayout
-                  key={`no-frame-${previewWidth}-${previewHeight}`}
-                  style={{
-                    height: previewHeight === 'auto' ? 800 : previewHeight,
-                    width: previewWidth,
-                    border: 'none',
-                    borderRadius: 8,
-                  }}
-                >
-                  <SandpackPreview
-                    showOpenInCodeSandbox={false}
-                    showRefreshButton={true}
-                    style={{
-                      height: '100%',
-                      width: '100%',
-                    }}
-                  />
-                </SandpackLayout>
-              )}
-            </TouchSimulator>
-          </div>
+                    >
+                      <SandpackPreview
+                        showOpenInCodeSandbox={false}
+                        showRefreshButton={true}
+                        style={{
+                          height: '100%',
+                          width: '100%',
+                        }}
+                      />
+                    </SandpackLayout>
+                  )}
+                </TouchSimulator>
+              </div>
 
-          {/* Console side panel */}
-          <ConsolePanel isOpen={showConsole} onToggle={onConsoleToggle || (() => {})} />
-        </div>
-      </SandpackProvider>
+              {/* Console side panel */}
+              <ConsolePanel isOpen={showConsole} onToggle={onConsoleToggle || (() => {})} />
+            </div>
+          </SandpackErrorMonitor>
+        </SandpackProvider>
+      </ErrorBoundary>
     </div>
   );
 }
