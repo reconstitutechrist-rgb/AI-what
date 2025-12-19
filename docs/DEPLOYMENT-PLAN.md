@@ -1,31 +1,48 @@
 # User Deployment Features - Implementation Plan
 
-> Save this for when you're ready to implement. No rush!
+## Summary
 
-## Overview
+Implement **Phase 1 + Phase 2**:
 
-Three features to let users share and deploy their generated apps with zero friction:
+1. **Phase 1:** Instant Preview URLs - shareable links like `/preview/abc123`
+2. **Phase 2:** One-Click Deploy to Vercel - OAuth-based deployment
 
-1. **Instant Preview URLs** - Shareable links like `/preview/abc123`
-2. **One-Click Deploy to Vercel** - OAuth-based web deployment
-3. **One-Click Deploy to Mobile App Stores** - Publish to Google Play and Apple App Store
-
----
-
-## Design Decisions
-
-| Decision | Choice | Why |
-|----------|--------|-----|
-| Preview persistence | Permanent | Users share portfolio pieces, links shouldn't break |
-| Deploy platform | Vercel first | Best Next.js support, simplest for users |
-| Preview rendering | Client-side Sandpack | Zero infrastructure cost, reuses existing code |
-| Share UX | One-click toggle | No configuration needed |
+**Scope:** Phase 1 + Phase 2 (Phase 3 mobile deployment deferred)
 
 ---
 
-## Phase 1: Instant Preview URLs
+## What Already Exists
 
-### Database Migration (Run in Supabase SQL Editor)
+| Component            | Status  | Location                                                      |
+| -------------------- | ------- | ------------------------------------------------------------- |
+| Share button UI      | Ready   | `src/components/ProjectDropdown.tsx` (has `onShare` callback) |
+| Deployment modal     | Ready   | `src/components/modals/DeploymentModal.tsx`                   |
+| Export functionality | Ready   | `src/utils/exportApp.ts`                                      |
+| Database sync        | Ready   | `src/hooks/useDatabaseSync.ts`                                |
+| Supabase types       | Partial | `src/types/supabase.ts` (missing preview fields)              |
+| `is_public` field    | Exists  | In `generated_apps` table but unused                          |
+
+---
+
+## Best Practices Applied
+
+| Practice           | Implementation                                                |
+| ------------------ | ------------------------------------------------------------- |
+| **Zod validation** | All API routes use Zod schemas                                |
+| **CORS headers**   | Preview API supports embedding                                |
+| **Error format**   | `{ success: false, error: string }` consistently              |
+| **FK references**  | Use `user_profiles(user_id)` not `auth.users(id)`             |
+| **Type exports**   | Row/Insert/Update types for all tables                        |
+| **Hook pattern**   | Follow `useDatabaseSync` with `isLoading`, `error`, callbacks |
+| **Types file**     | New `src/types/deployment.ts` for deployment types            |
+
+---
+
+# PHASE 1: Instant Preview URLs
+
+## Step 1: Database Migration
+
+**Run in Supabase SQL Editor:**
 
 ```sql
 -- Add preview fields to generated_apps
@@ -33,70 +50,1554 @@ ALTER TABLE generated_apps
   ADD COLUMN IF NOT EXISTS preview_slug VARCHAR(12) UNIQUE,
   ADD COLUMN IF NOT EXISTS preview_enabled BOOLEAN DEFAULT true;
 
+-- Index for fast slug lookups
 CREATE INDEX IF NOT EXISTS idx_preview_slug
   ON generated_apps(preview_slug) WHERE preview_slug IS NOT NULL;
 
--- RLS policy: anyone can view public apps
+-- RLS policy: anyone can view public apps (no auth required)
 CREATE POLICY "Public preview access" ON generated_apps
   FOR SELECT USING (is_public = true AND preview_enabled = true);
 ```
 
-### Files to Create
+## Step 2: Install Dependencies
 
-| File | Purpose |
-|------|---------|
-| `src/app/preview/[slug]/page.tsx` | Public preview page |
-| `src/app/preview/[slug]/layout.tsx` | Minimal layout for previews |
-| `src/app/api/preview/[slug]/route.ts` | GET public app data |
-| `src/app/api/apps/[id]/share/route.ts` | POST to share, DELETE to unshare |
-| `src/components/modals/ShareModal.tsx` | Toggle public, copy link |
-| `src/components/preview/PreviewBanner.tsx` | "Built with AI App Builder" footer |
+```bash
+npm install nanoid
+```
 
-### Files to Modify
+## Step 3: Create Types
 
-| File | Changes |
-|------|---------|
-| `src/types/supabase.ts` | Add `preview_slug`, `preview_enabled` |
-| `src/hooks/useDatabaseSync.ts` | Handle new fields |
-| `src/components/AIBuilder.tsx` | Add Share button |
-| `src/components/modals/LibraryModal.tsx` | Add share icon to cards |
-| `src/middleware.ts` | Allow `/preview/*` without auth |
+**Create:** `src/types/deployment.ts`
 
-### Implementation Steps
+```typescript
+import { z } from 'zod';
 
-1. Run SQL migration in Supabase
-2. Update TypeScript types
-3. Create `/api/preview/[slug]` route
-4. Create `/api/apps/[id]/share` route
-5. Create preview page + layout
-6. Create ShareModal component
-7. Add share buttons to UI
-8. Test end-to-end
+// ============ SHARE TYPES ============
+
+export interface ShareState {
+  isPublic: boolean;
+  previewSlug: string | null;
+  previewUrl: string | null;
+  previewEnabled: boolean;
+}
+
+export interface ShareResponse {
+  success: boolean;
+  previewUrl?: string;
+  previewSlug?: string;
+  error?: string;
+}
+
+// Zod Schemas
+export const ShareToggleSchema = z.object({
+  appId: z.string().uuid(),
+});
+
+export const PreviewSlugSchema = z.object({
+  slug: z.string().min(8).max(16),
+});
+
+// ============ DEPLOYMENT TYPES (Phase 2) ============
+
+export type DeploymentPlatform = 'vercel' | 'netlify';
+export type DeploymentStatus = 'pending' | 'building' | 'ready' | 'error' | 'canceled';
+
+export interface DeploymentResult {
+  success: boolean;
+  deploymentId?: string;
+  url?: string;
+  status?: DeploymentStatus;
+  error?: string;
+}
+
+export interface VercelAccount {
+  id: string;
+  name: string;
+  email?: string;
+  connectedAt: string;
+}
+
+export interface UserIntegration {
+  id: string;
+  provider: DeploymentPlatform;
+  accountId: string | null;
+  accountName: string | null;
+  connectedAt: string;
+}
+
+// Zod Schemas for Phase 2
+export const DeployRequestSchema = z.object({
+  appId: z.string().uuid(),
+  projectName: z.string().min(1).max(100).optional(),
+});
+
+export const OAuthCallbackSchema = z.object({
+  code: z.string(),
+  state: z.string(),
+});
+```
+
+## Step 4: Update Supabase Types
+
+**Modify:** `src/types/supabase.ts`
+
+Add to `generated_apps` table interface:
+
+```typescript
+// In Row:
+preview_slug: string | null;
+preview_enabled: boolean;
+
+// In Insert:
+preview_slug?: string | null;
+preview_enabled?: boolean;
+
+// In Update:
+preview_slug?: string | null;
+preview_enabled?: boolean;
+```
+
+## Step 5: Create Preview API Route
+
+**Create:** `src/app/api/preview/[slug]/route.ts`
+
+```typescript
+/**
+ * GET /api/preview/[slug]
+ * Fetch public app data for preview - no auth required
+ */
+
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { PreviewSlugSchema } from '@/types/deployment';
+
+// CORS headers for potential iframe embedding
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+export async function OPTIONS() {
+  return new Response(null, { status: 200, headers: corsHeaders });
+}
+
+export async function GET(request: Request, { params }: { params: { slug: string } }) {
+  try {
+    // Validate slug format
+    const parseResult = PreviewSlugSchema.safeParse({ slug: params.slug });
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid preview slug' },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // Use service role client for public access (bypasses RLS for this query)
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { data: app, error } = await supabase
+      .from('generated_apps')
+      .select('id, title, description, code, metadata, created_at')
+      .eq('preview_slug', params.slug)
+      .eq('is_public', true)
+      .eq('preview_enabled', true)
+      .single();
+
+    if (error || !app) {
+      return NextResponse.json(
+        { success: false, error: 'Preview not found or not public' },
+        { status: 404, headers: corsHeaders }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        app: {
+          id: app.id,
+          title: app.title,
+          description: app.description,
+          code: app.code,
+          createdAt: app.created_at,
+        },
+      },
+      { status: 200, headers: corsHeaders }
+    );
+  } catch (error) {
+    console.error('Preview fetch error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch preview' },
+      { status: 500, headers: corsHeaders }
+    );
+  }
+}
+```
+
+## Step 6: Create Share API Route
+
+**Create:** `src/app/api/apps/[id]/share/route.ts`
+
+```typescript
+/**
+ * POST /api/apps/[id]/share - Enable sharing, generate slug
+ * DELETE /api/apps/[id]/share - Disable sharing
+ */
+
+import { NextResponse } from 'next/server';
+import { nanoid } from 'nanoid';
+import { createClient } from '@/utils/supabase/server';
+import { cookies } from 'next/headers';
+
+export async function POST(request: Request, { params }: { params: { id: string } }) {
+  try {
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
+
+    // Get authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Verify user owns this app
+    const { data: app, error: fetchError } = await supabase
+      .from('generated_apps')
+      .select('id, user_id, preview_slug')
+      .eq('id', params.id)
+      .single();
+
+    if (fetchError || !app) {
+      return NextResponse.json({ success: false, error: 'App not found' }, { status: 404 });
+    }
+
+    if (app.user_id !== user.id) {
+      return NextResponse.json(
+        { success: false, error: 'Not authorized to share this app' },
+        { status: 403 }
+      );
+    }
+
+    // Generate slug if doesn't exist, otherwise reuse
+    const previewSlug = app.preview_slug || nanoid(12);
+
+    // Update app to be public with slug
+    const { error: updateError } = await supabase
+      .from('generated_apps')
+      .update({
+        is_public: true,
+        preview_slug: previewSlug,
+        preview_enabled: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', params.id);
+
+    if (updateError) {
+      console.error('Share update error:', updateError);
+      return NextResponse.json(
+        { success: false, error: 'Failed to enable sharing' },
+        { status: 500 }
+      );
+    }
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const previewUrl = `${baseUrl}/preview/${previewSlug}`;
+
+    return NextResponse.json({
+      success: true,
+      previewUrl,
+      previewSlug,
+    });
+  } catch (error) {
+    console.error('Share error:', error);
+    return NextResponse.json({ success: false, error: 'Failed to share app' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+  try {
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
+
+    // Get authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Verify ownership and disable sharing
+    const { error: updateError } = await supabase
+      .from('generated_apps')
+      .update({
+        is_public: false,
+        preview_enabled: false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', params.id)
+      .eq('user_id', user.id);
+
+    if (updateError) {
+      return NextResponse.json(
+        { success: false, error: 'Failed to disable sharing' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Unshare error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to disable sharing' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+## Step 7: Create Preview Page
+
+**Create:** `src/app/preview/[slug]/layout.tsx`
+
+```typescript
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'App Preview - AI App Builder',
+  description: 'Preview a generated application',
+  robots: 'noindex', // Don't index preview pages
+};
+
+export default function PreviewLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body className="min-h-screen bg-gray-950">
+        {children}
+      </body>
+    </html>
+  );
+}
+```
+
+**Create:** `src/app/preview/[slug]/page.tsx`
+
+```typescript
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
+import PreviewBanner from '@/components/preview/PreviewBanner';
+
+// Dynamic import to avoid SSR issues with Sandpack
+const PowerfulPreview = dynamic(
+  () => import('@/components/PowerfulPreview'),
+  { ssr: false, loading: () => <PreviewLoading /> }
+);
+
+function PreviewLoading() {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-950">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4" />
+        <p className="text-gray-400">Loading preview...</p>
+      </div>
+    </div>
+  );
+}
+
+interface PreviewApp {
+  id: string;
+  title: string;
+  description: string | null;
+  code: string;
+  createdAt: string;
+}
+
+export default function PreviewPage() {
+  const params = useParams();
+  const slug = params.slug as string;
+
+  const [app, setApp] = useState<PreviewApp | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchPreview() {
+      try {
+        const response = await fetch(`/api/preview/${slug}`);
+        const data = await response.json();
+
+        if (!data.success) {
+          setError(data.error || 'Preview not found');
+          return;
+        }
+
+        setApp(data.app);
+      } catch (err) {
+        setError('Failed to load preview');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (slug) {
+      fetchPreview();
+    }
+  }, [slug]);
+
+  if (loading) {
+    return <PreviewLoading />;
+  }
+
+  if (error || !app) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-950">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-white mb-2">Preview Not Found</h1>
+          <p className="text-gray-400">{error || 'This preview is not available'}</p>
+          <a
+            href="/"
+            className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Go to AI App Builder
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-950 flex flex-col">
+      {/* Preview Content */}
+      <div className="flex-1">
+        <PowerfulPreview
+          code={app.code}
+          title={app.title}
+          isPreviewMode={true}
+        />
+      </div>
+
+      {/* Branding Banner */}
+      <PreviewBanner appTitle={app.title} />
+    </div>
+  );
+}
+```
+
+## Step 8: Create PreviewBanner Component
+
+**Create:** `src/components/preview/PreviewBanner.tsx`
+
+```typescript
+'use client';
+
+interface PreviewBannerProps {
+  appTitle: string;
+}
+
+export default function PreviewBanner({ appTitle }: PreviewBannerProps) {
+  return (
+    <div className="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 py-2 px-4 z-50">
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm text-gray-400">
+          <span className="font-medium text-white">{appTitle}</span>
+          <span>-</span>
+          <span>Built with AI App Builder</span>
+        </div>
+        <a
+          href="/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+        >
+          Create your own app
+        </a>
+      </div>
+    </div>
+  );
+}
+```
+
+## Step 9: Create ShareModal Component
+
+**Create:** `src/components/modals/ShareModal.tsx`
+
+```typescript
+'use client';
+
+import { useState, useCallback } from 'react';
+import { X, Link2, Check, Copy, Globe, Lock } from 'lucide-react';
+
+interface ShareModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  appId: string;
+  appTitle: string;
+  initialShareState?: {
+    isPublic: boolean;
+    previewSlug: string | null;
+  };
+}
+
+export default function ShareModal({
+  isOpen,
+  onClose,
+  appId,
+  appTitle,
+  initialShareState,
+}: ShareModalProps) {
+  const [isPublic, setIsPublic] = useState(initialShareState?.isPublic ?? false);
+  const [previewSlug, setPreviewSlug] = useState(initialShareState?.previewSlug);
+  const [isLoading, setIsLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const previewUrl = previewSlug
+    ? `${window.location.origin}/preview/${previewSlug}`
+    : null;
+
+  const handleToggleShare = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      if (isPublic) {
+        // Disable sharing
+        const response = await fetch(`/api/apps/${appId}/share`, {
+          method: 'DELETE',
+        });
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error);
+        }
+
+        setIsPublic(false);
+      } else {
+        // Enable sharing
+        const response = await fetch(`/api/apps/${appId}/share`, {
+          method: 'POST',
+        });
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error);
+        }
+
+        setIsPublic(true);
+        setPreviewSlug(data.previewSlug);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update sharing');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [appId, isPublic]);
+
+  const handleCopyLink = useCallback(async () => {
+    if (!previewUrl) return;
+
+    try {
+      await navigator.clipboard.writeText(previewUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError('Failed to copy link');
+    }
+  }, [previewUrl]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-gray-900 rounded-xl border border-gray-800 w-full max-w-md mx-4 shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-800">
+          <h2 className="text-lg font-semibold text-white">Share App</h2>
+          <button
+            onClick={onClose}
+            className="p-1 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 space-y-4">
+          {/* App Title */}
+          <div className="text-sm text-gray-400">
+            Sharing <span className="text-white font-medium">{appTitle}</span>
+          </div>
+
+          {/* Toggle */}
+          <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+            <div className="flex items-center gap-3">
+              {isPublic ? (
+                <Globe className="text-green-400" size={20} />
+              ) : (
+                <Lock className="text-gray-400" size={20} />
+              )}
+              <div>
+                <div className="text-white font-medium">
+                  {isPublic ? 'Public' : 'Private'}
+                </div>
+                <div className="text-xs text-gray-400">
+                  {isPublic
+                    ? 'Anyone with the link can view'
+                    : 'Only you can access'}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleToggleShare}
+              disabled={isLoading}
+              className={`relative w-12 h-6 rounded-full transition-colors ${
+                isPublic ? 'bg-green-600' : 'bg-gray-600'
+              } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <div
+                className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                  isPublic ? 'translate-x-7' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Share Link */}
+          {isPublic && previewUrl && (
+            <div className="space-y-2">
+              <label className="text-sm text-gray-400">Share Link</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={previewUrl}
+                  readOnly
+                  className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
+                />
+                <button
+                  onClick={handleCopyLink}
+                  className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-colors"
+                >
+                  {copied ? <Check size={16} /> : <Copy size={16} />}
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Error */}
+          {error && (
+            <div className="p-3 bg-red-900/20 border border-red-800 rounded-lg text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-800">
+          <button
+            onClick={onClose}
+            className="w-full py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+## Step 10: Update Middleware
+
+**Modify:** `src/middleware.ts`
+
+```typescript
+// Update the matcher to exclude preview routes
+export const config = {
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|preview|api/preview|api/ai-builder|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
+};
+```
+
+## Step 11: Wire Up in AIBuilder
+
+**Modify:** `src/components/AIBuilder.tsx`
+
+Add state and handler:
+
+```typescript
+// Add import
+import ShareModal from '@/components/modals/ShareModal';
+
+// Add state
+const [showShareModal, setShowShareModal] = useState(false);
+
+// Add to JSX (near other modals)
+{showShareModal && currentComponent && (
+  <ShareModal
+    isOpen={showShareModal}
+    onClose={() => setShowShareModal(false)}
+    appId={currentComponent.id}
+    appTitle={currentComponent.name}
+    initialShareState={{
+      isPublic: false, // Get from component metadata if stored
+      previewSlug: null,
+    }}
+  />
+)}
+
+// Connect to ProjectDropdown's onShare prop
+<ProjectDropdown onShare={() => setShowShareModal(true)} />
+```
+
+## Step 12: Update useDatabaseSync
+
+**Modify:** `src/hooks/useDatabaseSync.ts`
+
+Add preview fields to conversion functions:
+
+```typescript
+// In componentToDb():
+preview_slug: component.previewSlug || null,
+preview_enabled: component.previewEnabled ?? true,
+
+// In dbToComponent():
+previewSlug: dbApp.preview_slug || null,
+previewEnabled: dbApp.preview_enabled ?? true,
+```
 
 ---
 
-## Phase 2: One-Click Deploy to Vercel
+# PHASE 2: One-Click Deploy to Vercel
 
-### Prerequisites
+## Prerequisites (Manual Steps)
 
-1. Create Vercel OAuth app at https://vercel.com/account/integrations
-2. Get `VERCEL_CLIENT_ID` and `VERCEL_CLIENT_SECRET`
+### 1. Create Vercel OAuth App
 
-### Environment Variables
+1. Go to https://vercel.com/account/integrations
+2. Create new OAuth app
+3. Set redirect URI: `https://yourapp.com/api/integrations/vercel/callback`
+4. Copy Client ID and Client Secret
+
+### 2. Add Environment Variables
 
 ```bash
 VERCEL_CLIENT_ID=your_client_id
 VERCEL_CLIENT_SECRET=your_client_secret
 VERCEL_REDIRECT_URI=https://yourapp.com/api/integrations/vercel/callback
-TOKEN_ENCRYPTION_KEY=32_byte_random_key
+TOKEN_ENCRYPTION_KEY=generate_with_openssl_rand_hex_32
 ```
 
-### Database Migration
+## Step 13: Database Migration (Phase 2)
+
+**Run in Supabase SQL Editor:**
+
+```sql
+-- User integrations table (OAuth tokens)
+CREATE TABLE user_integrations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES user_profiles(user_id) ON DELETE CASCADE,
+  provider VARCHAR(20) NOT NULL,
+  access_token_encrypted TEXT NOT NULL,
+  refresh_token_encrypted TEXT,
+  token_expires_at TIMESTAMPTZ,
+  account_id VARCHAR(100),
+  account_name VARCHAR(100),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, provider)
+);
+
+ALTER TABLE user_integrations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users manage own integrations" ON user_integrations
+  FOR ALL USING (auth.uid() = user_id);
+
+CREATE INDEX idx_user_integrations_user ON user_integrations(user_id);
+```
+
+## Step 14: Update Supabase Types (Phase 2)
+
+**Modify:** `src/types/supabase.ts`
+
+Add `user_integrations` table:
+
+```typescript
+user_integrations: {
+  Row: {
+    id: string;
+    user_id: string;
+    provider: string;
+    access_token_encrypted: string;
+    refresh_token_encrypted: string | null;
+    token_expires_at: string | null;
+    account_id: string | null;
+    account_name: string | null;
+    created_at: string;
+    updated_at: string;
+  };
+  Insert: {
+    id?: string;
+    user_id: string;
+    provider: string;
+    access_token_encrypted: string;
+    refresh_token_encrypted?: string | null;
+    token_expires_at?: string | null;
+    account_id?: string | null;
+    account_name?: string | null;
+    created_at?: string;
+    updated_at?: string;
+  };
+  Update: {
+    id?: string;
+    user_id?: string;
+    provider?: string;
+    access_token_encrypted?: string;
+    refresh_token_encrypted?: string | null;
+    token_expires_at?: string | null;
+    account_id?: string | null;
+    account_name?: string | null;
+    created_at?: string;
+    updated_at?: string;
+  };
+  Relationships: [
+    {
+      foreignKeyName: 'user_integrations_user_id_fkey';
+      columns: ['user_id'];
+      referencedRelation: 'user_profiles';
+      referencedColumns: ['user_id'];
+    },
+  ];
+};
+```
+
+## Step 15: Create TokenEncryption Service
+
+**Create:** `src/services/TokenEncryption.ts`
+
+```typescript
+/**
+ * TokenEncryption Service
+ * AES-256-GCM encryption for OAuth tokens at rest
+ */
+
+import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
+
+const ALGORITHM = 'aes-256-gcm';
+const IV_LENGTH = 16;
+const AUTH_TAG_LENGTH = 16;
+
+function getEncryptionKey(): Buffer {
+  const key = process.env.TOKEN_ENCRYPTION_KEY;
+  if (!key) {
+    throw new Error('TOKEN_ENCRYPTION_KEY environment variable is not set');
+  }
+  // Key should be 32 bytes (64 hex chars)
+  return Buffer.from(key, 'hex');
+}
+
+export function encrypt(plaintext: string): string {
+  const key = getEncryptionKey();
+  const iv = randomBytes(IV_LENGTH);
+
+  const cipher = createCipheriv(ALGORITHM, key, iv);
+
+  let encrypted = cipher.update(plaintext, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+
+  const authTag = cipher.getAuthTag();
+
+  // Format: iv:authTag:ciphertext (all hex)
+  return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
+}
+
+export function decrypt(ciphertext: string): string {
+  const key = getEncryptionKey();
+
+  const parts = ciphertext.split(':');
+  if (parts.length !== 3) {
+    throw new Error('Invalid ciphertext format');
+  }
+
+  const [ivHex, authTagHex, encrypted] = parts;
+  const iv = Buffer.from(ivHex, 'hex');
+  const authTag = Buffer.from(authTagHex, 'hex');
+
+  const decipher = createDecipheriv(ALGORITHM, key, iv);
+  decipher.setAuthTag(authTag);
+
+  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+
+  return decrypted;
+}
+```
+
+## Step 16: Create Vercel OAuth Routes
+
+**Create:** `src/app/api/integrations/vercel/authorize/route.ts`
+
+```typescript
+/**
+ * GET /api/integrations/vercel/authorize
+ * Start Vercel OAuth flow
+ */
+
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { nanoid } from 'nanoid';
+
+export async function GET() {
+  const clientId = process.env.VERCEL_CLIENT_ID;
+  const redirectUri = process.env.VERCEL_REDIRECT_URI;
+
+  if (!clientId || !redirectUri) {
+    return NextResponse.json(
+      { success: false, error: 'Vercel integration not configured' },
+      { status: 500 }
+    );
+  }
+
+  // Generate CSRF state token
+  const state = nanoid(32);
+
+  // Store state in cookie (httpOnly for security)
+  const cookieStore = cookies();
+  cookieStore.set('vercel_oauth_state', state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 600, // 10 minutes
+    path: '/',
+  });
+
+  // Build Vercel OAuth URL
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    scope: 'user:read deployments:create projects:create',
+    response_type: 'code',
+    state,
+  });
+
+  const authUrl = `https://vercel.com/oauth/authorize?${params}`;
+
+  return NextResponse.redirect(authUrl);
+}
+```
+
+**Create:** `src/app/api/integrations/vercel/callback/route.ts`
+
+```typescript
+/**
+ * GET /api/integrations/vercel/callback
+ * Handle Vercel OAuth callback
+ */
+
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { createClient } from '@/utils/supabase/server';
+import { encrypt } from '@/services/TokenEncryption';
+import { OAuthCallbackSchema } from '@/types/deployment';
+
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
+  const error = url.searchParams.get('error');
+
+  const cookieStore = cookies();
+  const storedState = cookieStore.get('vercel_oauth_state')?.value;
+
+  // Clear the state cookie
+  cookieStore.delete('vercel_oauth_state');
+
+  // Handle OAuth errors
+  if (error) {
+    return NextResponse.redirect(new URL(`/?error=vercel_oauth_${error}`, request.url));
+  }
+
+  // Validate state to prevent CSRF
+  if (!state || state !== storedState) {
+    return NextResponse.redirect(new URL('/?error=vercel_oauth_invalid_state', request.url));
+  }
+
+  // Validate params
+  const parseResult = OAuthCallbackSchema.safeParse({ code, state });
+  if (!parseResult.success || !code) {
+    return NextResponse.redirect(new URL('/?error=vercel_oauth_invalid_params', request.url));
+  }
+
+  try {
+    // Exchange code for tokens
+    const tokenResponse = await fetch('https://api.vercel.com/v2/oauth/access_token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: process.env.VERCEL_CLIENT_ID!,
+        client_secret: process.env.VERCEL_CLIENT_SECRET!,
+        code,
+        redirect_uri: process.env.VERCEL_REDIRECT_URI!,
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      throw new Error('Failed to exchange code for token');
+    }
+
+    const tokens = await tokenResponse.json();
+
+    // Get user info from Vercel
+    const userResponse = await fetch('https://api.vercel.com/v2/user', {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
+    });
+
+    const vercelUser = await userResponse.json();
+
+    // Get authenticated Supabase user
+    const supabase = createClient(cookieStore);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.redirect(new URL('/?error=not_authenticated', request.url));
+    }
+
+    // Encrypt tokens
+    const encryptedAccessToken = encrypt(tokens.access_token);
+    const encryptedRefreshToken = tokens.refresh_token ? encrypt(tokens.refresh_token) : null;
+
+    // Upsert integration
+    const { error: dbError } = await supabase.from('user_integrations').upsert(
+      {
+        user_id: user.id,
+        provider: 'vercel',
+        access_token_encrypted: encryptedAccessToken,
+        refresh_token_encrypted: encryptedRefreshToken,
+        token_expires_at: tokens.expires_in
+          ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
+          : null,
+        account_id: vercelUser.user?.id || null,
+        account_name: vercelUser.user?.username || vercelUser.user?.name || null,
+        updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: 'user_id,provider',
+      }
+    );
+
+    if (dbError) {
+      console.error('Failed to save integration:', dbError);
+      return NextResponse.redirect(new URL('/?error=vercel_save_failed', request.url));
+    }
+
+    // Redirect back with success
+    return NextResponse.redirect(new URL('/?vercel_connected=true', request.url));
+  } catch (err) {
+    console.error('Vercel OAuth error:', err);
+    return NextResponse.redirect(new URL('/?error=vercel_oauth_failed', request.url));
+  }
+}
+```
+
+## Step 17: Create Integration Status Route
+
+**Create:** `src/app/api/integrations/status/route.ts`
+
+```typescript
+/**
+ * GET /api/integrations/status
+ * Get user's connected integrations
+ */
+
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { createClient } from '@/utils/supabase/server';
+
+export async function GET() {
+  try {
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: integrations, error } = await supabase
+      .from('user_integrations')
+      .select('id, provider, account_id, account_name, created_at')
+      .eq('user_id', user.id);
+
+    if (error) {
+      return NextResponse.json(
+        { success: false, error: 'Failed to fetch integrations' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      integrations: integrations.map((i) => ({
+        id: i.id,
+        provider: i.provider,
+        accountId: i.account_id,
+        accountName: i.account_name,
+        connectedAt: i.created_at,
+      })),
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch integrations' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+## Step 18: Create DeploymentService
+
+**Create:** `src/services/DeploymentService.ts`
+
+```typescript
+/**
+ * DeploymentService
+ * Handles Vercel deployment via API
+ */
+
+import { createClient } from '@/utils/supabase/server';
+import { decrypt } from './TokenEncryption';
+import type { DeploymentResult, DeploymentStatus } from '@/types/deployment';
+
+export class DeploymentService {
+  /**
+   * Get decrypted Vercel token for a user
+   */
+  static async getVercelToken(
+    supabase: ReturnType<typeof createClient>,
+    userId: string
+  ): Promise<string | null> {
+    const { data, error } = await supabase
+      .from('user_integrations')
+      .select('access_token_encrypted')
+      .eq('user_id', userId)
+      .eq('provider', 'vercel')
+      .single();
+
+    if (error || !data) return null;
+
+    try {
+      return decrypt(data.access_token_encrypted);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Deploy app to Vercel
+   */
+  static async deployToVercel(params: {
+    token: string;
+    projectName: string;
+    files: Record<string, string>;
+  }): Promise<DeploymentResult> {
+    const { token, projectName, files } = params;
+
+    try {
+      // Create deployment using Vercel API
+      const response = await fetch('https://api.vercel.com/v13/deployments', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: projectName,
+          files: Object.entries(files).map(([path, content]) => ({
+            file: path,
+            data: Buffer.from(content).toString('base64'),
+            encoding: 'base64',
+          })),
+          projectSettings: {
+            framework: 'nextjs',
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        return {
+          success: false,
+          error: error.error?.message || 'Deployment failed',
+        };
+      }
+
+      const deployment = await response.json();
+
+      return {
+        success: true,
+        deploymentId: deployment.id,
+        url: `https://${deployment.url}`,
+        status: deployment.readyState as DeploymentStatus,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to create deployment',
+      };
+    }
+  }
+
+  /**
+   * Check deployment status
+   */
+  static async getDeploymentStatus(
+    token: string,
+    deploymentId: string
+  ): Promise<{ status: DeploymentStatus; url?: string }> {
+    const response = await fetch(`https://api.vercel.com/v13/deployments/${deploymentId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+      return { status: 'error' };
+    }
+
+    const deployment = await response.json();
+
+    return {
+      status: deployment.readyState as DeploymentStatus,
+      url: deployment.url ? `https://${deployment.url}` : undefined,
+    };
+  }
+}
+```
+
+## Step 19: Create Deploy API Route
+
+**Create:** `src/app/api/deploy/vercel/route.ts`
+
+```typescript
+/**
+ * POST /api/deploy/vercel
+ * Deploy app to Vercel
+ */
+
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { createClient } from '@/utils/supabase/server';
+import { DeploymentService } from '@/services/DeploymentService';
+import { DeployRequestSchema } from '@/types/deployment';
+import { generatePackageJson, generateReadme } from '@/utils/exportApp';
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+
+    // Validate request
+    const parseResult = DeployRequestSchema.safeParse(body);
+    if (!parseResult.success) {
+      return NextResponse.json({ success: false, error: 'Invalid request' }, { status: 400 });
+    }
+
+    const { appId, projectName } = parseResult.data;
+
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
+
+    // Get authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get app data
+    const { data: app, error: appError } = await supabase
+      .from('generated_apps')
+      .select('*')
+      .eq('id', appId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (appError || !app) {
+      return NextResponse.json({ success: false, error: 'App not found' }, { status: 404 });
+    }
+
+    // Get Vercel token
+    const token = await DeploymentService.getVercelToken(supabase, user.id);
+    if (!token) {
+      return NextResponse.json({ success: false, error: 'Vercel not connected' }, { status: 400 });
+    }
+
+    // Prepare files for deployment
+    const files: Record<string, string> = {
+      'src/App.tsx': app.code,
+      'package.json': generatePackageJson(app.title),
+      'README.md': generateReadme(app.title, app.description || ''),
+      // Add other necessary files...
+    };
+
+    // Deploy
+    const result = await DeploymentService.deployToVercel({
+      token,
+      projectName: projectName || app.title.toLowerCase().replace(/\s+/g, '-'),
+      files,
+    });
+
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error('Deploy error:', error);
+    return NextResponse.json({ success: false, error: 'Deployment failed' }, { status: 500 });
+  }
+}
+```
+
+## Step 20: Create useDeployment Hook
+
+**Create:** `src/hooks/useDeployment.ts`
+
+```typescript
+/**
+ * useDeployment Hook
+ * Manages deployment state and operations
+ */
+
+import { useState, useCallback, useEffect } from 'react';
+import type { UserIntegration, DeploymentResult, DeploymentStatus } from '@/types/deployment';
+
+export interface UseDeploymentOptions {
+  onError?: (error: string) => void;
+  onSuccess?: (url: string) => void;
+}
+
+export interface UseDeploymentReturn {
+  // Connection state
+  isVercelConnected: boolean;
+  vercelAccount: { name: string; id: string } | null;
+  integrations: UserIntegration[];
+  isLoadingIntegrations: boolean;
+
+  // Actions
+  connectVercel: () => void;
+  disconnectVercel: () => Promise<void>;
+  refreshIntegrations: () => Promise<void>;
+
+  // Deployment
+  deployToVercel: (appId: string, projectName?: string) => Promise<DeploymentResult>;
+  deploymentStatus: DeploymentStatus | null;
+  deploymentUrl: string | null;
+  isDeploying: boolean;
+  error: string | null;
+  clearError: () => void;
+}
+
+export function useDeployment(options?: UseDeploymentOptions): UseDeploymentReturn {
+  const { onError, onSuccess } = options || {};
+
+  const [integrations, setIntegrations] = useState<UserIntegration[]>([]);
+  const [isLoadingIntegrations, setIsLoadingIntegrations] = useState(true);
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [deploymentStatus, setDeploymentStatus] = useState<DeploymentStatus | null>(null);
+  const [deploymentUrl, setDeploymentUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const clearError = useCallback(() => setError(null), []);
+
+  // Fetch integrations on mount
+  const refreshIntegrations = useCallback(async () => {
+    setIsLoadingIntegrations(true);
+    try {
+      const response = await fetch('/api/integrations/status');
+      const data = await response.json();
+
+      if (data.success) {
+        setIntegrations(data.integrations);
+      }
+    } catch {
+      // Silent fail - user may not be logged in
+    } finally {
+      setIsLoadingIntegrations(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshIntegrations();
+  }, [refreshIntegrations]);
+
+  // Derived state
+  const vercelIntegration = integrations.find((i) => i.provider === 'vercel');
+  const isVercelConnected = !!vercelIntegration;
+  const vercelAccount = vercelIntegration
+    ? { name: vercelIntegration.accountName || 'Unknown', id: vercelIntegration.accountId || '' }
+    : null;
+
+  // Connect to Vercel (redirect to OAuth)
+  const connectVercel = useCallback(() => {
+    window.location.href = '/api/integrations/vercel/authorize';
+  }, []);
+
+  // Disconnect Vercel
+  const disconnectVercel = useCallback(async () => {
+    try {
+      const response = await fetch('/api/integrations/vercel/disconnect', {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error);
+      }
+
+      await refreshIntegrations();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to disconnect';
+      setError(message);
+      onError?.(message);
+    }
+  }, [refreshIntegrations, onError]);
+
+  // Deploy to Vercel
+  const deployToVercel = useCallback(
+    async (appId: string, projectName?: string): Promise<DeploymentResult> => {
+      setIsDeploying(true);
+      setError(null);
+      setDeploymentStatus('pending');
+
+      try {
+        const response = await fetch('/api/deploy/vercel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ appId, projectName }),
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error);
+        }
+
+        setDeploymentStatus(result.status);
+        setDeploymentUrl(result.url);
+        onSuccess?.(result.url);
+
+        return result;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Deployment failed';
+        setError(message);
+        setDeploymentStatus('error');
+        onError?.(message);
+        return { success: false, error: message };
+      } finally {
+        setIsDeploying(false);
+      }
+    },
+    [onError, onSuccess]
+  );
+
+  return {
+    isVercelConnected,
+    vercelAccount,
+    integrations,
+    isLoadingIntegrations,
+    connectVercel,
+    disconnectVercel,
+    refreshIntegrations,
+    deployToVercel,
+    deploymentStatus,
+    deploymentUrl,
+    isDeploying,
+    error,
+    clearError,
+  };
+}
+```
+
+## Step 21: Update DeploymentModal
+
+**Modify:** `src/components/modals/DeploymentModal.tsx`
+
+Add Vercel connection and deploy UI (integrate with existing modal).
+
+---
+
+# Complete File Summary
+
+## Files to Create (14 files)
+
+| File                                                 | Phase | Purpose                              |
+| ---------------------------------------------------- | ----- | ------------------------------------ |
+| `src/types/deployment.ts`                            | 1+2   | All deployment types and Zod schemas |
+| `src/app/preview/[slug]/page.tsx`                    | 1     | Public preview page                  |
+| `src/app/preview/[slug]/layout.tsx`                  | 1     | Minimal preview layout               |
+| `src/app/api/preview/[slug]/route.ts`                | 1     | GET public app data                  |
+| `src/app/api/apps/[id]/share/route.ts`               | 1     | POST/DELETE share toggle             |
+| `src/components/modals/ShareModal.tsx`               | 1     | Share UI with toggle + copy          |
+| `src/components/preview/PreviewBanner.tsx`           | 1     | "Built with AI App Builder" footer   |
+| `src/services/TokenEncryption.ts`                    | 2     | AES-256-GCM token encryption         |
+| `src/services/DeploymentService.ts`                  | 2     | Vercel API integration               |
+| `src/hooks/useDeployment.ts`                         | 2     | Deployment state management          |
+| `src/app/api/integrations/vercel/authorize/route.ts` | 2     | Start OAuth                          |
+| `src/app/api/integrations/vercel/callback/route.ts`  | 2     | OAuth callback                       |
+| `src/app/api/integrations/status/route.ts`           | 2     | Check connections                    |
+| `src/app/api/deploy/vercel/route.ts`                 | 2     | Deploy to Vercel                     |
+
+## Files to Modify (5 files)
+
+| File                                        | Changes                                          |
+| ------------------------------------------- | ------------------------------------------------ |
+| `src/types/supabase.ts`                     | Add preview fields + user_integrations table     |
+| `src/middleware.ts`                         | Allow /preview/_ and /api/preview/_ without auth |
+| `src/components/AIBuilder.tsx`              | Add share button + ShareModal                    |
+| `src/hooks/useDatabaseSync.ts`              | Handle preview_slug, preview_enabled             |
+| `src/components/modals/DeploymentModal.tsx` | Add Vercel OAuth + deploy UI                     |
+
+---
+
+## SQL Migrations (Run Manually)
+
+### Migration 1: Preview URLs
+
+```sql
+ALTER TABLE generated_apps
+  ADD COLUMN IF NOT EXISTS preview_slug VARCHAR(12) UNIQUE,
+  ADD COLUMN IF NOT EXISTS preview_enabled BOOLEAN DEFAULT true;
+
+CREATE INDEX IF NOT EXISTS idx_preview_slug
+  ON generated_apps(preview_slug) WHERE preview_slug IS NOT NULL;
+
+CREATE POLICY "Public preview access" ON generated_apps
+  FOR SELECT USING (is_public = true AND preview_enabled = true);
+```
+
+### Migration 2: User Integrations
 
 ```sql
 CREATE TABLE user_integrations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES user_profiles(user_id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES user_profiles(user_id) ON DELETE CASCADE,
   provider VARCHAR(20) NOT NULL,
   access_token_encrypted TEXT NOT NULL,
   refresh_token_encrypted TEXT,
@@ -114,41 +1615,9 @@ CREATE POLICY "Users manage own integrations" ON user_integrations
   FOR ALL USING (auth.uid() = user_id);
 ```
 
-### Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/services/TokenEncryption.ts` | Encrypt/decrypt OAuth tokens |
-| `src/services/DeploymentService.ts` | Prepare files, call Vercel API |
-| `src/hooks/useDeployment.ts` | Manage deployment state |
-| `src/app/api/integrations/vercel/authorize/route.ts` | Start OAuth |
-| `src/app/api/integrations/vercel/callback/route.ts` | Handle callback |
-| `src/app/api/integrations/status/route.ts` | Check connection status |
-| `src/app/api/deploy/vercel/route.ts` | Deploy app |
-
-### Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/types/supabase.ts` | Add `user_integrations` table |
-| `src/components/modals/DeploymentModal.tsx` | Add connect + deploy buttons |
-
-### Implementation Steps
-
-1. Create Vercel OAuth app (manual)
-2. Add environment variables
-3. Run SQL migration
-4. Create TokenEncryption service
-5. Create OAuth routes
-6. Create DeploymentService
-7. Create deploy API route
-8. Create useDeployment hook
-9. Redesign DeploymentModal
-10. Test end-to-end
-
 ---
 
-## Dependencies to Add
+## Dependencies
 
 ```bash
 npm install nanoid
@@ -156,44 +1625,39 @@ npm install nanoid
 
 ---
 
+## Estimated Effort
+
+| Phase                  | Effort           |
+| ---------------------- | ---------------- |
+| Phase 1: Preview URLs  | ~4-6 hours       |
+| Phase 2: Vercel Deploy | ~6-8 hours       |
+| **Total**              | **~10-14 hours** |
+
+---
+
 ## User Journeys
 
 ### Sharing (2 clicks)
+
 1. User clicks "Share" button
-2. Toggles "Make Public" → copies link
+2. Toggles "Make Public" and copies link
 3. Anyone can view at `/preview/abc123`
 
 ### Deploying to Web (3 clicks)
+
 1. User clicks "Deploy"
 2. Connects Vercel (one-time OAuth)
-3. Clicks "Deploy Now" → gets live URL
-
-### Deploying to Mobile (5 clicks first time, 2 clicks after)
-1. User clicks "Deploy" → selects "Mobile App"
-2. Chooses platform (Android/iOS/Both)
-3. Configures store credentials (one-time)
-4. Reviews app metadata
-5. Clicks "Deploy to Store" → monitors progress
+3. Clicks "Deploy Now" and gets live URL
 
 ---
 
 ## Security Checklist
 
-### Web Deployment
 - [ ] RLS ensures only public apps accessible via preview
 - [ ] Validate user owns app before sharing/deploying
 - [ ] CSRF protection in OAuth flow (state param)
 - [ ] Encrypt tokens at rest (AES-256-GCM)
 - [ ] No secrets in client-side code
-
-### Mobile Deployment
-- [ ] Encrypt mobile credentials at rest (AES-256-GCM)
-- [ ] Validate user owns app before mobile deployment
-- [ ] Secure keystore password handling (never logged)
-- [ ] Validate bundle IDs against injection attacks
-- [ ] Rate limit mobile builds (expensive operation)
-- [ ] Sanitize app metadata before submission
-- [ ] Secure webhook endpoints with signature verification
 
 ---
 
@@ -203,274 +1667,3 @@ npm install nanoid
 - Existing `is_public` field finally gets used
 - ZIP export remains as fallback option
 - Can add Netlify later with same pattern
-
----
-
-## Phase 3: One-Click Deploy to Mobile App Stores
-
-Convert your generated web apps into native mobile applications and publish them directly to the Google Play Store (Android) and Apple App Store (iOS) with minimal friction.
-
-### Overview
-
-This phase uses [Capacitor](https://capacitorjs.com/) to wrap React web applications as native mobile apps. Capacitor allows web apps to run natively on iOS and Android with access to native device features while maintaining a single codebase.
-
-> **Framework Compatibility**: Capacitor works with any web framework (React, Vue, Angular, vanilla JS). Since this app builder generates React applications, all generated apps are fully compatible with Capacitor's mobile deployment pipeline.
-
-### Prerequisites
-
-#### General Requirements
-1. A generated app that is ready for deployment
-2. App icons and splash screens (can be auto-generated)
-3. Valid app metadata (name, description, screenshots)
-
-#### Android (Google Play Store)
-1. **Google Play Console Account** ($25 one-time registration fee)
-2. **Service Account** with Google Play Developer API access
-3. **Signing Keystore** for Android app signing
-
-#### iOS (Apple App Store)
-1. **Apple Developer Program Account** ($99/year)
-2. **App Store Connect API Key**
-3. **Code Signing Certificates** and **Provisioning Profiles**
-4. **Xcode Cloud** or **Fastlane** for automated builds (iOS builds require macOS)
-
-### Environment Variables
-
-```bash
-# Google Play Store (Android)
-GOOGLE_PLAY_SERVICE_ACCOUNT_JSON=base64_encoded_service_account_json
-ANDROID_KEYSTORE_BASE64=base64_encoded_keystore
-ANDROID_KEYSTORE_PASSWORD=your_keystore_password
-ANDROID_KEY_ALIAS=your_key_alias
-ANDROID_KEY_PASSWORD=your_key_password
-
-# Apple App Store (iOS)
-APPLE_API_KEY_ID=your_api_key_id
-APPLE_API_ISSUER_ID=your_issuer_id
-APPLE_API_KEY_BASE64=base64_encoded_p8_key
-APPLE_TEAM_ID=your_team_id
-APP_STORE_CONNECT_APP_ID=your_app_id
-
-# Common
-MOBILE_BUILD_WEBHOOK_URL=https://yourapp.com/api/mobile/webhook
-```
-
-### Database Migration
-
-```sql
--- Add mobile deployment tracking table
-CREATE TABLE mobile_deployments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  app_id UUID REFERENCES generated_apps(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES user_profiles(user_id) ON DELETE CASCADE,
-  platform VARCHAR(20) NOT NULL CHECK (platform IN ('android', 'ios')),
-  status VARCHAR(50) NOT NULL DEFAULT 'pending',
-  version_name VARCHAR(20),
-  version_code INTEGER,
-  bundle_id VARCHAR(255),
-  store_listing_url TEXT,
-  build_log TEXT,
-  error_message TEXT,
-  submitted_at TIMESTAMPTZ,
-  published_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Store mobile app credentials per user
-CREATE TABLE mobile_credentials (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES user_profiles(user_id) ON DELETE CASCADE,
-  platform VARCHAR(20) NOT NULL CHECK (platform IN ('android', 'ios')),
-  credentials_encrypted TEXT NOT NULL,
-  account_email VARCHAR(255),
-  account_name VARCHAR(100),
-  is_configured BOOLEAN DEFAULT false,
-  last_validated_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, platform)
-);
-
-ALTER TABLE mobile_deployments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE mobile_credentials ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users manage own mobile deployments" ON mobile_deployments
-  FOR ALL USING (auth.uid() = user_id);
-
-CREATE POLICY "Users manage own mobile credentials" ON mobile_credentials
-  FOR ALL USING (auth.uid() = user_id);
-
-CREATE INDEX idx_mobile_deployments_app ON mobile_deployments(app_id);
-CREATE INDEX idx_mobile_deployments_user ON mobile_deployments(user_id);
-```
-
-### Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/services/MobileDeploymentService.ts` | Orchestrate mobile build and deploy |
-| `src/services/CapacitorBuildService.ts` | Generate Capacitor project from web app |
-| `src/services/AndroidDeployService.ts` | Build APK/AAB and upload to Play Store |
-| `src/services/IOSDeployService.ts` | Trigger iOS build and upload to App Store |
-| `src/services/MobileAssetGenerator.ts` | Generate app icons and splash screens |
-| `src/hooks/useMobileDeployment.ts` | Manage mobile deployment state |
-| `src/app/api/mobile/configure/route.ts` | Save mobile credentials |
-| `src/app/api/mobile/deploy/android/route.ts` | Deploy to Google Play |
-| `src/app/api/mobile/deploy/ios/route.ts` | Deploy to Apple App Store |
-| `src/app/api/mobile/status/[id]/route.ts` | Check deployment status |
-| `src/app/api/mobile/webhook/route.ts` | Handle build completion webhooks |
-| `src/components/modals/MobileDeployModal.tsx` | Mobile deployment wizard UI |
-| `src/components/mobile/MobileCredentialsForm.tsx` | Credential setup form |
-| `src/components/mobile/DeploymentProgress.tsx` | Real-time deployment status |
-
-### Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/types/supabase.ts` | Add `mobile_deployments`, `mobile_credentials` types |
-| `src/components/modals/DeploymentModal.tsx` | Add mobile platform options |
-| `src/components/AIBuilder.tsx` | Add mobile deploy button |
-
-### Implementation Steps
-
-#### Android Deployment Flow
-
-1. **Configure Credentials** (one-time setup)
-   - User uploads Google Play Service Account JSON
-   - User provides keystore file and passwords
-   - Credentials are encrypted and stored
-
-2. **Prepare App for Mobile**
-   - Generate `capacitor.config.ts` with app metadata
-   - Create Android project structure
-   - Generate app icons (adaptive icons for Android)
-   - Generate splash screen assets
-
-3. **Build Android App**
-   - Run Capacitor sync to copy web assets
-   - Build release AAB (Android App Bundle)
-   - Sign the bundle with user's keystore
-
-4. **Upload to Play Store**
-   - Use Google Play Developer API
-   - Upload AAB to internal testing track
-   - Optionally promote to production
-
-#### iOS Deployment Flow
-
-1. **Configure Credentials** (one-time setup)
-   - User provides App Store Connect API key
-   - User provides Team ID and App ID
-   - Credentials are encrypted and stored
-
-2. **Prepare App for Mobile**
-   - Generate `capacitor.config.ts` with app metadata
-   - Create iOS project structure
-   - Generate app icons (all required iOS sizes)
-   - Generate launch screen storyboard
-
-3. **Trigger iOS Build**
-   - Send build request to cloud build service (e.g., Codemagic, Bitrise, or custom macOS runner)
-   - Build IPA with proper code signing
-   - Wait for build completion via webhook
-
-4. **Upload to App Store**
-   - Use App Store Connect API
-   - Upload IPA to TestFlight
-   - Submit for review (optional)
-
-### User Journey
-
-#### Mobile Deployment (5 clicks first time, 2 clicks after setup)
-
-**First-time Setup:**
-1. User clicks "Deploy" → selects "Mobile App"
-2. Chooses platform (Android/iOS/Both)
-3. Configures store credentials (one-time)
-4. Reviews app metadata (name, bundle ID, version)
-5. Clicks "Deploy to Store"
-
-**Subsequent Deployments:**
-1. User clicks "Deploy" → selects "Mobile App"
-2. Clicks "Deploy to Store" → monitors progress
-
-### Technical Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      User Interface                         │
-│  MobileDeployModal → Platform Selection → Credential Setup  │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-┌─────────────────────▼───────────────────────────────────────┐
-│                  API Routes                                  │
-│  /api/mobile/deploy/android    /api/mobile/deploy/ios       │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-┌─────────────────────▼───────────────────────────────────────┐
-│              MobileDeploymentService                         │
-│  Orchestrates the entire mobile deployment pipeline          │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-         ┌────────────┴────────────┐
-         ▼                         ▼
-┌─────────────────────┐  ┌─────────────────────┐
-│ CapacitorBuildService│  │ MobileAssetGenerator │
-│ - Generate config    │  │ - App icons          │
-│ - Sync web assets    │  │ - Splash screens     │
-│ - Build native apps  │  │ - Store screenshots  │
-└─────────┬───────────┘  └─────────────────────┘
-          │
-    ┌─────┴─────┐
-    ▼           ▼
-┌────────┐ ┌────────┐
-│Android │ │  iOS   │
-│Deploy  │ │Deploy  │
-│Service │ │Service │
-└────┬───┘ └────┬───┘
-     │          │
-     ▼          ▼
-┌────────┐ ┌────────────┐
-│ Google │ │ App Store  │
-│ Play   │ │ Connect    │
-│ API    │ │ API        │
-└────────┘ └────────────┘
-```
-
-### Dependencies to Add
-
-```bash
-npm install @capacitor/core@^6.0.0 @capacitor/cli@^6.0.0 @capacitor/android@^6.0.0 @capacitor/ios@^6.0.0
-npm install sharp@^0.33.0  # For image resizing (icons/splash screens)
-```
-
-### Important Considerations
-
-#### iOS Build Requirements
-- iOS apps **must** be built on macOS with Xcode
-- Options for serverless iOS builds:
-
-| Option | Cost | Performance | Best For |
-|--------|------|-------------|----------|
-| **Codemagic** | Free tier: 500 min/month, $95+/month paid | Fast, ~5-10 min builds | Production apps, teams |
-| **Bitrise** | Free tier: limited, $90+/month paid | Fast, ~5-15 min builds | CI/CD focused teams |
-| **GitHub Actions (macOS)** | $0.08/min (10x Linux cost) | Variable, ~10-20 min | Open source, occasional builds |
-| **Self-hosted Mac mini** | ~$700 one-time + maintenance | Fastest, full control | High volume, cost-sensitive |
-
-#### App Store Guidelines
-- Both stores have review processes (1-7 days typically)
-- Apps must comply with platform guidelines
-- Certain app types may require additional verification
-
-#### Bundle Identifiers
-- Android: `com.yourcompany.appname`
-- iOS: `com.yourcompany.appname`
-- Must be unique across all apps in each store
-- Cannot be changed after first submission
-
-**Auto-generation Strategy:**
-- System generates unique bundle IDs using: `com.aiappbuilder.{user_id_short}.{app_name_slug}`
-- Example: `com.aiappbuilder.u7k3m.my-todo-app`
-- Users can customize the bundle ID before first deployment
-- Collision detection prevents duplicate bundle IDs across the platform
