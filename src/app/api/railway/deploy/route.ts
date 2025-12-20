@@ -461,11 +461,10 @@ async function deployToService(
 
   // Trigger a deployment using a Nixpacks build with custom start command
   // that extracts files from APP_FILES env var and runs the app
-  const data = await railwayQuery(
+  // Note: serviceInstanceUpdate returns Boolean, not an object
+  await railwayQuery(
     `mutation ServiceInstanceUpdate($serviceId: String!, $input: ServiceInstanceUpdateInput!) {
-      serviceInstanceUpdate(serviceId: $serviceId, input: $input) {
-        id
-      }
+      serviceInstanceUpdate(serviceId: $serviceId, input: $input)
     }`,
     {
       serviceId,
@@ -495,7 +494,8 @@ async function deployToService(
     }
   );
 
-  return { deploymentId: data.serviceInstanceUpdate?.id || serviceId };
+  // Use serviceId as deployment identifier (Railway doesn't return a deployment ID here)
+  return { deploymentId: serviceId };
 }
 
 // ============================================================================
