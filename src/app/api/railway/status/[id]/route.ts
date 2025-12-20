@@ -55,13 +55,13 @@ async function getDeploymentStatus(
     log.debug('Fetching deployment status', { serviceId });
 
     // Get service details including deployments
-    // Using a simpler query that's more reliable
+    // Note: Railway returns deployments in reverse chronological order by default
     const data = await railwayQuery(
       `query GetService($serviceId: String!) {
         service(id: $serviceId) {
           id
           name
-          deployments(first: 1, orderBy: { createdAt: DESC }) {
+          deployments(first: 1) {
             edges {
               node {
                 id
