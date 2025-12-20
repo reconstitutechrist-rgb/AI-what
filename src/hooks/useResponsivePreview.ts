@@ -15,11 +15,11 @@ import type { BreakpointConfig } from '@/types/layoutDesign';
 // ============================================================================
 
 export interface DevicePreset {
-  id: string;
+  id: 'desktop' | 'phone';
   name: string;
   width: number;
   height: number;
-  category: 'mobile' | 'tablet' | 'laptop' | 'desktop';
+  category: 'mobile' | 'desktop';
   icon: string;
 }
 
@@ -63,35 +63,19 @@ const DEFAULT_BREAKPOINTS: BreakpointConfig = {
   '2xl': 1536,
 };
 
+// Simplified to just 2 views: Desktop and Phone
+// Apps auto-adjust to actual screen sizes when deployed
 const DEVICE_PRESETS: DevicePreset[] = [
-  // Mobile devices - simplified to common sizes
-  { id: 'iphone-se', name: 'iPhone SE', width: 375, height: 667, category: 'mobile', icon: '📱' },
-  { id: 'iphone-14', name: 'iPhone 14', width: 390, height: 844, category: 'mobile', icon: '📱' },
-
-  // Tablets - simplified to common sizes
-  { id: 'ipad', name: 'iPad', width: 768, height: 1024, category: 'tablet', icon: '📲' },
-  { id: 'ipad-pro', name: 'iPad Pro', width: 1024, height: 1366, category: 'tablet', icon: '📲' },
-
-  // Laptops - one common size
-  { id: 'laptop', name: 'Laptop', width: 1280, height: 800, category: 'laptop', icon: '💻' },
-
-  // Desktops - one common size
-  {
-    id: 'desktop-hd',
-    name: 'Desktop HD',
-    width: 1920,
-    height: 1080,
-    category: 'desktop',
-    icon: '🖥️',
-  },
+  { id: 'desktop', name: 'Desktop', width: 1280, height: 800, category: 'desktop', icon: '🖥️' },
+  { id: 'phone', name: 'Phone', width: 390, height: 844, category: 'mobile', icon: '📱' },
 ];
 
 const DEFAULT_STATE: ResponsivePreviewState = {
   width: 1280,
   height: 800,
-  orientation: 'portrait',
+  orientation: 'landscape', // Desktop is always landscape
   activeBreakpoint: null,
-  devicePreset: 'laptop',
+  devicePreset: 'desktop',
 };
 
 // ============================================================================
@@ -125,20 +109,22 @@ export function useResponsivePreview(
     }));
   }, []);
 
-  // Toggle orientation
+  // Toggle between Desktop and Phone view
   const toggleOrientation = useCallback(() => {
     setState((prev) => {
-      const newOrientation = prev.orientation === 'portrait' ? 'landscape' : 'portrait';
-      // Swap width and height if a device preset is selected
-      if (prev.devicePreset) {
+      // Switch between desktop and phone
+      const newDevice = prev.devicePreset === 'desktop' ? 'phone' : 'desktop';
+      const device = DEVICE_PRESETS.find((d) => d.id === newDevice);
+      if (device) {
         return {
-          ...prev,
-          orientation: newOrientation,
-          width: prev.height === 'auto' ? prev.width : (prev.height as number),
-          height: prev.height === 'auto' ? 'auto' : prev.width,
+          width: device.width,
+          height: device.height,
+          orientation: device.category === 'desktop' ? 'landscape' : 'portrait',
+          devicePreset: newDevice,
+          activeBreakpoint: null,
         };
       }
-      return { ...prev, orientation: newOrientation };
+      return prev;
     });
   }, []);
 
@@ -158,17 +144,18 @@ export function useResponsivePreview(
     [breakpoints]
   );
 
-  // Select device preset
+  // Select device preset - Desktop or Phone with fixed dimensions
   const selectDevicePreset = useCallback((deviceId: string) => {
     const device = DEVICE_PRESETS.find((d) => d.id === deviceId);
     if (device) {
-      setState((prev) => ({
-        ...prev,
-        width: prev.orientation === 'landscape' ? device.height : device.width,
-        height: prev.orientation === 'landscape' ? device.width : device.height,
+      setState({
+        width: device.width,
+        height: device.height,
+        // Desktop is landscape, Phone is portrait
+        orientation: device.category === 'desktop' ? 'landscape' : 'portrait',
         devicePreset: deviceId,
         activeBreakpoint: null,
-      }));
+      });
     }
   }, []);
 
@@ -186,16 +173,16 @@ export function useResponsivePreview(
     setBreakpoints(DEFAULT_BREAKPOINTS);
   }, []);
 
-  // Compute current breakpoint name
+  // Compute current breakpoint name based on width
+  const { width: currentWidth } = state;
   const currentBreakpointName = useMemo(() => {
-    const { width } = state;
-    if (width < breakpoints.sm) return 'xs';
-    if (width < breakpoints.md) return 'sm';
-    if (width < breakpoints.lg) return 'md';
-    if (width < breakpoints.xl) return 'lg';
-    if (width < breakpoints['2xl']) return 'xl';
+    if (currentWidth < breakpoints.sm) return 'xs';
+    if (currentWidth < breakpoints.md) return 'sm';
+    if (currentWidth < breakpoints.lg) return 'md';
+    if (currentWidth < breakpoints.xl) return 'lg';
+    if (currentWidth < breakpoints['2xl']) return 'xl';
     return '2xl';
-  }, [state.width, breakpoints]);
+  }, [currentWidth, breakpoints]);
 
   // Check if at a specific breakpoint
   const isAtBreakpoint = useCallback(

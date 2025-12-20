@@ -29,7 +29,6 @@ interface PreviewContainerProps {
   enableTouchSimulation?: boolean;
   showConsole?: boolean;
   onConsoleToggle?: () => void;
-  showDeviceFrame?: boolean;
   // Mode selector visibility
   showModeSelector?: boolean;
   className?: string;
@@ -158,7 +157,6 @@ export function PreviewContainer({
   enableTouchSimulation = true,
   showConsole = false,
   onConsoleToggle,
-  showDeviceFrame = true,
   showModeSelector = true,
   className = '',
 }: PreviewContainerProps) {
@@ -275,7 +273,6 @@ export function PreviewContainer({
             enableTouchSimulation={enableTouchSimulation}
             showConsole={showConsole}
             onConsoleToggle={onConsoleToggle}
-            showDeviceFrame={showDeviceFrame}
           />
         )}
       </div>

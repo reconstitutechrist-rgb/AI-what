@@ -39,25 +39,12 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
   const captureFunc = useRef<(() => Promise<string | null>) | null>(null);
   const { showToast } = useToast();
 
-  // Responsive preview state
-  const {
-    state: responsiveState,
-    devicePresets,
-    breakpoints,
-    currentBreakpointName,
-    selectDevicePreset,
-    toggleOrientation,
-    resetToDefault,
-  } = useResponsivePreview();
+  // Responsive preview state - simplified to just desktop/phone
+  const { state: responsiveState, selectDevicePreset } = useResponsivePreview();
 
-  // Local state for console and device frame visibility
-  // Initialize from user settings and sync changes back
+  // Local state for console visibility
   const { updatePreviewSettings } = useSettings();
-  const [showConsole, setShowConsole] = useState(false); // Start collapsed, will sync on mount
-  const [showDeviceFrame, setShowDeviceFrame] = useState(true);
-
-  // Note: showConsole starts collapsed by default. User can expand it and the preference
-  // will be remembered via handleToggleConsole which calls updatePreviewSettings.
+  const [showConsole, setShowConsole] = useState(false);
 
   // Toggle console panel and persist to settings
   const handleToggleConsole = useCallback(() => {
@@ -67,23 +54,6 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
       return newValue;
     });
   }, [updatePreviewSettings]);
-
-  // Toggle device frame
-  const handleToggleDeviceFrame = useCallback(() => {
-    setShowDeviceFrame((prev) => !prev);
-  }, []);
-
-  // Handle device selection
-  const handleSelectDevice = useCallback(
-    (deviceId: string) => {
-      if (deviceId === 'none') {
-        resetToDefault();
-      } else {
-        selectDevicePreset(deviceId);
-      }
-    },
-    [selectDevicePreset, resetToDefault]
-  );
 
   // Handle capture function from PowerfulPreview
   const handleCaptureReady = useCallback((fn: () => Promise<string | null>) => {
@@ -206,16 +176,9 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
       {activeTab === 'preview' && (
         <DeviceToolbar
           state={responsiveState}
-          devicePresets={devicePresets}
-          breakpoints={breakpoints}
-          currentBreakpointName={currentBreakpointName}
           showConsole={showConsole}
-          showDeviceFrame={showDeviceFrame}
-          onSelectDevice={handleSelectDevice}
-          onToggleOrientation={toggleOrientation}
-          onResetToDefault={resetToDefault}
+          onSelectDevice={selectDevicePreset}
           onToggleConsole={handleToggleConsole}
-          onToggleDeviceFrame={handleToggleDeviceFrame}
           onCapture={handleCapture}
           isCapturing={isCapturing}
           captureSuccess={captureSuccess}
@@ -240,7 +203,6 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
               enableTouchSimulation={true}
               showConsole={showConsole}
               onConsoleToggle={handleToggleConsole}
-              showDeviceFrame={showDeviceFrame}
               showModeSelector={true}
             />
           </div>
@@ -316,20 +278,13 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
   // Normal (non-fullscreen) content - shows the preview with a fullscreen button
   const normalContent = (
     <div className="h-full w-full flex flex-col relative">
-      {/* Device Toolbar - wrapped with z-index to ensure dropdown appears above preview */}
+      {/* Device Toolbar - Desktop/Phone toggle */}
       <div className="relative z-[150] flex-shrink-0">
         <DeviceToolbar
           state={responsiveState}
-          devicePresets={devicePresets}
-          breakpoints={breakpoints}
-          currentBreakpointName={currentBreakpointName}
           showConsole={showConsole}
-          showDeviceFrame={showDeviceFrame}
-          onSelectDevice={handleSelectDevice}
-          onToggleOrientation={toggleOrientation}
-          onResetToDefault={resetToDefault}
+          onSelectDevice={selectDevicePreset}
           onToggleConsole={handleToggleConsole}
-          onToggleDeviceFrame={handleToggleDeviceFrame}
           onCapture={handleCapture}
           isCapturing={isCapturing}
           captureSuccess={captureSuccess}
@@ -352,7 +307,6 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
           enableTouchSimulation={true}
           showConsole={showConsole}
           onConsoleToggle={handleToggleConsole}
-          showDeviceFrame={showDeviceFrame}
           showModeSelector={true}
         />
       </div>

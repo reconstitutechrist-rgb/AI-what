@@ -45,7 +45,6 @@ interface PowerfulPreviewProps {
   enableTouchSimulation?: boolean;
   showConsole?: boolean;
   onConsoleToggle?: () => void;
-  showDeviceFrame?: boolean;
 }
 
 /**
@@ -186,15 +185,13 @@ export default function PowerfulPreview({
   enableTouchSimulation = true,
   showConsole = false,
   onConsoleToggle,
-  showDeviceFrame = true,
 }: PowerfulPreviewProps) {
   // State for error recovery - changing key forces Sandpack to remount
   const [retryCount, setRetryCount] = useState(0);
 
-  // Determine if touch simulation should be active (mobile/tablet devices only)
-  const isMobileOrTablet =
-    devicePreset && ['iphone-se', 'iphone-14', 'ipad', 'ipad-pro'].includes(devicePreset);
-  const shouldEnableTouchSimulation = enableTouchSimulation && isMobileOrTablet;
+  // Determine if touch simulation should be active (phone only)
+  const isPhone = devicePreset === 'phone';
+  const shouldEnableTouchSimulation = Boolean(enableTouchSimulation && isPhone);
   // Parse JSON with error handling to prevent crashes
   const appData = useMemo((): FullAppData | null => {
     try {
@@ -410,7 +407,7 @@ h1, h2, h3, h4, h5, h6 {
     >
       <ErrorBoundary>
         <SandpackProvider
-          key={retryCount}
+          key={`${retryCount}-${devicePreset}`}
           template="react-ts"
           theme="dark"
           files={sandpackFiles}
@@ -456,47 +453,23 @@ h1, h2, h3, h4, h5, h6 {
                     </div>
                   )}
 
-                  {/* All devices render through DeviceFrame when enabled */}
-                  {/* Key forces remount on device change to prevent white screen issues */}
+                  {/* Desktop/Phone preview with DeviceFrame */}
                   <TouchSimulator
                     enabled={shouldEnableTouchSimulation}
                     iframeSelector=".sp-preview-iframe"
                   >
-                    {showDeviceFrame ? (
-                      <DeviceFrame
-                        device={(devicePreset as DeviceType) || 'laptop'}
-                        orientation={orientation}
-                        width={previewWidth}
-                        height={previewHeight === 'auto' ? 800 : previewHeight}
-                      >
-                        <SandpackLayout
-                          key={`${devicePreset}-${orientation}-${previewWidth}`}
-                          style={{
-                            height: '100%',
-                            width: '100%',
-                            border: 'none',
-                            borderRadius: 0,
-                          }}
-                        >
-                          <SandpackPreview
-                            showOpenInCodeSandbox={false}
-                            showRefreshButton={true}
-                            style={{
-                              height: '100%',
-                              width: '100%',
-                            }}
-                          />
-                        </SandpackLayout>
-                      </DeviceFrame>
-                    ) : (
+                    <DeviceFrame
+                      device={(devicePreset as DeviceType) || 'desktop'}
+                      orientation={orientation}
+                      width={previewWidth}
+                      height={previewHeight === 'auto' ? 800 : previewHeight}
+                    >
                       <SandpackLayout
-                        key={`no-frame-${previewWidth}-${previewHeight}`}
                         style={{
-                          height: previewHeight === 'auto' ? 600 : previewHeight,
-                          width: previewWidth,
-                          maxWidth: 'calc(100% - 2rem)',
+                          height: '100%',
+                          width: '100%',
                           border: 'none',
-                          borderRadius: 8,
+                          borderRadius: 0,
                         }}
                       >
                         <SandpackPreview
@@ -508,7 +481,7 @@ h1, h2, h3, h4, h5, h6 {
                           }}
                         />
                       </SandpackLayout>
-                    )}
+                    </DeviceFrame>
                   </TouchSimulator>
                 </div>
 
