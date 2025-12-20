@@ -423,21 +423,39 @@ function buildFileTree(
 }
 
 /**
- * Trigger a deployment for the service
- * This is required after serviceInstanceUpdate to actually start the build
+ * Trigger an initial deployment for the service
+ * serviceInstanceDeploy is for initial deployments (not serviceInstanceRedeploy which is for redeployments)
  */
 async function triggerDeployment(serviceId: string, environmentId: string): Promise<boolean> {
-  const data = await railwayQuery(
-    `mutation ServiceInstanceRedeploy($serviceId: String!, $environmentId: String!) {
-      serviceInstanceRedeploy(serviceId: $serviceId, environmentId: $environmentId)
-    }`,
-    {
-      serviceId,
-      environmentId,
-    }
-  );
-
-  return data.serviceInstanceRedeploy;
+  // Try serviceInstanceDeploy first (for initial deployments)
+  try {
+    const data = await railwayQuery(
+      `mutation ServiceInstanceDeploy($serviceId: String!, $environmentId: String!) {
+        serviceInstanceDeploy(serviceId: $serviceId, environmentId: $environmentId)
+      }`,
+      {
+        serviceId,
+        environmentId,
+      }
+    );
+    railwayLog.debug('serviceInstanceDeploy result', { result: data.serviceInstanceDeploy });
+    return data.serviceInstanceDeploy;
+  } catch (error) {
+    // If serviceInstanceDeploy fails, try serviceInstanceRedeploy as fallback
+    railwayLog.warn('serviceInstanceDeploy failed, trying serviceInstanceRedeploy', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    const data = await railwayQuery(
+      `mutation ServiceInstanceRedeploy($serviceId: String!, $environmentId: String!) {
+        serviceInstanceRedeploy(serviceId: $serviceId, environmentId: $environmentId)
+      }`,
+      {
+        serviceId,
+        environmentId,
+      }
+    );
+    return data.serviceInstanceRedeploy;
+  }
 }
 
 /**
@@ -511,17 +529,24 @@ Object.entries(f).forEach(([p,c])=>{
 console.log('Files extracted:',Object.keys(f).length);
 `.replace(/\n/g, '');
 
-  const startCommand = `node -e "${extractScript}" && npm install && npm run build && npm start`;
+  // Escape single quotes for shell embedding: replace ' with '\''
+  const escapedScript = extractScript.replace(/'/g, "'\\''");
+
+  // Wrap in /bin/sh -c for proper shell execution
+  // Railway Docker image deployments run in exec form which doesn't support && without a shell
+  const startCommand = `/bin/sh -c 'node -e "${escapedScript}" && npm install && npm run build && npm start'`;
 
   railwayLog.debug('Start command', { length: startCommand.length });
 
   // Configure the service with a Docker image and start command
   // Note: serviceInstanceUpdate returns Boolean, not an object
+  // environmentId is required to specify which environment to configure
   await railwayQuery(
-    `mutation ServiceInstanceUpdate($serviceId: String!, $input: ServiceInstanceUpdateInput!) {
-      serviceInstanceUpdate(serviceId: $serviceId, input: $input)
+    `mutation ServiceInstanceUpdate($environmentId: String!, $serviceId: String!, $input: ServiceInstanceUpdateInput!) {
+      serviceInstanceUpdate(environmentId: $environmentId, serviceId: $serviceId, input: $input)
     }`,
     {
+      environmentId,
       serviceId,
       input: {
         source: {
