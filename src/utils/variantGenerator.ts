@@ -260,7 +260,8 @@ function generateGlobalVariants(
       description: 'Dark color scheme with high contrast accents',
       changes: {
         basePreferences: {
-          ...baseDesign.basePreferences,
+          style: baseDesign.basePreferences?.style ?? 'modern',
+          layout: baseDesign.basePreferences?.layout ?? 'single-page',
           colorScheme: 'dark',
         },
         globalStyles: {
@@ -299,7 +300,8 @@ function generateGlobalVariants(
     description: 'Vibrant colors, bouncy animations, and fun rounded shapes',
     changes: {
       basePreferences: {
-        ...baseDesign.basePreferences,
+        colorScheme: baseDesign.basePreferences?.colorScheme ?? 'light',
+        layout: baseDesign.basePreferences?.layout ?? 'single-page',
         style: 'playful',
       },
       globalStyles: {
@@ -358,6 +360,8 @@ function generateHeroVariants(baseDesign: Partial<LayoutDesign>): DesignVariant[
           visible: true,
           layout: 'centered',
           height: 'tall',
+          hasImage: baseHero?.hasImage ?? false,
+          hasSubtitle: baseHero?.hasSubtitle ?? true,
           hasCTA: true,
           ctaCount: 2,
         },
@@ -386,7 +390,9 @@ function generateHeroVariants(baseDesign: Partial<LayoutDesign>): DesignVariant[
           height: 'standard',
           hasImage: true,
           imagePosition: 'right',
+          hasSubtitle: baseHero?.hasSubtitle ?? true,
           hasCTA: true,
+          ctaCount: baseHero?.ctaCount ?? 1,
         },
       },
     },
@@ -413,7 +419,9 @@ function generateHeroVariants(baseDesign: Partial<LayoutDesign>): DesignVariant[
           height: 'fullscreen',
           hasImage: true,
           imagePosition: 'background',
+          hasSubtitle: baseHero?.hasSubtitle ?? true,
           hasCTA: true,
+          ctaCount: baseHero?.ctaCount ?? 1,
         },
       },
     },

@@ -420,7 +420,10 @@ ${JSON.stringify(currentAppState, null, 2)}`;
       validationIssuesFixed: errorsFound - validationErrors.length,
       metadata: {
         filesModified: diffResponse.files.length,
-        totalChanges: diffResponse.files.reduce((sum, f) => sum + f.changes.length, 0),
+        totalChanges: diffResponse.files.reduce(
+          (sum: number, f: { changes: unknown[] }) => sum + f.changes.length,
+          0
+        ),
         hasStaging: !!diffResponse.stagePlan,
         retryAttempts: attemptNumber,
         retriedSuccessfully: attemptNumber > 1,

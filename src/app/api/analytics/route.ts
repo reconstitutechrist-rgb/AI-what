@@ -25,9 +25,10 @@ export async function GET(request: Request) {
 
         return NextResponse.json({
           action: 'summary',
-          period: since
-            ? `last ${Math.round((Date.now() - sinceTimestamp) / 1000 / 60)} minutes`
-            : 'all time',
+          period:
+            sinceTimestamp !== undefined
+              ? `last ${Math.round((Date.now() - sinceTimestamp) / 1000 / 60)} minutes`
+              : 'all time',
           data: summary,
         });
       }

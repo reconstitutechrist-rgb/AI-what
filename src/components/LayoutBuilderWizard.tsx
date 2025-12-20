@@ -27,6 +27,7 @@ import type {
   TypographySettings,
   SpacingSettings,
 } from '@/types/layoutDesign';
+import { defaultGlobalStyles } from '@/types/layoutDesign';
 import type { UIPreferences } from '@/types/appConcept';
 import {
   type DesignTemplate,
@@ -593,11 +594,12 @@ export function LayoutBuilderWizard({
   // Handle effects settings change from DesignControlPanel
   const handleEffectsChange = useCallback(
     (effects: Partial<EffectsSettings>) => {
+      const currentStyles = design.globalStyles ?? defaultGlobalStyles;
       updateDesign({
         globalStyles: {
-          ...design.globalStyles,
+          ...currentStyles,
           effects: {
-            ...design.globalStyles?.effects,
+            ...currentStyles.effects,
             ...effects,
           } as EffectsSettings,
         },
@@ -609,11 +611,12 @@ export function LayoutBuilderWizard({
   // Handle color settings change from DesignControlPanel
   const handleColorSettingsChange = useCallback(
     (colors: Partial<ColorSettings>) => {
+      const currentStyles = design.globalStyles ?? defaultGlobalStyles;
       updateDesign({
         globalStyles: {
-          ...design.globalStyles,
+          ...currentStyles,
           colors: {
-            ...design.globalStyles?.colors,
+            ...currentStyles.colors,
             ...colors,
           } as ColorSettings,
         },
@@ -625,11 +628,12 @@ export function LayoutBuilderWizard({
   // Handle primary color change from DesignControlPanel
   const handlePrimaryColorChange = useCallback(
     (color: string) => {
+      const currentStyles = design.globalStyles ?? defaultGlobalStyles;
       updateDesign({
         globalStyles: {
-          ...design.globalStyles,
+          ...currentStyles,
           colors: {
-            ...design.globalStyles?.colors,
+            ...currentStyles.colors,
             primary: color,
           } as ColorSettings,
         },
@@ -641,11 +645,12 @@ export function LayoutBuilderWizard({
   // Handle typography settings change from DesignControlPanel
   const handleTypographyChange = useCallback(
     (typography: Partial<TypographySettings>) => {
+      const currentStyles = design.globalStyles ?? defaultGlobalStyles;
       updateDesign({
         globalStyles: {
-          ...design.globalStyles,
+          ...currentStyles,
           typography: {
-            ...design.globalStyles?.typography,
+            ...currentStyles.typography,
             ...typography,
           } as TypographySettings,
         },
@@ -657,11 +662,12 @@ export function LayoutBuilderWizard({
   // Handle spacing settings change from DesignControlPanel
   const handleSpacingChange = useCallback(
     (spacing: Partial<SpacingSettings>) => {
+      const currentStyles = design.globalStyles ?? defaultGlobalStyles;
       updateDesign({
         globalStyles: {
-          ...design.globalStyles,
+          ...currentStyles,
           spacing: {
-            ...design.globalStyles?.spacing,
+            ...currentStyles.spacing,
             ...spacing,
           } as SpacingSettings,
         },
@@ -673,11 +679,12 @@ export function LayoutBuilderWizard({
   // Handle accessibility auto-fix
   const handleAccessibilityFix = useCallback(
     (fixes: Partial<ColorSettings>) => {
+      const currentStyles = design.globalStyles ?? defaultGlobalStyles;
       updateDesign({
         globalStyles: {
-          ...design.globalStyles,
+          ...currentStyles,
           colors: {
-            ...design.globalStyles?.colors,
+            ...currentStyles.colors,
             ...fixes,
           } as ColorSettings,
         },
@@ -744,12 +751,13 @@ export function LayoutBuilderWizard({
     if (!extractedColors) return;
 
     const { palette } = extractedColors;
+    const currentStyles = design.globalStyles ?? defaultGlobalStyles;
 
     updateDesign({
       globalStyles: {
-        ...design.globalStyles,
+        ...currentStyles,
         colors: {
-          ...design.globalStyles?.colors,
+          ...currentStyles.colors,
           primary: palette.primary,
           secondary: palette.secondary,
           accent: palette.accent,

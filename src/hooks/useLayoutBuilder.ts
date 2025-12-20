@@ -593,6 +593,7 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
         // Update design with any changes - use updateDesign to track history
         if (data.updatedDesign && Object.keys(data.updatedDesign).length > 0) {
           // Merge updates with current design
+          const baseStyles = defaultLayoutDesign.globalStyles;
           const mergedDesign = {
             ...design,
             ...data.updatedDesign,
@@ -600,18 +601,22 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
               ...design.globalStyles,
               ...data.updatedDesign.globalStyles,
               typography: {
+                ...baseStyles.typography,
                 ...design.globalStyles?.typography,
                 ...data.updatedDesign.globalStyles?.typography,
               },
               colors: {
+                ...baseStyles.colors,
                 ...design.globalStyles?.colors,
                 ...data.updatedDesign.globalStyles?.colors,
               },
               spacing: {
+                ...baseStyles.spacing,
                 ...design.globalStyles?.spacing,
                 ...data.updatedDesign.globalStyles?.spacing,
               },
               effects: {
+                ...baseStyles.effects,
                 ...design.globalStyles?.effects,
                 ...data.updatedDesign.globalStyles?.effects,
               },
@@ -624,7 +629,7 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
               ...design.structure,
               ...data.updatedDesign.structure,
             },
-          };
+          } as Partial<LayoutDesign>;
           setDesign(mergedDesign);
 
           // Update history for undo/redo

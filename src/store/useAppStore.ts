@@ -299,7 +299,7 @@ export const useAppStore = create<AppState>()(
       // ========================================================================
       // CHAT SLICE
       // ========================================================================
-      chatMessages: [],
+      chatMessages: [] as ChatMessage[],
       userInput: '',
       isGenerating: false,
       generationProgress: '',
@@ -329,10 +329,10 @@ export const useAppStore = create<AppState>()(
       // ========================================================================
       // COMPONENTS SLICE
       // ========================================================================
-      components: [],
-      currentComponent: null,
+      components: [] as GeneratedComponent[],
+      currentComponent: null as GeneratedComponent | null,
       loadingApps: true,
-      dbSyncError: null,
+      dbSyncError: null as string | null,
 
       setComponents: (components) =>
         set((state) => ({
@@ -359,8 +359,8 @@ export const useAppStore = create<AppState>()(
       // ========================================================================
       // VERSION CONTROL SLICE
       // ========================================================================
-      undoStack: [],
-      redoStack: [],
+      undoStack: [] as AppVersion[],
+      redoStack: [] as AppVersion[],
       showVersionHistory: false,
 
       setUndoStack: (stack) =>
@@ -431,23 +431,23 @@ export const useAppStore = create<AppState>()(
       // ========================================================================
       // DATA SLICE
       // ========================================================================
-      pendingChange: null,
-      pendingDiff: null,
+      pendingChange: null as PendingChange | null,
+      pendingDiff: null as PendingDiff | null,
       pendingNewAppRequest: '',
-      deploymentInstructions: null,
-      exportingApp: null,
-      compareVersions: { v1: null, v2: null },
-      currentStagePlan: null,
-      newAppStagePlan: null,
-      appConcept: null,
-      implementationPlan: null,
-      qualityReport: null,
-      performanceReport: null,
-      selectedPhaseId: null,
+      deploymentInstructions: null as DeploymentInstructions | null,
+      exportingApp: null as GeneratedComponent | null,
+      compareVersions: { v1: null, v2: null } as CompareVersions,
+      currentStagePlan: null as CurrentStagePlan | null,
+      newAppStagePlan: null as StagePlan | null,
+      appConcept: null as AppConcept | null,
+      implementationPlan: null as ImplementationPlan | null,
+      qualityReport: null as QualityReport | null,
+      performanceReport: null as PerformanceReport | null,
+      selectedPhaseId: null as PhaseId | null,
       isValidating: false,
-      uploadedImage: null,
-      currentLayoutDesign: null,
-      savedLayoutDesigns: [],
+      uploadedImage: null as string | null,
+      currentLayoutDesign: null as LayoutDesign | null,
+      savedLayoutDesigns: [] as LayoutDesign[],
 
       setPendingChange: (change) => set({ pendingChange: change }),
       setPendingDiff: (diff) => set({ pendingDiff: diff }),
@@ -481,7 +481,7 @@ export const useAppStore = create<AppState>()(
       // ========================================================================
       // DOCUMENTATION SLICE
       // ========================================================================
-      currentDocumentation: null,
+      currentDocumentation: null as ProjectDocumentation | null,
       isLoadingDocumentation: false,
       isSavingDocumentation: false,
       showDocumentationPanel: false,
@@ -497,14 +497,14 @@ export const useAppStore = create<AppState>()(
       // FILE STORAGE SLICE
       // ========================================================================
       contentTab: 'apps',
-      storageFiles: [],
+      storageFiles: [] as FileMetadata[],
       loadingFiles: false,
       selectedFiles: new Set<string>(),
       fileSearchQuery: '',
       fileTypeFilter: 'all',
       fileSortBy: 'created_at',
       fileSortOrder: 'desc',
-      storageStats: null,
+      storageStats: null as StorageStats | null,
       uploadingFiles: new Set<string>(),
       deletingFiles: new Set<string>(),
 

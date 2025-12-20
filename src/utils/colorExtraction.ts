@@ -192,7 +192,7 @@ function kMeansClustering(pixels: RGB[], k: number, maxIterations: number = 10):
 
   for (let iter = 0; iter < maxIterations; iter++) {
     // Assign pixels to nearest centroid
-    const clusters: RGB[][] = Array.from({ length: k }, () => []);
+    const clusters: RGB[][] = Array.from({ length: k }, (): RGB[] => []);
 
     for (const pixel of pixels) {
       const nearestIdx = findNearestCentroid(pixel, centroids);

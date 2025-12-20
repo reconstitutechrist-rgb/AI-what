@@ -132,10 +132,14 @@ class DalleService {
         n: 1,
       });
 
+      const imageData = response.data?.[0];
+      if (!imageData?.url) {
+        throw new Error('No image data returned from DALL-E');
+      }
+
       const result: GeneratedImage = {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        url: response.data[0].url!,
-        revisedPrompt: response.data[0].revised_prompt || prompt,
+        url: imageData.url,
+        revisedPrompt: imageData.revised_prompt || prompt,
         size,
         quality,
         generatedAt: Date.now(),
@@ -211,7 +215,7 @@ class DalleService {
           cardTitle: card.title,
           cardContext: card.context,
           designContext,
-        }).catch((error) => {
+        }).catch((error: Error): null => {
           console.error(`Failed to generate card image for "${card.title}":`, error);
           return null;
         })

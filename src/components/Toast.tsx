@@ -118,7 +118,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
 
   // Support both API styles: showToast(type, message, duration) and showToast({ type, message, duration })
   const showToast = useCallback(
-    (typeOrToast: ToastType | ToastInput, message?: string, duration = 4000) => {
+    (typeOrToast: ToastType | ToastInput, message?: string, duration: number = 4000) => {
       const id = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
       let newToast: Toast;

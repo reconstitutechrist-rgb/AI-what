@@ -33,7 +33,8 @@ interface StatePreviewProps {
 // ============================================================================
 
 function buildButtonStyle(spec: ButtonSpec, state: ComponentState): CSSProperties {
-  const stateStyles = spec.states[state] || spec.states.default;
+  const states = spec.states as Record<string, Record<string, string>>;
+  const stateStyles = states[state] || spec.states.default;
 
   return {
     background: stateStyles.background || '#3B82F6',
@@ -60,7 +61,8 @@ function buildButtonStyle(spec: ButtonSpec, state: ComponentState): CSSPropertie
 }
 
 function buildInputStyle(spec: InputSpec, state: ComponentState): CSSProperties {
-  const stateStyles = spec.states[state] || spec.states.default;
+  const states = spec.states as Record<string, Record<string, string>>;
+  const stateStyles = states[state] || spec.states.default;
 
   return {
     background: stateStyles.background || 'transparent',
@@ -80,7 +82,8 @@ function buildInputStyle(spec: InputSpec, state: ComponentState): CSSProperties 
 }
 
 function buildCardStyle(spec: CardSpec, state: ComponentState): CSSProperties {
-  const stateStyles = spec.states[state] || spec.states.default;
+  const states = spec.states as Record<string, Record<string, string>>;
+  const stateStyles = states[state] || spec.states.default;
 
   return {
     background: stateStyles.background || spec.background || '#1E293B',
@@ -97,7 +100,8 @@ function buildCardStyle(spec: CardSpec, state: ComponentState): CSSProperties {
 }
 
 function buildLinkStyle(spec: LinkSpec, state: ComponentState): CSSProperties {
-  const stateStyles = spec.states[state] || spec.states.default;
+  const states = spec.states as Record<string, Record<string, string>>;
+  const stateStyles = states[state] || spec.states.default;
 
   return {
     color: stateStyles.color || '#3B82F6',

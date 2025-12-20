@@ -279,7 +279,9 @@ export function ResponsivePropertyEditor({
   const updateProperty = useCallback(
     <K extends keyof ResponsiveProperties>(
       propertyKey: K,
-      value: ResponsiveProperties[K] extends ResponsiveValue<infer T> ? T | undefined : never
+      value: NonNullable<ResponsiveProperties[K]> extends ResponsiveValue<infer T>
+        ? T | undefined
+        : never
     ) => {
       const currentValue = properties[propertyKey] || {};
       const newValue = {

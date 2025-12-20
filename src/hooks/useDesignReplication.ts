@@ -17,6 +17,7 @@ import type {
   LayoutDesign,
   ExtractedFrame,
 } from '@/types/layoutDesign';
+import { defaultGlobalStyles } from '@/types/layoutDesign';
 import { useAnalysisProgress } from './useAnalysisProgress';
 import { processVideo } from '@/utils/videoProcessor';
 import { exportSpecSheet } from '@/utils/specSheetExport';
@@ -427,8 +428,9 @@ export function useDesignReplication(
       // Apply colors if available
       if ('colors' in analysis && analysis.colors) {
         const colors = analysis.colors as CompleteDesignAnalysis['colors'];
+        const currentStyles = updatedDesign.globalStyles ?? defaultGlobalStyles;
         updatedDesign.globalStyles = {
-          ...updatedDesign.globalStyles,
+          ...currentStyles,
           colors: {
             primary: colors.primary || '#6366f1',
             secondary: colors.secondary || '#8b5cf6',
@@ -448,10 +450,11 @@ export function useDesignReplication(
       // Apply typography if available
       if ('typography' in analysis && analysis.typography) {
         const typography = analysis.typography as CompleteDesignAnalysis['typography'];
+        const currentStyles = updatedDesign.globalStyles ?? defaultGlobalStyles;
         updatedDesign.globalStyles = {
-          ...updatedDesign.globalStyles,
+          ...currentStyles,
           typography: {
-            ...updatedDesign.globalStyles?.typography,
+            ...currentStyles.typography,
             fontFamily: typography.headingFont?.family || 'Inter',
             headingFont: typography.headingFont?.family,
           },

@@ -82,7 +82,7 @@ export interface BuildProgress {
   totalPhases: number;
   completedPhases: PhaseId[];
   percentComplete: number;
-  estimatedTimeRemaining: string;
+  estimatedTimeRemaining: string | null;
   startedAt: string;
   lastUpdated: string;
 }
