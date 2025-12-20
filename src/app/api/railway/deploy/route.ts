@@ -13,49 +13,6 @@ const MAX_TOTAL_SIZE = 5 * 1024 * 1024;
 // Railway GraphQL API endpoint
 const RAILWAY_API_URL = 'https://backboard.railway.app/graphql/v2';
 
-// Backend/database dependencies that don't work in frontend-only preview
-// These require server-side setup, databases, or native bindings
-const BACKEND_DEPENDENCIES = new Set([
-  // Database ORMs and drivers
-  'prisma',
-  '@prisma/client',
-  'pg',
-  'mysql',
-  'mysql2',
-  'mongodb',
-  'mongoose',
-  'redis',
-  'ioredis',
-  'typeorm',
-  'sequelize',
-  'knex',
-  'drizzle-orm',
-  'better-sqlite3',
-  'sqlite3',
-  // Auth and security (server-side)
-  'bcrypt',
-  'bcryptjs',
-  'argon2',
-  'jsonwebtoken',
-  'passport',
-  'passport-local',
-  'passport-jwt',
-  // Server frameworks
-  'express',
-  'fastify',
-  'koa',
-  'hapi',
-  '@hapi/hapi',
-  '@nestjs/core',
-  '@nestjs/common',
-  // Other backend packages
-  'nodemailer',
-  'bull',
-  'bullmq',
-  'socket.io',
-  'ws',
-]);
-
 // In-memory store for deployment tracking (in production, use Redis or DB)
 // Maps deployment ID to deployment record with user ownership
 const deployments = new Map<string, RailwayDeployment>();
@@ -273,38 +230,14 @@ async function createService(
 }
 
 /**
- * Filter out backend dependencies that don't work in frontend-only preview
+ * Generate package.json content for full-stack preview
+ * Includes all dependencies (backend + frontend) - Railway can run full Node.js apps
  */
-function filterFrontendDependencies(deps: Record<string, string>): Record<string, string> {
-  const filtered: Record<string, string> = {};
-  let skippedCount = 0;
-
-  for (const [pkg, version] of Object.entries(deps)) {
-    // Check if package or its scope is in backend list
-    const isBackend = BACKEND_DEPENDENCIES.has(pkg) || BACKEND_DEPENDENCIES.has(pkg.split('/')[0]); // Handle scoped packages like @prisma/client
-
-    if (isBackend) {
-      railwayLog.debug('Filtering backend dependency', { package: pkg });
-      skippedCount++;
-    } else {
-      filtered[pkg] = version;
-    }
-  }
-
-  if (skippedCount > 0) {
-    railwayLog.info('Filtered backend dependencies for preview', { count: skippedCount });
-  }
-
-  return filtered;
-}
-
-/**
- * Generate package.json content
- */
-function generatePackageJson(appName: string, dependencies: Record<string, string>): string {
-  // Filter out backend dependencies that won't work in preview
-  const frontendDeps = filterFrontendDependencies(dependencies);
-
+function generatePackageJson(
+  appName: string,
+  dependencies: Record<string, string>,
+  hasPrisma: boolean
+): string {
   const pkg = {
     name: appName.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
     version: '1.0.0',
@@ -314,11 +247,13 @@ function generatePackageJson(appName: string, dependencies: Record<string, strin
       build: 'vite build',
       preview: 'vite preview',
       start: 'vite preview --port $PORT --host',
+      // Add prisma generate as postinstall if prisma is used
+      ...(hasPrisma ? { postinstall: 'prisma generate' } : {}),
     },
     dependencies: {
       react: '^18.2.0',
       'react-dom': '^18.2.0',
-      ...frontendDeps,
+      ...dependencies, // Include ALL dependencies for full-stack
     },
     devDependencies: {
       '@vitejs/plugin-react': '^4.2.1',
@@ -387,7 +322,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 }
 
 /**
- * Build the file tree for Railway deployment
+ * Build the file tree for Railway deployment (full-stack)
+ * Includes ALL files - backend, prisma, api routes, etc.
  */
 function buildFileTree(
   files: AppFile[],
@@ -396,8 +332,18 @@ function buildFileTree(
 ): Record<string, string> {
   const tree: Record<string, string> = {};
 
-  // Add package.json
-  tree['package.json'] = generatePackageJson(appName, dependencies);
+  // Detect if Prisma is being used (check dependencies or prisma schema file)
+  const hasPrisma =
+    'prisma' in dependencies ||
+    '@prisma/client' in dependencies ||
+    files.some((f) => f.path.includes('prisma/schema.prisma') || f.path.includes('schema.prisma'));
+
+  if (hasPrisma) {
+    railwayLog.info('Prisma detected - will run prisma generate on postinstall');
+  }
+
+  // Add package.json with prisma support if needed
+  tree['package.json'] = generatePackageJson(appName, dependencies, hasPrisma);
 
   // Add vite.config.js
   tree['vite.config.js'] = generateViteConfig();
@@ -409,7 +355,7 @@ function buildFileTree(
   let hasMainTsx = false;
   let hasIndexCss = false;
 
-  // Allowed file extensions (safe for web apps)
+  // Allowed file extensions (safe for web apps + backend)
   const allowedExtensions = new Set([
     '.ts',
     '.tsx',
@@ -433,28 +379,10 @@ function buildFileTree(
     '.woff2',
     '.ttf',
     '.eot',
+    '.prisma', // Prisma schema files
+    '.sql', // SQL migrations
+    '.env', // Environment files (will be handled separately)
   ]);
-
-  // Files/directories to skip for frontend-only preview
-  const skipPatterns = [
-    'prisma/', // Prisma schema and migrations
-    'prisma\\', // Windows path
-    '.prisma',
-    'drizzle/',
-    'drizzle\\',
-    'migrations/',
-    'migrations\\',
-    'server/',
-    'server\\',
-    'api/', // API routes (backend)
-    'api\\',
-  ];
-
-  // Helper to check if file should be skipped
-  const shouldSkipFile = (path: string): boolean => {
-    const normalizedPath = path.toLowerCase();
-    return skipPatterns.some((pattern) => normalizedPath.includes(pattern.toLowerCase()));
-  };
 
   for (const file of files) {
     // Use secure path sanitization
@@ -476,12 +404,6 @@ function buildFileTree(
       continue;
     }
 
-    // Skip backend-related files (prisma, server, api routes)
-    if (shouldSkipFile(filePath)) {
-      railwayLog.debug('Skipping backend file', { path: filePath });
-      continue;
-    }
-
     // Check for main entry point
     if (filePath === 'src/main.tsx' || filePath === 'main.tsx') {
       hasMainTsx = true;
@@ -490,10 +412,13 @@ function buildFileTree(
       hasIndexCss = true;
     }
 
-    // Ensure src/ prefix for source files
+    // Ensure src/ prefix for source files (but not for prisma/, public/, etc.)
     if (
       !filePath.startsWith('src/') &&
       !filePath.startsWith('public/') &&
+      !filePath.startsWith('prisma/') &&
+      !filePath.startsWith('server/') &&
+      !filePath.startsWith('api/') &&
       !['package.json', 'vite.config.js', 'index.html', 'tsconfig.json'].includes(filePath)
     ) {
       filePath = `src/${filePath}`;
@@ -672,7 +597,7 @@ console.log('Files extracted:',Object.keys(f).length);
       serviceId,
       input: {
         source: {
-          image: 'node:20-alpine',
+          image: 'node:20', // Full Node image (not alpine) - includes OpenSSL for Prisma
         },
         startCommand,
       },
