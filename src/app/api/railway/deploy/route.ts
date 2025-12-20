@@ -88,6 +88,15 @@ async function railwayQuery(query: string, variables?: Record<string, unknown>) 
     throw new Error('RAILWAY_API_TOKEN not configured');
   }
 
+  // Extract operation name for logging
+  const operationMatch = query.match(/(?:mutation|query)\s+(\w+)/);
+  const operationName = operationMatch?.[1] || 'unknown';
+
+  railwayLog.debug('Railway API request', {
+    operation: operationName,
+    variables: JSON.stringify(variables),
+  });
+
   const response = await fetch(RAILWAY_API_URL, {
     method: 'POST',
     headers: {
@@ -99,8 +108,19 @@ async function railwayQuery(query: string, variables?: Record<string, unknown>) 
 
   const result = await response.json();
 
+  railwayLog.debug('Railway API response', {
+    operation: operationName,
+    status: response.status,
+    hasErrors: !!result.errors,
+    hasData: !!result.data,
+  });
+
   if (result.errors) {
-    railwayLog.error('Railway API error', undefined, { errors: result.errors });
+    railwayLog.error('Railway API error', undefined, {
+      operation: operationName,
+      errors: result.errors,
+      variables: JSON.stringify(variables),
+    });
     throw new Error(result.errors[0]?.message || 'Railway API error');
   }
 
