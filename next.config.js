@@ -16,15 +16,17 @@ module.exports = {
   },
 
   // COOP/COEP headers required for WebContainers (SharedArrayBuffer)
-  // Using 'credentialless' for better compatibility with external resources
+  // Only applied to Railway API routes that need SharedArrayBuffer
+  // NOT applied globally - breaks Sandpack cross-origin resources
   async headers() {
     return [
       {
-        source: '/:path*',
+        // Only Railway deployment routes need COEP for WebContainers
+        source: '/api/railway/:path*',
         headers: [
           {
             key: 'Cross-Origin-Embedder-Policy',
-            value: 'credentialless',
+            value: 'require-corp',
           },
           {
             key: 'Cross-Origin-Opener-Policy',
