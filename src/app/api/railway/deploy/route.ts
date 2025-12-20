@@ -13,6 +13,49 @@ const MAX_TOTAL_SIZE = 5 * 1024 * 1024;
 // Railway GraphQL API endpoint
 const RAILWAY_API_URL = 'https://backboard.railway.app/graphql/v2';
 
+// Backend/database dependencies that don't work in frontend-only preview
+// These require server-side setup, databases, or native bindings
+const BACKEND_DEPENDENCIES = new Set([
+  // Database ORMs and drivers
+  'prisma',
+  '@prisma/client',
+  'pg',
+  'mysql',
+  'mysql2',
+  'mongodb',
+  'mongoose',
+  'redis',
+  'ioredis',
+  'typeorm',
+  'sequelize',
+  'knex',
+  'drizzle-orm',
+  'better-sqlite3',
+  'sqlite3',
+  // Auth and security (server-side)
+  'bcrypt',
+  'bcryptjs',
+  'argon2',
+  'jsonwebtoken',
+  'passport',
+  'passport-local',
+  'passport-jwt',
+  // Server frameworks
+  'express',
+  'fastify',
+  'koa',
+  'hapi',
+  '@hapi/hapi',
+  '@nestjs/core',
+  '@nestjs/common',
+  // Other backend packages
+  'nodemailer',
+  'bull',
+  'bullmq',
+  'socket.io',
+  'ws',
+]);
+
 // In-memory store for deployment tracking (in production, use Redis or DB)
 // Maps deployment ID to deployment record with user ownership
 const deployments = new Map<string, RailwayDeployment>();
@@ -230,9 +273,38 @@ async function createService(
 }
 
 /**
+ * Filter out backend dependencies that don't work in frontend-only preview
+ */
+function filterFrontendDependencies(deps: Record<string, string>): Record<string, string> {
+  const filtered: Record<string, string> = {};
+  let skippedCount = 0;
+
+  for (const [pkg, version] of Object.entries(deps)) {
+    // Check if package or its scope is in backend list
+    const isBackend = BACKEND_DEPENDENCIES.has(pkg) || BACKEND_DEPENDENCIES.has(pkg.split('/')[0]); // Handle scoped packages like @prisma/client
+
+    if (isBackend) {
+      railwayLog.debug('Filtering backend dependency', { package: pkg });
+      skippedCount++;
+    } else {
+      filtered[pkg] = version;
+    }
+  }
+
+  if (skippedCount > 0) {
+    railwayLog.info('Filtered backend dependencies for preview', { count: skippedCount });
+  }
+
+  return filtered;
+}
+
+/**
  * Generate package.json content
  */
 function generatePackageJson(appName: string, dependencies: Record<string, string>): string {
+  // Filter out backend dependencies that won't work in preview
+  const frontendDeps = filterFrontendDependencies(dependencies);
+
   const pkg = {
     name: appName.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
     version: '1.0.0',
@@ -246,7 +318,7 @@ function generatePackageJson(appName: string, dependencies: Record<string, strin
     dependencies: {
       react: '^18.2.0',
       'react-dom': '^18.2.0',
-      ...dependencies,
+      ...frontendDeps,
     },
     devDependencies: {
       '@vitejs/plugin-react': '^4.2.1',
@@ -363,6 +435,27 @@ function buildFileTree(
     '.eot',
   ]);
 
+  // Files/directories to skip for frontend-only preview
+  const skipPatterns = [
+    'prisma/', // Prisma schema and migrations
+    'prisma\\', // Windows path
+    '.prisma',
+    'drizzle/',
+    'drizzle\\',
+    'migrations/',
+    'migrations\\',
+    'server/',
+    'server\\',
+    'api/', // API routes (backend)
+    'api\\',
+  ];
+
+  // Helper to check if file should be skipped
+  const shouldSkipFile = (path: string): boolean => {
+    const normalizedPath = path.toLowerCase();
+    return skipPatterns.some((pattern) => normalizedPath.includes(pattern.toLowerCase()));
+  };
+
   for (const file of files) {
     // Use secure path sanitization
     const safePath = sanitizePath(file.path);
@@ -380,6 +473,12 @@ function buildFileTree(
     // Security: Only allow certain file extensions
     if (!ext || !allowedExtensions.has(ext)) {
       railwayLog.warn('Skipping file with disallowed extension', { path: filePath, ext });
+      continue;
+    }
+
+    // Skip backend-related files (prisma, server, api routes)
+    if (shouldSkipFile(filePath)) {
+      railwayLog.debug('Skipping backend file', { path: filePath });
       continue;
     }
 
