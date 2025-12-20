@@ -2,18 +2,17 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAppStore } from '@/store/useAppStore';
-import { useBrowserSupport } from '@/hooks/useBrowserSupport';
 import PowerfulPreview from './PowerfulPreview';
-import { WebContainerPreview } from './preview/WebContainerPreview';
-import { PreviewModeSelector, type PreviewMode } from './preview/PreviewModeSelector';
+import { RailwayPreview } from './preview/RailwayPreview';
+import { PreviewModeSelector } from './preview/PreviewModeSelector';
+import type { PreviewMode, AppFile } from '@/types/railway';
+import { logger } from '@/utils/logger';
 
-// ============================================================================
-// TYPES
-// ============================================================================
+// Component-level logger
+const log = logger.child({ route: 'PreviewContainer' });
 
-interface AppFile {
-  path: string;
-  content: string;
+// Extended AppFile for preview (includes optional description)
+interface PreviewAppFile extends AppFile {
   description?: string;
 }
 
@@ -41,44 +40,94 @@ interface PreviewContainerProps {
 // ============================================================================
 
 /**
- * Detect if app requires backend/full-stack capabilities
+ * Detect if app requires backend/full-stack capabilities.
+ * Uses precise pattern matching to avoid false positives.
+ *
+ * IMPORTANT: Be careful not to match common frontend patterns:
+ * - Apollo Client, TanStack Query use createClient()
+ * - next/server can be used for cookies() in client components
+ * - Comments may contain backend-related words
  */
-function detectAppType(files: AppFile[]): 'FRONTEND_ONLY' | 'FULL_STACK' {
+function detectAppType(files: PreviewAppFile[]): 'FRONTEND_ONLY' | 'FULL_STACK' {
   for (const file of files) {
-    const path = file.path.toLowerCase();
-    const content = file.content.toLowerCase();
+    const pathLower = file.path.toLowerCase();
+    const content = file.content;
 
-    // API routes
-    if (path.includes('/api/') || path.includes('api/')) {
+    // =========================================================================
+    // PATH-BASED DETECTION (High confidence)
+    // =========================================================================
+
+    // API routes - path must be an API route directory
+    // Match: /api/, app/api/, pages/api/
+    if (/\/(pages|app)\/api\//.test(pathLower) || pathLower.startsWith('api/')) {
       return 'FULL_STACK';
     }
 
-    // Server files
-    if (path.includes('server.js') || path.includes('server.ts') || path.includes('server/index')) {
-      return 'FULL_STACK';
-    }
-
-    // Express/backend indicators in content
+    // Server files - dedicated server entry points
     if (
-      content.includes('express()') ||
-      content.includes("require('express')") ||
-      content.includes("from 'express'") ||
-      content.includes('createserver') ||
-      content.includes('app.listen(')
+      /\bserver\.(js|ts|mjs)$/.test(pathLower) ||
+      pathLower.includes('server/index') ||
+      pathLower.startsWith('backend/')
     ) {
       return 'FULL_STACK';
     }
 
-    // Next.js API route patterns
-    if (content.includes('nextapiresponse') || content.includes('nextapirequest')) {
+    // =========================================================================
+    // CONTENT-BASED DETECTION (Precise patterns only)
+    // =========================================================================
+
+    // Express/backend frameworks - require import patterns
+    if (
+      /require\s*\(\s*['"]express['"]\s*\)/.test(content) ||
+      /from\s+['"]express['"]/.test(content) ||
+      /express\s*\(\s*\)/.test(content) ||
+      /http\.createServer/.test(content) ||
+      /\.listen\s*\(\s*\d+/.test(content) // .listen(3000) or .listen(PORT)
+    ) {
       return 'FULL_STACK';
     }
 
-    // Database connections
+    // Next.js API route handlers - specific exports
     if (
-      content.includes('mongoose.connect') ||
-      content.includes('prisma') ||
-      content.includes('createclient') // Supabase
+      /export\s+(async\s+)?function\s+(GET|POST|PUT|DELETE|PATCH)\s*\(/.test(content) ||
+      /NextApiRequest/.test(content) ||
+      /NextApiResponse/.test(content)
+    ) {
+      return 'FULL_STACK';
+    }
+
+    // Database and ORM - require actual usage patterns
+    if (
+      /mongoose\.connect\s*\(/.test(content) ||
+      /mongoose\.model\s*\(/.test(content) ||
+      /from\s+['"]@prisma\/client['"]/.test(content) ||
+      /new\s+PrismaClient\s*\(/.test(content) ||
+      /from\s+['"]@supabase\/supabase-js['"]/.test(content) ||
+      /createClient\s*\(\s*process\.env\./.test(content) || // Supabase pattern with env vars
+      /new\s+Pool\s*\(/.test(content) || // pg Pool
+      /mysql\.createConnection\s*\(/.test(content)
+    ) {
+      return 'FULL_STACK';
+    }
+
+    // Other backend frameworks - import patterns
+    if (
+      /from\s+['"]fastify['"]/.test(content) ||
+      /from\s+['"]koa['"]/.test(content) ||
+      /from\s+['"]@hapi\//.test(content) ||
+      /from\s+['"]@nestjs\//.test(content) ||
+      /Fastify\s*\(\s*\)/.test(content) ||
+      /new\s+Koa\s*\(\s*\)/.test(content)
+    ) {
+      return 'FULL_STACK';
+    }
+
+    // Server-side specific imports (not common in frontend)
+    if (
+      /from\s+['"]fs['"]/.test(content) ||
+      /require\s*\(\s*['"]fs['"]\s*\)/.test(content) ||
+      /from\s+['"]child_process['"]/.test(content) ||
+      /from\s+['"]net['"]/.test(content)
     ) {
       return 'FULL_STACK';
     }
@@ -92,8 +141,10 @@ function detectAppType(files: AppFile[]): 'FRONTEND_ONLY' | 'FULL_STACK' {
 // ============================================================================
 
 /**
- * Orchestrates preview mode selection between Sandpack and WebContainers.
- * Auto-selects based on app type and browser support.
+ * Orchestrates preview mode selection between Sandpack and Railway.
+ * Auto-selects based on app type:
+ * - FRONTEND_ONLY → Sandpack (instant, in-browser)
+ * - FULL_STACK → Railway (deployed with real backend)
  */
 export function PreviewContainer({
   appDataJson,
@@ -111,13 +162,9 @@ export function PreviewContainer({
   showModeSelector = true,
   className = '',
 }: PreviewContainerProps) {
-  // Store state
-  const previewMode = useAppStore((s) => s.previewMode);
+  // Store state - cast to new PreviewMode type
+  const previewMode = useAppStore((s) => s.previewMode) as PreviewMode;
   const setPreviewMode = useAppStore((s) => s.setPreviewMode);
-  const setWebContainerStatus = useAppStore((s) => s.setWebContainerStatus);
-
-  // Browser support
-  const { supportsWebContainers } = useBrowserSupport();
 
   // Parse app data
   const appData = useMemo(() => {
@@ -135,28 +182,25 @@ export function PreviewContainer({
     return detectAppType(appData.files);
   }, [appData, explicitAppType]);
 
-  // Auto-select mode based on app type and browser support
+  // Auto-select mode based on app type
   const [hasAutoSelected, setHasAutoSelected] = useState(false);
 
   useEffect(() => {
     if (hasAutoSelected) return;
 
-    // Auto-select WebContainer for full-stack apps if supported
-    if (detectedAppType === 'FULL_STACK' && supportsWebContainers) {
-      setPreviewMode('webcontainer');
+    // Auto-select Railway for full-stack apps, Sandpack for frontend-only
+    if (detectedAppType === 'FULL_STACK') {
+      setPreviewMode('railway');
     } else {
       setPreviewMode('sandpack');
     }
 
     setHasAutoSelected(true);
-  }, [detectedAppType, supportsWebContainers, hasAutoSelected, setPreviewMode]);
+  }, [detectedAppType, hasAutoSelected, setPreviewMode]);
 
   // Handle mode change
   const handleModeChange = (mode: PreviewMode) => {
     setPreviewMode(mode);
-    if (mode === 'webcontainer') {
-      setWebContainerStatus('idle');
-    }
   };
 
   // Show warning banner for full-stack apps in Sandpack mode
@@ -177,37 +221,46 @@ export function PreviewContainer({
         <div className="flex items-center justify-between mb-2 px-1">
           <PreviewModeSelector mode={previewMode} onModeChange={handleModeChange} />
           {detectedAppType === 'FULL_STACK' && (
-            <span className="text-xs text-blue-400">Full-stack app detected</span>
+            <span className="text-xs text-purple-400 flex items-center gap-1">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2"
+                />
+              </svg>
+              Full-stack detected
+            </span>
           )}
         </div>
       )}
 
-      {/* Warning banner */}
+      {/* Warning banner for full-stack in Sandpack */}
       {showFullStackWarning && (
-        <div className="mb-2 px-3 py-2 bg-yellow-900/30 border border-yellow-700/50 rounded-lg text-yellow-300 text-xs">
-          ⚠️ This app has backend code that won&apos;t work in Sandpack.
-          {supportsWebContainers ? (
-            <button
-              onClick={() => handleModeChange('webcontainer')}
-              className="ml-2 underline hover:text-yellow-200"
-            >
-              Switch to WebContainer
-            </button>
-          ) : (
-            <span className="ml-1">WebContainers not supported in your browser.</span>
-          )}
+        <div className="mb-2 px-3 py-2 bg-yellow-900/30 border border-yellow-700/50 rounded-lg text-yellow-300 text-xs flex items-center justify-between">
+          <span>
+            <span className="font-medium">Note:</span> Backend code won&apos;t run in Frontend mode.
+          </span>
+          <button
+            onClick={() => handleModeChange('railway')}
+            className="ml-2 px-2 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded text-xs transition-colors"
+          >
+            Switch to Full-Stack
+          </button>
         </div>
       )}
 
       {/* Preview content */}
       <div className="flex-1">
-        {previewMode === 'webcontainer' ? (
-          <WebContainerPreview
+        {previewMode === 'railway' ? (
+          <RailwayPreview
             files={appData.files}
             dependencies={appData.dependencies || {}}
-            showTerminal={true}
-            onReady={() => setWebContainerStatus('ready')}
-            onError={() => setWebContainerStatus('error')}
+            appName={appData.name}
+            showLogs={true}
+            onReady={(url) => log.info('Railway preview ready', { url })}
+            onError={(error) => log.error('Railway preview error', error)}
             className="h-full"
           />
         ) : (

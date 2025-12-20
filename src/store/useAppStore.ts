@@ -42,6 +42,7 @@ import type { PhaseId } from '@/types/buildPhases';
 import type { FileMetadata, StorageStats } from '@/types/storage';
 import type { DeploymentInstructions } from '@/utils/exportApp';
 import type { ProjectDocumentation } from '@/types/projectDocumentation';
+import type { PreviewMode } from '@/types/railway';
 
 // ============================================================================
 // STORE STATE INTERFACE
@@ -116,10 +117,7 @@ interface VersionControlSlice {
  */
 export type MainView = 'main' | 'wizard' | 'layout' | 'build';
 
-/**
- * Preview mode type for WebContainers integration
- */
-type PreviewMode = 'sandpack' | 'webcontainer';
+// Note: PreviewMode is imported from @/types/railway
 type WebContainerStatus = 'idle' | 'booting' | 'ready' | 'error';
 
 /**

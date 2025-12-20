@@ -10,7 +10,10 @@ export { DeviceToolbar, type DeviceToolbarProps } from './DeviceToolbar';
 export { TouchSimulator, type TouchSimulatorProps } from './TouchSimulator';
 export { ConsolePanel, type ConsolePanelProps } from './ConsolePanel';
 
-// WebContainer preview components
+// Preview mode components
+export { PreviewModeSelector, type PreviewMode } from './PreviewModeSelector';
+export { RailwayPreview } from './RailwayPreview';
+
+// Legacy WebContainer components (deprecated - use Railway instead)
 export { WebContainerPreview } from './WebContainerPreview';
 export { WebContainerTerminal } from './WebContainerTerminal';
-export { PreviewModeSelector, type PreviewMode } from './PreviewModeSelector';
