@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useEffect, useCallback, useState } from 'react';
+import React, { useMemo, useEffect, useCallback, useState, useRef } from 'react';
 import {
   SandpackProvider,
   SandpackPreview,
@@ -8,10 +8,12 @@ import {
   useSandpack,
 } from '@codesandbox/sandpack-react';
 import { DeviceFrame, TouchSimulator, ConsolePanel } from './preview';
+import { SandpackController } from './preview/SandpackController';
 import type { DeviceType } from './preview/DeviceFrame';
 import ErrorBoundary from './ErrorBoundary';
 import { escapeHtml } from '@/utils/escapeHtml';
 import { logger } from '@/utils/logger';
+import { useSandpackStability } from '@/hooks/useSandpackStability';
 
 // Stable no-op function to avoid recreating on every render
 const noop = () => {};
@@ -49,18 +51,84 @@ interface PowerfulPreviewProps {
 /**
  * Inner component that monitors Sandpack status and shows error UI if bundler fails.
  * Must be a child of SandpackProvider to use useSandpack hook.
+ * Includes auto-retry with exponential backoff.
  */
 function SandpackErrorMonitor({
   children,
   onRetry,
+  maxAutoRetries = 3,
 }: {
   children: React.ReactNode;
   onRetry: () => void;
+  maxAutoRetries?: number;
 }) {
   const { sandpack } = useSandpack();
   const { status, error } = sandpack;
+  const autoRetryCountRef = useRef(0);
+  const lastErrorTimeRef = useRef(0);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isAutoRetrying, setIsAutoRetrying] = useState(false);
 
-  // Show error UI if Sandpack encountered an error
+  // Auto-retry logic with exponential backoff
+  useEffect(() => {
+    const hasError = status === 'timeout' || error;
+
+    if (hasError && autoRetryCountRef.current < maxAutoRetries) {
+      const now = Date.now();
+      const timeSinceLastError = now - lastErrorTimeRef.current;
+
+      // Exponential backoff: 1s, 2s, 4s
+      const backoffMs = Math.pow(2, autoRetryCountRef.current) * 1000;
+
+      // Only auto-retry if enough time has passed
+      if (timeSinceLastError >= backoffMs || lastErrorTimeRef.current === 0) {
+        lastErrorTimeRef.current = now;
+        autoRetryCountRef.current++;
+        setIsAutoRetrying(true);
+
+        retryTimeoutRef.current = setTimeout(() => {
+          try {
+            sandpack.runSandpack();
+          } catch (e) {
+            logger.error('Auto-retry failed', e);
+          }
+          setIsAutoRetrying(false);
+        }, backoffMs);
+      }
+    }
+
+    // Reset counter on successful load
+    if (status === 'running') {
+      autoRetryCountRef.current = 0;
+      lastErrorTimeRef.current = 0;
+      setIsAutoRetrying(false);
+    }
+
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+    };
+  }, [status, error, sandpack, maxAutoRetries]);
+
+  // Show loading during auto-retry
+  if (
+    isAutoRetrying ||
+    ((status === 'timeout' || error) && autoRetryCountRef.current < maxAutoRetries)
+  ) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-zinc-900">
+        <div className="text-center p-6">
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-zinc-400 text-sm">
+            Recovering preview... (attempt {autoRetryCountRef.current}/{maxAutoRetries})
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error UI only after auto-retries exhausted
   if (status === 'timeout' || error) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-zinc-900">
@@ -86,7 +154,10 @@ function SandpackErrorMonitor({
               'The bundler encountered an error. This can happen with certain code patterns.'}
           </p>
           <button
-            onClick={onRetry}
+            onClick={() => {
+              autoRetryCountRef.current = 0;
+              onRetry();
+            }}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
           >
             Retry Preview
@@ -180,10 +251,10 @@ export default function PowerfulPreview({
 
   // Memoize file conversion and dependencies to prevent recalculation on every render
   // Must be called before early return to satisfy React hooks rules
-  const { sandpackFiles, dependencies } = useMemo(() => {
+  const { rawSandpackFiles, dependencies } = useMemo(() => {
     // Return empty values if appData is invalid - will be caught by early return below
     if (!appData || !appData.files || !Array.isArray(appData.files) || appData.files.length === 0) {
-      return { sandpackFiles: {}, dependencies: {} };
+      return { rawSandpackFiles: {}, dependencies: {} };
     }
 
     // Convert files to Sandpack format - React template needs / prefix
@@ -295,8 +366,15 @@ h1, h2, h3, h4, h5, h6 {
       'react-scripts': '^5.0.0',
     };
 
-    return { sandpackFiles: files, dependencies: deps };
+    return { rawSandpackFiles: files, dependencies: deps };
   }, [appData]);
+
+  // Apply stability layer with debouncing and rate limiting
+  const { stableFiles: sandpackFiles, isUpdating } = useSandpackStability(rawSandpackFiles, {
+    debounceMs: 500,
+    maxUpdatesPerSecond: 2,
+    onError: (error) => logger.error('Sandpack stability error', error),
+  });
 
   // Callback for retry from error monitor - must be before early return
   const handleRetry = useCallback(() => {
@@ -337,7 +415,8 @@ h1, h2, h3, h4, h5, h6 {
           options={{
             autorun: true,
             autoReload: true,
-            recompileMode: 'immediate',
+            recompileMode: 'delayed',
+            recompileDelay: 300,
             externalResources: ['https://cdn.tailwindcss.com'],
             // Use explicit bundler URL to avoid service worker issues
             bundlerURL: 'https://sandpack-bundler.codesandbox.io',
@@ -346,39 +425,73 @@ h1, h2, h3, h4, h5, h6 {
           }}
           style={{ height: '100%', width: '100%' }}
         >
-          {/* SandpackErrorMonitor catches bundler errors via useSandpack hook */}
-          <SandpackErrorMonitor onRetry={handleRetry}>
-            {/* Flex wrapper - SandpackProvider adds wrapper divs that break outer flex layout */}
-            <div className="flex w-full h-full">
-              {/* Main preview area - always centered */}
-              <div className="flex-1 min-h-0 flex flex-col bg-zinc-950 overflow-auto relative items-center justify-center p-4">
-                {/* Full-stack warning badge */}
-                {appData.appType === 'FULL_STACK' && (
-                  <div className="absolute top-4 left-4 bg-yellow-500/90 text-yellow-900 px-4 py-2 rounded-lg text-sm font-medium shadow-lg z-50">
-                    ⚠️ Preview mode: Backend features disabled
-                  </div>
-                )}
+          {/* SandpackController handles incremental file updates */}
+          <SandpackController
+            files={sandpackFiles}
+            onError={(error) => logger.error('SandpackController error', error)}
+          >
+            {/* SandpackErrorMonitor catches bundler errors via useSandpack hook */}
+            <SandpackErrorMonitor onRetry={handleRetry}>
+              {/* Flex wrapper - SandpackProvider adds wrapper divs that break outer flex layout */}
+              <div className="flex w-full h-full">
+                {/* Main preview area - always centered */}
+                <div className="flex-1 min-h-0 flex flex-col bg-zinc-950 overflow-auto relative items-center justify-center p-4">
+                  {/* Updating indicator */}
+                  {isUpdating && (
+                    <div className="absolute top-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5 bg-blue-500/90 text-white text-xs rounded-full shadow-lg">
+                      <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                      Updating preview...
+                    </div>
+                  )}
 
-                {/* All devices render through DeviceFrame when enabled */}
-                {/* Key forces remount on device change to prevent white screen issues */}
-                <TouchSimulator
-                  enabled={shouldEnableTouchSimulation}
-                  iframeSelector=".sp-preview-iframe"
-                >
-                  {showDeviceFrame ? (
-                    <DeviceFrame
-                      device={(devicePreset as DeviceType) || 'laptop'}
-                      orientation={orientation}
-                      width={previewWidth}
-                      height={previewHeight === 'auto' ? 800 : previewHeight}
-                    >
+                  {/* Full-stack warning badge */}
+                  {appData.appType === 'FULL_STACK' && (
+                    <div className="absolute top-4 left-4 bg-yellow-500/90 text-yellow-900 px-4 py-2 rounded-lg text-sm font-medium shadow-lg z-50">
+                      ⚠️ Preview mode: Backend features disabled
+                    </div>
+                  )}
+
+                  {/* All devices render through DeviceFrame when enabled */}
+                  {/* Key forces remount on device change to prevent white screen issues */}
+                  <TouchSimulator
+                    enabled={shouldEnableTouchSimulation}
+                    iframeSelector=".sp-preview-iframe"
+                  >
+                    {showDeviceFrame ? (
+                      <DeviceFrame
+                        device={(devicePreset as DeviceType) || 'laptop'}
+                        orientation={orientation}
+                        width={previewWidth}
+                        height={previewHeight === 'auto' ? 800 : previewHeight}
+                      >
+                        <SandpackLayout
+                          key={`${devicePreset}-${orientation}-${previewWidth}`}
+                          style={{
+                            height: '100%',
+                            width: '100%',
+                            border: 'none',
+                            borderRadius: 0,
+                          }}
+                        >
+                          <SandpackPreview
+                            showOpenInCodeSandbox={false}
+                            showRefreshButton={true}
+                            style={{
+                              height: '100%',
+                              width: '100%',
+                            }}
+                          />
+                        </SandpackLayout>
+                      </DeviceFrame>
+                    ) : (
                       <SandpackLayout
-                        key={`${devicePreset}-${orientation}-${previewWidth}`}
+                        key={`no-frame-${previewWidth}-${previewHeight}`}
                         style={{
-                          height: '100%',
-                          width: '100%',
+                          height: previewHeight === 'auto' ? 600 : previewHeight,
+                          width: previewWidth,
+                          maxWidth: 'calc(100% - 2rem)',
                           border: 'none',
-                          borderRadius: 0,
+                          borderRadius: 8,
                         }}
                       >
                         <SandpackPreview
@@ -390,35 +503,15 @@ h1, h2, h3, h4, h5, h6 {
                           }}
                         />
                       </SandpackLayout>
-                    </DeviceFrame>
-                  ) : (
-                    <SandpackLayout
-                      key={`no-frame-${previewWidth}-${previewHeight}`}
-                      style={{
-                        height: previewHeight === 'auto' ? 600 : previewHeight,
-                        width: previewWidth,
-                        maxWidth: 'calc(100% - 2rem)',
-                        border: 'none',
-                        borderRadius: 8,
-                      }}
-                    >
-                      <SandpackPreview
-                        showOpenInCodeSandbox={false}
-                        showRefreshButton={true}
-                        style={{
-                          height: '100%',
-                          width: '100%',
-                        }}
-                      />
-                    </SandpackLayout>
-                  )}
-                </TouchSimulator>
-              </div>
+                    )}
+                  </TouchSimulator>
+                </div>
 
-              {/* Console side panel */}
-              <ConsolePanel isOpen={showConsole} onToggle={onConsoleToggle || noop} />
-            </div>
-          </SandpackErrorMonitor>
+                {/* Console side panel */}
+                <ConsolePanel isOpen={showConsole} onToggle={onConsoleToggle || noop} />
+              </div>
+            </SandpackErrorMonitor>
+          </SandpackController>
         </SandpackProvider>
       </ErrorBoundary>
     </div>
