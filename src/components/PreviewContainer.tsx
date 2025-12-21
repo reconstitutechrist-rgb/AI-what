@@ -5,7 +5,9 @@ import { useAppStore } from '@/store/useAppStore';
 import { RailwayPreview } from './preview/RailwayPreview';
 import { BrowserPreview } from './preview/BrowserPreview';
 import { PreviewModeSelector } from './preview/PreviewModeSelector';
+import { DeviceFrame } from './preview/DeviceFrame';
 import type { PreviewMode, AppFile } from '@/types/railway';
+import type { DeviceType } from './preview/DeviceFrame';
 import { logger } from '@/utils/logger';
 
 // Component-level logger
@@ -151,14 +153,13 @@ function detectAppType(files: PreviewAppFile[]): 'FRONTEND_ONLY' | 'FULL_STACK' 
 export function PreviewContainer({
   appDataJson,
   appType: explicitAppType,
-  // These props are passed from FullAppPreview but not yet used in BrowserPreview
-  // TODO: Add responsive preview support to BrowserPreview
-  isFullscreen: _isFullscreen = false,
+  // Preview settings for responsive device preview
+  isFullscreen = false,
   onCaptureReady: _onCaptureReady,
-  devicePreset: _devicePreset = null,
-  orientation: _orientation = 'portrait',
-  previewWidth: _previewWidth = 1280,
-  previewHeight: _previewHeight = 'auto',
+  devicePreset = 'desktop',
+  orientation = 'landscape',
+  previewWidth = 1280,
+  previewHeight = 800,
   enableTouchSimulation: _enableTouchSimulation = true,
   showConsole: _showConsole = false,
   onConsoleToggle: _onConsoleToggle,
@@ -260,26 +261,40 @@ export function PreviewContainer({
       )}
 
       {/* Preview content */}
-      <div id="sandpack-preview" className="flex-1 min-h-0">
-        {previewMode === 'railway' ? (
-          <RailwayPreview
-            files={appData.files}
-            dependencies={appData.dependencies || {}}
-            appId={appId}
-            appName={appData.name}
-            showLogs={true}
-            onReady={(url) => log.info('Railway preview ready', { url })}
-            onError={(error) => log.error('Railway preview error', error)}
-            className="h-full"
-          />
-        ) : (
-          <BrowserPreview
-            files={appData.files}
-            onReady={() => log.info('Browser preview ready')}
-            onError={(error) => log.error('Browser preview error', error)}
-            className="h-full"
-          />
-        )}
+      <div
+        id="sandpack-preview"
+        className={`flex-1 min-h-0 ${
+          devicePreset === 'phone'
+            ? 'flex items-center justify-center bg-zinc-900/50 overflow-auto p-4'
+            : ''
+        }`}
+      >
+        <DeviceFrame
+          device={(devicePreset as DeviceType) || 'desktop'}
+          orientation={orientation}
+          width={previewWidth}
+          height={typeof previewHeight === 'number' ? previewHeight : 800}
+        >
+          {previewMode === 'railway' ? (
+            <RailwayPreview
+              files={appData.files}
+              dependencies={appData.dependencies || {}}
+              appId={appId}
+              appName={appData.name}
+              showLogs={true}
+              onReady={(url) => log.info('Railway preview ready', { url })}
+              onError={(error) => log.error('Railway preview error', error)}
+              className="h-full"
+            />
+          ) : (
+            <BrowserPreview
+              files={appData.files}
+              onReady={() => log.info('Browser preview ready')}
+              onError={(error) => log.error('Browser preview error', error)}
+              className="h-full"
+            />
+          )}
+        </DeviceFrame>
       </div>
     </div>
   );
