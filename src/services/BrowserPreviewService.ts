@@ -13,15 +13,6 @@ let esbuild: typeof esbuildTypes | null = null;
 
 const log = logger.child({ route: 'browser-preview-service' });
 
-// Pin critical packages to specific versions to prevent breakages from CDN updates
-const PINNED_VERSIONS: Record<string, string> = {
-  react: 'react@18.2.0',
-  'react-dom': 'react-dom@18.2.0',
-  'react-dom/client': 'react-dom@18.2.0/client',
-  'react/jsx-runtime': 'react@18.2.0/jsx-runtime',
-  'react/jsx-dev-runtime': 'react@18.2.0/jsx-dev-runtime',
-};
-
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -199,7 +190,8 @@ class BrowserPreviewService {
       const result = await esbuild.build({
         entryPoints: [entryPoint],
         bundle: true,
-        format: 'esm',
+        format: 'iife',
+        globalName: '__BundledApp__',
         target,
         minify,
         write: false,
@@ -287,14 +279,24 @@ class BrowserPreviewService {
           }
 
           // If not found in virtual fs and doesn't look like a relative path,
-          // treat as external npm package
+          // treat as npm package
           if (!args.path.startsWith('.') && !args.path.startsWith('/')) {
-            // Use pinned version if available, otherwise use latest
-            const pinnedPackage = PINNED_VERSIONS[args.path] || args.path;
-            return {
-              path: `https://esm.sh/${pinnedPackage}`,
-              external: true,
+            // Map common packages to virtual modules that use globals
+            const GLOBAL_PACKAGES: Record<string, string> = {
+              react: 'react',
+              'react-dom': 'react-dom',
+              'react-dom/client': 'react-dom-client',
+              'react/jsx-runtime': 'react-jsx-runtime',
+              'react/jsx-dev-runtime': 'react-jsx-dev-runtime',
             };
+
+            const virtualName = GLOBAL_PACKAGES[args.path];
+            if (virtualName) {
+              return { path: virtualName, namespace: 'global-shim' };
+            }
+
+            // For other packages, mark as external (will fail at runtime if not available)
+            return { path: args.path, external: true };
           }
 
           // For relative paths not found in virtual fs, return as virtual (will error in onLoad)
@@ -313,6 +315,38 @@ class BrowserPreviewService {
 
           return { contents: content, loader };
         });
+
+        // Load global shims for packages available as UMD globals
+        build.onLoad(
+          { filter: /.*/, namespace: 'global-shim' },
+          (args: esbuildTypes.OnLoadArgs) => {
+            const shims: Record<string, string> = {
+              react: 'module.exports = window.React;',
+              'react-dom': 'module.exports = window.ReactDOM;',
+              'react-dom-client':
+                'module.exports = { createRoot: window.ReactDOM.createRoot, hydrateRoot: window.ReactDOM.hydrateRoot };',
+              'react-jsx-runtime': `
+                module.exports = {
+                  jsx: window.React.createElement,
+                  jsxs: window.React.createElement,
+                  Fragment: window.React.Fragment,
+                };
+              `,
+              'react-jsx-dev-runtime': `
+                module.exports = {
+                  jsxDEV: window.React.createElement,
+                  Fragment: window.React.Fragment,
+                };
+              `,
+            };
+
+            const content = shims[args.path];
+            if (content) {
+              return { contents: content, loader: 'js' };
+            }
+            return { errors: [{ text: `Unknown global shim: ${args.path}` }] };
+          }
+        );
       },
     };
   }
@@ -471,21 +505,24 @@ class BrowserPreviewService {
   <div id="root"></div>
   ${databaseScript}
   ${fetchInterceptionScript}
-  <script type="module">
-    import React from 'https://esm.sh/react@18.2.0';
-    import ReactDOM from 'https://esm.sh/react-dom@18.2.0/client';
-
-    // Make React available globally for the bundle
-    window.React = React;
-
+  <!-- Load React UMD builds synchronously (sets window.React and window.ReactDOM) -->
+  <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
+  <script>
+    // IIFE bundle runs after React is loaded globally
     ${bundledCode}
 
-    // Find and render the default export
-    const App = typeof module !== 'undefined' ? module.exports?.default : null;
-    if (App && document.getElementById('root')) {
-      const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(React.createElement(App));
-    }
+    // Render the app
+    (function() {
+      const RootComponent = window.__BundledApp__?.default || window.__BundledApp__;
+      const rootEl = document.getElementById('root');
+      if (RootComponent && rootEl) {
+        const root = ReactDOM.createRoot(rootEl);
+        root.render(React.createElement(RootComponent));
+      } else {
+        console.error('[Preview] No root component found. Check that your app exports a default component.');
+      }
+    })();
   </script>
 </body>
 </html>`;
