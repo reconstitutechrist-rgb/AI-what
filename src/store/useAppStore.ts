@@ -237,12 +237,15 @@ interface DocumentationSlice {
   // Panel state
   showDocumentationPanel: boolean;
   documentationPanelTab: DocumentationPanelTab;
+  // Build lifecycle - locked appId during build
+  buildingAppId: string | null;
   // Actions
   setCurrentDocumentation: (doc: ProjectDocumentation | null) => void;
   setIsLoadingDocumentation: (loading: boolean) => void;
   setIsSavingDocumentation: (saving: boolean) => void;
   setShowDocumentationPanel: (show: boolean) => void;
   setDocumentationPanelTab: (tab: DocumentationPanelTab) => void;
+  setBuildingAppId: (appId: string | null) => void;
 }
 
 /**
@@ -494,12 +497,14 @@ export const useAppStore = create<AppState>()(
       isSavingDocumentation: false,
       showDocumentationPanel: false,
       documentationPanelTab: 'concept',
+      buildingAppId: null as string | null,
 
       setCurrentDocumentation: (doc) => set({ currentDocumentation: doc }),
       setIsLoadingDocumentation: (loading) => set({ isLoadingDocumentation: loading }),
       setIsSavingDocumentation: (saving) => set({ isSavingDocumentation: saving }),
       setShowDocumentationPanel: (show) => set({ showDocumentationPanel: show }),
       setDocumentationPanelTab: (tab) => set({ documentationPanelTab: tab }),
+      setBuildingAppId: (appId) => set({ buildingAppId: appId }),
 
       // ========================================================================
       // FILE STORAGE SLICE

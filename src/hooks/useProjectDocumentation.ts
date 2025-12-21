@@ -109,19 +109,26 @@ export function useProjectDocumentation(
     currentDocumentation,
     isLoadingDocumentation,
     isSavingDocumentation,
+    buildingAppId,
     setCurrentDocumentation,
     setIsLoadingDocumentation,
     setIsSavingDocumentation,
+    setBuildingAppId,
   } = useAppStore(
     useShallow((state) => ({
       currentDocumentation: state.currentDocumentation,
       isLoadingDocumentation: state.isLoadingDocumentation,
       isSavingDocumentation: state.isSavingDocumentation,
+      buildingAppId: state.buildingAppId,
       setCurrentDocumentation: state.setCurrentDocumentation,
       setIsLoadingDocumentation: state.setIsLoadingDocumentation,
       setIsSavingDocumentation: state.setIsSavingDocumentation,
+      setBuildingAppId: state.setBuildingAppId,
     }))
   );
+
+  // Use buildingAppId during build, fallback to appId prop
+  const effectiveAppId = buildingAppId || appId;
 
   // Track last captured message count
   const lastCapturedMessageCountRef = useRef(0);
@@ -132,14 +139,14 @@ export function useProjectDocumentation(
     return new ProjectDocumentationService(supabase);
   }, []);
 
-  // Load documentation when appId changes
+  // Load documentation when effectiveAppId changes
   useEffect(() => {
-    if (!autoLoad || !appId) return;
+    if (!autoLoad || !effectiveAppId) return;
 
     const loadDocumentation = async () => {
       setIsLoadingDocumentation(true);
       try {
-        const result = await service.getByAppId(appId);
+        const result = await service.getByAppId(effectiveAppId);
         if (result.success) {
           setCurrentDocumentation(result.data ?? null);
           // Restore last captured message count if available
@@ -157,15 +164,18 @@ export function useProjectDocumentation(
     };
 
     loadDocumentation();
-  }, [appId, autoLoad, service, setCurrentDocumentation, setIsLoadingDocumentation]);
+  }, [effectiveAppId, autoLoad, service, setCurrentDocumentation, setIsLoadingDocumentation]);
 
   // Refresh documentation
   const refreshDocumentation = useCallback(async () => {
-    if (!appId) return;
+    if (!effectiveAppId) {
+      console.warn('[Documentation] Cannot refresh: no appId available');
+      return;
+    }
 
     setIsLoadingDocumentation(true);
     try {
-      const result = await service.getByAppId(appId);
+      const result = await service.getByAppId(effectiveAppId);
       if (result.success) {
         setCurrentDocumentation(result.data ?? null);
       }
@@ -174,7 +184,7 @@ export function useProjectDocumentation(
     } finally {
       setIsLoadingDocumentation(false);
     }
-  }, [appId, service, setCurrentDocumentation, setIsLoadingDocumentation]);
+  }, [effectiveAppId, service, setCurrentDocumentation, setIsLoadingDocumentation]);
 
   // Create documentation
   const createDocumentation = useCallback(
@@ -415,13 +425,16 @@ export function useProjectDocumentation(
   const startBuild = useCallback(async () => {
     if (!currentDocumentation) return;
 
+    // LOCK the appId for the duration of the build
+    setBuildingAppId(currentDocumentation.appId);
+
     try {
       await service.startBuild(currentDocumentation.id);
       await refreshDocumentation();
     } catch (error) {
       console.error('Error starting build:', error);
     }
-  }, [currentDocumentation, service, refreshDocumentation]);
+  }, [currentDocumentation, service, refreshDocumentation, setBuildingAppId]);
 
   const completeBuild = useCallback(async () => {
     if (!currentDocumentation) return;
@@ -431,8 +444,11 @@ export function useProjectDocumentation(
       await refreshDocumentation();
     } catch (error) {
       console.error('Error completing build:', error);
+    } finally {
+      // UNLOCK the appId after build completes
+      setBuildingAppId(null);
     }
-  }, [currentDocumentation, service, refreshDocumentation]);
+  }, [currentDocumentation, service, refreshDocumentation, setBuildingAppId]);
 
   const failBuild = useCallback(
     async (error?: string) => {
@@ -443,9 +459,12 @@ export function useProjectDocumentation(
         await refreshDocumentation();
       } catch (err) {
         console.error('Error failing build:', err);
+      } finally {
+        // UNLOCK the appId after build fails
+        setBuildingAppId(null);
       }
     },
-    [currentDocumentation, service, refreshDocumentation]
+    [currentDocumentation, service, refreshDocumentation, setBuildingAppId]
   );
 
   // Auto-capture helpers

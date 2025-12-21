@@ -876,11 +876,15 @@ export default function AIBuilder() {
     createDocs().catch((err) => {
       console.error('Failed to auto-create documentation:', err);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     currentComponent?.id,
     currentComponent?.name,
     user?.id,
-    projectDocumentation,
+    // Use specific properties to avoid re-running on every render
+    projectDocumentation.isLoading,
+    projectDocumentation.isSaving,
+    projectDocumentation.documentation?.appId,
     appConcept,
     dynamicPhasePlan,
   ]);
