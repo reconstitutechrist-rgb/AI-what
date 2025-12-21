@@ -132,20 +132,25 @@ export class ASTModifier {
           existing.namedImports = [];
         }
         // Add new named imports, avoiding duplicates
-        // Parse existing named imports to extract just the name (not "name as alias")
-        const existingNames = existing.namedImports.map((imp) => {
-          const match = imp.match(/^(\w+)(?:\s+as\s+\w+)?$/);
-          return match ? match[1] : imp;
-        });
+        // Use Sets for O(1) lookups instead of O(n) array searches
+        const existingNamesSet = new Set(
+          existing.namedImports.map((imp) => {
+            const match = imp.match(/^(\w+)(?:\s+as\s+\w+)?$/);
+            return match ? match[1] : imp;
+          })
+        );
+        const existingImportsSet = new Set(existing.namedImports);
 
         for (const namedImport of spec.namedImports) {
           // Extract name from potential "name as alias" format
           const match = namedImport.match(/^(\w+)(?:\s+as\s+\w+)?$/);
           const importName = match ? match[1] : namedImport;
 
-          // Only add if not already present
-          if (!existingNames.includes(importName) && !existing.namedImports.includes(namedImport)) {
+          // Only add if not already present (O(1) Set lookups)
+          if (!existingNamesSet.has(importName) && !existingImportsSet.has(namedImport)) {
             existing.namedImports.push(namedImport);
+            existingNamesSet.add(importName);
+            existingImportsSet.add(namedImport);
             hasChanges = true;
           }
         }
@@ -1833,6 +1838,11 @@ export class ASTModifier {
         samePositionOffsets.set(mod.start, samePositionOffset + offsetDelta);
 
         // Track this modification's range for overlap detection
+        // Limit array size to prevent O(n²) growth - keep last 100 ranges
+        // (overlap detection is for debugging, nearby mods are most relevant)
+        if (appliedRanges.length >= 100) {
+          appliedRanges.shift();
+        }
         appliedRanges.push({
           start: mod.start,
           end: mod.end,

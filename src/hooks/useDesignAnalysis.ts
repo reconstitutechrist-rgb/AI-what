@@ -7,7 +7,7 @@
  * Supports two-pass analysis: quick (2-3s) and deep (10-15s).
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { QuickAnalysis, CompleteDesignAnalysis, ColorSwatch } from '@/types/layoutDesign';
 
 // ============================================================================
@@ -79,6 +79,16 @@ export function useDesignAnalysis(): UseDesignAnalysisReturn {
   // Refs for cancellation
   const abortControllerRef = useRef<AbortController | null>(null);
   const cancelledRef = useRef(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
   // Reset function
   const reset = useCallback(() => {
@@ -110,9 +120,17 @@ export function useDesignAnalysis(): UseDesignAnalysisReturn {
       const intervalMs = durationMs / subPhases.length;
       let currentPhaseIndex = 0;
 
-      const interval = setInterval(() => {
+      // Clear any existing interval before starting a new one
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+
+      intervalRef.current = setInterval(() => {
         if (cancelledRef.current) {
-          clearInterval(interval);
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
           return;
         }
 
@@ -129,11 +147,19 @@ export function useDesignAnalysis(): UseDesignAnalysisReturn {
         }));
 
         if (currentPhaseIndex >= subPhases.length) {
-          clearInterval(interval);
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
         }
       }, intervalMs);
 
-      return () => clearInterval(interval);
+      return () => {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      };
     },
     []
   );

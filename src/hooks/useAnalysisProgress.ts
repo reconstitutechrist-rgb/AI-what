@@ -5,7 +5,7 @@
  * Supports both quick-pass and deep-pass analysis phases.
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type {
   AnalysisPhase,
   AnalysisSubPhase,
@@ -160,6 +160,15 @@ export function useAnalysisProgress(): UseAnalysisProgressReturn {
   const [state, setState] = useState<AnalysisProgressState>(createDefaultState);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const cancelledRef = useRef(false);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
 
   // Calculate overall progress from phases
   const calculateOverallProgress = useCallback((phases: AnalysisPhaseState[]): number => {

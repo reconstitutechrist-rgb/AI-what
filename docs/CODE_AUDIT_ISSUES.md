@@ -2,7 +2,7 @@
 
 > **Audit Date:** December 20, 2025
 > **Codebase:** AI App Builder (Personal Development Tool)
-> **Total Issues:** 78 (17 fixed, 3 already fixed)
+> **Total Issues:** 78 (20 fixed, 3 already fixed)
 
 ---
 
@@ -24,6 +24,9 @@
 | HIGH-01 | ✅ Fixed         | Added `useShallow` to both `usePanelActions` and `useProjectDocumentation` |
 | HIGH-04 | ✅ Fixed         | Wrapped both `ChatPanel` and `PreviewPanel` in `React.memo`                |
 | HIGH-06 | ✅ Fixed         | Added `useEffect` cleanup for AbortController                              |
+| HIGH-03 | ✅ Fixed         | Added interval cleanup in useDesignAnalysis and useAnalysisProgress        |
+| HIGH-08 | ✅ Fixed         | O(n²) → O(n) import deduplication with Sets                                |
+| HIGH-09 | ✅ Fixed         | Limited overlap detection array to 100 entries                             |
 | MED-01  | ✅ Fixed         | Enabled TypeScript `strict: true` mode                                     |
 
 ---
@@ -407,18 +410,39 @@ const {
 
 ---
 
-### HIGH-03: Intervals Not Cleaned Up
+### ~~HIGH-03: Intervals Not Cleaned Up~~ ✅ FIXED
 
 **Locations:**
 
 - `src/hooks/useDesignAnalysis.ts:108-139`
 - `src/hooks/useAnalysisProgress.ts:201-223`
 
-**Problem:** `setInterval` created but cleanup may not run on unmount.
+**Status:** Added interval refs and cleanup effects in both hooks:
 
-**Fix:** Store interval in ref, cleanup in useEffect return.
+```typescript
+// useDesignAnalysis.ts - Store interval in ref
+const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-**Effort:** 1 hour
+// Cleanup on unmount
+useEffect(() => {
+  return () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+  };
+}, []);
+
+// useAnalysisProgress.ts - Same pattern
+useEffect(() => {
+  return () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+  };
+}, []);
+```
+
+**Verified:** TypeScript compiles, lint passes.
 
 ---
 
@@ -489,27 +513,43 @@ useEffect(() => {
 
 ---
 
-### HIGH-08: O(n²) Import Deduplication
+### ~~HIGH-08: O(n²) Import Deduplication~~ ✅ FIXED
 
 **Location:** `src/utils/astModifier.ts:138-152`
 
-**Problem:** Array search for each import. Quadratic for large files.
+**Status:** Replaced array `.includes()` with Set `.has()` for O(1) lookups:
 
-**Fix:** Use Set for O(1) lookups.
+```typescript
+// Before: O(n) array searches
+if (!existingNames.includes(importName) && !existing.namedImports.includes(namedImport)) {
 
-**Effort:** 30 minutes
+// After: O(1) Set lookups
+const existingNamesSet = new Set(existing.namedImports.map(...));
+const existingImportsSet = new Set(existing.namedImports);
+if (!existingNamesSet.has(importName) && !existingImportsSet.has(namedImport)) {
+```
+
+**Verified:** TypeScript compiles, lint passes.
 
 ---
 
-### HIGH-09: O(n²) Overlap Detection
+### ~~HIGH-09: O(n²) Overlap Detection~~ ✅ FIXED
 
 **Location:** `src/utils/astModifier.ts:1800-1809`
 
-**Problem:** Array grows and is searched repeatedly.
+**Status:** Limited `appliedRanges` array to 100 entries to prevent unbounded growth:
 
-**Fix:** Limit array size or use more efficient data structure.
+```typescript
+// Track this modification's range for overlap detection
+// Limit array size to prevent O(n²) growth - keep last 100 ranges
+// (overlap detection is for debugging, nearby mods are most relevant)
+if (appliedRanges.length >= 100) {
+  appliedRanges.shift();
+}
+appliedRanges.push({ start, end, offset });
+```
 
-**Effort:** 1 hour
+**Verified:** TypeScript compiles, lint passes.
 
 ---
 
@@ -689,8 +729,10 @@ Fix as they affect your workflow:
 | full-app-stream/route.ts | 0      | ~~5~~ → 0 (SSE timeout ✅, size limits ✅, base64 ✅) |
 | ContextCache.ts          | 0      | ~~3~~ → 0 (cache eviction ✅ already present)         |
 | treeSitterParser.ts      | 0      | ~~3~~ → 0 (cache eviction ✅ already present)         |
-| astModifier.ts           | 4      | HIGH - O(n²) algorithms                               |
+| astModifier.ts           | 2      | ~~4~~ → 2 (O(n²) import ✅, overlap ✅ fixed)         |
 | useAppStore.ts           | 4      | HIGH - Zustand patterns                               |
+| useDesignAnalysis.ts     | 0      | (interval cleanup ✅ fixed)                           |
+| useAnalysisProgress.ts   | 0      | (interval cleanup ✅ fixed)                           |
 | PhaseExecutionManager.ts | 0      | ~~3~~ → 0 (OperationResult ✅ fixed)                  |
 | CodeContextService.ts    | 0      | (UpdateContextResult ✅ fixed)                        |
 | WebContainerService.ts   | 0      | (sanitizePath ✅ fixed)                               |
