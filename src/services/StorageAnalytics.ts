@@ -444,7 +444,9 @@ export class StorageAnalyticsService {
     // Prevent memory leaks by limiting tracker count
     if (this.performanceTrackers.size > this.maxTrackers) {
       const firstKey = this.performanceTrackers.keys().next().value;
-      this.performanceTrackers.delete(firstKey);
+      if (firstKey !== undefined) {
+        this.performanceTrackers.delete(firstKey);
+      }
     }
   }
 

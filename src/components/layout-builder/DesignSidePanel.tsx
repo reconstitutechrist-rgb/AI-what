@@ -25,14 +25,14 @@ interface DesignSidePanelProps {
   // Design Control Panel props
   effectsSettings?: EffectsSettings;
   colorSettings?: ColorSettings;
-  onEffectsChange: (settings: EffectsSettings) => void;
-  onColorChange: (settings: ColorSettings) => void;
+  onEffectsChange: (settings: Partial<EffectsSettings>) => void;
+  onColorChange: (settings: Partial<ColorSettings>) => void;
   primaryColor?: string;
   onPrimaryColorChange: (color: string) => void;
   typographySettings?: TypographySettings;
-  onTypographyChange: (settings: TypographySettings) => void;
+  onTypographyChange: (settings: Partial<TypographySettings>) => void;
   spacingSettings?: SpacingSettings;
-  onSpacingChange: (settings: SpacingSettings) => void;
+  onSpacingChange: (settings: Partial<SpacingSettings>) => void;
   showGridOverlay: boolean;
   onGridOverlayToggle: (show: boolean) => void;
   layoutDesign: LayoutDesign;
