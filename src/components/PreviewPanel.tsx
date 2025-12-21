@@ -67,7 +67,7 @@ export interface PreviewPanelProps {
 // PREVIEW PANEL COMPONENT
 // ============================================================================
 
-export function PreviewPanel({
+export const PreviewPanel: React.FC<PreviewPanelProps> = React.memo(function PreviewPanel({
   currentComponent,
   activeTab,
   onTabChange,
@@ -82,7 +82,7 @@ export function PreviewPanel({
   onDownload,
   isExporting = false,
   onScreenshot,
-}: PreviewPanelProps) {
+}) {
   return (
     <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden h-full flex flex-col">
       {/* Tabs Header */}
@@ -204,6 +204,6 @@ export function PreviewPanel({
       </div>
     </div>
   );
-}
+});
 
 export default PreviewPanel;

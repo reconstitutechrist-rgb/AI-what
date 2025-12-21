@@ -21,6 +21,7 @@
  */
 
 import { useCallback, useEffect, useRef, useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '@/store/useAppStore';
 import { createClient } from '@/utils/supabase/client';
 import { ProjectDocumentationService } from '@/services/ProjectDocumentationService';
@@ -103,13 +104,24 @@ export function useProjectDocumentation(
 ): UseProjectDocumentationReturn {
   const { userId, appId, autoLoad = true } = options;
 
-  // Get store state and actions
-  const currentDocumentation = useAppStore((state) => state.currentDocumentation);
-  const isLoadingDocumentation = useAppStore((state) => state.isLoadingDocumentation);
-  const isSavingDocumentation = useAppStore((state) => state.isSavingDocumentation);
-  const setCurrentDocumentation = useAppStore((state) => state.setCurrentDocumentation);
-  const setIsLoadingDocumentation = useAppStore((state) => state.setIsLoadingDocumentation);
-  const setIsSavingDocumentation = useAppStore((state) => state.setIsSavingDocumentation);
+  // Get store state and actions (using useShallow to prevent unnecessary re-renders)
+  const {
+    currentDocumentation,
+    isLoadingDocumentation,
+    isSavingDocumentation,
+    setCurrentDocumentation,
+    setIsLoadingDocumentation,
+    setIsSavingDocumentation,
+  } = useAppStore(
+    useShallow((state) => ({
+      currentDocumentation: state.currentDocumentation,
+      isLoadingDocumentation: state.isLoadingDocumentation,
+      isSavingDocumentation: state.isSavingDocumentation,
+      setCurrentDocumentation: state.setCurrentDocumentation,
+      setIsLoadingDocumentation: state.setIsLoadingDocumentation,
+      setIsSavingDocumentation: state.setIsSavingDocumentation,
+    }))
+  );
 
   // Track last captured message count
   const lastCapturedMessageCountRef = useRef(0);
