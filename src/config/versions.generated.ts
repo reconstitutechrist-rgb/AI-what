@@ -1,6 +1,6 @@
 /**
  * AUTO-GENERATED - DO NOT EDIT
- * Generated: 2025-12-18T22:06:43.082Z
+ * Generated: 2025-12-20T23:07:45.697Z
  * Source: package.json + curated-versions.ts
  *
  * Run 'npm run generate:versions' to regenerate

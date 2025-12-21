@@ -96,13 +96,16 @@ function detectAppType(files: PreviewAppFile[]): 'FRONTEND_ONLY' | 'FULL_STACK' 
     }
 
     // Database and ORM - require actual usage patterns
+    // NOTE: @supabase/supabase-js is used for frontend auth/realtime, so it's NOT a backend indicator
+    // Only server-side Supabase admin or service role patterns indicate backend
     if (
       /mongoose\.connect\s*\(/.test(content) ||
       /mongoose\.model\s*\(/.test(content) ||
       /from\s+['"]@prisma\/client['"]/.test(content) ||
       /new\s+PrismaClient\s*\(/.test(content) ||
-      /from\s+['"]@supabase\/supabase-js['"]/.test(content) ||
-      /createClient\s*\(\s*process\.env\./.test(content) || // Supabase pattern with env vars
+      /from\s+['"]@supabase\/supabase-admin['"]/.test(content) || // Server-side Supabase admin only
+      /createServerClient\s*\(/.test(content) || // Supabase server-side SSR pattern
+      /SUPABASE_SERVICE_ROLE_KEY/.test(content) || // Service role indicates backend
       /new\s+Pool\s*\(/.test(content) || // pg Pool
       /mysql\.createConnection\s*\(/.test(content)
     ) {

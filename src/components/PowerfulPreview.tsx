@@ -470,6 +470,7 @@ h1, h2, h3, h4, h5, h6 {
                           width: '100%',
                           border: 'none',
                           borderRadius: 0,
+                          overflow: 'hidden',
                         }}
                       >
                         <SandpackPreview
@@ -478,6 +479,7 @@ h1, h2, h3, h4, h5, h6 {
                           style={{
                             height: '100%',
                             width: '100%',
+                            overflow: 'hidden',
                           }}
                         />
                       </SandpackLayout>

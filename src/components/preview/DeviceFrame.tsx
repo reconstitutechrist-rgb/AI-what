@@ -190,15 +190,19 @@ export function DeviceFrame({
   if (!isPhone) {
     return (
       <div
-        className={`relative bg-zinc-900 rounded-lg overflow-hidden shadow-2xl ${className}`}
+        className={`relative bg-zinc-900 rounded-lg shadow-2xl ${className}`}
         style={{
           width: displayWidth,
           height: displayHeight,
           maxWidth: '100%',
           maxHeight: '100%',
+          overflow: 'hidden',
+          isolation: 'isolate',
         }}
       >
-        {children}
+        <div className="w-full h-full overflow-hidden" style={{ position: 'relative' }}>
+          {children}
+        </div>
       </div>
     );
   }

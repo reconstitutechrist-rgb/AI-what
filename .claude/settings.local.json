@@ -66,7 +66,22 @@
       "Bash(npm run lint:*)",
       "Bash(npm run generate:versions:*)",
       "Bash(npx tsx:*)",
-      "Bash(npm run typecheck:*)"
+      "Bash(npm run typecheck:*)",
+      "Bash(for file in c:/AI-app/src/hooks/*.ts)",
+      "Bash(do wc -l \"$file\")",
+      "Bash(xargs -I {} bash -c 'echo \"\"=== {} ===\"\"; grep -l \"\"claude\\\\|anthropic\\\\|buildFullAppPrompt\\\\|buildModifyPrompt\\\\|generateFullApp\"\" \"\"{}\"\" || echo \"\"No match\"\"')",
+      "Bash(xargs:*)",
+      "Bash(npx jest:*)",
+      "Bash(for file in accessibilityAuditService colormindService competitorAnalyzer designReplicator designSystemGenerator figmaTransformer fontIdentificationService iconifyService lottieService ProjectDocumentationService RollbackService StorageAnalytics v0Service WebContainerService)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(paste:*)",
+      "Bash(bc:*)",
+      "Bash(if not exist \"c:\\\\AI-app\\\\src\\\\app\\\\api\\\\railway\" mkdir \"c:\\\\AI-app\\\\src\\\\app\\\\api\\\\railway\")",
+      "Bash(if not exist:*)",
+      "Bash(if not exist \"c:\\\\AI-app\\\\src\\\\app\\\\api\\\\railway\\\\status\" mkdir \"c:\\\\AI-app\\\\src\\\\app\\\\api\\\\railway\\\\status\")",
+      "Bash(if not exist \"c:\\\\AI-app\\\\src\\\\app\\\\api\\\\railway\\\\status\\\\[id]\" mkdir \"c:\\\\AI-app\\\\src\\\\app\\\\api\\\\railway\\\\status\\\\[id]\")",
+      "Bash(if not exist \"c:\\\\AI-app\\\\src\\\\app\\\\api\\\\railway\\\\cleanup\" mkdir \"c:\\\\AI-app\\\\src\\\\app\\\\api\\\\railway\\\\cleanup\")",
+      "Bash(if not exist \"c:\\\\AI-app\\\\src\\\\app\\\\api\\\\railway\\\\cleanup\\\\[id]\" mkdir \"c:\\\\AI-app\\\\src\\\\app\\\\api\\\\railway\\\\cleanup\\\\[id]\")"
     ],
     "deny": [],
     "ask": []

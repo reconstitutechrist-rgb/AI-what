@@ -18,6 +18,17 @@ This file is for your personal Claude Code preferences. It's automatically ignor
 - Skip unnecessary explanations for simple tasks
 - Ask clarifying questions when requirements are ambiguous
 
+### Code Reviews & Analysis
+
+- ALWAYS perform deep, thorough analysis - never surface-level reviews
+- When reviewing code or refactoring, verify ALL functionality is preserved
+- Check every handler, callback, and UI connection systematically
+- Trace data flow through components, hooks, and state management
+- Verify type signatures match between interfaces and implementations
+- Run typecheck and tests to validate changes
+- Document specific issues found with file paths and line numbers
+- Never skim - read and understand code in full before making judgments
+
 ### Development Patterns
 
 - Always run typecheck before considering a task complete
