@@ -194,6 +194,8 @@ export function DeviceFrame({
         style={{
           width: displayWidth,
           height: displayHeight,
+          maxWidth: '100%',
+          maxHeight: '100%',
         }}
       >
         {children}

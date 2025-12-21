@@ -371,7 +371,7 @@ h1, h2, h3, h4, h5, h6 {
   }, [appData]);
 
   // Apply stability layer with debouncing and rate limiting
-  // Use shorter debounce (150ms) for responsive feel while still preventing rapid recompiles
+  // 150ms debounce provides responsive feel while batching rapid changes
   const { stableFiles: sandpackFiles, isUpdating } = useSandpackStability(rawSandpackFiles, {
     debounceMs: 150,
     maxUpdatesPerSecond: 3,
@@ -407,7 +407,7 @@ h1, h2, h3, h4, h5, h6 {
     >
       <ErrorBoundary>
         <SandpackProvider
-          key={`${retryCount}-${devicePreset}`}
+          key={retryCount}
           template="react-ts"
           theme="dark"
           files={sandpackFiles}

@@ -67,15 +67,31 @@ export function useSandpackStability(
   // Debounce timeout ref
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Pending updates processing timeout ref (for cleanup on unmount)
+  const pendingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Pending updates queue
   const pendingUpdatesRef = useRef<SandpackFiles[]>([]);
 
-  // Track the raw files string for deep comparison
+  // Track file changes with a lightweight hash (path + content length + simple checksum)
+  // Avoids full content comparison which is slow and memory-intensive
   const rawFilesKey = useMemo(() => {
     try {
-      return JSON.stringify(rawFiles);
+      const sortedPaths = Object.keys(rawFiles).sort();
+      // Create hash from path, content length, and first/last chars as checksum
+      const hashParts = sortedPaths.map((path) => {
+        const code = rawFiles[path].code;
+        const len = code.length;
+        // Simple checksum: first 10 + last 10 chars + a few middle samples
+        const checksum =
+          code.slice(0, 10) +
+          code.slice(-10) +
+          (len > 100 ? code.slice(Math.floor(len / 2), Math.floor(len / 2) + 10) : '');
+        return `${path}:${len}:${checksum}`;
+      });
+      return hashParts.join('\n'); // Use newline instead of | to avoid content conflicts
     } catch {
-      return String(Date.now());
+      return `fallback-${Date.now()}`;
     }
   }, [rawFiles]);
 
@@ -101,13 +117,13 @@ export function useSandpackStability(
         });
       }
 
-      // Schedule processing of remaining updates
+      // Schedule processing of remaining updates (tracked for cleanup)
       if (pendingUpdatesRef.current.length > 0) {
-        setTimeout(processPendingUpdates, 300);
+        pendingTimeoutRef.current = setTimeout(processPendingUpdates, 300);
       }
     } else {
-      // Rate limited - try again later
-      setTimeout(processPendingUpdates, 300);
+      // Rate limited - try again later (tracked for cleanup)
+      pendingTimeoutRef.current = setTimeout(processPendingUpdates, 300);
     }
   }, []); // No dependencies - uses refs and functional updates
 
@@ -207,6 +223,18 @@ export function useSandpackStability(
   const clearError = useCallback(() => {
     setHasError(false);
     setLastError(null);
+  }, []);
+
+  // Cleanup timeouts on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      if (pendingTimeoutRef.current) {
+        clearTimeout(pendingTimeoutRef.current);
+      }
+    };
   }, []);
 
   return {

@@ -36,10 +36,13 @@ export function SandpackController({
 
   // Track file changes and update incrementally
   useEffect(() => {
-    // Skip on initial mount - SandpackProvider already has the files
+    // On initial mount, SandpackProvider already received files via its `files` prop
+    // We only need to skip if this is the initial mount AND we have no files to sync
     if (isInitialMount.current) {
       isInitialMount.current = false;
       prevFilesRef.current = files;
+      // On initial mount, SandpackProvider handles the files - skip processing
+      // The files prop was already passed to SandpackProvider, so no sync needed
       return;
     }
 
@@ -78,11 +81,9 @@ export function SandpackController({
       prevFilesRef.current = files;
 
       // If we made changes, trigger a rerun to apply them
+      // No delay needed - useSandpackStability already debounces upstream
       if (hasChanges) {
-        // Small delay to batch multiple file changes
-        setTimeout(() => {
-          sandpack.runSandpack();
-        }, 100);
+        sandpack.runSandpack();
       }
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
