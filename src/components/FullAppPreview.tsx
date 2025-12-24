@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import PreviewContainer from './PreviewContainer';
 import { useToast } from './Toast';
 import { DeviceToolbar } from './preview';
+import { FileTree } from './ui/FileTree';
 import { useResponsivePreview } from '@/hooks/useResponsivePreview';
 import { useSettings } from '@/hooks/useSettings';
 import { logger } from '@/utils/logger';
@@ -208,35 +209,18 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
           </div>
         ) : (
           <div className="h-full flex">
-            {/* File list */}
-            <div className="w-64 bg-black/20 border-r border-white/10 overflow-y-auto">
-              <div className="p-3 border-b border-white/10">
+            {/* File tree */}
+            <div className="w-64 bg-black/20 border-r border-white/10 flex flex-col">
+              <div className="p-3 border-b border-white/10 flex-shrink-0">
                 <h3 className="text-xs font-semibold text-slate-400 uppercase">Files</h3>
               </div>
-              {appData.files.map((file) => (
-                <button
-                  key={file.path}
-                  onClick={() => setSelectedFile(file.path)}
-                  className={`w-full text-left px-4 py-2 text-sm transition-colors ${
-                    selectedFile === file.path
-                      ? 'bg-blue-600/20 text-blue-300 border-l-2 border-blue-500'
-                      : 'text-slate-300 hover:bg-white/5'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs">
-                      {file.path.endsWith('.tsx') || file.path.endsWith('.ts')
-                        ? '📘'
-                        : file.path.endsWith('.css')
-                          ? '🎨'
-                          : file.path.endsWith('.json')
-                            ? '⚙️'
-                            : '📄'}
-                    </span>
-                    <span className="truncate">{file.path}</span>
-                  </div>
-                </button>
-              ))}
+              <FileTree
+                files={appData.files}
+                selectedPath={selectedFile}
+                onSelectFile={setSelectedFile}
+                className="flex-1 py-1"
+                defaultExpandedDepth={2}
+              />
             </div>
 
             {/* Code viewer */}
