@@ -339,7 +339,21 @@ Ask any final technical questions if needed (platform, technology preferences) b
     // Generate suggested actions based on conversation state
     const suggestedActions: Array<{ label: string; action: string }> = [];
 
+    // Check if backend is needed
+    const needsBackend =
+      updatedState.technical.needsAuth ||
+      updatedState.technical.needsDatabase ||
+      updatedState.technical.needsRealtime ||
+      updatedState.technical.needsFileUpload;
+
     if (showPhaseOption && !wantsPhases) {
+      // If backend is needed, suggest architecture generation first
+      if (needsBackend) {
+        suggestedActions.push({
+          label: 'Analyze Backend Architecture',
+          action: 'generate_architecture',
+        });
+      }
       suggestedActions.push({
         label: 'Generate Implementation Plan',
         action: 'generate_phases',

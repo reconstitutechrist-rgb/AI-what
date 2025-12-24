@@ -29,6 +29,7 @@ import {
 } from '@/utils/contextCompression';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { usePhaseGeneration } from '@/hooks/usePhaseGeneration';
+import { useArchitectureGeneration } from '@/hooks/useArchitectureGeneration';
 import {
   RecoveryPromptDialog,
   MessageBubble,
@@ -37,6 +38,7 @@ import {
   ChatInputArea,
   WizardHeader,
   ConceptSummaryPanel,
+  ArchitectureReviewPanel,
 } from './conversation-wizard';
 import type { ChatInputAreaRef } from './conversation-wizard';
 
@@ -188,6 +190,20 @@ What would you like to build?`,
     importedLayoutDesign,
     phasePlan,
     setPhasePlan,
+    onShowToast: showToast,
+    onAddMessage: (message) => setMessages((prev) => [...prev, message]),
+  });
+
+  // Architecture generation hook
+  const {
+    architectureSpec,
+    isGeneratingArchitecture,
+    generateArchitecture,
+    clearArchitecture,
+    needsBackend,
+  } = useArchitectureGeneration({
+    wizardState,
+    importedLayoutDesign,
     onShowToast: showToast,
     onAddMessage: (message) => setMessages((prev) => [...prev, message]),
   });
@@ -349,8 +365,13 @@ What would you like to build?`,
   const handleAction = useCallback(
     (action: string) => {
       switch (action) {
+        case 'generate_architecture':
+          generateArchitecture();
+          break;
+
         case 'generate_phases':
-          generatePhases();
+          // Pass pre-generated architecture if available
+          generatePhases(architectureSpec || undefined);
           break;
 
         case 'start_building':
@@ -398,6 +419,8 @@ What would you like to build?`,
       }
     },
     [
+      generateArchitecture,
+      architectureSpec,
       generatePhases,
       phasePlan,
       wizardState,
@@ -523,6 +546,18 @@ What would you like to build?`,
             </div>
           )}
 
+          {/* Architecture generation indicator */}
+          {isGeneratingArchitecture && (
+            <div className="flex justify-start">
+              <div className="bg-emerald-600/10 rounded-lg px-4 py-3 border-l-2 border-emerald-500">
+                <div className="flex items-center gap-3">
+                  <LoaderIcon size={18} className="text-emerald-400" />
+                  <span className="text-zinc-300">Analyzing backend architecture...</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Phase generation indicator */}
           {isGeneratingPhases && (
             <div className="flex justify-start">
@@ -571,12 +606,24 @@ What would you like to build?`,
         />
       </div>
 
-      {/* Side Panel - Concept Summary */}
-      <ConceptSummaryPanel
-        wizardState={wizardState}
-        phasePlan={phasePlan}
-        onStartBuilding={() => handleAction('start_building')}
-      />
+      {/* Side Panel - Architecture Review or Concept Summary */}
+      {architectureSpec && !phasePlan ? (
+        <ArchitectureReviewPanel
+          architectureSpec={architectureSpec}
+          isGenerating={isGeneratingArchitecture}
+          onProceed={() => handleAction('generate_phases')}
+          onRegenerate={() => {
+            clearArchitecture();
+            generateArchitecture();
+          }}
+        />
+      ) : (
+        <ConceptSummaryPanel
+          wizardState={wizardState}
+          phasePlan={phasePlan}
+          onStartBuilding={() => handleAction('start_building')}
+        />
+      )}
     </div>
   );
 

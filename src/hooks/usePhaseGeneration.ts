@@ -7,6 +7,7 @@ import type {
 } from '@/types/appConcept';
 import type { DynamicPhasePlan } from '@/types/dynamicPhases';
 import type { LayoutDesign } from '@/types/layoutDesign';
+import type { ArchitectureSpec } from '@/types/architectureSpec';
 import {
   segmentConversation,
   getHighImportanceSegments,
@@ -58,7 +59,7 @@ interface UsePhaseGenerationOptions {
 
 interface UsePhaseGenerationReturn {
   isGeneratingPhases: boolean;
-  generatePhases: () => Promise<void>;
+  generatePhases: (preGeneratedArchitecture?: ArchitectureSpec) => Promise<void>;
   buildConversationContext: () => string;
   convertRolesToUserRoles: () => UserRole[] | undefined;
   extractWorkflowsFromConversation: () => WizardState['workflows'] | undefined;
@@ -209,127 +210,133 @@ Does this look good? You can:
 
   /**
    * Generate implementation phases
+   * @param preGeneratedArchitecture - Optional pre-generated architecture spec to skip architecture generation
    */
-  const generatePhases = useCallback(async () => {
-    if (!wizardState.name || wizardState.features.length === 0) {
-      onShowToast({
-        type: 'error',
-        message: 'Please complete the app concept before generating phases.',
-      });
-      return;
-    }
-
-    setIsGeneratingPhases(true);
-
-    try {
-      // Build complete concept with ALL details from the conversation
-      const concept: AppConcept = {
-        name: wizardState.name,
-        description: wizardState.description || `A ${wizardState.name} application`,
-        purpose: wizardState.purpose || wizardState.description || '',
-        targetUsers: wizardState.targetUsers || 'General users',
-        coreFeatures: wizardState.features.map((f, i) => ({
-          id: `feature-${i}`,
-          name: f.name,
-          description: f.description || '',
-          priority: f.priority,
-        })),
-        uiPreferences: {
-          style: 'modern',
-          colorScheme: 'auto',
-          layout: 'single-page',
-          ...wizardState.uiPreferences,
-        } as UIPreferences,
-        technical: {
-          needsAuth: false,
-          needsDatabase: false,
-          needsAPI: false,
-          needsFileUpload: false,
-          needsRealtime: false,
-          ...wizardState.technical,
-        } as TechnicalRequirements,
-        roles: convertRolesToUserRoles(),
-        workflows: extractWorkflowsFromConversation(),
-        conversationContext: buildConversationContext(),
-        layoutDesign: importedLayoutDesign || undefined,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      // Convert messages to ChatMessage format for phase context extraction
-      const conversationMessages = messages.map((m) => ({
-        id: m.id,
-        role: m.role,
-        content: m.content,
-        timestamp: m.timestamp.toISOString(),
-      }));
-
-      // Call phase generation API with conversation for context extraction
-      const response = await fetch('/api/wizard/generate-phases', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          concept,
-          conversationMessages,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate phases');
-      }
-
-      const data = await response.json();
-
-      if (data.success && data.plan) {
-        setPhasePlan(data.plan);
-
-        // Add message showing the plan
-        const planMessage: Message = {
-          id: `plan-${Date.now()}`,
-          role: 'assistant',
-          content: formatPhasePlanMessage(data.plan),
-          timestamp: new Date(),
-        };
-        onAddMessage(planMessage);
-      } else if (data.success && !data.plan) {
-        // API returned success but no plan - this is a bug, show error
-        const errorMessage: Message = {
-          id: `error-${Date.now()}`,
-          role: 'system',
-          content:
-            '❌ **Phase generation failed**\n\nThe server returned success but no plan was generated. Please try again.',
-          timestamp: new Date(),
-        };
-        onAddMessage(errorMessage);
+  const generatePhases = useCallback(
+    async (preGeneratedArchitecture?: ArchitectureSpec) => {
+      if (!wizardState.name || wizardState.features.length === 0) {
         onShowToast({
           type: 'error',
-          message: 'Phase plan generation failed - no plan returned. Please try again.',
+          message: 'Please complete the app concept before generating phases.',
         });
-      } else if (!data.success) {
-        // API returned failure
-        throw new Error(data.error || 'Phase generation failed');
+        return;
       }
-    } catch (err) {
-      console.error('Phase generation error:', err);
-      onShowToast({
-        type: 'error',
-        message: err instanceof Error ? err.message : 'Failed to generate phases',
-      });
-    } finally {
-      setIsGeneratingPhases(false);
-    }
-  }, [
-    wizardState,
-    messages,
-    importedLayoutDesign,
-    onShowToast,
-    onAddMessage,
-    convertRolesToUserRoles,
-    extractWorkflowsFromConversation,
-    buildConversationContext,
-    formatPhasePlanMessage,
-  ]);
+
+      setIsGeneratingPhases(true);
+
+      try {
+        // Build complete concept with ALL details from the conversation
+        const concept: AppConcept = {
+          name: wizardState.name,
+          description: wizardState.description || `A ${wizardState.name} application`,
+          purpose: wizardState.purpose || wizardState.description || '',
+          targetUsers: wizardState.targetUsers || 'General users',
+          coreFeatures: wizardState.features.map((f, i) => ({
+            id: `feature-${i}`,
+            name: f.name,
+            description: f.description || '',
+            priority: f.priority,
+          })),
+          uiPreferences: {
+            style: 'modern',
+            colorScheme: 'auto',
+            layout: 'single-page',
+            ...wizardState.uiPreferences,
+          } as UIPreferences,
+          technical: {
+            needsAuth: false,
+            needsDatabase: false,
+            needsAPI: false,
+            needsFileUpload: false,
+            needsRealtime: false,
+            ...wizardState.technical,
+          } as TechnicalRequirements,
+          roles: convertRolesToUserRoles(),
+          workflows: extractWorkflowsFromConversation(),
+          conversationContext: buildConversationContext(),
+          layoutDesign: importedLayoutDesign || undefined,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        // Convert messages to ChatMessage format for phase context extraction
+        const conversationMessages = messages.map((m) => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          timestamp: m.timestamp.toISOString(),
+        }));
+
+        // Call phase generation API with conversation for context extraction
+        // Pass pre-generated architecture if available (skips architecture generation in API)
+        const response = await fetch('/api/wizard/generate-phases', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            concept,
+            conversationMessages,
+            architectureSpec: preGeneratedArchitecture,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to generate phases');
+        }
+
+        const data = await response.json();
+
+        if (data.success && data.plan) {
+          setPhasePlan(data.plan);
+
+          // Add message showing the plan
+          const planMessage: Message = {
+            id: `plan-${Date.now()}`,
+            role: 'assistant',
+            content: formatPhasePlanMessage(data.plan),
+            timestamp: new Date(),
+          };
+          onAddMessage(planMessage);
+        } else if (data.success && !data.plan) {
+          // API returned success but no plan - this is a bug, show error
+          const errorMessage: Message = {
+            id: `error-${Date.now()}`,
+            role: 'system',
+            content:
+              '❌ **Phase generation failed**\n\nThe server returned success but no plan was generated. Please try again.',
+            timestamp: new Date(),
+          };
+          onAddMessage(errorMessage);
+          onShowToast({
+            type: 'error',
+            message: 'Phase plan generation failed - no plan returned. Please try again.',
+          });
+        } else if (!data.success) {
+          // API returned failure
+          throw new Error(data.error || 'Phase generation failed');
+        }
+      } catch (err) {
+        console.error('Phase generation error:', err);
+        onShowToast({
+          type: 'error',
+          message: err instanceof Error ? err.message : 'Failed to generate phases',
+        });
+      } finally {
+        setIsGeneratingPhases(false);
+      }
+    },
+    [
+      wizardState,
+      messages,
+      importedLayoutDesign,
+      onShowToast,
+      onAddMessage,
+      convertRolesToUserRoles,
+      extractWorkflowsFromConversation,
+      buildConversationContext,
+      formatPhasePlanMessage,
+    ]
+  );
 
   // Auto-trigger phase generation when ready
   useEffect(() => {

@@ -29,6 +29,7 @@ interface GeneratePhasesRequest {
   concept: AppConcept;
   config?: Partial<PhaseGeneratorConfig>;
   conversationMessages?: ChatMessage[]; // Optional: for phase-specific context extraction
+  architectureSpec?: ArchitectureSpec; // Optional: pre-generated architecture from wizard
 }
 
 /**
@@ -50,7 +51,7 @@ function serializePhaseContext(context: PhaseContext): SerializedPhaseContext {
 export async function POST(request: Request) {
   try {
     const body: GeneratePhasesRequest = await request.json();
-    const { concept, config, conversationMessages } = body;
+    const { concept, config, conversationMessages, architectureSpec: preGeneratedSpec } = body;
 
     // Validate concept
     if (!concept) {
@@ -136,8 +137,8 @@ export async function POST(request: Request) {
       }
     }
 
-    // NEW: Generate architecture spec if backend is needed
-    let architectureSpec: ArchitectureSpec | undefined;
+    // Use pre-generated architecture if provided, otherwise generate if backend is needed
+    let architectureSpec: ArchitectureSpec | undefined = preGeneratedSpec;
 
     const needsBackend =
       normalizedConcept.technical.needsAuth ||
@@ -145,7 +146,8 @@ export async function POST(request: Request) {
       normalizedConcept.technical.needsRealtime ||
       normalizedConcept.technical.needsFileUpload;
 
-    if (needsBackend) {
+    // Only generate architecture if not pre-generated and backend is needed
+    if (!architectureSpec && needsBackend) {
       try {
         console.log('[generate-phases] App needs backend, calling BackendArchitectureAgent...');
         const agent = new BackendArchitectureAgent();
@@ -164,6 +166,8 @@ export async function POST(request: Request) {
         console.error('[generate-phases] BackendArchitectureAgent error:', agentError);
         // Continue without architecture spec - non-critical
       }
+    } else if (architectureSpec) {
+      console.log('[generate-phases] Using pre-generated architecture spec');
     }
 
     // Generate phase plan (with or without architecture)
