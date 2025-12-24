@@ -36,8 +36,6 @@ export interface UseMessageSenderOptions {
   onComponentCreated: (component: GeneratedComponent) => void;
   /** Show diff preview modal */
   onShowDiffPreview: (diff: PendingDiff) => void;
-  /** Show staging consent modal */
-  onShowStagingModal: (request: string) => void;
   /** Save component to storage */
   onSaveComponent: (component: GeneratedComponent) => Promise<void>;
   /** Uploaded image as base64 */

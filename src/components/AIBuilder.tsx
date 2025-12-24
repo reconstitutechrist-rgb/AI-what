@@ -38,7 +38,6 @@ import {
   VersionHistoryModal,
   DeploymentModal,
   DiffPreviewModal,
-  StagingConsentModal,
   CompareVersionsModal,
   PhasedBuildPanel,
   NameAppModal,
@@ -233,8 +232,6 @@ export default function AIBuilder() {
     setShowDeploymentModal,
     showCompareModal,
     setShowCompareModal,
-    showNewAppStagingModal,
-    setShowNewAppStagingModal,
     showConversationalWizard,
     setShowConversationalWizard,
     showLayoutBuilder,
@@ -261,8 +258,6 @@ export default function AIBuilder() {
     setPendingChange,
     pendingDiff,
     setPendingDiff,
-    pendingNewAppRequest,
-    setPendingNewAppRequest,
     deploymentInstructions,
     setDeploymentInstructions,
     exportingApp,
@@ -395,10 +390,6 @@ export default function AIBuilder() {
     onShowDiffPreview: (diff) => {
       setPendingDiff(diff);
       setShowDiffPreview(true);
-    },
-    onShowStagingModal: (request) => {
-      setPendingNewAppRequest(request);
-      setShowNewAppStagingModal(true);
     },
     onSaveComponent: async (component) => {
       await saveComponentToDb(component);
@@ -1959,62 +1950,6 @@ export default function AIBuilder() {
           pendingDiff={pendingDiff}
           onApprove={approveDiff}
           onReject={rejectDiff}
-        />
-
-        <StagingConsentModal
-          isOpen={showNewAppStagingModal}
-          pendingRequest={pendingNewAppRequest}
-          onBuildAllAtOnce={() => {
-            setShowNewAppStagingModal(false);
-            setPendingNewAppRequest('');
-            setUserInput(pendingNewAppRequest);
-          }}
-          onBuildInPhases={async () => {
-            setShowNewAppStagingModal(false);
-            setIsGenerating(true);
-
-            try {
-              const response = await fetch('/api/ai-builder/plan-phases', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  prompt: pendingNewAppRequest,
-                  conversationHistory: chatMessages.slice(-50),
-                }),
-              });
-
-              const data = await response.json();
-
-              if (data.error) {
-                throw new Error(data.error);
-              }
-
-              setNewAppStagePlan(data);
-
-              // Use helper function to format phase content safely
-              const phaseContent = formatPhaseContent(data.phases);
-
-              const phasePlanMessage: ChatMessage = {
-                id: generateId(),
-                role: 'assistant',
-                content: `🏗️ **${data.totalPhases ?? 0}-Phase Build Plan Created**\n\n${phaseContent}\n\n**Ready to start?** Type **'start'** or **'begin'** to build Phase 1!`,
-                timestamp: new Date().toISOString(),
-              };
-
-              setChatMessages((prev) => [...prev, phasePlanMessage]);
-            } catch (error) {
-              const errorMessage: ChatMessage = {
-                id: generateId(),
-                role: 'assistant',
-                content: `❌ Failed to create phase plan: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                timestamp: new Date().toISOString(),
-              };
-              setChatMessages((prev) => [...prev, errorMessage]);
-            } finally {
-              setIsGenerating(false);
-              setPendingNewAppRequest('');
-            }
-          }}
         />
 
         <CompareVersionsModal

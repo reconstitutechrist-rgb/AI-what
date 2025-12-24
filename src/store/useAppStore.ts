@@ -133,7 +133,6 @@ interface UISlice {
   showApprovalModal: boolean;
   showDeploymentModal: boolean;
   showCompareModal: boolean;
-  showNewAppStagingModal: boolean;
   showConversationalWizard: boolean;
   showLayoutBuilder: boolean;
   showSettings: boolean;
@@ -162,7 +161,6 @@ interface UISlice {
   setShowApprovalModal: (show: boolean) => void;
   setShowDeploymentModal: (show: boolean) => void;
   setShowCompareModal: (show: boolean) => void;
-  setShowNewAppStagingModal: (show: boolean) => void;
   setShowConversationalWizard: (show: boolean) => void;
   setShowLayoutBuilder: (show: boolean) => void;
   setShowSettings: (show: boolean) => void;
@@ -187,7 +185,6 @@ interface UISlice {
 interface DataSlice {
   pendingChange: PendingChange | null;
   pendingDiff: PendingDiff | null;
-  pendingNewAppRequest: string;
   deploymentInstructions: DeploymentInstructions | null;
   exportingApp: GeneratedComponent | null;
   compareVersions: CompareVersions;
@@ -208,7 +205,6 @@ interface DataSlice {
   // Actions
   setPendingChange: (change: PendingChange | null) => void;
   setPendingDiff: (diff: PendingDiff | null) => void;
-  setPendingNewAppRequest: (request: string) => void;
   setDeploymentInstructions: (instructions: DeploymentInstructions | null) => void;
   setExportingApp: (app: GeneratedComponent | null) => void;
   setCompareVersions: (versions: CompareVersions) => void;
@@ -409,7 +405,6 @@ export const useAppStore = create<AppState>()(
       showApprovalModal: false,
       showDeploymentModal: false,
       showCompareModal: false,
-      showNewAppStagingModal: false,
       showConversationalWizard: false,
       showLayoutBuilder: false,
       showSettings: false,
@@ -437,7 +432,6 @@ export const useAppStore = create<AppState>()(
       setShowApprovalModal: (show) => set({ showApprovalModal: show }),
       setShowDeploymentModal: (show) => set({ showDeploymentModal: show }),
       setShowCompareModal: (show) => set({ showCompareModal: show }),
-      setShowNewAppStagingModal: (show) => set({ showNewAppStagingModal: show }),
       setShowConversationalWizard: (show) => set({ showConversationalWizard: show }),
       setShowLayoutBuilder: (show) => set({ showLayoutBuilder: show }),
       setShowSettings: (show) => set({ showSettings: show }),
@@ -460,7 +454,6 @@ export const useAppStore = create<AppState>()(
       // ========================================================================
       pendingChange: null as PendingChange | null,
       pendingDiff: null as PendingDiff | null,
-      pendingNewAppRequest: '',
       deploymentInstructions: null as DeploymentInstructions | null,
       exportingApp: null as GeneratedComponent | null,
       compareVersions: { v1: null, v2: null } as CompareVersions,
@@ -478,7 +471,6 @@ export const useAppStore = create<AppState>()(
 
       setPendingChange: (change) => set({ pendingChange: change }),
       setPendingDiff: (diff) => set({ pendingDiff: diff }),
-      setPendingNewAppRequest: (request) => set({ pendingNewAppRequest: request }),
       setDeploymentInstructions: (instructions) => set({ deploymentInstructions: instructions }),
       setExportingApp: (app) => set({ exportingApp: app }),
       setCompareVersions: (versions) => set({ compareVersions: versions }),
@@ -648,7 +640,6 @@ export const useUIState = () =>
       showApprovalModal: state.showApprovalModal,
       showDeploymentModal: state.showDeploymentModal,
       showCompareModal: state.showCompareModal,
-      showNewAppStagingModal: state.showNewAppStagingModal,
       showConversationalWizard: state.showConversationalWizard,
       showLayoutBuilder: state.showLayoutBuilder,
       showSettings: state.showSettings,
