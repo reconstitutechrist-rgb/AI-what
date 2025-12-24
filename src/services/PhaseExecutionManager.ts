@@ -568,6 +568,32 @@ export function buildPhaseExecutionPrompt(context: PhaseExecutionContext): strin
 `;
   }
 
+  // User workflows context (critical for multi-step process generation)
+  if (context.fullConcept?.workflows && context.fullConcept.workflows.length > 0) {
+    prompt += `## User Workflows
+`;
+    for (const workflow of context.fullConcept.workflows) {
+      prompt += `### ${workflow.name}
+`;
+      if (workflow.description) {
+        prompt += `${workflow.description}
+`;
+      }
+      prompt += `**Steps:**
+`;
+      workflow.steps.forEach((step, i) => {
+        prompt += `${i + 1}. ${step}
+`;
+      });
+      if (workflow.involvedRoles && workflow.involvedRoles.length > 0) {
+        prompt += `**Roles involved:** ${workflow.involvedRoles.join(', ')}
+`;
+      }
+      prompt += `
+`;
+    }
+  }
+
   // Phase-specific role context
   if (context.relevantRoles && context.relevantRoles.length > 0) {
     prompt += `## This Phase Serves
@@ -783,6 +809,45 @@ ${context.previousPhaseCode}
 `;
   }
 
+  // Architecture context for backend phases (from BackendArchitectureAgent)
+  if (context.architectureContext) {
+    prompt += `## Backend Architecture Context
+
+This phase has specific backend architecture requirements. Follow these exactly:
+
+`;
+
+    // Include Prisma schema if available
+    if (context.architectureContext.prismaSchema) {
+      prompt += `### Prisma Schema
+\`\`\`prisma
+${context.architectureContext.prismaSchema}
+\`\`\`
+
+`;
+    }
+
+    // Include API routes if available
+    if (context.architectureContext.apiRoutes && context.architectureContext.apiRoutes.length > 0) {
+      prompt += `### API Routes to Implement
+${context.architectureContext.apiRoutes.map((r) => `- ${r.method} ${r.path}: ${r.description}`).join('\n')}
+
+`;
+    }
+
+    // Include backend files if available
+    if (context.architectureContext.files && context.architectureContext.files.length > 0) {
+      prompt += `### Backend Files to Create
+${context.architectureContext.files.map((f) => `- ${f.path}: ${f.description}`).join('\n')}
+
+`;
+    }
+
+    prompt += `**CRITICAL**: Follow the architecture specification exactly. Do not modify field names, routes, or types.
+
+`;
+  }
+
   // Phase-specific instructions
   prompt += `## Phase ${context.phaseNumber} Requirements
 
@@ -950,6 +1015,7 @@ export class PhaseExecutionManager {
         roles: concept.roles,
         conversationContext: concept.conversationContext,
         dataModels: concept.technical.dataModels,
+        workflows: concept.workflows, // CRITICAL: Include workflows for multi-step process generation
       },
 
       // Phase-specific concept context
@@ -969,6 +1035,10 @@ export class PhaseExecutionManager {
       // Smart context from CodeContextService (if available)
       // Call getOptimizedPhaseContext() before getExecutionContext() to populate this
       smartContextSnapshot: this.cachedSmartContextSnapshot,
+
+      // Architecture context for backend phases (from BackendArchitectureAgent)
+      // Enables phase-specific backend implementation instructions
+      architectureContext: phase.architectureContext,
     } as PhaseExecutionContextWithEnhancedTracking;
   }
 

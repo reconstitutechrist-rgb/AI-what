@@ -11,8 +11,10 @@ import type {
   TechnicalRequirements,
   UIPreferences,
   UserRole,
+  Workflow,
 } from '@/types/appConcept';
 import type { LayoutDesign } from '@/types/layoutDesign';
+import type { ArchitectureSpec, APIRouteSpec, BackendFileSpec } from '@/types/architectureSpec';
 
 // ============================================================================
 // FEATURE CLASSIFICATION
@@ -180,6 +182,13 @@ export interface DynamicPhase {
 
   // Role context: which user roles interact with this phase's features
   relevantRoles?: string[];
+
+  // Architecture context for backend phases (from BackendArchitectureAgent)
+  architectureContext?: {
+    files: BackendFileSpec[];
+    prismaSchema?: string;
+    apiRoutes?: APIRouteSpec[];
+  };
 }
 
 /**
@@ -266,6 +275,9 @@ export interface DynamicPhasePlan {
 
   // Phase-specific context extracted from conversation (domain -> context)
   phaseContexts?: Record<FeatureDomain, SerializedPhaseContext>;
+
+  // Backend architecture specification (from BackendArchitectureAgent)
+  architectureSpec?: ArchitectureSpec;
 }
 
 /**
@@ -394,6 +406,8 @@ export interface PhaseExecutionContext {
     }>;
     // Full layout design for design-aware code generation
     layoutDesign?: LayoutDesign;
+    // User workflows for multi-step process generation
+    workflows?: Workflow[];
   };
 
   // Phase-specific concept context
@@ -407,6 +421,14 @@ export interface PhaseExecutionContext {
 
   // Context truncation notice (tells AI what conversation context was dropped)
   truncationNotice?: string;
+
+  // Architecture context for backend phases (from BackendArchitectureAgent)
+  // This provides phase-specific backend implementation details
+  architectureContext?: {
+    files: BackendFileSpec[];
+    prismaSchema?: string;
+    apiRoutes?: APIRouteSpec[];
+  };
 }
 
 /**

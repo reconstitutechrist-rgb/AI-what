@@ -21,6 +21,7 @@ import type {
   WorkflowSpecification,
   PhaseConceptContext,
 } from '@/types/dynamicPhases';
+import type { ArchitectureSpec, BackendPhaseSpec } from '@/types/architectureSpec';
 
 import {
   COMPLEX_FEATURE_PATTERNS as complexPatterns,
@@ -317,6 +318,122 @@ export class DynamicPhaseGenerator {
         },
       };
     }
+  }
+
+  /**
+   * Generate a phase plan with backend architecture context
+   * Injects backend phases from ArchitectureSpec at appropriate positions
+   */
+  generatePhasePlanWithArchitecture(
+    concept: AppConcept,
+    architectureSpec: ArchitectureSpec
+  ): PhasePlanGenerationResult {
+    // First, generate the base plan
+    const result = this.generatePhasePlan(concept);
+
+    if (!result.success || !result.plan) {
+      return result;
+    }
+
+    // Inject backend phases from architecture spec
+    const enhancedPlan = this.injectBackendPhases(result.plan, architectureSpec);
+
+    // Attach the architecture spec to the plan for reference during code generation
+    enhancedPlan.architectureSpec = architectureSpec;
+
+    return {
+      ...result,
+      plan: enhancedPlan,
+    };
+  }
+
+  /**
+   * Inject backend phases from ArchitectureSpec into the plan
+   * Backend phases are inserted after setup but before feature phases
+   */
+  private injectBackendPhases(plan: DynamicPhasePlan, spec: ArchitectureSpec): DynamicPhasePlan {
+    const backendPhases = spec.backendPhases;
+
+    if (!backendPhases || backendPhases.length === 0) {
+      return plan;
+    }
+
+    const existingPhases = [...plan.phases];
+
+    // Sort backend phases by priority (lower = earlier)
+    const sortedBackendPhases = [...backendPhases].sort((a, b) => a.priority - b.priority);
+
+    // Find insertion point: after setup phase but before feature phases
+    const setupPhaseIndex = existingPhases.findIndex((p) => p.domain === 'setup');
+    const insertAfter = setupPhaseIndex >= 0 ? setupPhaseIndex : 0;
+
+    // Convert BackendPhaseSpec to DynamicPhase
+    const convertedPhases: DynamicPhase[] = sortedBackendPhases.map((bp, idx) => {
+      // Find API routes relevant to this phase's features
+      const relevantRoutes = spec.api.routes.filter((r) =>
+        bp.features.some((f) => r.feature.toLowerCase().includes(f.toLowerCase()))
+      );
+
+      return {
+        number: insertAfter + idx + 2, // +2 to account for setup being 1
+        name: bp.name,
+        description: bp.description,
+        domain: bp.domain,
+        features: bp.features,
+        featureDetails: [],
+        estimatedTokens: bp.estimatedTokens,
+        estimatedTime: `${Math.ceil(bp.estimatedTokens / 1500)}-${Math.ceil(bp.estimatedTokens / 1500) + 2} min`,
+        dependencies: this.resolveBackendDependencies(bp.dependencies, existingPhases, insertAfter),
+        dependencyNames: bp.dependencies,
+        testCriteria: bp.testCriteria,
+        status: 'pending' as const,
+        // Attach architecture context for code generation
+        architectureContext: {
+          files: bp.files,
+          prismaSchema: bp.domain === 'database' ? spec.database.prismaSchema : undefined,
+          apiRoutes: relevantRoutes,
+        },
+      };
+    });
+
+    // Insert backend phases and renumber all subsequent phases
+    const newPhases = [
+      ...existingPhases.slice(0, insertAfter + 1),
+      ...convertedPhases,
+      ...existingPhases.slice(insertAfter + 1).map((p) => ({
+        ...p,
+        number: p.number + convertedPhases.length,
+        // Update dependencies to account for new phase numbers
+        dependencies: p.dependencies.map((depNum) =>
+          depNum > insertAfter ? depNum + convertedPhases.length : depNum
+        ),
+      })),
+    ];
+
+    return {
+      ...plan,
+      phases: newPhases,
+      totalPhases: newPhases.length,
+      estimatedTotalTokens:
+        plan.estimatedTotalTokens +
+        sortedBackendPhases.reduce((sum, p) => sum + p.estimatedTokens, 0),
+    };
+  }
+
+  /**
+   * Resolve backend phase dependencies to phase numbers
+   */
+  private resolveBackendDependencies(
+    dependencies: string[],
+    existingPhases: DynamicPhase[],
+    insertAfter: number
+  ): number[] {
+    return dependencies
+      .map((depName) => {
+        const found = existingPhases.find((p) => p.name.toLowerCase() === depName.toLowerCase());
+        return found ? found.number : 1; // Default to setup phase
+      })
+      .filter((num) => num <= insertAfter + 1); // Only depend on phases before this one
   }
 
   // ============================================================================
@@ -772,10 +889,18 @@ export class DynamicPhaseGenerator {
     if (featuresByDomain.has('auth')) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const authFeatures = featuresByDomain.get('auth')!;
-      // Include role context in auth phase
+      // Include role context in auth phase (with capabilities for RBAC)
       const roleContext =
         concept.roles && concept.roles.length > 0
-          ? `. User roles: ${concept.roles.map((r) => r.name).join(', ')}`
+          ? `. User roles: ${concept.roles
+              .map((r) => {
+                const caps =
+                  r.capabilities && r.capabilities.length > 0
+                    ? ` (${r.capabilities.slice(0, 3).join(', ')}${r.capabilities.length > 3 ? '...' : ''})`
+                    : '';
+                return `${r.name}${caps}`;
+              })
+              .join(', ')}`
           : '';
       phases.push(
         this.createPhaseFromFeatures(

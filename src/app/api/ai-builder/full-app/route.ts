@@ -17,6 +17,7 @@ import {
 import { isMockAIEnabled, mockFullAppResponse } from '@/utils/mockAI';
 import { logAPI } from '@/utils/debug';
 import { generateDesignFilesArray } from '@/utils/designSystemGenerator';
+import type { ArchitectureSpec } from '@/types/architectureSpec';
 
 // Vercel serverless function config
 export const maxDuration = 300; // 5 minutes max
@@ -65,6 +66,8 @@ export async function POST(request: Request) {
       maxImages,
       layoutDesign,
       appFeatures,
+      // NEW: Architecture specification from BackendArchitectureAgent
+      architectureSpec,
     } = await request.json();
 
     perfTracker.checkpoint('request_parsed');
@@ -165,11 +168,14 @@ MODIFICATION MODE for "${currentAppName}":
 
     // Build compressed prompt using modular sections from src/prompts/
     // Pass layoutDesign to inject design tokens into the prompt
+    // Pass architectureSpec to inject AI-generated backend architecture
     const systemPrompt = buildFullAppPrompt(
       baseInstructions,
       hasImage,
       isModification,
-      layoutDesign
+      layoutDesign,
+      undefined, // techStack - not used directly, architecture spec is preferred
+      architectureSpec
     );
     const estimatedPromptTokens = Math.round(systemPrompt.length / 4);
 

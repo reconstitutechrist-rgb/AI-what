@@ -23,6 +23,8 @@ import {
 } from '../full-app/generation-logic';
 import { generateDesignFilesArray } from '@/utils/designSystemGenerator';
 import type { LayoutDesign } from '@/types/layoutDesign';
+import type { ArchitectureSpec } from '@/types/architectureSpec';
+import type { SerializedPhaseContext } from '@/types/dynamicPhases';
 
 // Vercel serverless function config
 export const maxDuration = 300;
@@ -173,6 +175,8 @@ export async function POST(request: Request) {
         phaseContext: rawPhaseContext,
         currentAppState,
         layoutDesign,
+        architectureSpec,
+        phaseContexts,
       } = requestBody as {
         prompt: string;
         conversationHistory?: Array<{ role: string; content: string }>;
@@ -196,6 +200,8 @@ export async function POST(request: Request) {
           files?: Array<{ path: string; content: string }>;
         };
         layoutDesign?: LayoutDesign;
+        architectureSpec?: ArchitectureSpec;
+        phaseContexts?: Record<string, SerializedPhaseContext>;
       };
 
       // Validate request content limits
@@ -299,6 +305,35 @@ ${f.content}
 When building new features or making changes, reference the actual code above. Preserve existing functionality unless explicitly asked to change it.`;
       }
 
+      // Build phase contexts section if available (domain-specific extracted context)
+      let phaseContextsSection = '';
+      if (phaseContexts && Object.keys(phaseContexts).length > 0) {
+        phaseContextsSection = '\n\n===PHASE-SPECIFIC CONTEXT===\n';
+        for (const [domain, ctx] of Object.entries(phaseContexts)) {
+          if (!ctx) continue;
+          phaseContextsSection += `\n## ${domain.charAt(0).toUpperCase() + domain.slice(1)} Domain Context\n`;
+          if (ctx.extractedRequirements && ctx.extractedRequirements.length > 0) {
+            phaseContextsSection += `**Requirements:**\n${ctx.extractedRequirements.map((s) => `- ${s}`).join('\n')}\n`;
+          }
+          if (ctx.validationRules && ctx.validationRules.length > 0) {
+            phaseContextsSection += `**Validation Rules:**\n${ctx.validationRules.map((r) => `- ${r}`).join('\n')}\n`;
+          }
+          if (ctx.uiPatterns && ctx.uiPatterns.length > 0) {
+            phaseContextsSection += `**UI Patterns:**\n${ctx.uiPatterns.map((p) => `- ${p}`).join('\n')}\n`;
+          }
+          if (ctx.userDecisions && ctx.userDecisions.length > 0) {
+            phaseContextsSection += `**User Decisions:**\n${ctx.userDecisions.map((d) => `- ${d}`).join('\n')}\n`;
+          }
+          if (ctx.technicalNotes && ctx.technicalNotes.length > 0) {
+            phaseContextsSection += `**Technical Notes:**\n${ctx.technicalNotes.map((n) => `- ${n}`).join('\n')}\n`;
+          }
+          if (ctx.contextSummary) {
+            phaseContextsSection += `**Summary:** ${ctx.contextSummary}\n`;
+          }
+        }
+        phaseContextsSection += '\n===END PHASE-SPECIFIC CONTEXT===\n';
+      }
+
       const baseInstructions = `You are an expert FULL-STACK Next.js application architect. Generate complete, production-ready applications with both frontend AND backend capabilities.
 
 ## QUALITY-FIRST REQUIREMENT
@@ -340,13 +375,15 @@ MODIFICATION MODE for "${currentAppName}":
 - Use EXACT delimiter format (===NAME===, ===FILE:===, etc.)
 `
     : ''
-}${currentAppContext}`;
+}${currentAppContext}${phaseContextsSection}`;
 
       const systemPrompt = buildFullAppPrompt(
         baseInstructions,
         hasImage,
         isModification,
-        layoutDesign
+        layoutDesign,
+        undefined, // techStack - not used directly, architecture spec is preferred
+        architectureSpec
       );
       perfTracker.checkpoint('prompt_built');
 

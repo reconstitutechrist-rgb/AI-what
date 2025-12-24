@@ -10,6 +10,7 @@
 
 import { NextResponse } from 'next/server';
 import { DynamicPhaseGenerator } from '@/services/DynamicPhaseGenerator';
+import { BackendArchitectureAgent } from '@/services/BackendArchitectureAgent';
 import type { AppConcept } from '@/types/appConcept';
 import type { ChatMessage } from '@/types/aiBuilderTypes';
 import type {
@@ -17,6 +18,7 @@ import type {
   FeatureDomain,
   SerializedPhaseContext,
 } from '@/types/dynamicPhases';
+import type { ArchitectureSpec } from '@/types/architectureSpec';
 import { extractContextForAllPhases, type PhaseContext } from '@/utils/phaseContextExtractor';
 
 // Vercel serverless function config
@@ -134,9 +136,41 @@ export async function POST(request: Request) {
       }
     }
 
-    // Generate phase plan
+    // NEW: Generate architecture spec if backend is needed
+    let architectureSpec: ArchitectureSpec | undefined;
+
+    const needsBackend =
+      normalizedConcept.technical.needsAuth ||
+      normalizedConcept.technical.needsDatabase ||
+      normalizedConcept.technical.needsRealtime ||
+      normalizedConcept.technical.needsFileUpload;
+
+    if (needsBackend) {
+      try {
+        console.log('[generate-phases] App needs backend, calling BackendArchitectureAgent...');
+        const agent = new BackendArchitectureAgent();
+        const archResult = await agent.analyze(normalizedConcept);
+
+        if (archResult.success && archResult.spec) {
+          architectureSpec = archResult.spec;
+          console.log(
+            `[generate-phases] Architecture spec generated: ${archResult.spec.database.tables.length} tables, ${archResult.spec.api.routes.length} routes`
+          );
+        } else if (archResult.error) {
+          console.warn('[generate-phases] Architecture generation failed:', archResult.error);
+          // Continue without architecture spec - non-critical
+        }
+      } catch (agentError) {
+        console.error('[generate-phases] BackendArchitectureAgent error:', agentError);
+        // Continue without architecture spec - non-critical
+      }
+    }
+
+    // Generate phase plan (with or without architecture)
     const generator = new DynamicPhaseGenerator(config);
-    const result = generator.generatePhasePlan(normalizedConcept);
+    const result = architectureSpec
+      ? generator.generatePhasePlanWithArchitecture(normalizedConcept, architectureSpec)
+      : generator.generatePhasePlan(normalizedConcept);
 
     if (!result.success) {
       console.error(`Phase generation failed:`, result.error);
@@ -192,6 +226,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       plan: result.plan,
+      architectureSpec, // NEW: Include architecture spec for downstream use
       warnings: result.warnings,
       analysisDetails: result.analysisDetails,
     });

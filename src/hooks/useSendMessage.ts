@@ -20,7 +20,7 @@ import type {
 } from '@/types/aiBuilderTypes';
 import type { AppConcept } from '@/types/appConcept';
 import type { LayoutDesign, DesignChange } from '@/types/layoutDesign';
-import type { PhaseExecutionResult } from '@/types/dynamicPhases';
+import type { PhaseExecutionResult, DynamicPhasePlan } from '@/types/dynamicPhases';
 import {
   compressConversation,
   buildCompressedContext,
@@ -73,6 +73,7 @@ interface VersionControlReturn {
 interface DynamicBuildPhasesReturn {
   currentPhase: { number: number; name: string; features: string[] } | null;
   completePhase: (result: PhaseExecutionResult) => void;
+  plan: DynamicPhasePlan | null;
 }
 
 /**
@@ -436,6 +437,8 @@ export function useSendMessage(options: UseSendMessageOptions): UseSendMessageRe
         image: uploadedImage || undefined,
         hasImage: !!uploadedImage,
         layoutDesign: appConcept?.layoutDesign || undefined,
+        architectureSpec: dynamicBuildPhases.plan?.architectureSpec || undefined,
+        phaseContexts: dynamicBuildPhases.plan?.phaseContexts || undefined,
       };
 
       const buildingMessage: ChatMessage = {
@@ -508,6 +511,8 @@ export function useSendMessage(options: UseSendMessageOptions): UseSendMessageRe
         image: uploadedImage || undefined,
         hasImage: !!uploadedImage,
         layoutDesign: appConcept?.layoutDesign || undefined,
+        architectureSpec: dynamicBuildPhases.plan?.architectureSpec || undefined,
+        phaseContexts: dynamicBuildPhases.plan?.phaseContexts || undefined,
       };
 
       const modifyingMessage: ChatMessage = {

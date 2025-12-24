@@ -20,10 +20,11 @@ import {
   PRODUCTION_STANDARDS_COMPRESSED,
   PERFORMANCE_RESILIENCE_STANDARDS,
 } from './production-standards';
-import { getBackendTemplates } from './full-app/backend-templates';
+import { getBackendTemplates, formatArchitectureSpec } from './full-app/backend-templates';
 import { VERSION_INSTRUCTIONS } from '@/config/versions';
 import type { LayoutDesign } from '@/types/layoutDesign';
 import type { TechnicalRequirements } from '@/types/appConcept';
+import type { ArchitectureSpec } from '@/types/architectureSpec';
 
 /**
  * Accuracy guidelines included in all builder prompts
@@ -80,13 +81,21 @@ CRITICAL REMINDERS:
 /**
  * Build system prompt for full-app route
  * Combines: base rules + frontend + fullstack + examples + design tokens
+ *
+ * @param baseInstructions - Base system instructions
+ * @param includeImageContext - Whether to include image analysis context
+ * @param isModification - Whether this is a modification of existing code
+ * @param layoutDesign - Optional layout design for design token instructions
+ * @param techStack - Optional technical requirements (fallback if no architectureSpec)
+ * @param architectureSpec - Optional AI-generated architecture specification (preferred)
  */
 export function buildFullAppPrompt(
   baseInstructions: string,
   includeImageContext: boolean = false,
   isModification: boolean = false,
   layoutDesign?: LayoutDesign,
-  techStack?: TechnicalRequirements
+  techStack?: TechnicalRequirements,
+  architectureSpec?: ArchitectureSpec
 ): string {
   const imageContext = includeImageContext
     ? `
@@ -119,8 +128,15 @@ ${buildDesignTokenPrompt(layoutDesign)}
 `
     : '';
 
-  // Build backend feature templates if techStack requires them
-  const backendTemplatesContext = techStack ? getBackendTemplates(techStack) : '';
+  // Build backend context - prefer architectureSpec (AI-generated) over techStack (static templates)
+  let backendContext = '';
+  if (architectureSpec) {
+    // Use AI-generated architecture specification (custom for this app)
+    backendContext = formatArchitectureSpec(architectureSpec);
+  } else if (techStack) {
+    // Fallback to static templates if no architecture spec
+    backendContext = getBackendTemplates(techStack);
+  }
 
   return `${baseInstructions}
 ${imageContext}
@@ -136,7 +152,7 @@ ${SECURITY_HARDENING_STANDARDS}
 ${PRODUCTION_STANDARDS_COMPRESSED}
 
 ${PERFORMANCE_RESILIENCE_STANDARDS}
-${backendTemplatesContext ? '\n' + backendTemplatesContext + '\n' : ''}
+${backendContext ? '\n' + backendContext + '\n' : ''}
 ${ACCURACY_GUIDELINES}
 
 ${COMPONENT_SYNTAX_RULES}
