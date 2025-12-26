@@ -47,6 +47,7 @@ import {
 } from '@/services/fontIdentificationService';
 import { auditAccessibility, checkColorContrast } from '@/services/accessibilityAuditService';
 import { generateComponent, getAvailableTemplates } from '@/services/v0Service';
+import { getGeminiLayoutService, type VisualAnalysis } from '@/services/GeminiLayoutService';
 
 // AI Enhancement Imports (Phase 5 tools)
 import { analyzeDesign } from '@/utils/designAnalyzer';
@@ -123,6 +124,8 @@ interface DesignChatResponse {
     stepNotes: Record<string, string>;
     startedAt: string;
   };
+  /** Gemini visual analysis (dual-model enhancement) */
+  geminiAnalysis?: VisualAnalysis;
 }
 
 // ============================================================================
@@ -2532,6 +2535,40 @@ export async function POST(request: Request) {
       systemPrompt += `\n\n## User Design Preferences (from past sessions)\n${memoriesContext}`;
     }
 
+    // =========================================================================
+    // GEMINI VISUAL ANALYSIS (Dual-Model Enhancement)
+    // Gemini provides visual intuition + color extraction + "vibe" detection
+    // This compensates for Claude's limitations in visual interpretation
+    // =========================================================================
+    let geminiAnalysis: VisualAnalysis | undefined;
+    if (previewScreenshot) {
+      try {
+        const geminiService = getGeminiLayoutService();
+        if (geminiService.checkAvailability()) {
+          geminiAnalysis = await geminiService.analyzeScreenshot(previewScreenshot);
+
+          // Add Gemini's visual analysis to system prompt for Claude's reasoning
+          const geminiContext = `
+
+## Creative Director's Visual Analysis (from Gemini)
+${JSON.stringify(geminiAnalysis, null, 2)}
+
+Use this visual analysis to inform your structural decisions. Gemini has identified:
+- Layout type: ${geminiAnalysis.layoutType}
+- Color palette: Primary ${geminiAnalysis.colorPalette?.primary}, Background ${geminiAnalysis.colorPalette?.background}
+- Visual vibe: ${geminiAnalysis.vibe || 'Not detected'}
+- Key qualities: ${geminiAnalysis.vibeKeywords?.join(', ') || 'None detected'}
+
+When the user asks for changes, consider both their request AND this visual context.`;
+
+          systemPrompt += geminiContext;
+        }
+      } catch (geminiError) {
+        // Gemini failed - continue with Claude only (graceful degradation)
+        console.warn('Gemini visual analysis failed, continuing with Claude only:', geminiError);
+      }
+    }
+
     // Call Claude with tools
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
@@ -2610,6 +2647,7 @@ export async function POST(request: Request) {
             output: response.usage.output_tokens + finalResponse.usage.output_tokens,
           },
           workflowState: getWorkflowStateForResponse(),
+          geminiAnalysis,
         };
 
         return NextResponse.json(result);
@@ -2645,6 +2683,7 @@ export async function POST(request: Request) {
         output: response.usage.output_tokens,
       },
       workflowState: getWorkflowStateForResponse(),
+      geminiAnalysis,
     };
 
     return NextResponse.json(result);

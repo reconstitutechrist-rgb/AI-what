@@ -160,6 +160,18 @@ Check `.claude/rules/` for domain-specific documentation:
 
 ## How Claude Should Work With This Project
 
+### Analysis Depth
+
+**Always do deep analysis, not surface-level.** When reviewing code, debugging, or evaluating architecture:
+
+- Don't just describe what the code does - analyze why it matters, what's wrong, and what the implications are
+- Find root causes, not symptoms
+- Identify edge cases, failure modes, and non-obvious interactions
+- Consider how changes affect the broader system (dependencies, data flow, state)
+- Skip the obvious - focus on what's actually insightful or problematic
+
+If asked to review or analyze something, go deep by default. Surface-level summaries are not helpful.
+
 ### Before Making Changes
 
 1. **Read before editing** - Always read the full file before modifying. Understand existing patterns.

@@ -1437,10 +1437,10 @@ export class DynamicPhaseGenerator {
         break;
       default:
         // Feature-based criteria
-        for (const feature of features.slice(0, 3)) {
+        for (const feature of features.slice(0, 6)) {
           criteria.push(`${feature.originalFeature.name} works as expected`);
         }
-        if (features.length > 3) {
+        if (features.length > 6) {
           criteria.push(`All ${features.length} features are functional`);
         }
     }
@@ -1686,15 +1686,24 @@ export class DynamicPhaseGenerator {
       return { text: p, score };
     });
 
-    // Get top relevant paragraphs (max 4000 chars for large complex apps)
+    // Get top relevant paragraphs (max 12000 chars for large complex apps)
     const relevant = scored
       .filter((p) => p.score > 0)
       .sort((a, b) => b.score - a.score)
-      .slice(0, 5)
+      .slice(0, 8)
       .map((p) => p.text);
 
     const result = relevant.join('\n\n');
-    return result.slice(0, 4000);
+    const limit = 12000;
+
+    if (result.length > limit) {
+      // Add truncation notice so AI knows context was cut
+      return (
+        result.slice(0, limit) +
+        `\n\n[NOTE: ${result.length - limit} additional characters of conversation context omitted. Focus on requirements above.]`
+      );
+    }
+    return result;
   }
 
   /**
@@ -1739,9 +1748,9 @@ export class DynamicPhaseGenerator {
 
       specs.push({
         name: featureName,
-        userStories: userStories.slice(0, 3),
-        acceptanceCriteria: acceptanceCriteria.slice(0, 3),
-        technicalNotes: technicalNotes.slice(0, 3),
+        userStories: userStories.slice(0, 6),
+        acceptanceCriteria: acceptanceCriteria.slice(0, 6),
+        technicalNotes: technicalNotes.slice(0, 6),
         priority,
       });
     }
@@ -1781,7 +1790,7 @@ export class DynamicPhaseGenerator {
       }
     }
 
-    return specs.slice(0, 5);
+    return specs.slice(0, 10);
   }
 
   /**
@@ -1810,7 +1819,7 @@ export class DynamicPhaseGenerator {
       }
     }
 
-    return Array.from(new Set(rules)).slice(0, 5);
+    return Array.from(new Set(rules)).slice(0, 10);
   }
 
   /**
