@@ -39,6 +39,7 @@ import type {
 import type { AppConcept, ImplementationPlan } from '@/types/appConcept';
 import type { LayoutDesign } from '@/types/layoutDesign';
 import type { PhaseId } from '@/types/buildPhases';
+import type { DynamicPhasePlan } from '@/types/dynamicPhases';
 import type { FileMetadata, StorageStats } from '@/types/storage';
 import type { DeploymentInstructions } from '@/utils/exportApp';
 import type { ProjectDocumentation } from '@/types/projectDocumentation';
@@ -202,6 +203,8 @@ interface DataSlice {
   // Layout Builder
   currentLayoutDesign: LayoutDesign | null;
   savedLayoutDesigns: LayoutDesign[];
+  // Dynamic Phase Plan
+  dynamicPhasePlan: DynamicPhasePlan | null;
   // Actions
   setPendingChange: (change: PendingChange | null) => void;
   setPendingDiff: (diff: PendingDiff | null) => void;
@@ -226,6 +229,8 @@ interface DataSlice {
   removeSavedLayoutDesign: (id: string) => void;
   // App Concept field updates
   updateAppConceptField: (path: string, value: unknown) => void;
+  // Dynamic Phase Plan action
+  setDynamicPhasePlan: (plan: DynamicPhasePlan | null) => void;
 }
 
 /**
@@ -468,6 +473,7 @@ export const useAppStore = create<AppState>()(
       uploadedImage: null as string | null,
       currentLayoutDesign: null as LayoutDesign | null,
       savedLayoutDesigns: [] as LayoutDesign[],
+      dynamicPhasePlan: null as DynamicPhasePlan | null,
 
       setPendingChange: (change) => set({ pendingChange: change }),
       setPendingDiff: (diff) => set({ pendingDiff: diff }),
@@ -510,6 +516,7 @@ export const useAppStore = create<AppState>()(
           current[keys[keys.length - 1]] = value;
           return { appConcept: updated };
         }),
+      setDynamicPhasePlan: (plan) => set({ dynamicPhasePlan: plan }),
 
       // ========================================================================
       // DOCUMENTATION SLICE

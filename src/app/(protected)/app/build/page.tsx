@@ -1,0 +1,174 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useCallback, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { useAppStore } from '@/store/useAppStore';
+import { useDynamicBuildPhases } from '@/hooks/useDynamicBuildPhases';
+import { PhasedBuildPanel } from '@/components/modals';
+import { RocketIcon, WandIcon } from '@/components/ui/Icons';
+
+export default function BuildPage() {
+  const router = useRouter();
+
+  // Get state from store
+  const dynamicPhasePlan = useAppStore((state) => state.dynamicPhasePlan);
+  const appConcept = useAppStore((state) => state.appConcept);
+
+  // Dynamic build phases hook
+  const dynamicBuildPhases = useDynamicBuildPhases({
+    onPhaseComplete: (phase, result) => {
+      console.log('Phase completed:', phase.name, result);
+    },
+    onBuildComplete: () => {
+      console.log('All phases complete!');
+    },
+  });
+
+  const handleComplete = useCallback(() => {
+    // Navigate to final step: Builder
+    router.push('/app');
+  }, [router]);
+
+  const handleClose = useCallback(() => {
+    router.push('/app');
+  }, [router]);
+
+  const handleBack = useCallback(() => {
+    router.push('/app/design');
+  }, [router]);
+
+  const handleStartWizard = useCallback(() => {
+    router.push('/app/wizard');
+  }, [router]);
+
+  // If no plan exists, show empty state
+  if (!dynamicPhasePlan) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.3 }}
+        className="h-[calc(100vh-56px)] flex items-center justify-center"
+      >
+        <div className="text-center max-w-md px-4">
+          <div className="w-20 h-20 rounded-2xl bg-zinc-800/50 border border-zinc-700/50 flex items-center justify-center mb-6 mx-auto">
+            <RocketIcon size={40} className="text-zinc-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-3">No Build Plan Yet</h2>
+          <p className="text-zinc-400 mb-8">
+            Start with the Wizard to create your app concept and generate a build plan, or skip
+            directly to the Builder.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={handleStartWizard}
+              className="flex items-center gap-2 px-6 py-3 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all"
+            >
+              <WandIcon size={18} />
+              Start with Wizard
+            </button>
+            <button
+              onClick={() => router.push('/app')}
+              className="px-6 py-3 text-sm font-medium text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-600 rounded-xl transition-colors"
+            >
+              Skip to Builder
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+      className="h-[calc(100vh-56px)] md:h-[calc(100vh-56px)]"
+    >
+      <PhasedBuildPanel
+        isOpen={true}
+        onClose={handleClose}
+        phases={dynamicBuildPhases.uiPhases}
+        progress={dynamicBuildPhases.progress}
+        currentPhase={
+          dynamicBuildPhases.currentPhase
+            ? dynamicBuildPhases.uiPhases.find(
+                (p) => p.order === dynamicBuildPhases.currentPhase?.number
+              ) || null
+            : null
+        }
+        isBuilding={dynamicBuildPhases.isBuilding}
+        isPaused={dynamicBuildPhases.isPaused}
+        isValidating={false}
+        onStartBuild={() => {
+          const nextPhase = dynamicBuildPhases.getNextPhase();
+          if (nextPhase) {
+            dynamicBuildPhases.startPhase(nextPhase.number);
+          }
+        }}
+        onPauseBuild={dynamicBuildPhases.pauseBuild}
+        onResumeBuild={dynamicBuildPhases.resumeBuild}
+        onSkipPhase={(phaseId) => {
+          const phase = dynamicBuildPhases.uiPhases.find((p) => p.id === phaseId);
+          if (phase) {
+            dynamicBuildPhases.skipPhase(phase.order);
+          }
+        }}
+        onRetryPhase={(phaseId) => {
+          const phase = dynamicBuildPhases.uiPhases.find((p) => p.id === phaseId);
+          if (phase) {
+            dynamicBuildPhases.retryPhase(phase.order);
+          }
+        }}
+        onViewPhaseDetails={() => {}}
+        onRunValidation={() => {}}
+        onResetBuild={dynamicBuildPhases.resetBuild}
+        onExecuteCurrentPhase={async () => {
+          const nextPhase = dynamicBuildPhases.getNextPhase();
+          if (nextPhase) {
+            dynamicBuildPhases.startPhase(nextPhase.number);
+          }
+        }}
+        onProceedToNextPhase={() => {
+          const nextPhase = dynamicBuildPhases.getNextPhase();
+          if (nextPhase) {
+            dynamicBuildPhases.startPhase(nextPhase.number);
+          }
+        }}
+        dynamicPlan={dynamicPhasePlan}
+        isFullPage
+        qualityReport={dynamicBuildPhases.qualityReport}
+        pipelineState={dynamicBuildPhases.pipelineState}
+        isReviewing={dynamicBuildPhases.isReviewing}
+        strictness={dynamicBuildPhases.reviewStrictness}
+        onRunReview={dynamicBuildPhases.runFinalQualityCheck}
+        onStrictnessChange={dynamicBuildPhases.setReviewStrictness}
+      />
+
+      {/* Navigation bar - Fixed bottom */}
+      <div className="fixed bottom-0 left-0 right-0 bg-[#0a0a0f]/90 backdrop-blur-xl border-t border-zinc-800 p-4 flex items-center justify-between z-40">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleBack}
+            className="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors flex items-center gap-1"
+          >
+            ← Back to Design
+          </button>
+        </div>
+        <p className="text-sm text-zinc-500 hidden sm:block">Step 3 of 4 — Generate your code</p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleComplete}
+            className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 rounded-lg shadow-lg shadow-blue-500/25 transition-all"
+          >
+            Open in Builder →
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}

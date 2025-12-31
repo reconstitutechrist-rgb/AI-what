@@ -189,30 +189,30 @@ export const ChatPanel: React.FC<ChatPanelProps> = React.memo(function ChatPanel
             Chat
           </h2>
 
-          {/* Plan/Act Mode Toggle */}
-          <div className="flex bg-zinc-800 rounded-lg p-0.5">
+          {/* Plan/Act Mode Toggle - Gradient Styled */}
+          <div className="flex bg-zinc-800/50 backdrop-blur-sm rounded-lg p-0.5 border border-zinc-700/50">
             <button
               onClick={() => onModeChange('PLAN')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 currentMode === 'PLAN'
-                  ? 'bg-purple-600 text-white'
-                  : 'text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-lg shadow-purple-500/25'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-700/50'
               }`}
               title="Plan Mode: AI discusses and explains (no code changes)"
             >
-              <BrainIcon size={14} />
+              <BrainIcon size={16} />
               Plan
             </button>
             <button
               onClick={() => onModeChange('ACT')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 currentMode === 'ACT'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/25'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-700/50'
               }`}
               title="Act Mode: AI can modify code"
             >
-              <ZapIcon size={14} />
+              <ZapIcon size={16} />
               Act
             </button>
           </div>
