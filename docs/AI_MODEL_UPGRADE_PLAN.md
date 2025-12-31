@@ -200,17 +200,19 @@ private supabase = createClient(
 
 private async uploadToSupabase(base64: string, size: string): Promise<string> {
   const buffer = Buffer.from(base64, 'base64');
-  const filename = `generated/${Date.now()}-${size}.jpg`;
+  const filename = `generated/${Date.now()}-${crypto.randomUUID()}.jpg`; // UUID prevents collisions
 
   const { data, error } = await this.supabase.storage
-    .from('ai-images')  // Bucket name
+    .from('ai-images')
     .upload(filename, buffer, {
       contentType: 'image/jpeg',
       cacheControl: '31536000', // 1 year cache
     });
 
   if (error) {
-    throw new Error(`Failed to upload image: ${error.message}`);
+    console.error('Supabase upload failed:', error);
+    // Fallback: return data URL (works but not ideal for persistence)
+    return `data:image/jpeg;base64,${base64}`;
   }
 
   const { data: urlData } = this.supabase.storage
