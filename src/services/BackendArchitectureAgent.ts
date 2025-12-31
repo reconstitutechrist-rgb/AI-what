@@ -381,15 +381,28 @@ CRITICAL:
 
   /**
    * Parse Claude's response into structured ArchitectureSpec
+   * Uses multiple extraction strategies to handle various response formats
    */
   private parseResponse(response: string, appConcept: AppConcept): ArchitectureSpec {
-    // Try to extract JSON from response
     let jsonStr = response.trim();
 
-    // If wrapped in markdown code blocks, extract
-    const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-    if (jsonMatch) {
-      jsonStr = jsonMatch[1].trim();
+    // Strategy 1: Try to find a JSON object directly (starts with { ends with })
+    const jsonObjectMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonObjectMatch) {
+      jsonStr = jsonObjectMatch[0];
+    } else {
+      // Strategy 2: Try markdown code block extraction
+      const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[1].trim();
+      }
+    }
+
+    // Strategy 3: Clean up common issues - remove anything before first { and after last }
+    const firstBrace = jsonStr.indexOf('{');
+    const lastBrace = jsonStr.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
     }
 
     // Parse JSON
@@ -398,7 +411,11 @@ CRITICAL:
       parsed = JSON.parse(jsonStr);
     } catch (e) {
       console.error('[BackendArchitectureAgent] JSON parse error:', e);
-      console.error('[BackendArchitectureAgent] Raw response:', response.substring(0, 500));
+      console.error(
+        '[BackendArchitectureAgent] Attempted to parse:',
+        jsonStr.substring(0, 500) + '...'
+      );
+      console.error('[BackendArchitectureAgent] Raw response length:', response.length);
       throw new Error('Failed to parse architecture response as JSON');
     }
 

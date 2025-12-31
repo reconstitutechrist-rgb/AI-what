@@ -3,6 +3,7 @@
  */
 
 import type { LayoutDesign } from './layoutDesign';
+import type { ArchitectureSpec } from './architectureSpec';
 
 export interface AppConcept {
   // Basic Information
@@ -29,6 +30,9 @@ export interface AppConcept {
 
   // Layout Design (from Layout Builder)
   layoutDesign?: LayoutDesign;
+
+  // Backend Architecture (from BackendArchitectureAgent)
+  architectureSpec?: ArchitectureSpec;
 
   // Metadata
   createdAt: string;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type {
   AppConcept,
   TechnicalRequirements,
@@ -55,6 +55,10 @@ interface UsePhaseGenerationOptions {
   setPhasePlan: React.Dispatch<React.SetStateAction<DynamicPhasePlan | null>>;
   onShowToast: (opts: { type: 'success' | 'info' | 'error'; message: string }) => void;
   onAddMessage: (message: Message) => void;
+  // Architecture state for sequential generation
+  isGeneratingArchitecture?: boolean;
+  architectureSpec?: ArchitectureSpec | null;
+  needsBackend?: boolean;
 }
 
 interface UsePhaseGenerationReturn {
@@ -76,10 +80,20 @@ export function usePhaseGeneration({
   setPhasePlan,
   onShowToast,
   onAddMessage,
+  isGeneratingArchitecture = false,
+  architectureSpec = null,
+  needsBackend = false,
 }: UsePhaseGenerationOptions): UsePhaseGenerationReturn {
   const [isGeneratingPhases, setIsGeneratingPhases] = useState(false);
   const [isRegeneration, setIsRegeneration] = useState(false);
   const [previousPlan, setPreviousPlan] = useState<DynamicPhasePlan | null>(null);
+
+  // Track if auto-generation has been triggered to prevent duplicate calls
+  const autoGenerateTriggeredRef = useRef(false);
+
+  // Ref-based guard to prevent concurrent generatePhases calls
+  // (React batches state updates, so isGeneratingPhases may not update immediately)
+  const isGeneratingRef = useRef(false);
 
   /**
    * Build conversation context summary for phase generation
@@ -225,7 +239,15 @@ Does this look good? You can:
    */
   const generatePhases = useCallback(
     async (preGeneratedArchitecture?: ArchitectureSpec) => {
+      // Prevent concurrent calls (React batches state updates, so we use a ref)
+      if (isGeneratingRef.current) {
+        console.log('[usePhaseGeneration] Already generating phases, skipping duplicate call');
+        return;
+      }
+      isGeneratingRef.current = true;
+
       if (!wizardState.name || wizardState.features.length === 0) {
+        isGeneratingRef.current = false;
         onShowToast({
           type: 'error',
           message: 'Please complete the app concept before generating phases.',
@@ -341,6 +363,7 @@ Does this look good? You can:
         });
       } finally {
         setIsGeneratingPhases(false);
+        isGeneratingRef.current = false;
       }
     },
     [
@@ -359,11 +382,47 @@ Does this look good? You can:
   );
 
   // Auto-trigger phase generation when ready
+  // Guards: wait for architecture if backend is needed
   useEffect(() => {
-    if (wizardState.readyForPhases && !phasePlan && !isGeneratingPhases) {
-      generatePhases();
+    // Skip if not ready for phases or already have a plan
+    if (!wizardState.readyForPhases || phasePlan || isGeneratingPhases) {
+      return;
     }
-  }, [wizardState.readyForPhases, phasePlan, isGeneratingPhases, generatePhases]);
+
+    // Skip if architecture is being generated - wait for it to complete
+    if (isGeneratingArchitecture) {
+      return;
+    }
+
+    // Skip if backend is needed but no architecture exists yet
+    // User must click "Generate Architecture" first
+    if (needsBackend && !architectureSpec) {
+      return;
+    }
+
+    // Prevent duplicate auto-generation calls
+    if (autoGenerateTriggeredRef.current) {
+      return;
+    }
+
+    autoGenerateTriggeredRef.current = true;
+    generatePhases(architectureSpec || undefined);
+  }, [
+    wizardState.readyForPhases,
+    phasePlan,
+    isGeneratingPhases,
+    isGeneratingArchitecture,
+    needsBackend,
+    architectureSpec,
+    generatePhases,
+  ]);
+
+  // Reset auto-generate flag when plan is cleared
+  useEffect(() => {
+    if (!phasePlan) {
+      autoGenerateTriggeredRef.current = false;
+    }
+  }, [phasePlan]);
 
   return {
     isGeneratingPhases,

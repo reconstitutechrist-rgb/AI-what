@@ -40,6 +40,8 @@ interface UseArchitectureGenerationOptions {
   importedLayoutDesign: LayoutDesign | null;
   onShowToast: (opts: { type: 'success' | 'info' | 'error'; message: string }) => void;
   onAddMessage: (message: Message) => void;
+  // Callback when architecture generation completes successfully
+  onArchitectureComplete?: (spec: ArchitectureSpec) => void;
 }
 
 interface UseArchitectureGenerationReturn {
@@ -56,6 +58,7 @@ export function useArchitectureGeneration({
   importedLayoutDesign,
   onShowToast,
   onAddMessage,
+  onArchitectureComplete,
 }: UseArchitectureGenerationOptions): UseArchitectureGenerationReturn {
   const [architectureSpec, setArchitectureSpec] = useState<ArchitectureSpec | null>(null);
   const [isGeneratingArchitecture, setIsGeneratingArchitecture] = useState(false);
@@ -155,6 +158,11 @@ export function useArchitectureGeneration({
 
       onShowToast({ type: 'success', message: 'Backend architecture generated!' });
 
+      // Call completion callback to trigger next step (e.g., phase generation)
+      if (onArchitectureComplete) {
+        onArchitectureComplete(data.architectureSpec);
+      }
+
       return data.architectureSpec;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -175,7 +183,14 @@ export function useArchitectureGeneration({
     } finally {
       setIsGeneratingArchitecture(false);
     }
-  }, [wizardState, importedLayoutDesign, needsBackend, onShowToast, onAddMessage]);
+  }, [
+    wizardState,
+    importedLayoutDesign,
+    needsBackend,
+    onShowToast,
+    onAddMessage,
+    onArchitectureComplete,
+  ]);
 
   /**
    * Clear the architecture specification

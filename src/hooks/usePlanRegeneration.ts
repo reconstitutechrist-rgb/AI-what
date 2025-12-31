@@ -40,6 +40,7 @@ interface UsePlanRegenerationOptions {
   generatePhases: (architecture?: ArchitectureSpec) => Promise<void>;
   architectureSpec: ArchitectureSpec | null;
   isGeneratingPhases: boolean;
+  isGeneratingArchitecture?: boolean;
   debounceMs?: number;
 }
 
@@ -58,6 +59,7 @@ export function usePlanRegeneration({
   generatePhases,
   architectureSpec,
   isGeneratingPhases,
+  isGeneratingArchitecture = false,
   debounceMs = 500,
 }: UsePlanRegenerationOptions): UsePlanRegenerationReturn {
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -117,8 +119,8 @@ export function usePlanRegeneration({
       return;
     }
 
-    // Skip if currently generating
-    if (isGeneratingPhases || isRegenerating) {
+    // Skip if currently generating phases or architecture
+    if (isGeneratingPhases || isRegenerating || isGeneratingArchitecture) {
       return;
     }
 
@@ -180,6 +182,7 @@ export function usePlanRegeneration({
     phasePlan,
     isGeneratingPhases,
     isRegenerating,
+    isGeneratingArchitecture,
     generatePhases,
     architectureSpec,
     debounceMs,

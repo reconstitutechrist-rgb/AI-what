@@ -178,7 +178,24 @@ What would you like to build?`,
   const chatEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<ChatInputAreaRef>(null);
 
-  // Phase generation hook
+  // Compute needsBackend locally for passing to hooks
+  const needsBackend =
+    !!wizardState.technical.needsAuth ||
+    !!wizardState.technical.needsDatabase ||
+    !!wizardState.technical.needsRealtime ||
+    !!wizardState.technical.needsFileUpload;
+
+  // Architecture generation hook - defined first so we can reference isGeneratingArchitecture
+  // Note: onArchitectureComplete callback is set up after generatePhases is defined
+  const { architectureSpec, isGeneratingArchitecture, generateArchitecture, clearArchitecture } =
+    useArchitectureGeneration({
+      wizardState,
+      importedLayoutDesign,
+      onShowToast: showToast,
+      onAddMessage: (message) => setMessages((prev) => [...prev, message]),
+    });
+
+  // Phase generation hook with architecture state guards
   const {
     isGeneratingPhases,
     generatePhases,
@@ -193,26 +210,35 @@ What would you like to build?`,
     setPhasePlan,
     onShowToast: showToast,
     onAddMessage: (message) => setMessages((prev) => [...prev, message]),
+    isGeneratingArchitecture,
+    architectureSpec,
+    needsBackend,
   });
 
-  // Architecture generation hook
-  const { architectureSpec, isGeneratingArchitecture, generateArchitecture, clearArchitecture } =
-    useArchitectureGeneration({
-      wizardState,
-      importedLayoutDesign,
-      onShowToast: showToast,
-      onAddMessage: (message) => setMessages((prev) => [...prev, message]),
-    });
-
   // Plan regeneration hook - auto-regenerates when concept changes
+  // Also waits for architecture generation to complete
   const { isRegenerating, pendingRegeneration, regenerationReason } = usePlanRegeneration({
     wizardState,
     phasePlan,
     generatePhases,
     architectureSpec,
     isGeneratingPhases,
+    isGeneratingArchitecture,
     debounceMs: 500,
   });
+
+  // Auto-trigger phase generation when architecture completes
+  // This creates the sequential flow: architecture → plan
+  const prevArchitectureRef = useRef<typeof architectureSpec>(null);
+  useEffect(() => {
+    // Check if architecture just finished generating (transitioned from null to a value)
+    // and we don't have a plan yet
+    if (architectureSpec && !prevArchitectureRef.current && !phasePlan && !isGeneratingPhases) {
+      // Auto-trigger phase generation with the new architecture
+      generatePhases(architectureSpec);
+    }
+    prevArchitectureRef.current = architectureSpec;
+  }, [architectureSpec, phasePlan, isGeneratingPhases, generatePhases]);
 
   // Update suggested actions when phase plan is generated
   useEffect(() => {
@@ -398,6 +424,8 @@ What would you like to build?`,
               conversationContext: buildConversationContext(),
               // Include imported layout design for pixel-perfect styling
               layoutDesign: importedLayoutDesign || undefined,
+              // Include generated backend architecture for build phase
+              architectureSpec: architectureSpec || undefined,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             };
