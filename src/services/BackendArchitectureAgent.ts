@@ -386,23 +386,26 @@ CRITICAL:
   private parseResponse(response: string, appConcept: AppConcept): ArchitectureSpec {
     let jsonStr = response.trim();
 
-    // Strategy 1: Try to find a JSON object directly (starts with { ends with })
-    const jsonObjectMatch = response.match(/\{[\s\S]*\}/);
-    if (jsonObjectMatch) {
-      jsonStr = jsonObjectMatch[0];
-    } else {
-      // Strategy 2: Try markdown code block extraction
-      const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-      if (jsonMatch) {
-        jsonStr = jsonMatch[1].trim();
-      }
+    // Strategy 1: Strip markdown code blocks FIRST (most common issue)
+    // Handle ```json ... ``` or ``` ... ```
+    const codeBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (codeBlockMatch) {
+      jsonStr = codeBlockMatch[1].trim();
     }
 
-    // Strategy 3: Clean up common issues - remove anything before first { and after last }
+    // Strategy 2: Find JSON object boundaries (handles any leading/trailing text)
     const firstBrace = jsonStr.indexOf('{');
     const lastBrace = jsonStr.lastIndexOf('}');
     if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
       jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+    }
+
+    // Strategy 3: If still no valid JSON structure, try regex extraction from original
+    if (!jsonStr.startsWith('{')) {
+      const jsonObjectMatch = response.match(/\{[\s\S]*\}/);
+      if (jsonObjectMatch) {
+        jsonStr = jsonObjectMatch[0];
+      }
     }
 
     // Parse JSON
@@ -415,7 +418,7 @@ CRITICAL:
         '[BackendArchitectureAgent] Attempted to parse:',
         jsonStr.substring(0, 500) + '...'
       );
-      console.error('[BackendArchitectureAgent] Raw response length:', response.length);
+      console.error('[BackendArchitectureAgent] Raw response:', response.substring(0, 200) + '...');
       throw new Error('Failed to parse architecture response as JSON');
     }
 

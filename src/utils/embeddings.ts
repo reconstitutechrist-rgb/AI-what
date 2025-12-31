@@ -545,6 +545,7 @@ function simpleHash(str: string): number {
 
 /**
  * Generate text embeddings using the best available provider
+ * Falls back to local embeddings if API calls fail (quota exceeded, network error, etc.)
  *
  * @param text - Text to embed
  * @param config - Optional configuration
@@ -561,22 +562,31 @@ export async function generateEmbedding(
     model,
   } = config;
 
-  // Determine which provider to use
+  // Try Voyage AI first
   if (provider === 'voyage' || (provider === 'auto' && voyageApiKey)) {
-    if (!voyageApiKey) {
-      throw new Error('Voyage API key required for Voyage embeddings');
+    if (voyageApiKey) {
+      try {
+        return await getVoyageEmbedding(text, voyageApiKey, model || 'voyage-3-large');
+      } catch (error) {
+        console.warn('[Embeddings] Voyage API failed, falling back to next provider:', error);
+        // Fall through to try next provider
+      }
     }
-    return getVoyageEmbedding(text, voyageApiKey, model || 'voyage-3-large');
   }
 
+  // Try OpenAI next
   if (provider === 'openai' || (provider === 'auto' && openaiApiKey)) {
-    if (!openaiApiKey) {
-      throw new Error('OpenAI API key required for OpenAI embeddings');
+    if (openaiApiKey) {
+      try {
+        return await getOpenAIEmbedding(text, openaiApiKey, model || 'text-embedding-3-small');
+      } catch (error) {
+        console.warn('[Embeddings] OpenAI API failed, falling back to local embeddings:', error);
+        // Fall through to local embeddings
+      }
     }
-    return getOpenAIEmbedding(text, openaiApiKey, model || 'text-embedding-3-small');
   }
 
-  // Fall back to local embeddings
+  // Fall back to local embeddings (always available)
   return getLocalEmbedding(text);
 }
 
