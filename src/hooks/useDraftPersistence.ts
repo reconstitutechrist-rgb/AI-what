@@ -157,15 +157,13 @@ export function useDraftPersistence<TState, TPlan>({
     deleteDraft(draftKeys.plan);
   }, [draftKeys]);
 
-  // Auto-save messages when they change
+  // Auto-save messages IMMEDIATELY when they change (no debounce)
+  // Messages are critical data - we don't want to lose them on crash
   useEffect(() => {
     if (!isInitialized || messages.length === 0 || skipAutoSave.current) return;
 
-    const saveTimeout = setTimeout(() => {
-      saveWizardDraft(draftKeys.messages, messages);
-    }, 500);
-
-    return () => clearTimeout(saveTimeout);
+    // Save immediately - messages are too important to risk losing
+    saveWizardDraft(draftKeys.messages, messages);
   }, [messages, isInitialized, draftKeys.messages]);
 
   // Auto-save wizard state when it changes

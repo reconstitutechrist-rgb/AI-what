@@ -244,6 +244,14 @@ class ErrorBoundary extends Component<Props, State> {
               </div>
             )}
 
+            {/* Recovery info message */}
+            <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+              <p className="text-sm text-blue-300">
+                💾 Your conversation progress is auto-saved. Click &quot;Try Again&quot; to recover
+                it.
+              </p>
+            </div>
+
             <div className="flex gap-3">
               <button
                 onClick={this.handleReset}
