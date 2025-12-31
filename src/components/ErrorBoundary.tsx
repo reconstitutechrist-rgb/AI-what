@@ -39,6 +39,7 @@ interface State {
   error: Error | null;
   errorInfo: ErrorInfo | null;
   report: ErrorReport | null;
+  copied: boolean;
 }
 
 const ERROR_STORAGE_KEY = 'error_reports';
@@ -90,6 +91,7 @@ class ErrorBoundary extends Component<Props, State> {
       error: null,
       errorInfo: null,
       report: null,
+      copied: false,
     };
   }
 
@@ -186,6 +188,7 @@ class ErrorBoundary extends Component<Props, State> {
       error: null,
       errorInfo: null,
       report: null,
+      copied: false,
     });
   };
 
@@ -199,8 +202,12 @@ class ErrorBoundary extends Component<Props, State> {
 
     navigator.clipboard.writeText(errorText).then(
       () => {
-        // Could show a toast here
+        this.setState({ copied: true });
         logger.info('Error report copied to clipboard');
+        // Reset copied state after 2 seconds
+        setTimeout(() => {
+          this.setState({ copied: false });
+        }, 2000);
       },
       () => {
         logger.warn('Failed to copy error report to clipboard');
@@ -270,9 +277,13 @@ class ErrorBoundary extends Component<Props, State> {
             {/* Copy error button */}
             <button
               onClick={this.handleCopyError}
-              className="w-full mt-3 px-4 py-2 bg-slate-700/50 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors text-sm"
+              className={`w-full mt-3 px-4 py-2 rounded-lg transition-colors text-sm ${
+                this.state.copied
+                  ? 'bg-green-600 text-white'
+                  : 'bg-slate-700/50 hover:bg-slate-700 text-slate-300'
+              }`}
             >
-              Copy Error Details
+              {this.state.copied ? '✓ Copied to Clipboard!' : 'Copy Error Details'}
             </button>
 
             {/* Development-only details */}
