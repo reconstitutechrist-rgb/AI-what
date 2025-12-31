@@ -60,58 +60,87 @@ Find and update any `claude-sonnet-4-20250514` references to `claude-sonnet-4-5-
 
 ---
 
-### 3. DALL-E 3 → GPT Image 1 (High Priority)
+### 3. DALL-E 3 → GPT Image 1.5 (High Priority)
 
 **Status:** OPENAI_API_KEY confirmed in Railway - implementing migration.
 
-**File:** `src/services/dalleService.ts`
+**Why GPT Image 1.5 (not 1.0):** Released Dec 16, 2025 - 4x faster, 20% cheaper, better text rendering and instruction following.
+
+**Files to Update:**
+
+| File                                | Changes                               |
+| ----------------------------------- | ------------------------------------- |
+| `src/services/dalleService.ts`      | Main service - model, types, API call |
+| `src/utils/dalleRateLimiter.ts`     | Cost constants and size mappings      |
+| `src/services/AppImageGenerator.ts` | Quality type reference                |
+| `src/utils/imageUrlInjector.ts`     | Comment update (cosmetic)             |
 
 **API Parameter Changes:**
 
-| Parameter       | DALL-E 3                              | GPT Image 1                                   |
+| Parameter       | DALL-E 3                              | GPT Image 1.5                                 |
 | --------------- | ------------------------------------- | --------------------------------------------- |
-| `model`         | `dall-e-3`                            | `gpt-image-1`                                 |
+| `model`         | `dall-e-3`                            | `gpt-image-1.5`                               |
 | `size`          | `1024x1024`, `1792x1024`, `1024x1792` | `1024x1024`, `1536x1024`, `1024x1536`, `auto` |
 | `quality`       | `standard`, `hd`                      | `low`, `medium`, `high` (default: high)       |
 | `style`         | `vivid`, `natural`                    | **NOT SUPPORTED - REMOVE**                    |
 | `output_format` | N/A                                   | `png`, `jpeg`, `webp` (NEW - jpeg is faster)  |
 | `background`    | N/A                                   | `transparent` supported (NEW)                 |
+| `response`      | Returns `url`                         | Returns `b64_json` only (**CRITICAL**)        |
 
-**Changes needed:**
+---
 
-1. Update model name (line ~127):
+#### File 1: `src/services/dalleService.ts`
 
-```typescript
-// Before
-model: 'dall-e-3',
-
-// After
-model: 'gpt-image-1',
-```
-
-2. Update size type (line ~14):
+**1. Update types (lines ~14-16):**
 
 ```typescript
 // Before
 export type ImageSize = '1024x1024' | '1792x1024' | '1024x1792';
+export type ImageQuality = 'standard' | 'hd';
+export type ImageStyle = 'vivid' | 'natural';
 
 // After
 export type ImageSize = '1024x1024' | '1536x1024' | '1024x1536' | 'auto';
+export type ImageQuality = 'low' | 'medium' | 'high';
+// Remove ImageStyle entirely
 ```
 
-3. Update quality type (line ~15):
+**2. Update cost tracking (lines ~62-69):**
 
 ```typescript
-// Before
-export type ImageQuality = 'standard' | 'hd';
+// Before (DALL-E 3 pricing)
+const COST_PER_IMAGE: Record<string, number> = {
+  'hd-1792x1024': 0.12,
+  'hd-1024x1792': 0.12,
+  'hd-1024x1024': 0.08,
+  'standard-1792x1024': 0.08,
+  'standard-1024x1792': 0.08,
+  'standard-1024x1024': 0.04,
+};
 
-// After
-export type ImageQuality = 'low' | 'medium' | 'high';
+// After (GPT Image 1.5 pricing - 60-80% cheaper)
+const COST_PER_IMAGE: Record<string, number> = {
+  'high-1536x1024': 0.064,
+  'high-1024x1536': 0.064,
+  'high-1024x1024': 0.032,
+  'medium-1536x1024': 0.032,
+  'medium-1024x1536': 0.032,
+  'medium-1024x1024': 0.016,
+  'low-1024x1024': 0.012,
+};
 ```
 
-4. Remove `ImageStyle` type entirely - not supported by GPT Image 1.
+**3. Update `getImageCost` function (line ~71):**
 
-5. Update API call (lines ~126-133):
+```typescript
+// Update parameter type
+export function getImageCost(quality: ImageQuality, size: ImageSize): number {
+  const key = `${quality}-${size}`;
+  return COST_PER_IMAGE[key] || 0.016; // Default to medium-1024x1024
+}
+```
+
+**4. Update API call AND upload to Supabase Storage (lines ~125-146):**
 
 ```typescript
 // Before
@@ -120,22 +149,85 @@ const response = await this.client.images.generate({
   prompt,
   size,
   quality,
-  style, // REMOVE THIS
+  style,
   n: 1,
 });
+
+const imageData = response.data?.[0];
+if (!imageData?.url) {
+  throw new Error('No image data returned from DALL-E');
+}
+
+const result: GeneratedImage = {
+  url: imageData.url,  // DALL-E returns URL
+  ...
+};
 
 // After
 const response = await this.client.images.generate({
-  model: 'gpt-image-1',
+  model: 'gpt-image-1.5',
   prompt,
   size: this.mapSize(size),
   quality: this.mapQuality(quality),
-  output_format: 'jpeg', // Faster than png
+  output_format: 'jpeg',
   n: 1,
 });
+
+const imageData = response.data?.[0];
+if (!imageData?.b64_json) {
+  throw new Error('No image data returned from GPT Image');
+}
+
+// Upload base64 to Supabase Storage and get persistent URL
+const url = await this.uploadToSupabase(imageData.b64_json, size);
+
+const result: GeneratedImage = {
+  url,  // Persistent Supabase Storage URL
+  ...
+};
 ```
 
-6. Add mapping helpers:
+**Add Supabase upload helper (new method):**
+
+```typescript
+import { createClient } from '@supabase/supabase-js';
+
+// Add to class
+private supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY! // Need service role for storage
+);
+
+private async uploadToSupabase(base64: string, size: string): Promise<string> {
+  const buffer = Buffer.from(base64, 'base64');
+  const filename = `generated/${Date.now()}-${size}.jpg`;
+
+  const { data, error } = await this.supabase.storage
+    .from('ai-images')  // Bucket name
+    .upload(filename, buffer, {
+      contentType: 'image/jpeg',
+      cacheControl: '31536000', // 1 year cache
+    });
+
+  if (error) {
+    throw new Error(`Failed to upload image: ${error.message}`);
+  }
+
+  const { data: urlData } = this.supabase.storage
+    .from('ai-images')
+    .getPublicUrl(data.path);
+
+  return urlData.publicUrl;
+}
+```
+
+**Supabase Setup Required:**
+
+1. Create storage bucket `ai-images` in Supabase dashboard
+2. Set bucket to public (for generated app images)
+3. Add `SUPABASE_SERVICE_ROLE_KEY` to Railway environment variables
+
+**5. Add mapping helpers (new methods in class):**
 
 ```typescript
 private mapSize(oldSize: string): ImageSize {
@@ -148,29 +240,142 @@ private mapSize(oldSize: string): ImageSize {
 }
 
 private mapQuality(oldQuality: string): 'low' | 'medium' | 'high' {
-  // Map old DALL-E quality to new GPT Image quality
   return oldQuality === 'hd' ? 'high' : 'medium';
 }
 ```
 
-7. Update cost tracking (lines ~62-69):
+**6. Update `generateHeroImage` (line ~164-170):**
 
 ```typescript
-// New GPT Image 1 pricing (50-75% cheaper)
-const COST_PER_IMAGE: Record<string, number> = {
-  'high-1536x1024': 0.08,
-  'high-1024x1536': 0.08,
-  'high-1024x1024': 0.04,
-  'medium-1536x1024': 0.04,
-  'medium-1024x1536': 0.04,
-  'medium-1024x1024': 0.02,
-  'low-1024x1024': 0.015,
-};
+// Before
+return this.generateImage({
+  prompt,
+  size: '1792x1024', // Old DALL-E size
+  quality: 'hd',
+  style: request.designContext.style === 'playful' ? 'vivid' : 'natural',
+});
+
+// After
+return this.generateImage({
+  prompt,
+  size: '1536x1024', // New GPT Image size
+  quality: 'high',
+  // style removed
+});
 ```
 
-8. Update cache key generation to remove style parameter.
+**7. Update `generateCardImage` and `generateBackgroundImage`:**
 
-**Reason:** DALL-E 3 deprecated November 2025, removal May 2026. GPT Image 1 is 50-75% cheaper with better text rendering.
+Remove `style` parameter from both methods.
+
+**8. Update `getCacheKey` (lines ~323-337):**
+
+```typescript
+// Before
+private getCacheKey(prompt, size, quality, style): string {
+  ...
+  return `${hash.toString(36)}-${size}-${quality}-${style}`;
+}
+
+// After
+private getCacheKey(prompt: string, size: ImageSize, quality: ImageQuality): string {
+  ...
+  return `${hash.toString(36)}-${size}-${quality}`;
+}
+```
+
+**9. Update `ImageGenerationRequest` interface (lines ~18-23):**
+
+Remove `style` property.
+
+---
+
+#### File 2: `src/utils/dalleRateLimiter.ts`
+
+**Update cost constants (lines ~48-55):**
+
+```typescript
+// Before
+export const COST_PER_IMAGE = {
+  'hd-1792x1024': 0.12,
+  'hd-1024x1792': 0.12,
+  'hd-1024x1024': 0.08,
+  'standard-1792x1024': 0.08,
+  'standard-1024x1792': 0.08,
+  'standard-1024x1024': 0.04,
+} as const;
+
+// After
+export const COST_PER_IMAGE = {
+  'high-1536x1024': 0.064,
+  'high-1024x1536': 0.064,
+  'high-1024x1024': 0.032,
+  'medium-1536x1024': 0.032,
+  'medium-1024x1536': 0.032,
+  'medium-1024x1024': 0.016,
+  'low-1024x1024': 0.012,
+} as const;
+```
+
+**Update `recordGeneration` method signature (line ~118):**
+
+```typescript
+// Before
+public recordGeneration(
+  type: 'hero' | 'card' | 'background' | 'custom',
+  quality: 'hd' | 'standard',
+  size: string
+): void
+
+// After
+public recordGeneration(
+  type: 'hero' | 'card' | 'background' | 'custom',
+  quality: 'high' | 'medium' | 'low',
+  size: string
+): void
+```
+
+---
+
+#### File 3: `src/services/AppImageGenerator.ts`
+
+**Update quality type (line ~43):**
+
+```typescript
+// Before
+quality?: 'standard' | 'hd';
+
+// After
+quality?: 'low' | 'medium' | 'high';
+```
+
+**Update hero image recording (line ~148):**
+
+```typescript
+// Before
+rateLimiter.recordGeneration('hero', 'hd', '1792x1024');
+
+// After
+rateLimiter.recordGeneration('hero', 'high', '1536x1024');
+```
+
+---
+
+#### File 4: `src/utils/imageUrlInjector.ts` (cosmetic)
+
+**Update comment (line ~68):**
+
+```typescript
+// Before
+' * This file contains URLs for images generated by DALL-E 3 or fallback services.',
+
+// After
+' * This file contains URLs for images generated by GPT Image 1.5 or fallback services.',
+```
+
+---
+
+**Reason:** DALL-E 3 deprecated November 2025, removal May 2026. GPT Image 1.5 is 60-80% cheaper, 4x faster, with better text rendering and instruction following.
 
 ---
 
@@ -199,7 +404,11 @@ model: 'claude-opus-4-5-20251101',
 
 1. **Gemini update** - Simple one-line change, low risk
 2. **Claude Sonnet consistency** - Simple model ID updates
-3. **GPT Image 1 migration** - More complex, requires type and API changes
+3. **GPT Image 1.5 migration** - Complex, 4 files to update:
+   - `dalleService.ts` - Types, API call, base64 handling
+   - `dalleRateLimiter.ts` - Cost constants
+   - `AppImageGenerator.ts` - Quality type, size references
+   - `imageUrlInjector.ts` - Comment (cosmetic)
 4. **Opus upgrade** - Optional, discuss cost implications first
 
 ---
@@ -213,7 +422,7 @@ After each change:
 3. Test affected features manually:
    - Gemini: Layout builder visual analysis
    - Sonnet updates: Figma import, semantic analysis
-   - GPT Image 1: Image generation in layout preview (if enabled)
+   - GPT Image 1.5: Image generation in layout preview (if enabled)
    - Opus: Phase generation wizard
 
 ---
@@ -226,10 +435,20 @@ All changes are simple model ID swaps. To rollback, revert the model string to t
 
 ## Sources
 
+**GPT Image 1.5:**
+
 - [OpenAI Image Generation Guide](https://platform.openai.com/docs/guides/image-generation)
 - [OpenAI API Reference - Images](https://platform.openai.com/docs/api-reference/images)
-- [OpenAI Models - GPT Image 1](https://platform.openai.com/docs/models/gpt-image-1)
+- [OpenAI Models - GPT Image 1.5](https://platform.openai.com/docs/models/gpt-image-1.5)
+- [GPT-Image-1.5 Rollout - OpenAI Community](https://community.openai.com/t/gpt-image-1-5-rolling-out-in-the-api-and-chatgpt/1369443)
+- [GPT-Image-1.5 Prompting Guide - OpenAI Cookbook](https://cookbook.openai.com/examples/multimodal/image-gen-1.5-prompting_guide)
+
+**Gemini:**
+
 - [Introducing Gemini 3 Flash - Google](https://blog.google/products/gemini/gemini-3-flash/)
 - [Gemini 3 Developer Guide](https://ai.google.dev/gemini-api/docs/gemini-3)
+
+**Claude:**
+
 - [Introducing Claude Sonnet 4.5 - Anthropic](https://www.anthropic.com/news/claude-sonnet-4-5)
 - [Claude Models Overview](https://docs.claude.com/en/docs/about-claude/models/overview)
