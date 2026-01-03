@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
 import { useDynamicBuildPhases } from '@/hooks/useDynamicBuildPhases';
@@ -13,7 +13,6 @@ export default function BuildPage() {
 
   // Get state from store
   const dynamicPhasePlan = useAppStore((state) => state.dynamicPhasePlan);
-  const appConcept = useAppStore((state) => state.appConcept);
 
   // Dynamic build phases hook
   const dynamicBuildPhases = useDynamicBuildPhases({
@@ -25,17 +24,8 @@ export default function BuildPage() {
     },
   });
 
-  const handleComplete = useCallback(() => {
-    // Navigate to final step: Builder
-    router.push('/app');
-  }, [router]);
-
   const handleClose = useCallback(() => {
     router.push('/app');
-  }, [router]);
-
-  const handleBack = useCallback(() => {
-    router.push('/app/design');
   }, [router]);
 
   const handleStartWizard = useCallback(() => {
@@ -148,27 +138,6 @@ export default function BuildPage() {
         onRunReview={dynamicBuildPhases.runFinalQualityCheck}
         onStrictnessChange={dynamicBuildPhases.setReviewStrictness}
       />
-
-      {/* Navigation bar - Fixed bottom */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#0a0a0f]/90 backdrop-blur-xl border-t border-zinc-800 p-4 flex items-center justify-between z-40">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleBack}
-            className="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors flex items-center gap-1"
-          >
-            ← Back to Design
-          </button>
-        </div>
-        <p className="text-sm text-zinc-500 hidden sm:block">Step 3 of 4 — Generate your code</p>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleComplete}
-            className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 rounded-lg shadow-lg shadow-blue-500/25 transition-all"
-          >
-            Open in Builder →
-          </button>
-        </div>
-      </div>
     </motion.div>
   );
 }
