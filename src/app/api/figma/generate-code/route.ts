@@ -65,10 +65,15 @@ export async function POST(request: Request): Promise<NextResponse<FigmaGenerate
       typescript,
     });
 
-    // Call Claude API
+    // Call Claude API with extended thinking for better code quality
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 8000,
+      max_tokens: 16000,
+      temperature: 1,
+      thinking: {
+        type: 'enabled',
+        budget_tokens: 8000,
+      },
       messages: [
         {
           role: 'user',
@@ -77,8 +82,9 @@ export async function POST(request: Request): Promise<NextResponse<FigmaGenerate
       ],
     });
 
-    // Parse the response
-    const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+    // Parse the response (find text block, skip thinking blocks)
+    const textBlock = message.content.find((block) => block.type === 'text');
+    const responseText = textBlock?.type === 'text' ? textBlock.text : '';
 
     const files = parseGeneratedFiles(responseText, typescript);
 

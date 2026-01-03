@@ -334,7 +334,12 @@ Use this as a starting point and expand with full details.`;
 
       const response = await this.anthropic.messages.create({
         model: this.model,
-        max_tokens: 8000,
+        max_tokens: 16000,
+        temperature: 1,
+        thinking: {
+          type: 'enabled',
+          budget_tokens: 8000,
+        },
         messages: [
           {
             role: 'user',
