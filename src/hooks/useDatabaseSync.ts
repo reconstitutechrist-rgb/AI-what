@@ -1,7 +1,7 @@
 /**
  * useDatabaseSync Hook - Handles Supabase database operations for saving/loading components
  *
- * Extracted from AIBuilder.tsx for reusability and better separation of concerns.
+ * Extracted from MainBuilderView.tsx for reusability and better separation of concerns.
  * Provides functionality to save, delete, and load generated components from Supabase.
  */
 

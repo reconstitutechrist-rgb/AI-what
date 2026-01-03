@@ -1,7 +1,7 @@
 /**
  * useChatSystem Hook - Combines chat-related functionality
  *
- * Extracted from AIBuilder.tsx for reusability and better separation of concerns.
+ * Extracted from MainBuilderView.tsx for reusability and better separation of concerns.
  * Provides chat message management, input handling, and generation state.
  */
 

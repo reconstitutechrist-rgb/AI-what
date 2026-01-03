@@ -1,7 +1,7 @@
 /**
  * useFileStorage Hook - Handles file storage operations
  *
- * Extracted from AIBuilder.tsx for reusability and better separation of concerns.
+ * Extracted from MainBuilderView.tsx for reusability and better separation of concerns.
  * Provides functionality for file upload, download, delete, and listing.
  */
 

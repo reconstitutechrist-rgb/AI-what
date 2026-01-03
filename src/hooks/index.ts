@@ -71,14 +71,14 @@ export { useTheme } from './useTheme';
 export { useElementInspector } from './useElementInspector';
 export type { UseElementInspectorOptions, UseElementInspectorReturn } from './useElementInspector';
 
-// Send message hook (extracted from AIBuilder)
+// Send message hook (extracted from MainBuilderView)
 export { useSendMessage } from './useSendMessage';
 export type { UseSendMessageOptions, UseSendMessageReturn, WizardState } from './useSendMessage';
 
-// Version handlers hook (extracted from AIBuilder)
+// Version handlers hook (extracted from MainBuilderView)
 export { useVersionHandlers } from './useVersionHandlers';
 export type { UseVersionHandlersOptions, UseVersionHandlersReturn } from './useVersionHandlers';
 
-// App CRUD hook (extracted from AIBuilder)
+// App CRUD hook (extracted from MainBuilderView)
 export { useAppCrud } from './useAppCrud';
 export type { UseAppCrudOptions, UseAppCrudReturn } from './useAppCrud';

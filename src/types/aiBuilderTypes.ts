@@ -1,6 +1,6 @@
 /**
- * Type definitions for AIBuilder component
- * Extracted from AIBuilder.tsx for modular architecture
+ * Type definitions for MainBuilderView component
+ * Extracted from MainBuilderView.tsx for modular architecture
  */
 
 // ============================================================================

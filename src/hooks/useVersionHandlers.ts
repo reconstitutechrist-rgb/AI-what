@@ -1,7 +1,7 @@
 /**
  * useVersionHandlers Hook
  *
- * Extracted from AIBuilder.tsx to reduce component size.
+ * Extracted from MainBuilderView.tsx to reduce component size.
  * Handles all version-related operations:
  * - Approve/reject changes
  * - Approve/reject diffs
@@ -81,7 +81,7 @@ function generateId(): string {
 // ============================================================================
 
 /**
- * Hook for handling version-related operations in AIBuilder
+ * Hook for handling version-related operations in MainBuilderView
  */
 export function useVersionHandlers(options: UseVersionHandlersOptions): UseVersionHandlersReturn {
   const { versionControl, saveVersion, onSaveComponent } = options;

@@ -1,7 +1,7 @@
 /**
  * useVersionControl Hook - Handles undo/redo functionality and version management
  *
- * Extracted from AIBuilder.tsx for reusability and better separation of concerns.
+ * Extracted from MainBuilderView.tsx for reusability and better separation of concerns.
  * Provides version history management, undo/redo stacks, and version comparison.
  */
 

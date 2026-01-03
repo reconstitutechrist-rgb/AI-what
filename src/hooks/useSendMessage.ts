@@ -1,7 +1,7 @@
 /**
  * useSendMessage Hook
  *
- * Extracted from AIBuilder.tsx to reduce component size.
+ * Extracted from MainBuilderView.tsx to reduce component size.
  * Handles all message sending logic including:
  * - PLAN mode wizard chat
  * - ACT mode builder chat
@@ -172,9 +172,9 @@ function compressForACTMode(
 // ============================================================================
 
 /**
- * Hook for handling message sending in AIBuilder
+ * Hook for handling message sending in MainBuilderView
  *
- * This hook extracts the complex sendMessage logic from AIBuilder.tsx,
+ * This hook extracts the complex sendMessage logic from MainBuilderView.tsx,
  * reducing the component size while preserving all functionality.
  */
 export function useSendMessage(options: UseSendMessageOptions): UseSendMessageReturn {

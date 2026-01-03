@@ -1,7 +1,7 @@
 /**
- * Zustand Store for AIBuilder State Management
+ * Zustand Store for MainBuilderView State Management
  *
- * This store mirrors all useState calls from AIBuilder.tsx for modular architecture.
+ * This store mirrors all useState calls from MainBuilderView.tsx for modular architecture.
  * It uses Zustand with:
  * - Immer middleware for safe immutable state updates (allows direct mutations in reducers)
  * - Devtools middleware for debugging in development
@@ -113,11 +113,6 @@ interface VersionControlSlice {
   clearRedoStack: () => void;
 }
 
-/**
- * Main view type for tab navigation
- */
-export type MainView = 'main' | 'wizard' | 'layout' | 'build';
-
 // Note: PreviewMode is imported from @/types/railway
 type WebContainerStatus = 'idle' | 'booting' | 'ready' | 'error';
 
@@ -127,7 +122,6 @@ type WebContainerStatus = 'idle' | 'booting' | 'ready' | 'error';
 interface UISlice {
   isClient: boolean;
   activeTab: ActiveTab;
-  activeView: MainView;
   // Modal visibility states
   showLibrary: boolean;
   showDiffPreview: boolean;
@@ -156,7 +150,6 @@ interface UISlice {
   // Actions
   setIsClient: (isClient: boolean) => void;
   setActiveTab: (tab: ActiveTab) => void;
-  setActiveView: (view: MainView) => void;
   setShowLibrary: (show: boolean) => void;
   setShowDiffPreview: (show: boolean) => void;
   setShowApprovalModal: (show: boolean) => void;
@@ -404,7 +397,6 @@ export const useAppStore = create<AppState>()(
       // ========================================================================
       isClient: false,
       activeTab: 'chat',
-      activeView: 'main',
       showLibrary: false,
       showDiffPreview: false,
       showApprovalModal: false,
@@ -431,7 +423,6 @@ export const useAppStore = create<AppState>()(
 
       setIsClient: (isClient) => set({ isClient }),
       setActiveTab: (tab) => set({ activeTab: tab }),
-      setActiveView: (view) => set({ activeView: view }),
       setShowLibrary: (show) => set({ showLibrary: show }),
       setShowDiffPreview: (show) => set({ showDiffPreview: show }),
       setShowApprovalModal: (show) => set({ showApprovalModal: show }),
@@ -641,7 +632,6 @@ export const useUIState = () =>
     useShallow((state) => ({
       isClient: state.isClient,
       activeTab: state.activeTab,
-      activeView: state.activeView,
       showLibrary: state.showLibrary,
       showDiffPreview: state.showDiffPreview,
       showApprovalModal: state.showApprovalModal,

@@ -1,7 +1,7 @@
 /**
  * useAppCrud Hook
  *
- * Extracted from AIBuilder.tsx to reduce component size.
+ * Extracted from MainBuilderView.tsx to reduce component size.
  * Handles app CRUD operations:
  * - Create new app
  * - Load app
@@ -58,7 +58,7 @@ function generateId(): string {
 // ============================================================================
 
 /**
- * Hook for handling app CRUD operations in AIBuilder
+ * Hook for handling app CRUD operations in MainBuilderView
  */
 export function useAppCrud(options: UseAppCrudOptions): UseAppCrudReturn {
   const { onSaveComponent, onDeleteComponent, getWelcomeMessage } = options;

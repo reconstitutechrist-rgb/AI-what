@@ -531,7 +531,7 @@ What would you like to build?`,
 
   const content = (
     <div
-      className={`flex w-full ${isFullPage ? 'h-full' : 'max-w-7xl h-[90vh]'} bg-zinc-900 text-white ${isFullPage ? '' : 'rounded-xl border border-zinc-800 shadow-2xl'} overflow-hidden`}
+      className={`flex w-full ${isFullPage ? 'h-full' : 'max-w-7xl h-[90vh]'} bg-[#0a0a0f] text-white ${isFullPage ? '' : 'rounded-xl border border-white/10 shadow-2xl'} overflow-hidden`}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Main Chat Area */}
@@ -562,7 +562,7 @@ What would you like to build?`,
             <div className="flex justify-center">
               <button
                 onClick={() => setShowAllMessages(true)}
-                className="px-4 py-2 text-sm text-zinc-400 hover:text-zinc-100 bg-zinc-800 hover:bg-zinc-700 rounded-lg border border-zinc-700 transition-colors"
+                className="px-4 py-2 text-sm text-zinc-400 hover:text-white bg-zinc-900/50 hover:bg-zinc-800/50 rounded-lg border border-white/10 transition-colors backdrop-blur-sm"
               >
                 Load {messages.length - MAX_VISIBLE_MESSAGES} older messages
               </button>
@@ -577,7 +577,7 @@ What would you like to build?`,
           {/* Loading indicator */}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-zinc-800 rounded-lg px-4 py-3">
+              <div className="bg-zinc-900/50 backdrop-blur-sm rounded-lg px-4 py-3 border border-white/10">
                 <div className="flex items-center gap-3">
                   <LoaderIcon size={18} className="text-blue-500" />
                   <span className="text-zinc-400 text-sm">Thinking...</span>
@@ -628,7 +628,7 @@ What would you like to build?`,
           {/* Pending regeneration indicator */}
           {pendingRegeneration && !isRegenerating && (
             <div className="flex justify-start">
-              <div className="bg-zinc-700/50 rounded-lg px-4 py-2 border-l-2 border-zinc-500">
+              <div className="bg-zinc-900/50 backdrop-blur-sm rounded-lg px-4 py-2 border-l-2 border-zinc-500">
                 <span className="text-zinc-400 text-sm">
                   Changes detected - plan will update shortly...
                 </span>

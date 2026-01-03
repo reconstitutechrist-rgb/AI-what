@@ -71,15 +71,15 @@ export function PhasedBuildPanel({
 
   const content = (
     <div
-      className={`bg-zinc-900 rounded-xl border border-zinc-800 ${isFullPage ? 'w-full h-full max-h-full' : 'max-w-4xl w-full max-h-[80vh]'} overflow-hidden flex flex-col shadow-2xl`}
+      className={`bg-[#0a0a0f] rounded-xl border border-white/10 ${isFullPage ? 'w-full h-full max-h-full' : 'max-w-4xl w-full max-h-[80vh]'} overflow-hidden flex flex-col shadow-2xl`}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Panel Header */}
-      <div className="px-6 py-4 border-b border-zinc-800">
+      <div className="px-6 py-4 border-b border-white/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-orange-600/20 flex items-center justify-center">
-              <LayersIcon size={20} className="text-orange-400" />
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600/20 to-purple-600/20 flex items-center justify-center">
+              <LayersIcon size={20} className="text-blue-400" />
             </div>
             <div>
               <h2 className="text-lg font-semibold text-zinc-100">
@@ -146,7 +146,7 @@ export function PhasedBuildPanel({
       </div>
 
       {/* Panel Footer */}
-      <div className="px-6 py-4 border-t border-zinc-800 flex justify-between items-center">
+      <div className="px-6 py-4 border-t border-white/10 flex justify-between items-center">
         <div className="flex items-center gap-2 text-xs text-zinc-500">
           <InfoIcon size={14} />
           <span>Each phase focuses on specific aspects of your app for better quality.</span>

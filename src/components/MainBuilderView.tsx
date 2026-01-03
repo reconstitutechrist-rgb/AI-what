@@ -4,8 +4,7 @@
  * MainBuilderView - The core builder interface
  *
  * This component contains the main chat + preview builder interface.
- * It's extracted from AIBuilder to be used on the /app page
- * while keeping all functionality intact.
+ * Main builder view component used on the /app page.
  */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
