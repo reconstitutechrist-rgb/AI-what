@@ -62,7 +62,7 @@ export interface AppBranch {
 }
 
 // ============================================================================
-// PHASE BUILD TYPES (inline version used in AIBuilder)
+// PHASE BUILD TYPES (inline version used in MainBuilderView)
 // ============================================================================
 
 /**
