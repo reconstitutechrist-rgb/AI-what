@@ -134,7 +134,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   },
   appearance: {
     theme: 'system',
-    accentColor: '#3B82F6',
+    accentColor: '#2ECC71',
     uiDensity: 'comfortable',
   },
   shortcuts: [
