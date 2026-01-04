@@ -567,7 +567,12 @@ What would you like to build?`,
             <div className="flex justify-center">
               <button
                 onClick={() => setShowAllMessages(true)}
-                className="px-4 py-2 text-sm text-slate-400 hover:text-white bg-slate-900/50 hover:bg-slate-800/50 rounded-lg border border-white/10 transition-colors backdrop-blur-sm"
+                className="px-4 py-2 text-sm rounded-lg transition-colors backdrop-blur-sm"
+                style={{
+                  color: 'var(--text-muted)',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                }}
               >
                 Load {messages.length - MAX_VISIBLE_MESSAGES} older messages
               </button>
@@ -582,10 +587,18 @@ What would you like to build?`,
           {/* Loading indicator */}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-slate-900/50 backdrop-blur-sm rounded-lg px-4 py-3 border border-white/10">
+              <div
+                className="backdrop-blur-sm rounded-lg px-4 py-3"
+                style={{
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                }}
+              >
                 <div className="flex items-center gap-3">
                   <LoaderIcon size={18} className="text-garden-500" />
-                  <span className="text-slate-400 text-sm">Thinking...</span>
+                  <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                    Thinking...
+                  </span>
                 </div>
               </div>
             </div>
@@ -597,7 +610,9 @@ What would you like to build?`,
               <div className="bg-emerald-600/10 rounded-lg px-4 py-3 border-l-2 border-emerald-500">
                 <div className="flex items-center gap-3">
                   <LoaderIcon size={18} className="text-emerald-400" />
-                  <span className="text-zinc-300">Analyzing backend architecture...</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>
+                    Analyzing backend architecture...
+                  </span>
                 </div>
               </div>
             </div>
@@ -609,7 +624,9 @@ What would you like to build?`,
               <div className="bg-gold-500/10 rounded-lg px-4 py-3 border-l-2 border-gold-500">
                 <div className="flex items-center gap-3">
                   <LoaderIcon size={18} className="text-gold-400" />
-                  <span className="text-slate-300">Generating implementation plan...</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>
+                    Generating implementation plan...
+                  </span>
                 </div>
               </div>
             </div>
@@ -621,7 +638,7 @@ What would you like to build?`,
               <div className="bg-amber-600/10 rounded-lg px-4 py-3 border-l-2 border-amber-500">
                 <div className="flex items-center gap-3">
                   <LoaderIcon size={18} className="text-amber-400" />
-                  <span className="text-zinc-300">
+                  <span style={{ color: 'var(--text-secondary)' }}>
                     Updating implementation plan
                     {regenerationReason ? ` (${regenerationReason} changed)` : ''}...
                   </span>
@@ -633,8 +650,14 @@ What would you like to build?`,
           {/* Pending regeneration indicator */}
           {pendingRegeneration && !isRegenerating && (
             <div className="flex justify-start">
-              <div className="bg-slate-900/50 backdrop-blur-sm rounded-lg px-4 py-2 border-l-2 border-slate-500">
-                <span className="text-slate-400 text-sm">
+              <div
+                className="backdrop-blur-sm rounded-lg px-4 py-2 border-l-2"
+                style={{
+                  background: 'var(--bg-secondary)',
+                  borderLeftColor: 'var(--border-color)',
+                }}
+              >
+                <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
                   Changes detected - plan will update shortly...
                 </span>
               </div>

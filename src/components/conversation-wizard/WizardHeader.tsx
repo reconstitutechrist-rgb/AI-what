@@ -24,14 +24,19 @@ export function WizardHeader({
   onCancel,
 }: WizardHeaderProps) {
   return (
-    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+    <div
+      className="flex items-center justify-between px-6 py-4"
+      style={{ borderBottom: '1px solid var(--border-color)' }}
+    >
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-lg bg-gold-600/20 flex items-center justify-center">
           <WandIcon size={20} className="text-gold-400" />
         </div>
         <div>
-          <h1 className="font-semibold text-slate-100">App Planning Assistant</h1>
-          <p className="text-sm text-slate-400">
+          <h1 className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+            App Planning Assistant
+          </h1>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
             {appName ? `Planning: ${appName}` : 'Describe your app idea'}
           </p>
         </div>

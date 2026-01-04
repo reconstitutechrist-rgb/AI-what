@@ -16,17 +16,33 @@ interface MessageBubbleProps {
  * Chat message bubble with markdown-like rendering
  */
 export function MessageBubble({ message }: MessageBubbleProps) {
+  // Get background and text styles based on role
+  const getBubbleStyles = () => {
+    if (message.role === 'user') {
+      return {
+        background: 'var(--garden-600, #059669)',
+        color: 'white',
+      };
+    }
+    if (message.role === 'system') {
+      return {
+        background: 'var(--bg-secondary)',
+        borderLeft: '2px solid var(--gold-500, #eab308)',
+        color: 'var(--text-primary)',
+      };
+    }
+    // assistant
+    return {
+      background: 'var(--bg-tertiary)',
+      color: 'var(--text-primary)',
+    };
+  };
+
+  const bubbleStyles = getBubbleStyles();
+
   return (
     <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className={`max-w-[80%] rounded-lg px-4 py-3 ${
-          message.role === 'user'
-            ? 'bg-garden-600 text-white'
-            : message.role === 'system'
-              ? 'bg-slate-900 border-l-2 border-gold-500 text-slate-300'
-              : 'bg-slate-800 text-slate-100'
-        }`}
-      >
+      <div className="max-w-[80%] rounded-lg px-4 py-3" style={bubbleStyles}>
         {/* Attachments */}
         {message.attachments && message.attachments.length > 0 && (
           <div className="flex gap-2 mb-2">
@@ -42,7 +58,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         )}
 
         {/* Content with markdown-like rendering */}
-        <div className="prose prose-invert prose-sm max-w-none">
+        <div className="prose prose-sm max-w-none">
           {message.content.split('\n').map((line, i) => {
             // Headers
             if (line.startsWith('## ')) {
@@ -84,7 +100,13 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             }
             // Horizontal rule
             if (line === '---') {
-              return <hr key={`${message.id}-line-${i}`} className="my-3 border-slate-700" />;
+              return (
+                <hr
+                  key={`${message.id}-line-${i}`}
+                  className="my-3"
+                  style={{ borderColor: 'var(--border-color)' }}
+                />
+              );
             }
             // Tables (simple rendering)
             if (line.startsWith('|')) {

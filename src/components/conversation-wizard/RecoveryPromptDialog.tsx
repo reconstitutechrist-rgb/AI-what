@@ -24,7 +24,12 @@ export function RecoveryPromptDialog({
       onClick={onCancel}
     >
       <div
-        className="bg-slate-900 text-white rounded-xl border border-slate-800 shadow-2xl p-8 max-w-md w-full"
+        className="rounded-xl shadow-2xl p-8 max-w-md w-full"
+        style={{
+          background: 'var(--bg-primary)',
+          color: 'var(--text-primary)',
+          border: '1px solid var(--border-color)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-center">
@@ -32,10 +37,12 @@ export function RecoveryPromptDialog({
             <SaveIcon size={32} className="text-garden-400" />
           </div>
           <h2 className="text-xl font-semibold mb-2">Resume Previous Session?</h2>
-          <p className="text-slate-400 mb-6">
+          <p className="mb-6" style={{ color: 'var(--text-muted)' }}>
             You have an unsaved conversation from{' '}
-            <span className="text-slate-100 font-medium">{draftAge}</span>. Would you like to
-            continue where you left off?
+            <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
+              {draftAge}
+            </span>
+            . Would you like to continue where you left off?
           </p>
           <div className="flex gap-3">
             <button onClick={onStartFresh} className="btn-secondary flex-1 py-2.5">
@@ -47,7 +54,8 @@ export function RecoveryPromptDialog({
           </div>
           <button
             onClick={onCancel}
-            className="mt-4 text-sm text-slate-500 hover:text-slate-300 transition-colors"
+            className="mt-4 text-sm transition-colors"
+            style={{ color: 'var(--text-muted)' }}
           >
             Cancel
           </button>

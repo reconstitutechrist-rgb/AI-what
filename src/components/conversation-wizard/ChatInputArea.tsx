@@ -47,7 +47,7 @@ export const ChatInputArea = forwardRef<ChatInputAreaRef, ChatInputAreaProps>(
     };
 
     return (
-      <div className="px-6 py-4 border-t border-slate-800">
+      <div className="px-6 py-4" style={{ borderTop: '1px solid var(--border-color)' }}>
         <div className="flex items-end gap-3">
           {/* File upload button */}
           <button
@@ -75,8 +75,14 @@ export const ChatInputArea = forwardRef<ChatInputAreaRef, ChatInputAreaProps>(
               onKeyDown={handleKeyDown}
               placeholder="Describe your app idea..."
               rows={1}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 pr-12 resize-none focus:outline-none focus:ring-2 focus:ring-garden-500 focus:border-transparent text-slate-100 placeholder-slate-500 transition-colors"
-              style={{ minHeight: '48px', maxHeight: '120px' }}
+              className="w-full rounded-lg px-4 py-3 pr-12 resize-none focus:outline-none focus:ring-2 focus:ring-garden-500 focus:border-transparent transition-colors"
+              style={{
+                minHeight: '48px',
+                maxHeight: '120px',
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)',
+              }}
             />
           </div>
 
@@ -90,7 +96,7 @@ export const ChatInputArea = forwardRef<ChatInputAreaRef, ChatInputAreaProps>(
           </button>
         </div>
 
-        <p className="text-xs text-slate-500 mt-2 text-center">
+        <p className="text-xs mt-2 text-center" style={{ color: 'var(--text-muted)' }}>
           Press Enter to send, Shift+Enter for new line
         </p>
       </div>

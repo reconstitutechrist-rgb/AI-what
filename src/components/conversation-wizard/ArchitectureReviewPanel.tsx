@@ -32,14 +32,22 @@ export function ArchitectureReviewPanel({
   };
 
   return (
-    <div className="w-96 border-l border-slate-800 flex flex-col bg-slate-900/50">
+    <div
+      className="w-96 border-l flex flex-col"
+      style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
+    >
       {/* Header */}
-      <div className="p-4 border-b border-slate-800">
-        <h2 className="font-semibold text-slate-100 flex items-center gap-2">
+      <div className="p-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
+        <h2
+          className="font-semibold flex items-center gap-2"
+          style={{ color: 'var(--text-primary)' }}
+        >
           <span className="text-lg">🏗️</span>
           Backend Architecture
         </h2>
-        <p className="text-sm text-slate-400 mt-1">Review the generated architecture</p>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+          Review the generated architecture
+        </p>
       </div>
 
       {/* Content */}
@@ -53,20 +61,40 @@ export function ArchitectureReviewPanel({
           onToggle={() => toggleSection('database')}
         >
           {architectureSpec.database?.prismaSchema ? (
-            <div className="bg-slate-950 rounded border border-slate-800 overflow-hidden">
-              <div className="px-3 py-1.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
-                <span className="text-xs text-slate-400 font-mono">schema.prisma</span>
+            <div
+              className="rounded overflow-hidden"
+              style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}
+            >
+              <div
+                className="px-3 py-1.5 flex items-center justify-between"
+                style={{
+                  background: 'var(--bg-secondary)',
+                  borderBottom: '1px solid var(--border-color)',
+                }}
+              >
+                <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
+                  schema.prisma
+                </span>
               </div>
-              <pre className="p-3 text-xs text-slate-300 font-mono overflow-x-auto max-h-64 overflow-y-auto">
+              <pre
+                className="p-3 text-xs font-mono overflow-x-auto max-h-64 overflow-y-auto"
+                style={{ color: 'var(--text-secondary)' }}
+              >
                 {architectureSpec.database.prismaSchema}
               </pre>
             </div>
           ) : (
             <div className="space-y-2">
               {architectureSpec.database?.tables?.map((table) => (
-                <div key={table.name} className="p-2 bg-slate-800/50 rounded">
-                  <p className="text-sm font-medium text-slate-200">{table.name}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                <div
+                  key={table.name}
+                  className="p-2 rounded"
+                  style={{ background: 'var(--bg-tertiary)' }}
+                >
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                    {table.name}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                     {table.fields?.length || 0} fields
                   </p>
                 </div>
@@ -87,7 +115,8 @@ export function ArchitectureReviewPanel({
             {architectureSpec.api?.routes?.map((route, idx) => (
               <div
                 key={`${route.method}-${route.path}-${idx}`}
-                className="p-2 bg-slate-800/50 rounded flex items-start gap-2"
+                className="p-2 rounded flex items-start gap-2"
+                style={{ background: 'var(--bg-tertiary)' }}
               >
                 <span
                   className={`px-1.5 py-0.5 rounded text-xs font-mono font-medium ${getMethodColor(route.method)}`}
@@ -95,9 +124,16 @@ export function ArchitectureReviewPanel({
                   {route.method}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-mono text-slate-200 truncate">{route.path}</p>
+                  <p
+                    className="text-sm font-mono truncate"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    {route.path}
+                  </p>
                   {route.description && (
-                    <p className="text-xs text-slate-400 mt-0.5">{route.description}</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                      {route.description}
+                    </p>
                   )}
                 </div>
               </div>
@@ -116,15 +152,23 @@ export function ArchitectureReviewPanel({
           >
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-slate-500 uppercase tracking-wide">Strategy</label>
-                <p className="mt-0.5 text-sm text-slate-200">
+                <label
+                  className="text-xs uppercase tracking-wide"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Strategy
+                </label>
+                <p className="mt-0.5 text-sm" style={{ color: 'var(--text-primary)' }}>
                   {architectureSpec.auth.strategy || 'NextAuth.js'}
                 </p>
               </div>
 
               {architectureSpec.auth.providers && architectureSpec.auth.providers.length > 0 && (
                 <div>
-                  <label className="text-xs text-slate-500 uppercase tracking-wide">
+                  <label
+                    className="text-xs uppercase tracking-wide"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
                     Providers
                   </label>
                   <div className="mt-1 flex flex-wrap gap-1">
@@ -142,7 +186,10 @@ export function ArchitectureReviewPanel({
 
               {architectureSpec.auth.rbac?.roles && architectureSpec.auth.rbac.roles.length > 0 && (
                 <div>
-                  <label className="text-xs text-slate-500 uppercase tracking-wide">
+                  <label
+                    className="text-xs uppercase tracking-wide"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
                     Roles (RBAC)
                   </label>
                   <div className="mt-1 space-y-1">
@@ -152,10 +199,19 @@ export function ArchitectureReviewPanel({
                         (rp) => rp.role === role.name
                       )?.permissions;
                       return (
-                        <div key={role.name} className="p-2 bg-slate-800/50 rounded">
-                          <p className="text-sm font-medium text-slate-200">{role.name}</p>
+                        <div
+                          key={role.name}
+                          className="p-2 rounded"
+                          style={{ background: 'var(--bg-tertiary)' }}
+                        >
+                          <p
+                            className="text-sm font-medium"
+                            style={{ color: 'var(--text-primary)' }}
+                          >
+                            {role.name}
+                          </p>
                           {rolePerms && rolePerms.length > 0 && (
-                            <p className="text-xs text-slate-400 mt-0.5">
+                            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                               {rolePerms.slice(0, 3).join(', ')}
                               {rolePerms.length > 3 && ` +${rolePerms.length - 3} more`}
                             </p>
@@ -182,13 +238,24 @@ export function ArchitectureReviewPanel({
             >
               <div className="space-y-2">
                 {architectureSpec.architectureReasoning.decisions.map((decision, idx) => (
-                  <div key={idx} className="p-2 bg-slate-800/50 rounded">
-                    <p className="text-xs text-slate-500 uppercase tracking-wide">
+                  <div
+                    key={idx}
+                    className="p-2 rounded"
+                    style={{ background: 'var(--bg-tertiary)' }}
+                  >
+                    <p
+                      className="text-xs uppercase tracking-wide"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
                       {decision.area}
                     </p>
-                    <p className="text-sm text-slate-200 mt-0.5">{decision.decision}</p>
+                    <p className="text-sm mt-0.5" style={{ color: 'var(--text-primary)' }}>
+                      {decision.decision}
+                    </p>
                     {decision.reasoning && (
-                      <p className="text-xs text-slate-400 mt-1 italic">{decision.reasoning}</p>
+                      <p className="text-xs mt-1 italic" style={{ color: 'var(--text-muted)' }}>
+                        {decision.reasoning}
+                      </p>
                     )}
                   </div>
                 ))}
@@ -198,7 +265,7 @@ export function ArchitectureReviewPanel({
       </div>
 
       {/* Action Buttons */}
-      <div className="p-4 border-t border-slate-800 space-y-2">
+      <div className="p-4 border-t space-y-2" style={{ borderColor: 'var(--border-color)' }}>
         <button
           onClick={onProceed}
           disabled={isGenerating}
@@ -209,7 +276,8 @@ export function ArchitectureReviewPanel({
         <button
           onClick={onRegenerate}
           disabled={isGenerating}
-          className="w-full py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-50"
+          className="w-full py-2 text-sm transition-colors disabled:opacity-50"
+          style={{ color: 'var(--text-muted)' }}
         >
           {isGenerating ? 'Regenerating...' : 'Regenerate Architecture'}
         </button>
@@ -237,22 +305,29 @@ function CollapsibleSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border-b border-slate-800">
+    <div className="border-b" style={{ borderColor: 'var(--border-color)' }}>
       <button
         onClick={onToggle}
-        className="w-full p-4 flex items-center justify-between hover:bg-slate-800/30 transition-colors"
+        className="w-full p-4 flex items-center justify-between transition-colors"
+        style={{ color: 'var(--text-primary)' }}
       >
         <div className="flex items-center gap-2">
           <span>{icon}</span>
-          <span className="font-medium text-slate-100">{title}</span>
+          <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
+            {title}
+          </span>
           {badge && (
-            <span className="px-1.5 py-0.5 bg-slate-700 text-slate-300 rounded text-xs">
+            <span
+              className="px-1.5 py-0.5 rounded text-xs"
+              style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
+            >
               {badge}
             </span>
           )}
         </div>
         <svg
-          className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+          style={{ color: 'var(--text-muted)' }}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

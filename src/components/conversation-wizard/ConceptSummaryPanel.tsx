@@ -29,10 +29,15 @@ export function ConceptSummaryPanel({
   onStartBuilding,
 }: ConceptSummaryPanelProps) {
   return (
-    <div className="w-80 border-l border-slate-800 flex flex-col bg-slate-900/50">
-      <div className="p-4 border-b border-slate-800">
-        <h2 className="font-semibold text-slate-100">Concept Summary</h2>
-        <p className="text-sm text-slate-400">
+    <div
+      className="w-80 border-l flex flex-col"
+      style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
+    >
+      <div className="p-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
+        <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+          Concept Summary
+        </h2>
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           {wizardState.isComplete ? 'Ready to build' : 'In progress...'}
         </p>
       </div>
@@ -40,34 +45,57 @@ export function ConceptSummaryPanel({
       <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
         {/* App Name */}
         <div>
-          <label className="text-xs text-slate-500 uppercase tracking-wide">App Name</label>
-          <p className="mt-1 text-slate-100">{wizardState.name || '—'}</p>
+          <label className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+            App Name
+          </label>
+          <p className="mt-1" style={{ color: 'var(--text-primary)' }}>
+            {wizardState.name || '—'}
+          </p>
         </div>
 
         {/* Description */}
         {wizardState.description && (
           <div>
-            <label className="text-xs text-slate-500 uppercase tracking-wide">Description</label>
-            <p className="mt-1 text-sm text-slate-300">{wizardState.description}</p>
+            <label
+              className="text-xs uppercase tracking-wide"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Description
+            </label>
+            <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
+              {wizardState.description}
+            </p>
           </div>
         )}
 
         {/* Target Users */}
         {wizardState.targetUsers && (
           <div>
-            <label className="text-xs text-slate-500 uppercase tracking-wide">Target Users</label>
-            <p className="mt-1 text-sm text-slate-300">{wizardState.targetUsers}</p>
+            <label
+              className="text-xs uppercase tracking-wide"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Target Users
+            </label>
+            <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
+              {wizardState.targetUsers}
+            </p>
           </div>
         )}
 
         {/* Roles */}
         {wizardState.roles && wizardState.roles.length > 0 && (
           <div>
-            <label className="text-xs text-slate-500 uppercase tracking-wide">User Roles</label>
+            <label
+              className="text-xs uppercase tracking-wide"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              User Roles
+            </label>
             <ul className="mt-1 space-y-1">
               {wizardState.roles.map((role) => (
-                <li key={role.name} className="text-sm text-slate-300">
-                  <strong className="text-slate-100">{role.name}:</strong>{' '}
+                <li key={role.name} className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  <strong style={{ color: 'var(--text-primary)' }}>{role.name}:</strong>{' '}
                   {role.capabilities.slice(0, 2).join(', ')}
                   {role.capabilities.length > 2 && ` +${role.capabilities.length - 2} more`}
                 </li>
@@ -79,14 +107,18 @@ export function ConceptSummaryPanel({
         {/* Features */}
         {wizardState.features.length > 0 && (
           <div>
-            <label className="text-xs text-slate-500 uppercase tracking-wide">
+            <label
+              className="text-xs uppercase tracking-wide"
+              style={{ color: 'var(--text-muted)' }}
+            >
               Features ({wizardState.features.length})
             </label>
             <ul className="mt-1 space-y-1">
               {wizardState.features.slice(0, 6).map((feature) => (
                 <li
                   key={feature.id || feature.name}
-                  className="text-sm flex items-center gap-2 text-slate-300"
+                  className="text-sm flex items-center gap-2"
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   <span
                     className={`w-2 h-2 rounded-full ${
@@ -101,7 +133,7 @@ export function ConceptSummaryPanel({
                 </li>
               ))}
               {wizardState.features.length > 6 && (
-                <li className="text-sm text-slate-500">
+                <li className="text-sm" style={{ color: 'var(--text-muted)' }}>
                   +{wizardState.features.length - 6} more features
                 </li>
               )}
@@ -112,7 +144,12 @@ export function ConceptSummaryPanel({
         {/* Technical */}
         {Object.values(wizardState.technical).some((v) => v !== undefined) && (
           <div>
-            <label className="text-xs text-slate-500 uppercase tracking-wide">Technical</label>
+            <label
+              className="text-xs uppercase tracking-wide"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Technical
+            </label>
             <div className="mt-1 flex flex-wrap gap-1">
               {wizardState.technical.needsAuth && (
                 <span className="px-2 py-0.5 bg-garden-600/20 text-garden-300 rounded text-xs">
@@ -146,20 +183,30 @@ export function ConceptSummaryPanel({
         {/* Phase Plan */}
         {phasePlan && (
           <div>
-            <label className="text-xs text-slate-500 uppercase tracking-wide">
+            <label
+              className="text-xs uppercase tracking-wide"
+              style={{ color: 'var(--text-muted)' }}
+            >
               Implementation Plan ({phasePlan.totalPhases} phases)
             </label>
             <div className="mt-2 space-y-1">
               {phasePlan.phases.slice(0, 5).map((phase) => (
-                <div key={phase.number} className="flex items-center gap-2 text-sm text-slate-300">
-                  <span className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-xs text-slate-400">
+                <div
+                  key={phase.number}
+                  className="flex items-center gap-2 text-sm"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  <span
+                    className="w-5 h-5 rounded-full flex items-center justify-center text-xs"
+                    style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}
+                  >
                     {phase.number}
                   </span>
                   <span className="truncate">{phase.name}</span>
                 </div>
               ))}
               {phasePlan.phases.length > 5 && (
-                <p className="text-sm text-slate-500 pl-7">
+                <p className="text-sm pl-7" style={{ color: 'var(--text-muted)' }}>
                   +{phasePlan.phases.length - 5} more phases
                 </p>
               )}
@@ -170,7 +217,7 @@ export function ConceptSummaryPanel({
 
       {/* Action Buttons */}
       {phasePlan && (
-        <div className="p-4 border-t border-slate-800">
+        <div className="p-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
           <button onClick={onStartBuilding} className="btn-primary w-full py-2.5">
             Start Building
           </button>
