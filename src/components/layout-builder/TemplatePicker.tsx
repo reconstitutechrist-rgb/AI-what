@@ -70,15 +70,26 @@ export function TemplatePicker({ isOpen, onSelect, onClose }: TemplatePickerProp
   };
 
   return (
-    <div className="absolute inset-0 bg-slate-900/95 z-20 flex flex-col">
-      <div className="p-4 border-b border-slate-700 flex items-center justify-between">
+    <div
+      className="absolute inset-0 z-20 flex flex-col"
+      style={{ background: 'var(--bg-primary)', opacity: 0.98 }}
+    >
+      <div
+        className="p-4 border-b flex items-center justify-between"
+        style={{ borderColor: 'var(--border-color)' }}
+      >
         <div>
-          <h3 className="text-lg font-semibold text-white">Choose a Template</h3>
-          <p className="text-sm text-slate-400">Start with a pre-designed layout</p>
+          <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+            Choose a Template
+          </h3>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            Start with a pre-designed layout
+          </p>
         </div>
         <button
           onClick={onClose}
-          className="p-2 text-slate-400 hover:text-white transition-colors"
+          className="p-2 transition-colors hover:opacity-80"
+          style={{ color: 'var(--text-muted)' }}
           aria-label="Close template picker"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -97,22 +108,33 @@ export function TemplatePicker({ isOpen, onSelect, onClose }: TemplatePickerProp
             <button
               key={template.id}
               onClick={() => onSelect(template)}
-              className="text-left p-4 bg-slate-800 border border-slate-700 rounded-xl hover:border-garden-500 hover:bg-slate-750 transition-all group"
+              className="text-left p-4 border rounded-xl hover:border-garden-500 transition-all group"
+              style={{
+                background: 'var(--bg-secondary)',
+                borderColor: 'var(--border-color)',
+              }}
             >
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-slate-400 group-hover:text-garden-400 transition-colors">
+                <span
+                  className="group-hover:text-garden-400 transition-colors"
+                  style={{ color: 'var(--text-muted)' }}
+                >
                   {getCategoryIcon(template.category)}
                 </span>
-                <span className="text-sm font-medium text-white">{template.name}</span>
+                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                  {template.name}
+                </span>
               </div>
-              <p className="text-xs text-slate-400 line-clamp-2">{template.description}</p>
+              <p className="text-xs line-clamp-2" style={{ color: 'var(--text-muted)' }}>
+                {template.description}
+              </p>
               <div className="mt-3 flex items-center gap-2">
                 <span
-                  className={`text-xs px-2 py-0.5 rounded-full ${
-                    template.design.basePreferences?.colorScheme === 'dark'
-                      ? 'bg-slate-700 text-slate-300'
-                      : 'bg-slate-200 text-slate-700'
-                  }`}
+                  className="text-xs px-2 py-0.5 rounded-full"
+                  style={{
+                    background: 'var(--bg-tertiary)',
+                    color: 'var(--text-secondary)',
+                  }}
                 >
                   {template.design.basePreferences?.colorScheme}
                 </span>
@@ -124,10 +146,11 @@ export function TemplatePicker({ isOpen, onSelect, onClose }: TemplatePickerProp
           ))}
         </div>
       </div>
-      <div className="p-4 border-t border-slate-700">
+      <div className="p-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
         <button
           onClick={onClose}
-          className="w-full py-2 text-sm text-slate-400 hover:text-white transition-colors"
+          className="w-full py-2 text-sm transition-colors hover:opacity-80"
+          style={{ color: 'var(--text-muted)' }}
         >
           Skip and start from scratch
         </button>

@@ -1398,8 +1398,8 @@ export function LayoutPreview({
   const [animationDemoIndex, setAnimationDemoIndex] = useState(0);
   const [showSectionPanel, setShowSectionPanel] = useState(false);
   const [internalShowGridOverlay, setInternalShowGridOverlay] = useState(false);
-  const [secondaryColor, setSecondaryColor] = useState('#6366F1');
-  const [accentColor, setAccentColor] = useState('#F59E0B');
+  const [secondaryColor, setSecondaryColor] = useState('#10b981'); // Emerald-500 - complements the green theme
+  const [accentColor, setAccentColor] = useState('#34d399'); // Emerald-400 - lighter green accent
 
   // Use external grid overlay state if provided, otherwise use internal
   const showGridOverlay = externalShowGridOverlay ?? internalShowGridOverlay;
@@ -1685,13 +1685,19 @@ export function LayoutPreview({
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-4 px-2">
         {/* View Mode Toggle */}
-        <div className="flex gap-1 bg-slate-800 p-1 rounded-lg">
+        <div
+          className="flex gap-1 p-1 rounded-lg"
+          style={{ backgroundColor: 'var(--bg-tertiary)' }}
+        >
           <button
             type="button"
             onClick={() => setViewMode('mobile')}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-              viewMode === 'mobile' ? 'bg-garden-600 text-white' : 'text-slate-400 hover:text-white'
-            }`}
+            className="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+            style={
+              viewMode === 'mobile'
+                ? { backgroundColor: '#22c55e', color: '#ffffff' }
+                : { color: 'var(--text-muted)' }
+            }
             title="Mobile view (375x667)"
           >
             📱 Mobile
@@ -1699,9 +1705,12 @@ export function LayoutPreview({
           <button
             type="button"
             onClick={() => setViewMode('tablet')}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-              viewMode === 'tablet' ? 'bg-garden-600 text-white' : 'text-slate-400 hover:text-white'
-            }`}
+            className="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+            style={
+              viewMode === 'tablet'
+                ? { backgroundColor: '#22c55e', color: '#ffffff' }
+                : { color: 'var(--text-muted)' }
+            }
             title="Tablet view (768x1024)"
           >
             📲 Tablet
@@ -1709,11 +1718,12 @@ export function LayoutPreview({
           <button
             type="button"
             onClick={() => setViewMode('desktop')}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+            className="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+            style={
               viewMode === 'desktop'
-                ? 'bg-garden-600 text-white'
-                : 'text-slate-400 hover:text-white'
-            }`}
+                ? { backgroundColor: '#22c55e', color: '#ffffff' }
+                : { color: 'var(--text-muted)' }
+            }
             title="Desktop view (full width)"
           >
             🖥️ Desktop
@@ -1731,7 +1741,11 @@ export function LayoutPreview({
                   colorScheme: preferences.colorScheme === 'dark' ? 'light' : 'dark',
                 })
               }
-              className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white text-xs font-medium transition-all"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+              style={{
+                backgroundColor: 'var(--bg-tertiary)',
+                color: 'var(--text-muted)',
+              }}
               title="Toggle color scheme"
               aria-label={`Switch to ${preferences.colorScheme === 'dark' ? 'light' : 'dark'} mode`}
             >
@@ -1770,10 +1784,16 @@ export function LayoutPreview({
                 type="button"
                 onClick={() => setShowSectionPanel(!showSectionPanel)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-                  showSectionPanel
-                    ? 'bg-green-600 text-white'
-                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                  showSectionPanel ? 'bg-green-600 text-white' : ''
                 }`}
+                style={
+                  !showSectionPanel
+                    ? {
+                        backgroundColor: 'var(--bg-tertiary)',
+                        color: 'var(--text-muted)',
+                      }
+                    : undefined
+                }
                 title={showSectionPanel ? 'Hide section panel' : 'Reorder sections'}
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1794,18 +1814,27 @@ export function LayoutPreview({
       {/* Section Ordering Panel */}
       {enableDragDrop && showSectionPanel && (
         <div className="mb-4 px-2">
-          <div className="bg-slate-800 rounded-lg border border-slate-700 p-3">
+          <div
+            className="rounded-lg border p-3"
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              borderColor: 'var(--border-color)',
+            }}
+          >
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-white">Section Order</h3>
+              <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                Section Order
+              </h3>
               <button
                 type="button"
                 onClick={resetToDefault}
-                className="text-xs text-slate-400 hover:text-white transition-colors"
+                className="text-xs transition-colors hover:opacity-80"
+                style={{ color: 'var(--text-muted)' }}
               >
                 Reset
               </button>
             </div>
-            <p className="text-xs text-slate-400 mb-3">
+            <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
               Drag sections to reorder. Locked sections (header/footer) stay in place.
             </p>
             <DragDropCanvas
@@ -1815,16 +1844,20 @@ export function LayoutPreview({
             >
               {(section) => (
                 <div
-                  className={`flex items-center justify-between p-2 rounded-lg border transition-colors ${
-                    section.visible
-                      ? 'bg-slate-700/50 border-slate-600'
-                      : 'bg-slate-800/50 border-slate-700 opacity-50'
-                  } ${section.locked ? 'cursor-not-allowed' : 'cursor-grab'}`}
+                  className={`flex items-center justify-between p-2 rounded-lg transition-colors ${section.locked ? 'cursor-not-allowed' : 'cursor-grab'}`}
+                  style={{
+                    backgroundColor: section.visible
+                      ? 'color-mix(in srgb, var(--bg-tertiary) 50%, transparent)'
+                      : 'color-mix(in srgb, var(--bg-secondary) 50%, transparent)',
+                    border: `1px solid ${section.visible ? 'var(--border-color)' : 'var(--border-color)'}`,
+                    opacity: section.visible ? 1 : 0.5,
+                  }}
                 >
                   <div className="flex items-center gap-2">
                     {section.locked ? (
                       <svg
-                        className="w-4 h-4 text-slate-500"
+                        className="w-4 h-4"
+                        style={{ color: 'var(--text-muted)' }}
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -1838,7 +1871,8 @@ export function LayoutPreview({
                       </svg>
                     ) : (
                       <svg
-                        className="w-4 h-4 text-slate-400"
+                        className="w-4 h-4"
+                        style={{ color: 'var(--text-secondary)' }}
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -1851,17 +1885,18 @@ export function LayoutPreview({
                         />
                       </svg>
                     )}
-                    <span className="text-sm text-white">{section.label}</span>
+                    <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                      {section.label}
+                    </span>
                   </div>
                   {!section.locked && (
                     <button
                       type="button"
                       onClick={() => toggleSectionVisibility(section.id)}
-                      className={`p-1 rounded transition-colors ${
-                        section.visible
-                          ? 'text-green-400 hover:text-green-300'
-                          : 'text-slate-500 hover:text-slate-400'
-                      }`}
+                      className="p-1 rounded transition-colors"
+                      style={{
+                        color: section.visible ? '#4ade80' : 'var(--text-muted)',
+                      }}
                       title={section.visible ? 'Hide section' : 'Show section'}
                     >
                       {section.visible ? (
@@ -1909,10 +1944,19 @@ export function LayoutPreview({
       )}
 
       {/* Preview Frame */}
-      <div className="flex-1 flex items-center justify-center bg-slate-950 rounded-xl p-4 overflow-hidden relative">
+      <div
+        className="flex-1 flex items-center justify-center rounded-xl p-4 overflow-hidden relative"
+        style={{ backgroundColor: 'var(--bg-tertiary)' }}
+      >
         {/* Width ruler indicator */}
         {viewMode !== 'desktop' && (
-          <div className="absolute top-2 left-1/2 transform -translate-x-1/2 flex items-center gap-1 bg-slate-800/80 px-2 py-1 rounded text-xs text-slate-400">
+          <div
+            className="absolute top-2 left-1/2 transform -translate-x-1/2 flex items-center gap-1 px-2 py-1 rounded text-xs"
+            style={{
+              backgroundColor: 'color-mix(in srgb, var(--bg-secondary) 80%, transparent)',
+              color: 'var(--text-muted)',
+            }}
+          >
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"

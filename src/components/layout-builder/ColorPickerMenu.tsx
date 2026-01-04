@@ -137,16 +137,24 @@ export function ColorPickerMenu({
     [handleColorChange]
   );
 
+  const [hovered, setHovered] = useState(false);
+
   return (
     <div className="relative" ref={menuRef}>
       {/* Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-2 ${
-          isOpen
-            ? 'bg-slate-700 text-white'
-            : 'text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700'
-        }`}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        className="px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-2"
+        style={{
+          backgroundColor: isOpen || hovered ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
+          color: isOpen
+            ? 'var(--text-primary)'
+            : hovered
+              ? 'var(--text-primary)'
+              : 'var(--text-muted)',
+        }}
         title="Color Options"
       >
         <div
@@ -166,10 +174,18 @@ export function ColorPickerMenu({
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1 w-72 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 py-2 overflow-hidden">
+        <div
+          className="absolute right-0 top-full mt-1 w-72 rounded-lg shadow-xl z-50 py-2 overflow-hidden"
+          style={{
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+          }}
+        >
           {/* Primary Color */}
           <div className="px-3 py-2">
-            <label className="text-xs text-slate-400 block mb-1.5">Primary Color</label>
+            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>
+              Primary Color
+            </label>
             <div className="flex items-center gap-2">
               <label className="relative cursor-pointer">
                 <input
@@ -192,7 +208,12 @@ export function ColorPickerMenu({
                     handleColorChange('primary', val);
                   }
                 }}
-                className="flex-1 bg-slate-700 text-white text-xs px-2 py-1.5 rounded border border-slate-600 focus:border-garden-500 focus:outline-none font-mono"
+                className="flex-1 text-xs px-2 py-1.5 rounded focus:border-garden-500 focus:outline-none font-mono"
+                style={{
+                  backgroundColor: 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
+                }}
                 placeholder="#3B82F6"
               />
             </div>
@@ -200,7 +221,9 @@ export function ColorPickerMenu({
 
           {/* Secondary Color */}
           <div className="px-3 py-2">
-            <label className="text-xs text-slate-400 block mb-1.5">Secondary Color</label>
+            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>
+              Secondary Color
+            </label>
             <div className="flex items-center gap-2">
               <label className="relative cursor-pointer">
                 <input
@@ -223,7 +246,12 @@ export function ColorPickerMenu({
                     handleColorChange('secondary', val);
                   }
                 }}
-                className="flex-1 bg-slate-700 text-white text-xs px-2 py-1.5 rounded border border-slate-600 focus:border-garden-500 focus:outline-none font-mono"
+                className="flex-1 text-xs px-2 py-1.5 rounded focus:border-garden-500 focus:outline-none font-mono"
+                style={{
+                  backgroundColor: 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
+                }}
                 placeholder="#6366F1"
               />
             </div>
@@ -231,7 +259,9 @@ export function ColorPickerMenu({
 
           {/* Accent Color */}
           <div className="px-3 py-2">
-            <label className="text-xs text-slate-400 block mb-1.5">Accent Color</label>
+            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>
+              Accent Color
+            </label>
             <div className="flex items-center gap-2">
               <label className="relative cursor-pointer">
                 <input
@@ -254,17 +284,24 @@ export function ColorPickerMenu({
                     handleColorChange('accent', val);
                   }
                 }}
-                className="flex-1 bg-slate-700 text-white text-xs px-2 py-1.5 rounded border border-slate-600 focus:border-garden-500 focus:outline-none font-mono"
+                className="flex-1 text-xs px-2 py-1.5 rounded focus:border-garden-500 focus:outline-none font-mono"
+                style={{
+                  backgroundColor: 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
+                }}
                 placeholder="#F59E0B"
               />
             </div>
           </div>
 
-          <div className="border-t border-slate-700 my-2" />
+          <div className="my-2" style={{ borderTop: '1px solid var(--border-color)' }} />
 
           {/* Preset Colors */}
           <div className="px-3 py-2">
-            <label className="text-xs text-slate-400 block mb-2">Presets</label>
+            <label className="text-xs block mb-2" style={{ color: 'var(--text-muted)' }}>
+              Presets
+            </label>
             <div className="grid grid-cols-8 gap-1.5">
               {PRESET_COLORS.map((color) => (
                 <button
@@ -285,9 +322,11 @@ export function ColorPickerMenu({
           {/* Recent Colors */}
           {recentColors.length > 0 && (
             <>
-              <div className="border-t border-slate-700 my-2" />
+              <div className="my-2" style={{ borderTop: '1px solid var(--border-color)' }} />
               <div className="px-3 py-2">
-                <label className="text-xs text-slate-400 block mb-2">Recent</label>
+                <label className="text-xs block mb-2" style={{ color: 'var(--text-muted)' }}>
+                  Recent
+                </label>
                 <div className="flex gap-1.5">
                   {recentColors.map((color, index) => (
                     <button

@@ -68,17 +68,30 @@ export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
     }
   };
 
+  // Determine bubble styles based on role and error state
+  const getBubbleStyle = () => {
+    if (isUser) {
+      return {
+        background: 'var(--garden-600, #059669)',
+        color: 'white',
+      };
+    }
+    if (hasError) {
+      return {
+        background: 'rgba(239, 68, 68, 0.2)',
+        border: '1px solid rgba(239, 68, 68, 0.3)',
+        color: 'var(--text-primary)',
+      };
+    }
+    return {
+      background: 'var(--bg-secondary)',
+      color: 'var(--text-primary)',
+    };
+  };
+
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
-      <div
-        className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-          isUser
-            ? 'bg-garden-600 text-white'
-            : hasError
-              ? 'bg-red-500/20 border border-red-500/30 text-slate-100'
-              : 'bg-slate-700 text-slate-100'
-        }`}
-      >
+      <div className="max-w-[85%] rounded-2xl px-4 py-3" style={getBubbleStyle()}>
         {/* Show error header if present */}
         {hasError && (
           <div className="flex items-center gap-2 text-red-400 text-xs font-medium mb-2">
@@ -152,7 +165,14 @@ export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
 
         {/* Timestamp */}
         <div
-          className={`text-xs mt-2 ${isUser ? 'text-garden-200' : hasError ? 'text-red-300/70' : 'text-slate-400'}`}
+          className="text-xs mt-2"
+          style={{
+            color: isUser
+              ? 'rgba(167, 243, 208, 0.8)' // green-200 equivalent for user
+              : hasError
+                ? 'rgba(252, 165, 165, 0.7)' // red-300/70 for errors
+                : 'var(--text-muted)',
+          }}
         >
           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>

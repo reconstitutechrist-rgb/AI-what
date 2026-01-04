@@ -76,10 +76,16 @@ export function ViewOptionsMenu({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-2 ${
-          isOpen || activeCount > 0
-            ? 'bg-slate-700 text-white'
-            : 'text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700'
+          isOpen || activeCount > 0 ? 'bg-garden-600 text-white' : ''
         }`}
+        style={
+          !(isOpen || activeCount > 0)
+            ? {
+                backgroundColor: 'var(--bg-tertiary)',
+                color: 'var(--text-muted)',
+              }
+            : undefined
+        }
         title="View Options"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -113,11 +119,29 @@ export function ViewOptionsMenu({
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1 w-56 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 py-1 overflow-hidden">
+        <div
+          className="absolute right-0 top-full mt-1 w-56 rounded-lg shadow-xl z-50 py-1 overflow-hidden"
+          style={{
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+          }}
+        >
           {/* Animation Demo */}
           <button
             onClick={() => handleItemClick(isAnimationDemo ? onStopDemo : onStartDemo)}
-            className="w-full px-3 py-2.5 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-3"
+            className="w-full px-3 py-2.5 text-left text-sm flex items-center gap-3 transition-colors hover:opacity-90"
+            style={{
+              color: 'var(--text-secondary)',
+              backgroundColor: 'transparent',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)';
+              e.currentTarget.style.color = 'var(--text-primary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = 'var(--text-secondary)';
+            }}
           >
             <div className="relative">
               {isAnimationDemo ? (
@@ -149,7 +173,7 @@ export function ViewOptionsMenu({
             </div>
             <div className="flex-1">
               <div className="font-medium">{isAnimationDemo ? 'Stop Demo' : 'Animation Demo'}</div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 {isAnimationDemo ? 'Currently running' : 'Preview element animations'}
               </div>
             </div>
@@ -164,7 +188,21 @@ export function ViewOptionsMenu({
           <button
             onClick={() => handleItemClick(hasGeneratedImages ? onClearImages : onGenerateImages)}
             disabled={isGeneratingImages}
-            className="w-full px-3 py-2.5 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-3 disabled:opacity-50 disabled:cursor-wait"
+            className="w-full px-3 py-2.5 text-left text-sm flex items-center gap-3 disabled:opacity-50 disabled:cursor-wait transition-colors"
+            style={{
+              color: 'var(--text-secondary)',
+              backgroundColor: 'transparent',
+            }}
+            onMouseEnter={(e) => {
+              if (!isGeneratingImages) {
+                e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)';
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = 'var(--text-secondary)';
+            }}
           >
             {isGeneratingImages ? (
               <svg className="w-4 h-4 text-amber-400 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -219,7 +257,7 @@ export function ViewOptionsMenu({
                     ? 'Clear Images'
                     : 'Generate Images'}
               </div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 {isGeneratingImages
                   ? 'Please wait'
                   : hasGeneratedImages
@@ -234,15 +272,28 @@ export function ViewOptionsMenu({
             )}
           </button>
 
-          <div className="border-t border-slate-700 my-1" />
+          <div className="my-1" style={{ borderTop: '1px solid var(--border-color)' }} />
 
           {/* Grid Overlay */}
           <button
             onClick={() => handleItemClick(onToggleGrid)}
-            className="w-full px-3 py-2.5 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-3"
+            className="w-full px-3 py-2.5 text-left text-sm flex items-center gap-3 transition-colors"
+            style={{
+              color: 'var(--text-secondary)',
+              backgroundColor: 'transparent',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)';
+              e.currentTarget.style.color = 'var(--text-primary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = 'var(--text-secondary)';
+            }}
           >
             <svg
-              className={`w-4 h-4 ${showGridOverlay ? 'text-cyan-400' : 'text-slate-400'}`}
+              className={`w-4 h-4 ${showGridOverlay ? 'text-cyan-400' : ''}`}
+              style={!showGridOverlay ? { color: 'var(--text-muted)' } : undefined}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -262,7 +313,9 @@ export function ViewOptionsMenu({
             </svg>
             <div className="flex-1">
               <div className="font-medium">Grid Overlay</div>
-              <div className="text-xs text-slate-500">12-column alignment grid (G)</div>
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                12-column alignment grid (G)
+              </div>
             </div>
             {showGridOverlay && (
               <span className="px-1.5 py-0.5 text-[10px] bg-cyan-600 text-white rounded-full">

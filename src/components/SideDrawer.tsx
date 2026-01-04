@@ -224,13 +224,24 @@ export function SideDrawer({
               <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
                 Menu
               </h2>
-              <button
-                onClick={onClose}
-                className="p-2 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                <XIcon size={20} />
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Theme Toggle - Quick Access */}
+                <button
+                  onClick={toggleTheme}
+                  className="p-2 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                  style={{ color: 'var(--text-secondary)' }}
+                  title={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                >
+                  {resolvedTheme === 'dark' ? <SunIcon size={20} /> : <MoonIcon size={20} />}
+                </button>
+                <button
+                  onClick={onClose}
+                  className="p-2 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  <XIcon size={20} />
+                </button>
+              </div>
             </div>
 
             {/* User Section */}

@@ -51,7 +51,11 @@ export function ChatInput({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="border-t border-slate-700 p-4">
+    <form
+      onSubmit={handleSubmit}
+      className="border-t p-4"
+      style={{ borderColor: 'var(--border-color)' }}
+    >
       {/* Capture preview button */}
       <div className="flex items-center gap-2 mb-3">
         <button
@@ -63,11 +67,12 @@ export function ChatInput({
             }
           }}
           disabled={isCapturing}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${isCapturing ? 'opacity-75 cursor-not-allowed' : ''}`}
+          style={
             includeCapture
-              ? 'bg-green-600 text-white'
-              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-          } ${isCapturing ? 'opacity-75 cursor-not-allowed' : ''}`}
+              ? { background: 'var(--garden-600, #059669)', color: 'white' }
+              : { background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }
+          }
         >
           {isCapturing ? (
             <>
@@ -125,7 +130,8 @@ export function ChatInput({
           <button
             type="button"
             onClick={() => setIncludeCapture(false)}
-            className="text-xs text-slate-400 hover:text-slate-300"
+            className="text-xs hover:opacity-80"
+            style={{ color: 'var(--text-muted)' }}
           >
             Remove
           </button>
@@ -143,7 +149,9 @@ export function ChatInput({
             <span className="text-sm" title={`Last response from ${modelIndicator.label}`}>
               {modelIndicator.emoji}
             </span>
-            <span className="text-xs text-slate-400">{modelIndicator.label}</span>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              {modelIndicator.label}
+            </span>
           </div>
         )}
 
@@ -163,14 +171,19 @@ export function ChatInput({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Describe what you'd like to change..."
-          className="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-400 resize-none focus:outline-none focus:border-garden-500 transition-colors"
+          className="flex-1 border rounded-xl px-4 py-3 resize-none focus:outline-none focus:border-garden-500 transition-colors"
+          style={{
+            background: 'var(--bg-secondary)',
+            borderColor: 'var(--border-color)',
+            color: 'var(--text-primary)',
+          }}
           rows={2}
           disabled={isLoading}
         />
         <button
           type="submit"
           disabled={isLoading || (!input.trim() && !includeCapture)}
-          className="px-6 py-3 bg-garden-600 hover:bg-garden-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors"
+          className="px-6 py-3 bg-garden-600 hover:bg-garden-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors"
         >
           {isLoading ? '...' : 'Send'}
         </button>

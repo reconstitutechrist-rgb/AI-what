@@ -41,13 +41,22 @@ export default function BuildPage() {
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.3 }}
         className="h-[calc(100vh-56px)] flex items-center justify-center"
+        style={{ background: 'var(--bg-primary)' }}
       >
         <div className="text-center max-w-md px-4">
-          <div className="w-20 h-20 rounded-2xl bg-slate-800/50 border border-slate-700/50 flex items-center justify-center mb-6 mx-auto">
-            <RocketIcon size={40} className="text-slate-600" />
+          <div
+            className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 mx-auto"
+            style={{
+              background: 'color-mix(in srgb, var(--bg-secondary) 50%, transparent)',
+              border: '1px solid var(--border-color)',
+            }}
+          >
+            <RocketIcon size={40} style={{ color: 'var(--text-muted)' }} />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-3">No Build Plan Yet</h2>
-          <p className="text-slate-400 mb-8">
+          <h2 className="text-2xl font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
+            No Build Plan Yet
+          </h2>
+          <p className="mb-8" style={{ color: 'var(--text-secondary)' }}>
             Start with the Wizard to create your app concept and generate a build plan, or skip
             directly to the Builder.
           </p>
@@ -61,7 +70,11 @@ export default function BuildPage() {
             </button>
             <button
               onClick={() => router.push('/app')}
-              className="px-6 py-3 text-sm font-medium text-slate-400 hover:text-white border border-slate-700 hover:border-slate-600 rounded-xl transition-colors"
+              className="px-6 py-3 text-sm font-medium rounded-xl transition-colors"
+              style={{
+                color: 'var(--text-secondary)',
+                border: '1px solid var(--border-color)',
+              }}
             >
               Skip to Builder
             </button>

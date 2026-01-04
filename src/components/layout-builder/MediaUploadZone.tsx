@@ -193,9 +193,12 @@ export function MediaUploadZone({
   if (pendingVideo) {
     return (
       <div className={`${className}`}>
-        <div className="bg-slate-800 rounded-lg border border-white/10 overflow-hidden">
+        <div
+          className="rounded-lg border overflow-hidden"
+          style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
+        >
           {/* Video Preview */}
-          <div className="relative aspect-video bg-slate-900">
+          <div className="relative aspect-video" style={{ background: 'var(--bg-tertiary)' }}>
             {pendingVideo.thumbnail ? (
               <img
                 src={pendingVideo.thumbnail}
@@ -204,7 +207,7 @@ export function MediaUploadZone({
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <PlayIcon className="w-12 h-12 text-slate-600" />
+                <PlayIcon className="w-12 h-12" style={{ color: 'var(--text-muted)' }} />
               </div>
             )}
             <div className="absolute inset-0 flex items-center justify-center">
@@ -222,39 +225,45 @@ export function MediaUploadZone({
           </div>
 
           {/* Video Info */}
-          <div className="p-3 border-b border-white/10">
-            <div className="text-sm text-white font-medium truncate">{pendingVideo.file.name}</div>
-            <div className="text-xs text-slate-400 mt-0.5">
+          <div className="p-3 border-b" style={{ borderColor: 'var(--border-color)' }}>
+            <div className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+              {pendingVideo.file.name}
+            </div>
+            <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
               {formatFileSize(pendingVideo.file.size)} &bull; {pendingVideo.duration.toFixed(1)}s
             </div>
           </div>
 
           {/* Analysis Mode Selector */}
           <div className="p-3">
-            <div className="text-xs text-slate-400 mb-2">Analysis Mode</div>
+            <div className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
+              Analysis Mode
+            </div>
             <div className="flex gap-2">
               <button
                 onClick={() => onAnalysisModeChange('standard')}
-                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                className="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors"
+                style={
                   analysisMode === 'standard'
-                    ? 'bg-gold-500 text-white'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                }`}
+                    ? { background: 'var(--gold-500, #eab308)', color: 'white' }
+                    : { background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }
+                }
               >
                 Standard
               </button>
               <button
                 onClick={() => onAnalysisModeChange('pixel-perfect')}
-                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                className="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors"
+                style={
                   analysisMode === 'pixel-perfect'
-                    ? 'bg-gold-500 text-white'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                }`}
+                    ? { background: 'var(--gold-500, #eab308)', color: 'white' }
+                    : { background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }
+                }
               >
                 Pixel-Perfect
               </button>
             </div>
-            <p className="text-[10px] text-slate-500 mt-2">
+            <p className="text-[10px] mt-2" style={{ color: 'var(--text-muted)' }}>
               {analysisMode === 'pixel-perfect'
                 ? 'Detailed frame-by-frame analysis with precise measurements'
                 : 'Quick overview of animations and layout patterns'}
@@ -279,11 +288,11 @@ export function MediaUploadZone({
   return (
     <div className={className}>
       <div
-        className={`relative border-2 border-dashed rounded-lg cursor-pointer transition-all ${
-          isDragging
-            ? 'border-gold-500 bg-gold-500/10'
-            : 'border-white/20 hover:border-white/40 hover:bg-white/5'
-        } ${compact ? 'p-2' : 'p-4'}`}
+        className={`relative border-2 border-dashed rounded-lg cursor-pointer transition-all ${compact ? 'p-2' : 'p-4'}`}
+        style={{
+          borderColor: isDragging ? 'var(--gold-500, #eab308)' : 'var(--border-color)',
+          background: isDragging ? 'rgba(234, 179, 8, 0.1)' : 'transparent',
+        }}
         onDragOver={(e) => {
           e.preventDefault();
           setIsDragging(true);
@@ -306,23 +315,33 @@ export function MediaUploadZone({
         {isProcessing ? (
           <div className="flex items-center justify-center gap-2 py-2">
             <div className="w-4 h-4 border-2 border-gold-500 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-slate-400">Processing...</span>
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              Processing...
+            </span>
           </div>
         ) : compact ? (
           <div className="flex items-center gap-2">
-            <UploadIcon className="w-4 h-4 text-slate-400" />
-            <span className="text-xs text-slate-300">Upload reference</span>
+            <UploadIcon className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              Upload reference
+            </span>
           </div>
         ) : (
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center flex-shrink-0">
-              <UploadIcon className="w-5 h-5 text-slate-400" />
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: 'var(--bg-secondary)' }}
+            >
+              <UploadIcon className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
             </div>
             <div className="text-left">
-              <p className="text-sm font-medium text-white">
+              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                 Drop image or video, or click to browse
               </p>
-              <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
+              <p
+                className="text-xs mt-0.5 flex items-center gap-2"
+                style={{ color: 'var(--text-muted)' }}
+              >
                 <span className="flex items-center gap-1">
                   <ImageIcon className="w-3 h-3" />
                   Images up to {MAX_IMAGE_SIZE_MB}MB

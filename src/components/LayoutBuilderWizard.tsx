@@ -1182,9 +1182,14 @@ export function LayoutBuilderWizard({
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+      <div
+        className="flex items-center justify-between px-6 py-4 border-b"
+        style={{ borderColor: 'var(--border-color)' }}
+      >
         <div className="flex items-center gap-3">
-          <h2 className="text-xl font-semibold text-white">Layout Builder</h2>
+          <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+            Layout Builder
+          </h2>
           {hasUnsavedChanges && (
             <span className="text-xs px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full">
               Unsaved changes
@@ -1418,7 +1423,10 @@ export function LayoutBuilderWizard({
       {/* Main content */}
       <div className="flex-1 min-h-0 flex overflow-hidden">
         {/* Chat panel (left) */}
-        <div className="w-1/2 min-h-0 flex flex-col border-r border-white/10 relative">
+        <div
+          className="w-1/2 min-h-0 flex flex-col border-r relative"
+          style={{ borderColor: 'var(--border-color)' }}
+        >
           {/* Template Picker Overlay */}
           <TemplatePicker
             isOpen={showTemplatePicker}

@@ -41,9 +41,12 @@ export function SuggestedActionsBar({
   // If element is selected, show element-specific actions
   if (selectedElement && elementActions.length > 0) {
     return (
-      <div className="flex flex-col gap-2 px-4 py-3 border-t border-slate-700">
+      <div
+        className="flex flex-col gap-2 px-4 py-3 border-t"
+        style={{ borderColor: 'var(--border-color)' }}
+      >
         {/* Element context label */}
-        <div className="flex items-center gap-2 text-xs text-slate-400">
+        <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
           <span className="px-2 py-0.5 bg-garden-500/20 text-garden-300 rounded">
             {selectedElement.displayName || selectedElement.type}
           </span>
@@ -69,12 +72,16 @@ export function SuggestedActionsBar({
   if (actions.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-2 px-4 py-3 border-t border-slate-700">
+    <div
+      className="flex flex-wrap gap-2 px-4 py-3 border-t"
+      style={{ borderColor: 'var(--border-color)' }}
+    >
       {actions.map((action) => (
         <button
           key={action.action}
           onClick={() => onAction(action.action)}
-          className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium transition-colors flex items-center gap-1.5"
+          className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+          style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
         >
           {action.icon && <span>{action.icon}</span>}
           {action.label}
