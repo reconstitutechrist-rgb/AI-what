@@ -94,8 +94,10 @@ export default function PricingPage() {
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="text-center mb-16">
-            <h1 className="text-4xl font-bold text-white mb-4">Simple, Transparent Pricing</h1>
-            <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+            <h1 className="text-4xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+              Simple, Transparent Pricing
+            </h1>
+            <p className="text-lg max-w-2xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
               Start free and scale as you grow. No hidden fees, no surprises.
             </p>
           </div>
@@ -105,11 +107,14 @@ export default function PricingPage() {
             {tiers.map((tier) => (
               <div
                 key={tier.name}
-                className={`relative p-8 rounded-2xl border ${
-                  tier.highlighted
-                    ? 'bg-garden-600/10 border-garden-500/50'
-                    : 'bg-slate-900/50 border-slate-800'
+                className={`relative p-8 rounded-2xl ${
+                  tier.highlighted ? 'bg-garden-600/10 border border-garden-500/50' : ''
                 }`}
+                style={
+                  !tier.highlighted
+                    ? { background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }
+                    : undefined
+                }
               >
                 {tier.highlighted && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-garden-600 text-white text-sm font-medium rounded-full">
@@ -118,19 +123,30 @@ export default function PricingPage() {
                 )}
 
                 <div className="mb-6">
-                  <h3 className="text-xl font-semibold text-white mb-2">{tier.name}</h3>
+                  <h3
+                    className="text-xl font-semibold mb-2"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    {tier.name}
+                  </h3>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-white">{tier.price}</span>
-                    <span className="text-slate-500">{tier.period}</span>
+                    <span className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                      {tier.price}
+                    </span>
+                    <span style={{ color: 'var(--text-muted)' }}>{tier.period}</span>
                   </div>
-                  <p className="text-sm text-slate-400 mt-2">{tier.description}</p>
+                  <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>
+                    {tier.description}
+                  </p>
                 </div>
 
                 <ul className="space-y-3 mb-8">
                   {tier.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-3">
                       <CheckIcon size={18} className="text-green-400 mt-0.5 flex-shrink-0" />
-                      <span className="text-slate-300 text-sm">{feature}</span>
+                      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                        {feature}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -138,10 +154,13 @@ export default function PricingPage() {
                 <Link
                   href={tier.ctaHref}
                   className={`block w-full py-3 text-center font-medium rounded-lg transition-colors ${
-                    tier.highlighted
-                      ? 'bg-garden-600 hover:bg-garden-500 text-white'
-                      : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                    tier.highlighted ? 'bg-garden-600 hover:bg-garden-500 text-white' : ''
                   } ${tier.cta === 'Coming Soon' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  style={
+                    !tier.highlighted
+                      ? { background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }
+                      : undefined
+                  }
                 >
                   {tier.cta}
                 </Link>
@@ -151,17 +170,26 @@ export default function PricingPage() {
 
           {/* FAQ Section */}
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-2xl font-bold text-white text-center mb-8">
+            <h2
+              className="text-2xl font-bold text-center mb-8"
+              style={{ color: 'var(--text-primary)' }}
+            >
               Frequently Asked Questions
             </h2>
             <div className="space-y-4">
               {faqs.map((faq) => (
                 <div
                   key={faq.question}
-                  className="p-6 bg-slate-900/50 border border-slate-800 rounded-xl"
+                  className="p-6 rounded-xl"
+                  style={{
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-color)',
+                  }}
                 >
-                  <h3 className="text-lg font-medium text-white mb-2">{faq.question}</h3>
-                  <p className="text-slate-400">{faq.answer}</p>
+                  <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
+                    {faq.question}
+                  </h3>
+                  <p style={{ color: 'var(--text-secondary)' }}>{faq.answer}</p>
                 </div>
               ))}
             </div>
