@@ -114,6 +114,9 @@ export function useProjectDocumentation(
     setIsLoadingDocumentation,
     setIsSavingDocumentation,
     setBuildingAppId,
+    // For auto-capture
+    appConcept,
+    dynamicPhasePlan,
   } = useAppStore(
     useShallow((state) => ({
       currentDocumentation: state.currentDocumentation,
@@ -124,6 +127,9 @@ export function useProjectDocumentation(
       setIsLoadingDocumentation: state.setIsLoadingDocumentation,
       setIsSavingDocumentation: state.setIsSavingDocumentation,
       setBuildingAppId: state.setBuildingAppId,
+      // For auto-capture
+      appConcept: state.appConcept,
+      dynamicPhasePlan: state.dynamicPhasePlan,
     }))
   );
 
@@ -132,6 +138,11 @@ export function useProjectDocumentation(
 
   // Track last captured message count
   const lastCapturedMessageCountRef = useRef(0);
+
+  // Track previous values for auto-capture change detection
+  const prevConceptUpdatedAtRef = useRef<string | null>(null);
+  const prevPlanIdRef = useRef<string | null>(null);
+  const isInitialMountRef = useRef(true);
 
   // Service instance (memoized)
   const service = useMemo(() => {
@@ -165,6 +176,100 @@ export function useProjectDocumentation(
 
     loadDocumentation();
   }, [effectiveAppId, autoLoad, service, setCurrentDocumentation, setIsLoadingDocumentation]);
+
+  // ============================================================================
+  // AUTO-CAPTURE EFFECTS
+  // ============================================================================
+
+  /**
+   * Auto-capture concept when appConcept changes
+   * Triggers automatically when the concept is updated in the store
+   */
+  useEffect(() => {
+    // Guard: need documentation and concept
+    if (!currentDocumentation || !appConcept) {
+      // On initial mount without documentation, don't set prevConceptUpdatedAtRef
+      // This ensures we capture when documentation is first created
+      if (isInitialMountRef.current) {
+        isInitialMountRef.current = false;
+      }
+      return;
+    }
+
+    // Skip if same updatedAt (no change) - but not on first capture after doc creation
+    if (prevConceptUpdatedAtRef.current === appConcept.updatedAt) {
+      return;
+    }
+
+    // Update previous value before capture to prevent duplicate captures
+    prevConceptUpdatedAtRef.current = appConcept.updatedAt;
+
+    // Auto-capture the concept
+    const autoCaptureAsync = async () => {
+      try {
+        console.log('[Documentation] Auto-capturing concept snapshot...');
+        const result = await service.captureConceptSnapshot(
+          currentDocumentation.id,
+          appConcept,
+          'wizard',
+          { conversationContext: appConcept.conversationContext }
+        );
+
+        if (result.success) {
+          console.log('[Documentation] Concept snapshot captured successfully');
+          // Refresh to update local state
+          const refreshResult = await service.getByAppId(currentDocumentation.appId);
+          if (refreshResult.success) {
+            setCurrentDocumentation(refreshResult.data ?? null);
+          }
+        } else {
+          console.error('[Documentation] Failed to auto-capture concept:', result.error);
+        }
+      } catch (error) {
+        console.error('[Documentation] Error auto-capturing concept:', error);
+      }
+    };
+
+    autoCaptureAsync();
+  }, [appConcept, currentDocumentation, service, setCurrentDocumentation]);
+
+  /**
+   * Auto-capture plan when dynamicPhasePlan changes
+   * Triggers automatically when a new plan is generated
+   */
+  useEffect(() => {
+    // Guard: need documentation and plan
+    if (!currentDocumentation || !dynamicPhasePlan) return;
+
+    // Skip if same plan ID (no change)
+    if (prevPlanIdRef.current === dynamicPhasePlan.id) return;
+
+    // Update previous value
+    prevPlanIdRef.current = dynamicPhasePlan.id;
+
+    // Auto-capture the plan
+    const autoCaptureAsync = async () => {
+      try {
+        console.log('[Documentation] Auto-capturing plan snapshot...');
+        const result = await service.capturePlanSnapshot(currentDocumentation.id, dynamicPhasePlan);
+
+        if (result.success) {
+          console.log('[Documentation] Plan snapshot captured successfully');
+          // Refresh to update local state
+          const refreshResult = await service.getByAppId(currentDocumentation.appId);
+          if (refreshResult.success) {
+            setCurrentDocumentation(refreshResult.data ?? null);
+          }
+        } else {
+          console.error('[Documentation] Failed to auto-capture plan:', result.error);
+        }
+      } catch (error) {
+        console.error('[Documentation] Error auto-capturing plan:', error);
+      }
+    };
+
+    autoCaptureAsync();
+  }, [dynamicPhasePlan, currentDocumentation, service, setCurrentDocumentation]);
 
   // Refresh documentation
   const refreshDocumentation = useCallback(async () => {

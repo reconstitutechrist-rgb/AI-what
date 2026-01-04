@@ -8,10 +8,17 @@
  * - Phase execution details and progress
  */
 
-import type { Feature, TechnicalRequirements, UIPreferences } from './appConcept';
+import type {
+  Feature,
+  TechnicalRequirements,
+  UIPreferences,
+  UserRole,
+  Workflow,
+} from './appConcept';
 import type { LayoutDesign } from './layoutDesign';
-import type { DynamicPhasePlan, DynamicPhase } from './dynamicPhases';
+import type { DynamicPhasePlan } from './dynamicPhases';
 import type { ChatMessage } from './aiBuilderTypes';
+import type { ArchitectureSpec } from './architectureSpec';
 
 // ============================================================================
 // ARTIFACT SNAPSHOT TYPES
@@ -19,31 +26,47 @@ import type { ChatMessage } from './aiBuilderTypes';
 
 /**
  * Snapshot of app concept at a point in time
+ * Captures COMPREHENSIVE data from AppConcept including architecture
  */
 export interface ConceptSnapshot {
   id: string;
   capturedAt: string; // ISO 8601
   source: 'wizard' | 'builder-chat' | 'import' | 'manual';
 
-  // Core concept data
+  // === BASIC INFO ===
   name: string;
   description: string;
   purpose: string;
   targetUsers: string;
+
+  // === FEATURES (comprehensive with priorities and dependencies) ===
   features: Feature[];
+
+  // === TECHNICAL (full requirements including dataModels, i18n, caching, etc.) ===
   technical: TechnicalRequirements;
+
+  // === UI PREFERENCES (full design tokens) ===
   uiPreferences: UIPreferences;
 
-  // Optional rich data
-  roles?: Array<{ name: string; capabilities: string[] }>;
-  workflows?: Array<{ name: string; steps: string[]; involvedRoles: string[] }>;
+  // === ROLES & WORKFLOWS (complete with permissions and descriptions) ===
+  roles?: UserRole[]; // Full UserRole with capabilities AND permissions
+  workflows?: Workflow[]; // Full Workflow with description, steps, involvedRoles
 
-  // Conversation context
-  conversationSummary?: string;
-  // For builder-chat source, store raw conversation
-  builderChatHistory?: ChatMessage[];
-  // Message count when captured (for tracking incremental captures)
-  messageCountAtCapture?: number;
+  // === ARCHITECTURE (critical - full backend architecture spec) ===
+  architectureSpec?: ArchitectureSpec;
+
+  // === LAYOUT DESIGN REFERENCE ===
+  layoutDesignId?: string; // Reference to LayoutSnapshot if design was captured
+
+  // === CONVERSATION CONTEXT ===
+  conversationContext?: string; // Full conversation text for rich detail preservation
+  conversationSummary?: string; // AI-generated summary
+  builderChatHistory?: ChatMessage[]; // For builder-chat source, raw conversation
+  messageCountAtCapture?: number; // For tracking incremental captures
+
+  // === METADATA ===
+  originalCreatedAt?: string; // When concept was first created
+  originalUpdatedAt?: string; // Last concept update before snapshot
 }
 
 /**

@@ -194,6 +194,7 @@ export function MainBuilderView() {
     // Documentation
     showDocumentationPanel,
     setShowDocumentationPanel,
+    currentAppId,
   } = useAppStore();
 
   // ============================================================================
@@ -247,6 +248,29 @@ export function MainBuilderView() {
   });
 
   const smartContext = useSmartContext();
+
+  // Project Documentation - auto-captures concept and plan snapshots
+  // This hook enables the auto-capture effects that save documentation when appConcept changes
+  const projectDocumentation = useProjectDocumentation({
+    userId: user?.id || null,
+    appId: currentAppId,
+    autoLoad: true,
+  });
+
+  // Auto-create documentation when we have a concept but no documentation yet
+  useEffect(() => {
+    if (!user?.id || !currentAppId || !appConcept || projectDocumentation.documentation) return;
+
+    // Create documentation for this app
+    projectDocumentation.getOrCreateDocumentation(appConcept.name);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    user?.id,
+    currentAppId,
+    appConcept,
+    projectDocumentation.documentation,
+    projectDocumentation.getOrCreateDocumentation,
+  ]);
 
   // App Builder Sync - bidirectional sync between Layout Builder and App Builder
   const appBuilderSync = useAppBuilderSync(appConcept?.layoutDesign || null, {

@@ -32,9 +32,7 @@ import {
   LayoutSnapshot,
   PlanSnapshot,
   PhaseExecutionRecord,
-  DocumentationStats,
   BuildStatus,
-  CaptureEvent,
   createEmptyStats,
   mapRowToDocumentation,
   mapDocumentationToRow,
@@ -250,6 +248,7 @@ export class ProjectDocumentationService {
 
   /**
    * Capture concept snapshot from wizard
+   * Captures COMPREHENSIVE data including architecture, workflows, roles with permissions
    */
   async captureConceptSnapshot(
     docId: string,
@@ -262,24 +261,52 @@ export class ProjectDocumentationService {
     }
   ): Promise<ServiceResult<ConceptSnapshot>> {
     try {
+      // Determine full conversation context - prefer concept's own context, fallback to options
+      const fullConversationContext = concept.conversationContext || options?.conversationContext;
+
       const snapshot: ConceptSnapshot = {
         id: crypto.randomUUID(),
         capturedAt: new Date().toISOString(),
         source,
+
+        // === BASIC INFO ===
         name: concept.name,
         description: concept.description,
         purpose: concept.purpose,
         targetUsers: concept.targetUsers,
+
+        // === FEATURES (full Feature[] with id, name, description, priority, dependencies) ===
         features: concept.coreFeatures,
+
+        // === TECHNICAL (full TechnicalRequirements including dataModels, i18n, caching, etc.) ===
         technical: concept.technical,
+
+        // === UI PREFERENCES (full UIPreferences with all design tokens) ===
         uiPreferences: concept.uiPreferences,
+
+        // === ROLES (full UserRole[] with capabilities AND permissions) ===
         roles: concept.roles,
+
+        // === WORKFLOWS (full Workflow[] with description, steps, involvedRoles) ===
         workflows: concept.workflows,
-        conversationSummary: options?.conversationContext
-          ? this.summarizeConversation(options.conversationContext)
+
+        // === ARCHITECTURE (critical - full ArchitectureSpec) ===
+        architectureSpec: concept.architectureSpec,
+
+        // === LAYOUT DESIGN REFERENCE ===
+        layoutDesignId: concept.layoutDesign ? 'linked' : undefined,
+
+        // === CONVERSATION CONTEXT ===
+        conversationContext: fullConversationContext,
+        conversationSummary: fullConversationContext
+          ? this.summarizeConversation(fullConversationContext)
           : undefined,
         builderChatHistory: source === 'builder-chat' ? options?.chatMessages : undefined,
         messageCountAtCapture: options?.messageCountAtCapture,
+
+        // === METADATA ===
+        originalCreatedAt: concept.createdAt,
+        originalUpdatedAt: concept.updatedAt,
       };
 
       const result = await this.update(docId, { conceptSnapshot: snapshot });
@@ -299,6 +326,7 @@ export class ProjectDocumentationService {
 
   /**
    * Capture concept from builder chat (partial concept)
+   * Passes through all available fields from partialConcept
    */
   async captureBuilderChatSnapshot(
     docId: string,
@@ -307,7 +335,7 @@ export class ProjectDocumentationService {
     messageCountAtCapture?: number
   ): Promise<ServiceResult<ConceptSnapshot>> {
     try {
-      // Build a minimal concept from chat messages
+      // Build concept from partial, preserving all available fields
       const concept: AppConcept = {
         name: partialConcept?.name || 'Untitled App',
         description: partialConcept?.description || '',
@@ -326,8 +354,14 @@ export class ProjectDocumentationService {
           colorScheme: 'light',
           layout: 'single-page',
         },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        // Preserve additional fields from partialConcept
+        roles: partialConcept?.roles,
+        workflows: partialConcept?.workflows,
+        architectureSpec: partialConcept?.architectureSpec,
+        layoutDesign: partialConcept?.layoutDesign,
+        conversationContext: partialConcept?.conversationContext,
+        createdAt: partialConcept?.createdAt || new Date().toISOString(),
+        updatedAt: partialConcept?.updatedAt || new Date().toISOString(),
       };
 
       return this.captureConceptSnapshot(docId, concept, 'builder-chat', {

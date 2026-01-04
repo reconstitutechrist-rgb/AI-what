@@ -240,6 +240,8 @@ interface DocumentationSlice {
   // Panel state
   showDocumentationPanel: boolean;
   documentationPanelTab: DocumentationPanelTab;
+  // App identification
+  currentAppId: string | null; // The current app being worked on (set when wizard completes)
   // Build lifecycle - locked appId during build
   buildingAppId: string | null;
   // Actions
@@ -248,6 +250,7 @@ interface DocumentationSlice {
   setIsSavingDocumentation: (saving: boolean) => void;
   setShowDocumentationPanel: (show: boolean) => void;
   setDocumentationPanelTab: (tab: DocumentationPanelTab) => void;
+  setCurrentAppId: (appId: string | null) => void;
   setBuildingAppId: (appId: string | null) => void;
 }
 
@@ -505,6 +508,8 @@ export const useAppStore = create<AppState>()(
             current = current[keys[i]];
           }
           current[keys[keys.length - 1]] = value;
+          // Update timestamp to trigger auto-capture in documentation
+          updated.updatedAt = new Date().toISOString();
           return { appConcept: updated };
         }),
       setDynamicPhasePlan: (plan) => set({ dynamicPhasePlan: plan }),
@@ -517,6 +522,7 @@ export const useAppStore = create<AppState>()(
       isSavingDocumentation: false,
       showDocumentationPanel: false,
       documentationPanelTab: 'concept',
+      currentAppId: null as string | null,
       buildingAppId: null as string | null,
 
       setCurrentDocumentation: (doc) => set({ currentDocumentation: doc }),
@@ -524,6 +530,7 @@ export const useAppStore = create<AppState>()(
       setIsSavingDocumentation: (saving) => set({ isSavingDocumentation: saving }),
       setShowDocumentationPanel: (show) => set({ showDocumentationPanel: show }),
       setDocumentationPanelTab: (tab) => set({ documentationPanelTab: tab }),
+      setCurrentAppId: (appId) => set({ currentAppId: appId }),
       setBuildingAppId: (appId) => set({ buildingAppId: appId }),
 
       // ========================================================================
