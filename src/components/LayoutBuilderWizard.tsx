@@ -1169,7 +1169,12 @@ export function LayoutBuilderWizard({
 
   const content = (
     <div
-      className={`${isFullPage ? 'w-full h-full' : 'w-[95vw] h-[90vh] max-w-[1600px]'} bg-[#0a0a0f] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-white/10`}
+      className={`${isFullPage ? 'w-full h-full' : 'w-[95vw] h-[90vh] max-w-[1600px]'} rounded-2xl shadow-2xl flex flex-col overflow-hidden`}
+      style={{
+        background: 'var(--bg-primary)',
+        borderColor: 'var(--border-color)',
+        borderWidth: '1px',
+      }}
     >
       {/* Draft recovery banner */}
       {hasDraftToRecover && (
@@ -1596,7 +1601,10 @@ export function LayoutBuilderWizard({
         </div>
 
         {/* Preview panel (right) */}
-        <div className="w-1/2 min-h-0 flex flex-col bg-[#0a0a0f] relative">
+        <div
+          className="w-1/2 min-h-0 flex flex-col relative"
+          style={{ background: 'var(--bg-primary)' }}
+        >
           {/* Compact Analysis Progress Indicator */}
           {analysisProgress.state.isAnalyzing && (
             <div className="p-2 border-b border-white/10">
@@ -1767,7 +1775,10 @@ export function LayoutBuilderWizard({
             onClick={() => setShowCodePreview(false)}
           />
           {/* Panel */}
-          <div className="fixed inset-y-0 right-0 w-[600px] max-w-full bg-[#0a0a0f] border-l border-white/10 shadow-2xl z-50 flex flex-col">
+          <div
+            className="fixed inset-y-0 right-0 w-[600px] max-w-full shadow-2xl z-50 flex flex-col"
+            style={{ background: 'var(--bg-primary)', borderLeft: '1px solid var(--border-color)' }}
+          >
             <div className="flex items-center justify-between p-4 border-b border-white/10">
               <h2 className="text-lg font-semibold text-white">Code Preview</h2>
               <button
@@ -1808,7 +1819,10 @@ export function LayoutBuilderWizard({
             className="fixed inset-0 bg-black/50 z-40"
             onClick={() => setShowAnimationTimeline(false)}
           />
-          <div className="fixed inset-y-0 right-0 w-[700px] max-w-full bg-[#0a0a0f] border-l border-white/10 shadow-2xl z-50 flex flex-col">
+          <div
+            className="fixed inset-y-0 right-0 w-[700px] max-w-full shadow-2xl z-50 flex flex-col"
+            style={{ background: 'var(--bg-primary)', borderLeft: '1px solid var(--border-color)' }}
+          >
             <div className="flex items-center justify-between p-4 border-b border-white/10">
               <h2 className="text-lg font-semibold text-white">Animation Timeline</h2>
               <button
@@ -1848,7 +1862,13 @@ export function LayoutBuilderWizard({
             className="fixed inset-0 bg-black/50 z-40"
             onClick={() => setShowLayerPanel(false)}
           />
-          <div className="fixed inset-y-0 left-0 w-[350px] max-w-full bg-[#0a0a0f] border-r border-white/10 shadow-2xl z-50 flex flex-col">
+          <div
+            className="fixed inset-y-0 left-0 w-[350px] max-w-full shadow-2xl z-50 flex flex-col"
+            style={{
+              background: 'var(--bg-primary)',
+              borderRight: '1px solid var(--border-color)',
+            }}
+          >
             <div className="flex items-center justify-between p-4 border-b border-white/10">
               <h2 className="text-lg font-semibold text-white">Layer Stack</h2>
               <button
@@ -1882,7 +1902,10 @@ export function LayoutBuilderWizard({
             onClick={() => setShowDarkModeEditor(false)}
           />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-[#0a0a0f] rounded-xl border border-white/10 w-[800px] max-w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div
+              className="rounded-xl w-[800px] max-w-full max-h-[90vh] overflow-hidden flex flex-col"
+              style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}
+            >
               <div className="flex items-center justify-between p-4 border-b border-white/10">
                 <h2 className="text-lg font-semibold text-white">Dark Mode Colors</h2>
                 <button
@@ -1921,7 +1944,10 @@ export function LayoutBuilderWizard({
             onClick={() => setShowBreakpointEditor(false)}
           />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-[#0a0a0f] rounded-xl border border-white/10 w-[1000px] max-w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div
+              className="rounded-xl w-[1000px] max-w-full max-h-[90vh] overflow-hidden flex flex-col"
+              style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}
+            >
               <div className="flex items-center justify-between p-4 border-b border-white/10">
                 <h2 className="text-lg font-semibold text-white">Responsive Breakpoints</h2>
                 <button

@@ -50,7 +50,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-[#0a0a0f] relative overflow-hidden">
+      <div
+        className="min-h-screen relative overflow-hidden"
+        style={{ background: 'var(--bg-primary)' }}
+      >
         {/* Animated Background Gradients */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
           <motion.div

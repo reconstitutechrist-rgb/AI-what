@@ -42,6 +42,7 @@
 
   --glass-bg: rgba(254, 252, 248, 0.8);
   --glass-border: rgba(26, 61, 38, 0.1);
+  --nav-bg: rgba(246, 249, 242, 0.8);
 
   --shadow-color: rgba(26, 61, 38, 0.08);
   --shadow-color-strong: rgba(26, 61, 38, 0.15);
@@ -89,6 +90,7 @@
 
   --glass-bg: rgba(18, 38, 26, 0.8);
   --glass-border: rgba(62, 224, 133, 0.1);
+  --nav-bg: rgba(11, 26, 16, 0.8);
 
   --shadow-color: rgba(0, 0, 0, 0.3);
   --shadow-color-strong: rgba(0, 0, 0, 0.5);

@@ -531,7 +531,12 @@ What would you like to build?`,
 
   const content = (
     <div
-      className={`flex w-full ${isFullPage ? 'h-full' : 'max-w-7xl h-[90vh]'} bg-[#0a0a0f] text-white ${isFullPage ? '' : 'rounded-xl border border-white/10 shadow-2xl'} overflow-hidden`}
+      className={`flex w-full ${isFullPage ? 'h-full' : 'max-w-7xl h-[90vh]'} ${isFullPage ? '' : 'rounded-xl border shadow-2xl'} overflow-hidden`}
+      style={{
+        background: 'var(--bg-primary)',
+        color: 'var(--text-primary)',
+        borderColor: 'var(--border-color)',
+      }}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Main Chat Area */}

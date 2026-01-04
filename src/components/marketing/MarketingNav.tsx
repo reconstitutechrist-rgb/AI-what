@@ -24,7 +24,10 @@ export function MarketingNav() {
   const [docsDropdownOpen, setDocsDropdownOpen] = useState(false);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-white/5">
+    <nav
+      className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl border-b"
+      style={{ background: 'var(--nav-bg)', borderColor: 'var(--border-color)' }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -32,7 +35,10 @@ export function MarketingNav() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-garden-500 to-gold-500 flex items-center justify-center">
               <RocketIcon size={18} className="text-white" />
             </div>
-            <span className="text-lg font-semibold text-white group-hover:text-garden-400 transition-colors">
+            <span
+              className="text-lg font-semibold group-hover:text-garden-400 transition-colors"
+              style={{ color: 'var(--text-primary)' }}
+            >
               AI App Builder
             </span>
           </Link>

@@ -213,14 +213,21 @@ export function SideDrawer({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 h-full w-80 max-w-[85vw] bg-[#0a0a0f]/95 backdrop-blur-xl border-l border-white/10 z-50 flex flex-col"
+            className="fixed right-0 top-0 h-full w-80 max-w-[85vw] backdrop-blur-xl border-l z-50 flex flex-col"
+            style={{ background: 'var(--nav-bg)', borderColor: 'var(--border-color)' }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-slate-800">
-              <h2 className="text-lg font-semibold text-white">Menu</h2>
+            <div
+              className="flex items-center justify-between p-4 border-b"
+              style={{ borderColor: 'var(--border-color)' }}
+            >
+              <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+                Menu
+              </h2>
               <button
                 onClick={onClose}
-                className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                className="p-2 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                style={{ color: 'var(--text-secondary)' }}
               >
                 <XIcon size={20} />
               </button>
@@ -228,14 +235,21 @@ export function SideDrawer({
 
             {/* User Section */}
             {user && (
-              <div className="p-4 border-b border-slate-800">
+              <div className="p-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-garden-500 to-gold-500 flex items-center justify-center">
                     <UserIcon size={20} className="text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white truncate">{user.email}</p>
-                    <p className="text-xs text-slate-500">Free Plan</p>
+                    <p
+                      className="text-sm font-medium truncate"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      {user.email}
+                    </p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      Free Plan
+                    </p>
                   </div>
                 </div>
               </div>
@@ -245,7 +259,10 @@ export function SideDrawer({
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
               {menuSections.map((section) => (
                 <div key={section.title}>
-                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  <h3
+                    className="text-xs font-semibold uppercase tracking-wider mb-2"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
                     {section.title}
                   </h3>
                   <div className="space-y-1">
@@ -260,17 +277,24 @@ export function SideDrawer({
                           ${
                             item.disabled
                               ? 'opacity-50 cursor-not-allowed'
-                              : 'hover:bg-slate-800/50'
+                              : 'hover:bg-black/5 dark:hover:bg-white/5'
                           }
                         `}
                       >
-                        <div className="text-slate-400">{item.icon}</div>
+                        <div style={{ color: 'var(--text-secondary)' }}>{item.icon}</div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-white">{item.label}</span>
+                            <span
+                              className="text-sm font-medium"
+                              style={{ color: 'var(--text-primary)' }}
+                            >
+                              {item.label}
+                            </span>
                             {item.badge}
                           </div>
-                          <span className="text-xs text-slate-500">{item.description}</span>
+                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                            {item.description}
+                          </span>
                         </div>
                         {item.toggle && (
                           <div
@@ -293,11 +317,12 @@ export function SideDrawer({
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t border-slate-800">
+            <div className="p-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
               {user ? (
                 <button
                   onClick={handleSignOut}
-                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-slate-800/50 hover:bg-red-600/20 text-slate-400 hover:text-red-400 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-red-600/20 hover:text-red-400 transition-colors"
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   <LogoutIcon size={18} />
                   <span className="text-sm font-medium">Sign Out</span>

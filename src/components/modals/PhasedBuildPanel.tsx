@@ -71,21 +71,22 @@ export function PhasedBuildPanel({
 
   const content = (
     <div
-      className={`bg-[#0a0a0f] rounded-xl border border-white/10 ${isFullPage ? 'w-full h-full max-h-full' : 'max-w-4xl w-full max-h-[80vh]'} overflow-hidden flex flex-col shadow-2xl`}
+      className={`rounded-xl border ${isFullPage ? 'w-full h-full max-h-full' : 'max-w-4xl w-full max-h-[80vh]'} overflow-hidden flex flex-col shadow-2xl`}
+      style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-color)' }}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Panel Header */}
-      <div className="px-6 py-4 border-b border-white/10">
+      <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-garden-600/20 to-gold-500/20 flex items-center justify-center">
               <LayersIcon size={20} className="text-garden-400" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-slate-100">
+              <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
                 {dynamicPlan ? `Building: ${dynamicPlan.appName}` : 'Phase-Driven Build'}
               </h2>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 {dynamicPlan && (
                   <span className="mr-2 px-1.5 py-0.5 rounded bg-slate-800 text-xs">
                     {dynamicPlan.complexity}
@@ -146,8 +147,11 @@ export function PhasedBuildPanel({
       </div>
 
       {/* Panel Footer */}
-      <div className="px-6 py-4 border-t border-white/10 flex justify-between items-center">
-        <div className="flex items-center gap-2 text-xs text-slate-500">
+      <div
+        className="px-6 py-4 border-t flex justify-between items-center"
+        style={{ borderColor: 'var(--border-color)' }}
+      >
+        <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
           <InfoIcon size={14} />
           <span>Each phase focuses on specific aspects of your app for better quality.</span>
         </div>

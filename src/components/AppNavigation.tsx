@@ -107,7 +107,10 @@ export function AppNavigation({
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-white/5">
+    <nav
+      className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl"
+      style={{ background: 'var(--nav-bg)', borderBottom: '1px solid var(--border-color)' }}
+    >
       <div className="max-w-[1800px] mx-auto px-4">
         <div className="flex items-center justify-between h-14">
           {/* Logo & Project Name */}

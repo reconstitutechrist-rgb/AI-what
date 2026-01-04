@@ -33,10 +33,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   // Show loading state while checking auth
   if (isChecking || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 flex items-center justify-center transition-colors duration-300">
+      <div
+        className="min-h-screen flex items-center justify-center transition-colors duration-300"
+        style={{ background: 'var(--bg-primary)' }}
+      >
         <div className="text-center">
           <div className="text-6xl mb-4 animate-bounce">🔒</div>
-          <div className="text-white dark:text-white text-xl">Checking authentication...</div>
+          <div className="text-xl" style={{ color: 'var(--text-primary)' }}>
+            Checking authentication...
+          </div>
         </div>
       </div>
     );
