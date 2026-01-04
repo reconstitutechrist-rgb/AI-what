@@ -90,17 +90,29 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = React.memo(function Pre
   onScreenshot,
 }) {
   return (
-    <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden h-full flex flex-col">
+    <div
+      className="rounded-xl overflow-hidden h-full flex flex-col"
+      style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
+    >
       {/* Tabs Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-800 bg-slate-900/50">
+      <div
+        className="flex items-center gap-2 px-4 py-3"
+        style={{
+          borderBottom: '1px solid var(--border-color)',
+          backgroundColor: 'var(--bg-secondary)',
+        }}
+      >
         {/* Tab Buttons */}
         <button
           onClick={() => onTabChange('preview')}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'preview' || (activeTab === 'chat' && currentComponent)
-              ? 'bg-slate-800 text-slate-100'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+            activeTab === 'preview' || (activeTab === 'chat' && currentComponent) ? '' : ''
           }`}
+          style={
+            activeTab === 'preview' || (activeTab === 'chat' && currentComponent)
+              ? { backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }
+              : { color: 'var(--text-secondary)' }
+          }
         >
           <EyeIcon size={16} />
           Preview
@@ -108,10 +120,13 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = React.memo(function Pre
         <button
           onClick={() => onTabChange('code')}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'code'
-              ? 'bg-slate-800 text-slate-100'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+            activeTab === 'code' ? '' : ''
           }`}
+          style={
+            activeTab === 'code'
+              ? { backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }
+              : { color: 'var(--text-secondary)' }
+          }
         >
           <CodeIcon size={16} />
           Code
@@ -180,13 +195,16 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = React.memo(function Pre
         {!currentComponent || !hasValidCode(currentComponent) ? (
           // Empty State - shown when no component or component has no valid code
           <div className="h-full flex flex-col items-center justify-center text-center px-4">
-            <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center mb-4">
-              <MessageSquareIcon size={32} className="text-slate-600" />
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+              style={{ backgroundColor: 'var(--bg-tertiary)' }}
+            >
+              <MessageSquareIcon size={32} style={{ color: 'var(--text-muted)' }} />
             </div>
-            <h3 className="text-lg font-medium text-slate-100 mb-2">
+            <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
               {currentComponent ? 'Building Your App' : 'Start Building'}
             </h3>
-            <p className="text-sm text-slate-400 max-w-sm">
+            <p className="text-sm max-w-sm" style={{ color: 'var(--text-secondary)' }}>
               {currentComponent
                 ? 'Describe your app in the chat panel to generate the preview.'
                 : 'Describe what you want to build in the chat panel, and your app will appear here.'}

@@ -228,16 +228,20 @@ export function SideDrawer({
                 {/* Theme Toggle - Quick Access */}
                 <button
                   onClick={toggleTheme}
-                  className="p-2 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                  className="p-2 rounded-lg transition-colors"
                   style={{ color: 'var(--text-secondary)' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-bg)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                   title={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                 >
                   {resolvedTheme === 'dark' ? <SunIcon size={20} /> : <MoonIcon size={20} />}
                 </button>
                 <button
                   onClick={onClose}
-                  className="p-2 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                  className="p-2 rounded-lg transition-colors"
                   style={{ color: 'var(--text-secondary)' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-bg)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
                   <XIcon size={20} />
                 </button>
@@ -282,15 +286,15 @@ export function SideDrawer({
                         key={item.label}
                         onClick={item.onClick}
                         disabled={item.disabled}
-                        className={`
-                          w-full flex items-center gap-3 p-3 rounded-xl
-                          transition-colors text-left
-                          ${
-                            item.disabled
-                              ? 'opacity-50 cursor-not-allowed'
-                              : 'hover:bg-black/5 dark:hover:bg-white/5'
-                          }
-                        `}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl transition-colors text-left"
+                        style={{
+                          opacity: item.disabled ? 0.5 : 1,
+                          cursor: item.disabled ? 'not-allowed' : 'pointer',
+                        }}
+                        onMouseEnter={(e) =>
+                          !item.disabled && (e.currentTarget.style.background = 'var(--hover-bg)')
+                        }
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                       >
                         <div style={{ color: 'var(--text-secondary)' }}>{item.icon}</div>
                         <div className="flex-1 min-w-0">
@@ -309,9 +313,13 @@ export function SideDrawer({
                         </div>
                         {item.toggle && (
                           <div
-                            className={`w-8 h-5 rounded-full transition-colors ${
-                              resolvedTheme === 'dark' ? 'bg-garden-600' : 'bg-slate-700'
-                            }`}
+                            className="w-8 h-5 rounded-full transition-colors"
+                            style={{
+                              backgroundColor:
+                                resolvedTheme === 'dark'
+                                  ? 'var(--garden-600, #059669)'
+                                  : 'var(--bg-tertiary)',
+                            }}
                           >
                             <div
                               className={`w-4 h-4 rounded-full bg-white transform transition-transform mt-0.5 ${
@@ -332,8 +340,8 @@ export function SideDrawer({
               {user ? (
                 <button
                   onClick={handleSignOut}
-                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-red-600/20 hover:text-red-400 transition-colors"
-                  style={{ color: 'var(--text-secondary)' }}
+                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl hover:bg-red-600/20 hover:text-red-400 transition-colors"
+                  style={{ color: 'var(--text-secondary)', background: 'var(--hover-bg)' }}
                 >
                   <LogoutIcon size={18} />
                   <span className="text-sm font-medium">Sign Out</span>

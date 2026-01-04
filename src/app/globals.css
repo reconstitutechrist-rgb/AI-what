@@ -47,6 +47,8 @@
   --shadow-color: rgba(26, 61, 38, 0.08);
   --shadow-color-strong: rgba(26, 61, 38, 0.15);
 
+  --hover-bg: rgba(0, 0, 0, 0.05);
+
   --success: #2ECC71;
   --warning: #C9A227;
   --error: #C06C84;
@@ -94,6 +96,8 @@
 
   --shadow-color: rgba(0, 0, 0, 0.3);
   --shadow-color-strong: rgba(0, 0, 0, 0.5);
+
+  --hover-bg: rgba(255, 255, 255, 0.05);
 
   --success: #3EE085;
   --warning: #E8C547;

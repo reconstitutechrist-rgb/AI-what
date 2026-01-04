@@ -127,14 +127,23 @@ export function AppConceptPanel({
     return (
       <button
         onClick={onToggleCollapse}
-        className="w-10 h-full bg-slate-900/80 border-x border-slate-800 flex flex-col items-center justify-center gap-2 hover:bg-slate-800/80 transition-colors group"
+        className="w-10 h-full flex flex-col items-center justify-center gap-2 transition-colors group"
+        style={{
+          backgroundColor: 'var(--bg-secondary)',
+          borderLeft: '1px solid var(--border-color)',
+          borderRight: '1px solid var(--border-color)',
+        }}
         title="Show App Concept"
       >
         <ChevronRightIcon
           size={16}
-          className="text-slate-500 group-hover:text-slate-300 transition-colors"
+          style={{ color: 'var(--text-muted)' }}
+          className="group-hover:opacity-80 transition-colors"
         />
-        <span className="text-[10px] text-slate-600 group-hover:text-slate-400 transition-colors [writing-mode:vertical-lr] rotate-180">
+        <span
+          className="text-[10px] [writing-mode:vertical-lr] rotate-180 transition-colors"
+          style={{ color: 'var(--text-muted)' }}
+        >
           App Concept
         </span>
         {appConcept && (
@@ -150,16 +159,29 @@ export function AppConceptPanel({
   // Empty state
   if (!appConcept) {
     return (
-      <div className="h-full flex flex-col bg-slate-900/50 border-x border-slate-800">
+      <div
+        className="h-full flex flex-col"
+        style={{
+          backgroundColor: 'var(--bg-secondary)',
+          borderLeft: '1px solid var(--border-color)',
+          borderRight: '1px solid var(--border-color)',
+        }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-slate-800">
+        <div
+          className="flex items-center justify-between p-3"
+          style={{ borderBottom: '1px solid var(--border-color)' }}
+        >
           <div className="flex items-center gap-2">
             <SparklesIcon size={16} className="text-garden-400" />
-            <h2 className="text-sm font-medium text-slate-200">App Concept</h2>
+            <h2 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+              App Concept
+            </h2>
           </div>
           <button
             onClick={onToggleCollapse}
-            className="p-1 text-slate-500 hover:text-slate-300 transition-colors"
+            className="p-1 transition-colors"
+            style={{ color: 'var(--text-muted)' }}
             title="Collapse panel"
           >
             <ChevronLeftIcon size={16} />
@@ -169,9 +191,15 @@ export function AppConceptPanel({
         {/* Empty content */}
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="text-center">
-            <SparklesIcon size={32} className="text-slate-700 mx-auto mb-3" />
-            <p className="text-sm text-slate-500">No concept yet</p>
-            <p className="text-xs text-slate-600 mt-1">
+            <SparklesIcon
+              size={32}
+              style={{ color: 'var(--text-muted)' }}
+              className="mx-auto mb-3"
+            />
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              No concept yet
+            </p>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
               Start planning your app in the chat to see the concept here
             </p>
           </div>
@@ -181,12 +209,24 @@ export function AppConceptPanel({
   }
 
   return (
-    <div className="h-full flex flex-col bg-slate-900/50 border-x border-slate-800">
+    <div
+      className="h-full flex flex-col"
+      style={{
+        backgroundColor: 'var(--bg-secondary)',
+        borderLeft: '1px solid var(--border-color)',
+        borderRight: '1px solid var(--border-color)',
+      }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-slate-800 flex-shrink-0">
+      <div
+        className="flex items-center justify-between p-3 flex-shrink-0"
+        style={{ borderBottom: '1px solid var(--border-color)' }}
+      >
         <div className="flex items-center gap-2">
           <SparklesIcon size={16} className="text-garden-400" />
-          <h2 className="text-sm font-medium text-slate-200">App Concept</h2>
+          <h2 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+            App Concept
+          </h2>
           {mode === 'act' && (
             <span className="px-1.5 py-0.5 text-[10px] bg-green-500/20 text-green-400 rounded">
               Building
@@ -199,10 +239,9 @@ export function AppConceptPanel({
             <button
               onClick={() => setConceptPanelEditMode(!conceptPanelEditMode)}
               className={`p-1.5 rounded transition-colors ${
-                conceptPanelEditMode
-                  ? 'bg-garden-500/20 text-garden-400'
-                  : 'text-slate-500 hover:text-slate-300'
+                conceptPanelEditMode ? 'bg-garden-500/20 text-garden-400' : ''
               }`}
+              style={!conceptPanelEditMode ? { color: 'var(--text-muted)' } : undefined}
               title={conceptPanelEditMode ? 'View mode' : 'Edit mode'}
             >
               {conceptPanelEditMode ? <PencilIcon size={14} /> : <EyeIcon size={14} />}
@@ -210,7 +249,8 @@ export function AppConceptPanel({
           )}
           <button
             onClick={onToggleCollapse}
-            className="p-1.5 text-slate-500 hover:text-slate-300 transition-colors"
+            className="p-1.5 transition-colors"
+            style={{ color: 'var(--text-muted)' }}
             title="Collapse panel"
           >
             <ChevronLeftIcon size={16} />
@@ -225,13 +265,13 @@ export function AppConceptPanel({
           <BasicInfoSection appConcept={appConcept} onUpdate={handleUpdate} readOnly={isReadOnly} />
 
           {/* Divider */}
-          <div className="border-t border-slate-800" />
+          <div style={{ borderTop: '1px solid var(--border-color)' }} />
 
           {/* Features */}
           <FeaturesSection appConcept={appConcept} onUpdate={handleUpdate} readOnly={isReadOnly} />
 
           {/* Divider */}
-          <div className="border-t border-slate-800" />
+          <div style={{ borderTop: '1px solid var(--border-color)' }} />
 
           {/* UI Preferences */}
           <UIPreferencesSection
@@ -241,7 +281,7 @@ export function AppConceptPanel({
           />
 
           {/* Divider */}
-          <div className="border-t border-slate-800" />
+          <div style={{ borderTop: '1px solid var(--border-color)' }} />
 
           {/* Technical Requirements */}
           <TechnicalSection appConcept={appConcept} onUpdate={handleUpdate} readOnly={isReadOnly} />
@@ -249,7 +289,7 @@ export function AppConceptPanel({
           {/* Roles (if any) - conditionally render with divider */}
           {(appConcept.roles?.length || !isReadOnly) && (
             <>
-              <div className="border-t border-slate-800" />
+              <div style={{ borderTop: '1px solid var(--border-color)' }} />
               <RolesSection appConcept={appConcept} onUpdate={handleUpdate} readOnly={isReadOnly} />
             </>
           )}
@@ -257,7 +297,7 @@ export function AppConceptPanel({
           {/* Workflows (if any) - conditionally render with divider */}
           {(appConcept.workflows?.length || !isReadOnly) && (
             <>
-              <div className="border-t border-slate-800" />
+              <div style={{ borderTop: '1px solid var(--border-color)' }} />
               <WorkflowsSection
                 appConcept={appConcept}
                 onUpdate={handleUpdate}
@@ -269,7 +309,7 @@ export function AppConceptPanel({
           {/* Phase Plan (if generated) */}
           {phasePlan && (
             <>
-              <div className="border-t border-slate-800" />
+              <div style={{ borderTop: '1px solid var(--border-color)' }} />
               <PhasePlanSection
                 phasePlan={phasePlan}
                 completedPhases={completedPhases}
@@ -285,7 +325,7 @@ export function AppConceptPanel({
 
       {/* Footer with action button */}
       {mode === 'plan' && phasePlan && onStartBuilding && (
-        <div className="p-3 border-t border-slate-800 flex-shrink-0">
+        <div className="p-3 flex-shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
           <button
             onClick={onStartBuilding}
             className="w-full py-2.5 px-4 bg-gradient-to-r from-garden-600 to-garden-500 hover:from-garden-500 hover:to-garden-400 text-white text-sm font-medium rounded-lg transition-all shadow-lg shadow-garden-500/20"
@@ -297,16 +337,25 @@ export function AppConceptPanel({
 
       {/* ACT mode footer with build controls */}
       {mode === 'act' && buildState && (
-        <div className="p-3 border-t border-slate-800 flex-shrink-0 space-y-2">
+        <div
+          className="p-3 flex-shrink-0 space-y-2"
+          style={{ borderTop: '1px solid var(--border-color)' }}
+        >
           {/* Progress bar */}
           <div className="flex items-center gap-2">
-            <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div
+              className="flex-1 h-1.5 rounded-full overflow-hidden"
+              style={{ backgroundColor: 'var(--bg-tertiary)' }}
+            >
               <div
                 className="h-full bg-gradient-to-r from-garden-500 to-gold-500 transition-all duration-500"
                 style={{ width: `${buildState.progress.percentComplete}%` }}
               />
             </div>
-            <span className="text-xs text-slate-400 min-w-[3rem] text-right">
+            <span
+              className="text-xs min-w-[3rem] text-right"
+              style={{ color: 'var(--text-secondary)' }}
+            >
               {buildState.progress.percentComplete}%
             </span>
           </div>
@@ -335,7 +384,8 @@ export function AppConceptPanel({
                   const phase = buildState.currentPhase;
                   if (phase) onSkipPhase(phase.number);
                 }}
-                className="py-1.5 px-3 text-xs bg-slate-700 text-slate-300 hover:bg-slate-600 rounded-lg transition-colors"
+                className="py-1.5 px-3 text-xs rounded-lg transition-colors"
+                style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
               >
                 ⏭️ Skip
               </button>
