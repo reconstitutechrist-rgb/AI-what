@@ -65,30 +65,33 @@ export default function LoginPage() {
 
   const glowVariants = {
     idle: {
-      boxShadow: '0 0 20px rgba(99, 102, 241, 0.15), 0 0 40px rgba(139, 92, 246, 0.1)',
+      boxShadow: '0 0 20px rgba(46, 204, 113, 0.15), 0 0 40px rgba(74, 155, 95, 0.1)',
     },
     hover: {
-      boxShadow: '0 0 30px rgba(99, 102, 241, 0.25), 0 0 60px rgba(139, 92, 246, 0.15)',
+      boxShadow: '0 0 30px rgba(46, 204, 113, 0.25), 0 0 60px rgba(74, 155, 95, 0.15)',
     },
   };
 
   const inputFocusVariants = {
     idle: {
-      boxShadow: '0 0 0 0 rgba(99, 102, 241, 0)',
-      borderColor: 'rgba(255, 255, 255, 0.1)',
+      boxShadow: '0 0 0 0 rgba(46, 204, 113, 0)',
+      borderColor: 'var(--border-color)',
     },
     focus: {
-      boxShadow: '0 0 20px rgba(99, 102, 241, 0.3), 0 0 40px rgba(139, 92, 246, 0.1)',
-      borderColor: 'rgba(99, 102, 241, 0.5)',
+      boxShadow: '0 0 20px rgba(46, 204, 113, 0.3), 0 0 40px rgba(74, 155, 95, 0.1)',
+      borderColor: 'rgba(46, 204, 113, 0.5)',
     },
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4 overflow-hidden relative">
-      {/* Animated background gradients */}
+    <div
+      className="min-h-screen flex items-center justify-center p-4 overflow-hidden relative"
+      style={{ background: 'var(--bg-primary)' }}
+    >
+      {/* Animated background gradients - Garden theme */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
-          className="absolute top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full bg-indigo-600/20 blur-[120px]"
+          className="absolute top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full bg-garden-700/20 blur-[120px]"
           animate={{
             x: [0, 50, 0],
             y: [0, 30, 0],
@@ -100,7 +103,7 @@ export default function LoginPage() {
           }}
         />
         <motion.div
-          className="absolute bottom-1/4 -right-1/4 w-[500px] h-[500px] rounded-full bg-purple-600/20 blur-[120px]"
+          className="absolute bottom-1/4 -right-1/4 w-[500px] h-[500px] rounded-full bg-gold-400/20 blur-[120px]"
           animate={{
             x: [0, -30, 0],
             y: [0, -50, 0],
@@ -112,7 +115,7 @@ export default function LoginPage() {
           }}
         />
         <motion.div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-violet-600/10 blur-[100px]"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-garden-600/10 blur-[100px]"
           animate={{
             scale: [1, 1.2, 1],
           }}
@@ -128,8 +131,8 @@ export default function LoginPage() {
       <div
         className="absolute inset-0 opacity-[0.02]"
         style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                           linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+          backgroundImage: `linear-gradient(var(--text-muted) 1px, transparent 1px),
+                           linear-gradient(90deg, var(--text-muted) 1px, transparent 1px)`,
           backgroundSize: '50px 50px',
         }}
       />
@@ -152,24 +155,28 @@ export default function LoginPage() {
         variants={containerVariants}
       >
         <motion.div
-          className="relative bg-[#12121a]/80 backdrop-blur-2xl rounded-3xl border border-white/[0.08] p-10"
+          className="relative backdrop-blur-2xl rounded-3xl p-10"
+          style={{
+            background: 'var(--glass-bg)',
+            border: '1px solid var(--border-color)',
+          }}
           variants={glowVariants}
           initial="idle"
           whileHover="hover"
           transition={{ duration: 0.3 }}
         >
           {/* Subtle top border glow */}
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-garden-700/50 to-transparent" />
 
           {/* Logo/Title */}
           <motion.div className="text-center mb-10" variants={itemVariants}>
             <motion.div
-              className="mb-5 inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600"
+              className="mb-5 inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-garden-700 to-garden-600"
               animate={{
                 boxShadow: [
-                  '0 0 20px rgba(99, 102, 241, 0.4)',
-                  '0 0 40px rgba(139, 92, 246, 0.4)',
-                  '0 0 20px rgba(99, 102, 241, 0.4)',
+                  '0 0 20px rgba(46, 204, 113, 0.4)',
+                  '0 0 40px rgba(74, 155, 95, 0.4)',
+                  '0 0 20px rgba(46, 204, 113, 0.4)',
                 ],
               }}
               transition={{
@@ -192,14 +199,25 @@ export default function LoginPage() {
                 />
               </svg>
             </motion.div>
-            <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">AI App Builder</h1>
-            <p className="text-slate-400 text-sm">Sign in to your account</p>
+            <h1
+              className="text-3xl font-bold mb-2 tracking-tight"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              AI App Builder
+            </h1>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              Sign in to your account
+            </p>
           </motion.div>
 
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <motion.div variants={itemVariants}>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium mb-2"
+                style={{ color: 'var(--text-secondary)' }}
+              >
                 Email Address
               </label>
               <motion.input
@@ -210,7 +228,12 @@ export default function LoginPage() {
                 placeholder="you@example.com"
                 disabled={loading}
                 required
-                className="w-full px-4 py-3.5 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white placeholder-slate-500 focus:outline-none transition-colors duration-200"
+                className="w-full px-4 py-3.5 rounded-xl focus:outline-none transition-colors duration-200"
+                style={{
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-primary)',
+                }}
                 variants={inputFocusVariants}
                 initial="idle"
                 whileFocus="focus"
@@ -219,7 +242,11 @@ export default function LoginPage() {
             </motion.div>
 
             <motion.div variants={itemVariants}>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium mb-2"
+                style={{ color: 'var(--text-secondary)' }}
+              >
                 Password
               </label>
               <div className="relative">
@@ -231,7 +258,12 @@ export default function LoginPage() {
                   placeholder="Enter your password"
                   disabled={loading}
                   required
-                  className="w-full px-4 py-3.5 pr-12 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white placeholder-slate-500 focus:outline-none transition-colors duration-200"
+                  className="w-full px-4 py-3.5 pr-12 rounded-xl focus:outline-none transition-colors duration-200"
+                  style={{
+                    background: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-primary)',
+                  }}
                   variants={inputFocusVariants}
                   initial="idle"
                   whileFocus="focus"
@@ -239,7 +271,8 @@ export default function LoginPage() {
                 <motion.button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1"
+                  style={{ color: 'var(--text-muted)' }}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                   tabIndex={-1}
@@ -291,7 +324,12 @@ export default function LoginPage() {
                   initial={{ opacity: 0, y: -10, height: 0 }}
                   animate={{ opacity: 1, y: 0, height: 'auto' }}
                   exit={{ opacity: 0, y: -10, height: 0 }}
-                  className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 text-sm"
+                  className="rounded-xl p-4 text-sm"
+                  style={{
+                    background: 'var(--blossom-bg)',
+                    border: '1px solid var(--blossom-text)',
+                    color: 'var(--blossom-text)',
+                  }}
                 >
                   <div className="flex items-center gap-2">
                     <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -316,8 +354,8 @@ export default function LoginPage() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                {/* Button gradient background */}
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-[length:200%_100%]" />
+                {/* Button gradient background - Garden green */}
+                <div className="absolute inset-0 bg-gradient-to-r from-garden-700 via-garden-600 to-garden-700 bg-[length:200%_100%]" />
 
                 {/* Animated shine effect */}
                 <motion.div
@@ -334,7 +372,7 @@ export default function LoginPage() {
                 />
 
                 {/* Glow effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-600 blur-xl opacity-50 -z-10" />
+                <div className="absolute inset-0 bg-gradient-to-r from-garden-700 to-garden-600 blur-xl opacity-50 -z-10" />
 
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   {loading ? (
@@ -360,11 +398,11 @@ export default function LoginPage() {
 
           {/* Sign Up Link */}
           <motion.div className="mt-8 text-center" variants={itemVariants}>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
               Don&apos;t have an account?{' '}
               <Link
                 href="/signup"
-                className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+                className="font-medium transition-colors text-garden-700 hover:text-garden-600"
               >
                 Sign up
               </Link>
@@ -373,7 +411,8 @@ export default function LoginPage() {
 
           {/* Footer */}
           <motion.div
-            className="mt-8 text-center text-xs text-slate-500 flex items-center justify-center gap-2"
+            className="mt-8 text-center text-xs flex items-center justify-center gap-2"
+            style={{ color: 'var(--text-muted)' }}
             variants={itemVariants}
           >
             <motion.svg
