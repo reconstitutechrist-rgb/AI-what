@@ -160,6 +160,32 @@ Check `.claude/rules/` for domain-specific documentation:
 
 ## How Claude Should Work With This Project
 
+### Quality Over Speed or Cost
+
+**Prioritize accuracy and completeness over speed or cost savings. This applies to ALL requests.**
+
+- When answering questions, ensure accuracy - verify before responding
+- When making ANY change, find and update ALL occurrences - not 90%
+- Use thorough searches (grep across entire codebase) before claiming something is complete
+- If unsure, investigate rather than guess
+- Never skip files or assume something doesn't need updating
+- Take the time to do it right the first time
+
+**For any codebase-wide change:**
+
+1. Search entire `src/` for all patterns being changed
+2. List all files that need modification
+3. Update every occurrence systematically
+4. Verify nothing was missed with a final search
+5. Test that the change works correctly
+
+### Sub-Agent Model Selection
+
+**Minimum model: Sonnet.** Do not use Haiku for any sub-agents.
+
+- **Sonnet** - Default for exploration, searches, planning agents
+- **Opus** - Complex reasoning, architecture decisions, code review
+
 ### Analysis Depth
 
 **Always do deep analysis, not surface-level.** When reviewing code, debugging, or evaluating architecture:
