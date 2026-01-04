@@ -52,7 +52,7 @@ export default function ReviewSummary({
   return (
     <div className="rounded-xl border border-white/10 bg-slate-900 overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-white/10 bg-gradient-to-r from-blue-500/20 to-purple-500/20">
+      <div className="px-4 py-3 border-b border-white/10 bg-gradient-to-r from-garden-500/20 to-gold-500/20">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xl">📋</span>
@@ -181,7 +181,7 @@ export default function ReviewSummary({
         <h4 className="text-sm text-slate-400 mb-2">Files</h4>
         <div className="flex items-center gap-3 text-xs">
           <span className="text-white">📁 {impactAnalysis.filesAffected.length} affected</span>
-          <span className="text-purple-400">
+          <span className="text-gold-400">
             ⚛️ {impactAnalysis.componentsAffected.length} components
           </span>
           {impactAnalysis.suggestedTests.length > 0 && (

@@ -17,7 +17,7 @@ export default function PreviewBanner({ appTitle }: PreviewBannerProps) {
           href="/"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+          className="text-sm text-garden-400 hover:text-garden-300 transition-colors"
         >
           Create your own app
         </a>

@@ -164,7 +164,7 @@ function TokenEditor({
         max={max}
         value={value}
         onChange={(e) => onChange(parseInt(e.target.value))}
-        className="flex-1 accent-blue-500"
+        className="flex-1 accent-garden-500"
       />
       <input
         type="number"
@@ -172,7 +172,7 @@ function TokenEditor({
         onChange={(e) => onChange(parseInt(e.target.value) || 0)}
         min={min}
         max={9999}
-        className="w-16 px-2 py-1 text-sm bg-slate-800 border border-slate-600 rounded text-slate-200 text-center focus:border-blue-500 focus:outline-none"
+        className="w-16 px-2 py-1 text-sm bg-slate-800 border border-slate-600 rounded text-slate-200 text-center focus:border-garden-500 focus:outline-none"
       />
     </div>
   );
@@ -288,7 +288,7 @@ export function ZIndexEditor({ scale: initialScale, onChange, className = '' }: 
                 flex-1 px-3 py-2 text-xs rounded-lg border transition-all
                 ${
                   selectedPreset === preset.id
-                    ? 'border-blue-500 bg-blue-500/20 text-blue-300'
+                    ? 'border-garden-500 bg-garden-500/20 text-garden-300'
                     : 'border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600'
                 }
               `}
@@ -327,7 +327,7 @@ export function ZIndexEditor({ scale: initialScale, onChange, className = '' }: 
               }}
               className={`px-2 py-1 text-xs rounded ${
                 showCode && codeFormat === 'css'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-garden-600 text-white'
                   : 'bg-slate-800 text-slate-400'
               }`}
             >
@@ -340,7 +340,7 @@ export function ZIndexEditor({ scale: initialScale, onChange, className = '' }: 
               }}
               className={`px-2 py-1 text-xs rounded ${
                 showCode && codeFormat === 'tailwind'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-garden-600 text-white'
                   : 'bg-slate-800 text-slate-400'
               }`}
             >

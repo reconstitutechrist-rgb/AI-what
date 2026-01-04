@@ -562,7 +562,7 @@ What would you like to build?`,
             <div className="flex justify-center">
               <button
                 onClick={() => setShowAllMessages(true)}
-                className="px-4 py-2 text-sm text-zinc-400 hover:text-white bg-zinc-900/50 hover:bg-zinc-800/50 rounded-lg border border-white/10 transition-colors backdrop-blur-sm"
+                className="px-4 py-2 text-sm text-slate-400 hover:text-white bg-slate-900/50 hover:bg-slate-800/50 rounded-lg border border-white/10 transition-colors backdrop-blur-sm"
               >
                 Load {messages.length - MAX_VISIBLE_MESSAGES} older messages
               </button>
@@ -577,10 +577,10 @@ What would you like to build?`,
           {/* Loading indicator */}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-zinc-900/50 backdrop-blur-sm rounded-lg px-4 py-3 border border-white/10">
+              <div className="bg-slate-900/50 backdrop-blur-sm rounded-lg px-4 py-3 border border-white/10">
                 <div className="flex items-center gap-3">
-                  <LoaderIcon size={18} className="text-blue-500" />
-                  <span className="text-zinc-400 text-sm">Thinking...</span>
+                  <LoaderIcon size={18} className="text-garden-500" />
+                  <span className="text-slate-400 text-sm">Thinking...</span>
                 </div>
               </div>
             </div>
@@ -601,10 +601,10 @@ What would you like to build?`,
           {/* Phase generation indicator */}
           {isGeneratingPhases && !isRegenerating && (
             <div className="flex justify-start">
-              <div className="bg-purple-600/10 rounded-lg px-4 py-3 border-l-2 border-purple-500">
+              <div className="bg-gold-500/10 rounded-lg px-4 py-3 border-l-2 border-gold-500">
                 <div className="flex items-center gap-3">
-                  <LoaderIcon size={18} className="text-purple-400" />
-                  <span className="text-zinc-300">Generating implementation plan...</span>
+                  <LoaderIcon size={18} className="text-gold-400" />
+                  <span className="text-slate-300">Generating implementation plan...</span>
                 </div>
               </div>
             </div>
@@ -628,8 +628,8 @@ What would you like to build?`,
           {/* Pending regeneration indicator */}
           {pendingRegeneration && !isRegenerating && (
             <div className="flex justify-start">
-              <div className="bg-zinc-900/50 backdrop-blur-sm rounded-lg px-4 py-2 border-l-2 border-zinc-500">
-                <span className="text-zinc-400 text-sm">
+              <div className="bg-slate-900/50 backdrop-blur-sm rounded-lg px-4 py-2 border-l-2 border-slate-500">
+                <span className="text-slate-400 text-sm">
                   Changes detected - plan will update shortly...
                 </span>
               </div>

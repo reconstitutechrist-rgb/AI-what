@@ -90,7 +90,7 @@ export function SelectedElementCard({
               <span className="text-gray-500 block mb-1">Likely files:</span>
               <div className="space-y-0.5">
                 {element.guessedSourceFiles.slice(0, 3).map((file, i) => (
-                  <code key={i} className="text-blue-400 block text-[10px]">
+                  <code key={i} className="text-garden-400 block text-[10px]">
                     {file}
                   </code>
                 ))}

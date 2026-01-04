@@ -192,7 +192,7 @@ export function ColorPickerMenu({
                     handleColorChange('primary', val);
                   }
                 }}
-                className="flex-1 bg-slate-700 text-white text-xs px-2 py-1.5 rounded border border-slate-600 focus:border-blue-500 focus:outline-none font-mono"
+                className="flex-1 bg-slate-700 text-white text-xs px-2 py-1.5 rounded border border-slate-600 focus:border-garden-500 focus:outline-none font-mono"
                 placeholder="#3B82F6"
               />
             </div>
@@ -223,7 +223,7 @@ export function ColorPickerMenu({
                     handleColorChange('secondary', val);
                   }
                 }}
-                className="flex-1 bg-slate-700 text-white text-xs px-2 py-1.5 rounded border border-slate-600 focus:border-blue-500 focus:outline-none font-mono"
+                className="flex-1 bg-slate-700 text-white text-xs px-2 py-1.5 rounded border border-slate-600 focus:border-garden-500 focus:outline-none font-mono"
                 placeholder="#6366F1"
               />
             </div>
@@ -254,7 +254,7 @@ export function ColorPickerMenu({
                     handleColorChange('accent', val);
                   }
                 }}
-                className="flex-1 bg-slate-700 text-white text-xs px-2 py-1.5 rounded border border-slate-600 focus:border-blue-500 focus:outline-none font-mono"
+                className="flex-1 bg-slate-700 text-white text-xs px-2 py-1.5 rounded border border-slate-600 focus:border-garden-500 focus:outline-none font-mono"
                 placeholder="#F59E0B"
               />
             </div>

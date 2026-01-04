@@ -82,7 +82,7 @@ export function PhaseDetailView({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-5 border-b border-white/10 bg-gradient-to-r from-blue-500/10 to-purple-500/10">
+        <div className="px-6 py-5 border-b border-white/10 bg-gradient-to-r from-garden-500/10 to-gold-500/10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div
@@ -90,7 +90,7 @@ export function PhaseDetailView({
                   phase.status === 'completed'
                     ? 'bg-green-500/20'
                     : phase.status === 'in-progress'
-                      ? 'bg-blue-500/20'
+                      ? 'bg-garden-500/20'
                       : phase.status === 'skipped'
                         ? 'bg-slate-600/20'
                         : 'bg-white/10'
@@ -127,13 +127,13 @@ export function PhaseDetailView({
               </span>
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg">
-              <span className="text-blue-400">🔍</span>
+              <span className="text-garden-400">🔍</span>
               <span className="text-sm text-slate-300">
                 {passedChecks}/{phase.validationChecks.length} Checks
               </span>
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg">
-              <span className="text-purple-400">⏱️</span>
+              <span className="text-gold-400">⏱️</span>
               <span className="text-sm text-slate-300">{phase.estimatedTime}</span>
             </div>
           </div>
@@ -146,7 +146,7 @@ export function PhaseDetailView({
               onClick={() => setActiveTab('comparison')}
               className={`px-4 py-3 text-sm font-medium transition-all border-b-2 -mb-px ${
                 activeTab === 'comparison'
-                  ? 'text-blue-400 border-blue-400'
+                  ? 'text-garden-400 border-garden-400'
                   : 'text-slate-400 border-transparent hover:text-white'
               }`}
             >
@@ -157,7 +157,7 @@ export function PhaseDetailView({
             onClick={() => setActiveTab('tasks')}
             className={`px-4 py-3 text-sm font-medium transition-all border-b-2 -mb-px ${
               activeTab === 'tasks'
-                ? 'text-blue-400 border-blue-400'
+                ? 'text-garden-400 border-garden-400'
                 : 'text-slate-400 border-transparent hover:text-white'
             }`}
           >
@@ -167,7 +167,7 @@ export function PhaseDetailView({
             onClick={() => setActiveTab('validation')}
             className={`px-4 py-3 text-sm font-medium transition-all border-b-2 -mb-px ${
               activeTab === 'validation'
-                ? 'text-blue-400 border-blue-400'
+                ? 'text-garden-400 border-garden-400'
                 : 'text-slate-400 border-transparent hover:text-white'
             }`}
           >
@@ -177,7 +177,7 @@ export function PhaseDetailView({
             onClick={() => setActiveTab('code')}
             className={`px-4 py-3 text-sm font-medium transition-all border-b-2 -mb-px ${
               activeTab === 'code'
-                ? 'text-blue-400 border-blue-400'
+                ? 'text-garden-400 border-garden-400'
                 : 'text-slate-400 border-transparent hover:text-white'
             }`}
           >
@@ -196,7 +196,7 @@ export function PhaseDetailView({
                   dynamicPhase.status === 'completed'
                     ? 'bg-green-500/10 border border-green-500/30'
                     : dynamicPhase.status === 'in-progress'
-                      ? 'bg-blue-500/10 border border-blue-500/30'
+                      ? 'bg-garden-500/10 border border-garden-500/30'
                       : dynamicPhase.status === 'failed'
                         ? 'bg-red-500/10 border border-red-500/30'
                         : 'bg-white/5 border border-white/10'
@@ -227,7 +227,7 @@ export function PhaseDetailView({
                 <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-lg">📋</span>
-                    <h4 className="text-sm font-semibold text-blue-400">PLANNED</h4>
+                    <h4 className="text-sm font-semibold text-garden-400">PLANNED</h4>
                   </div>
 
                   {/* Planned Features */}
@@ -237,7 +237,7 @@ export function PhaseDetailView({
                         key={idx}
                         className="flex items-start gap-2 text-sm text-slate-300 bg-white/5 rounded px-3 py-2"
                       >
-                        <span className="text-blue-400 mt-0.5">•</span>
+                        <span className="text-garden-400 mt-0.5">•</span>
                         <span>{feature}</span>
                       </div>
                     ))}
@@ -252,7 +252,7 @@ export function PhaseDetailView({
                       <ul className="space-y-1">
                         {dynamicPhase.testCriteria.map((criterion, idx) => (
                           <li key={idx} className="text-xs text-slate-400 flex items-start gap-2">
-                            <span className="text-blue-400">○</span>
+                            <span className="text-garden-400">○</span>
                             <span>{criterion}</span>
                           </li>
                         ))}
@@ -290,7 +290,7 @@ export function PhaseDetailView({
                       <p className="text-sm">Not started yet</p>
                     </div>
                   ) : dynamicPhase.status === 'in-progress' ? (
-                    <div className="text-center py-8 text-blue-400">
+                    <div className="text-center py-8 text-garden-400">
                       <div className="text-3xl mb-2 animate-pulse">🔨</div>
                       <p className="text-sm">Building in progress...</p>
                     </div>
@@ -403,7 +403,7 @@ export function PhaseDetailView({
                     )}
                     {task.generatedCode && (
                       <details className="mt-2">
-                        <summary className="text-xs text-blue-400 cursor-pointer hover:text-blue-300">
+                        <summary className="text-xs text-garden-400 cursor-pointer hover:text-blue-300">
                           View generated code
                         </summary>
                         <pre className="mt-2 text-xs text-slate-300 bg-black/30 rounded p-2 overflow-x-auto">
@@ -447,7 +447,7 @@ export function PhaseDetailView({
                 <div className="relative">
                   <button
                     onClick={() => navigator.clipboard.writeText(generatedCode)}
-                    className="absolute top-2 right-2 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded transition-all"
+                    className="absolute top-2 right-2 px-3 py-1 text-xs bg-garden-600 hover:bg-garden-500 text-white rounded transition-all"
                   >
                     Copy
                   </button>
@@ -472,7 +472,7 @@ export function PhaseDetailView({
           {phase.status === 'pending' && (
             <button
               onClick={onBuildPhase}
-              className="flex-1 px-4 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-medium transition-all flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2.5 rounded-lg bg-gradient-to-r from-garden-600 to-gold-600 hover:from-garden-500 hover:to-gold-500 text-white font-medium transition-all flex items-center justify-center gap-2"
             >
               <span>🚀</span>
               <span>Build This Phase</span>

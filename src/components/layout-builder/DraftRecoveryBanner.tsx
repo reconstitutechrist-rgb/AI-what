@@ -10,10 +10,10 @@ interface DraftRecoveryBannerProps {
  */
 export function DraftRecoveryBanner({ onRecover, onDiscard }: DraftRecoveryBannerProps) {
   return (
-    <div className="bg-blue-500/20 border-b border-blue-500/30 px-6 py-3 flex items-center justify-between">
+    <div className="bg-garden-500/20 border-b border-garden-500/30 px-6 py-3 flex items-center justify-between">
       <div className="flex items-center gap-2">
         <svg
-          className="w-5 h-5 text-blue-400"
+          className="w-5 h-5 text-garden-400"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -25,7 +25,7 @@ export function DraftRecoveryBanner({ onRecover, onDiscard }: DraftRecoveryBanne
             d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
-        <span className="text-sm text-blue-200">
+        <span className="text-sm text-garden-200">
           You have an unsaved draft from a previous session
         </span>
       </div>
@@ -38,7 +38,7 @@ export function DraftRecoveryBanner({ onRecover, onDiscard }: DraftRecoveryBanne
         </button>
         <button
           onClick={onRecover}
-          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors"
+          className="px-3 py-1.5 bg-garden-600 hover:bg-garden-500 text-white rounded-lg text-sm font-medium transition-colors"
         >
           Recover Draft
         </button>

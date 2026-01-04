@@ -63,9 +63,9 @@ export function TemplateSelector({ onSelect, onSkip, userDescription }: Template
   const getCategoryColor = (category: TemplateCategory) => {
     switch (category) {
       case 'admin':
-        return 'bg-blue-500/20 text-blue-300';
+        return 'bg-garden-500/20 text-garden-300';
       case 'commerce':
-        return 'bg-purple-500/20 text-purple-300';
+        return 'bg-gold-500/20 text-gold-300';
       case 'content':
         return 'bg-orange-500/20 text-orange-300';
       case 'marketing':
@@ -97,14 +97,14 @@ export function TemplateSelector({ onSelect, onSkip, userDescription }: Template
               <button
                 key={template.id}
                 onClick={() => onSelect(template)}
-                className="p-4 rounded-xl bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-500/30 hover:border-blue-500/50 text-left transition-all group"
+                className="p-4 rounded-xl bg-gradient-to-br from-garden-600/20 to-gold-600/20 border border-garden-500/30 hover:border-garden-500/50 text-left transition-all group"
               >
                 <div className="flex items-center gap-3 mb-2">
                   <span className="text-2xl">{template.icon}</span>
-                  <span className="font-semibold text-white group-hover:text-blue-200 transition-colors">
+                  <span className="font-semibold text-white group-hover:text-garden-200 transition-colors">
                     {template.name}
                   </span>
-                  <span className="ml-auto text-xs bg-blue-500/30 text-blue-200 px-2 py-0.5 rounded-full">
+                  <span className="ml-auto text-xs bg-garden-500/30 text-garden-200 px-2 py-0.5 rounded-full">
                     Recommended
                   </span>
                 </div>
@@ -124,7 +124,7 @@ export function TemplateSelector({ onSelect, onSkip, userDescription }: Template
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search templates..."
-            className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-garden-500 focus:border-transparent text-sm"
           />
         </div>
 
@@ -132,7 +132,7 @@ export function TemplateSelector({ onSelect, onSkip, userDescription }: Template
         <select
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value as TemplateCategory | 'all')}
-          className="px-4 py-2 rounded-lg bg-slate-800 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          className="px-4 py-2 rounded-lg bg-slate-800 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-garden-500 text-sm"
         >
           <option value="all">All Categories</option>
           {categories.map((cat) => (
@@ -146,7 +146,7 @@ export function TemplateSelector({ onSelect, onSkip, userDescription }: Template
         <select
           value={selectedComplexity}
           onChange={(e) => setSelectedComplexity(e.target.value as TemplateComplexity | 'all')}
-          className="px-4 py-2 rounded-lg bg-slate-800 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          className="px-4 py-2 rounded-lg bg-slate-800 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-garden-500 text-sm"
         >
           <option value="all">All Complexities</option>
           <option value="simple">Simple</option>
@@ -168,7 +168,7 @@ export function TemplateSelector({ onSelect, onSkip, userDescription }: Template
                 {template.icon}
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-white group-hover:text-blue-200 transition-colors">
+                <h3 className="font-semibold text-white group-hover:text-garden-200 transition-colors">
                   {template.name}
                 </h3>
                 <div className="flex items-center gap-2 mt-1">
@@ -224,7 +224,7 @@ export function TemplateSelector({ onSelect, onSkip, userDescription }: Template
                 </button>
                 <button
                   onClick={() => onSelect(template)}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
+                  className="text-xs px-3 py-1.5 rounded-lg bg-garden-600 hover:bg-garden-700 text-white font-medium transition-colors"
                 >
                   Select
                 </button>

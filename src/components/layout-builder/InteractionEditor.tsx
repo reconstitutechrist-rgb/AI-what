@@ -98,7 +98,7 @@ export function InteractionEditor({
         {hasHover && (
           <div className="p-3 bg-slate-800 rounded-lg">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-blue-400">Hover Effect</span>
+              <span className="text-sm font-medium text-garden-400">Hover Effect</span>
               <button
                 type="button"
                 onClick={() => clearCategory('hover')}
@@ -145,7 +145,7 @@ export function InteractionEditor({
         {hasScroll && (
           <div className="p-3 bg-slate-800 rounded-lg">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-purple-400">Scroll Animation</span>
+              <span className="text-sm font-medium text-gold-400">Scroll Animation</span>
               <button
                 type="button"
                 onClick={() => clearCategory('scroll')}
@@ -192,7 +192,7 @@ export function InteractionEditor({
             onMouseLeave={() => setPreviewActive(false)}
             className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
               previewActive
-                ? 'bg-blue-600 text-white'
+                ? 'bg-garden-600 text-white'
                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
             }`}
           >
@@ -210,7 +210,7 @@ export function InteractionEditor({
             onClick={() => setActiveTab(tab.id)}
             className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
               activeTab === tab.id
-                ? 'text-blue-400 border-b-2 border-blue-400'
+                ? 'text-garden-400 border-b-2 border-garden-400'
                 : 'text-slate-400 hover:text-white'
             }`}
           >

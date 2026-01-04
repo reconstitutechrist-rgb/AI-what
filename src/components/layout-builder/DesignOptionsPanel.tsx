@@ -137,7 +137,7 @@ export function DesignOptionsPanel({
         <div className="flex-1 overflow-auto p-4">
           {isGenerating ? (
             <div className="flex flex-col items-center justify-center h-full gap-4">
-              <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              <div className="w-12 h-12 border-4 border-garden-500 border-t-transparent rounded-full animate-spin" />
               <p className="text-slate-300">Generating design options...</p>
             </div>
           ) : options.length === 0 ? (
@@ -212,7 +212,7 @@ export function DesignOptionsPanel({
                     <ul className="text-sm text-slate-300 space-y-1">
                       {Object.keys(currentOption.changes).map((key) => (
                         <li key={key} className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-blue-400 rounded-full" />
+                          <span className="w-1.5 h-1.5 bg-garden-400 rounded-full" />
                           {key.replace(/([A-Z])/g, ' $1').trim()}
                         </li>
                       ))}
@@ -229,7 +229,7 @@ export function DesignOptionsPanel({
                     onClick={() => setSelectedIndex(index)}
                     className={`w-2.5 h-2.5 rounded-full transition-all ${
                       index === selectedIndex
-                        ? 'bg-blue-500 scale-125'
+                        ? 'bg-garden-500 scale-125'
                         : 'bg-slate-600 hover:bg-slate-500'
                     }`}
                     aria-label={`Go to option ${index + 1}`}
@@ -288,7 +288,7 @@ export function DesignOptionsPanel({
               type="button"
               onClick={() => currentOption && onSelect(currentOption)}
               disabled={!currentOption}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-garden-600 hover:bg-garden-500 disabled:bg-garden-600/50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path

@@ -416,7 +416,7 @@ export function SettingsPage({ isOpen, onClose, initialSection = 'general' }: Se
                 </div>
               ))}
             </div>
-            <div className="mt-6 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <div className="mt-6 p-4 rounded-lg bg-garden-500/10 border border-garden-500/20">
               <div className="flex items-start gap-3">
                 <span className="text-xl">💡</span>
                 <p className="text-sm text-slate-300">
@@ -442,7 +442,7 @@ export function SettingsPage({ isOpen, onClose, initialSection = 'general' }: Se
                 <button
                   type="button"
                   onClick={downloadSettingsFile}
-                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-all flex items-center gap-2"
+                  className="px-4 py-2 rounded-lg bg-garden-600 hover:bg-garden-700 text-white font-medium transition-all flex items-center gap-2"
                 >
                   <span>📥</span> Export Settings
                 </button>
@@ -600,7 +600,7 @@ export function SettingsPage({ isOpen, onClose, initialSection = 'general' }: Se
         <div className="px-6 py-4 border-b border-white/10 bg-black/20">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-garden-500/20 flex items-center justify-center">
                 <span className="text-2xl">⚙️</span>
               </div>
               <div>
@@ -625,7 +625,7 @@ export function SettingsPage({ isOpen, onClose, initialSection = 'general' }: Se
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search settings..."
-              className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-garden-500"
             />
           </div>
         </div>
@@ -644,7 +644,7 @@ export function SettingsPage({ isOpen, onClose, initialSection = 'general' }: Se
                     w-full px-3 py-2.5 rounded-lg text-left flex items-center gap-3 transition-all
                     ${
                       activeSection === section.id
-                        ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+                        ? 'bg-garden-600/20 text-garden-400 border border-garden-500/30'
                         : 'text-slate-400 hover:text-white hover:bg-white/5'
                     }
                   `}

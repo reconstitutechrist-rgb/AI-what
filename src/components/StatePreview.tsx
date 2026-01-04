@@ -209,7 +209,7 @@ function CardPreview({ spec, forcedState }: { spec: CardSpec; forcedState?: Comp
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex-shrink-0" />
+        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-garden-500 to-gold-500 flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <h4 className="font-medium text-slate-200 truncate">Card Title</h4>
           <p className="text-sm text-slate-400 mt-1">

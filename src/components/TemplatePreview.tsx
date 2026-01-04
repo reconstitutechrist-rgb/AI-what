@@ -47,7 +47,7 @@ export function TemplatePreview({ template, onClose, onSelect }: TemplatePreview
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-slate-900 rounded-2xl border border-white/10 max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-white/10 bg-gradient-to-r from-blue-500/10 to-purple-500/10">
+        <div className="px-6 py-5 border-b border-white/10 bg-gradient-to-r from-garden-500/10 to-gold-500/10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-xl bg-slate-800/50 flex items-center justify-center text-3xl">
@@ -122,37 +122,37 @@ export function TemplatePreview({ template, onClose, onSelect }: TemplatePreview
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
                   <div
-                    className={`flex items-center gap-2 p-2 rounded-lg ${template.technicalRequirements.needsAuth ? 'bg-blue-500/10' : 'bg-slate-700/30'}`}
+                    className={`flex items-center gap-2 p-2 rounded-lg ${template.technicalRequirements.needsAuth ? 'bg-garden-500/10' : 'bg-slate-700/30'}`}
                   >
                     <span
                       className={
                         template.technicalRequirements.needsAuth
-                          ? 'text-blue-400'
+                          ? 'text-garden-400'
                           : 'text-slate-500'
                       }
                     >
                       {template.technicalRequirements.needsAuth ? '✓' : '○'}
                     </span>
                     <span
-                      className={`text-sm ${template.technicalRequirements.needsAuth ? 'text-blue-200' : 'text-slate-500'}`}
+                      className={`text-sm ${template.technicalRequirements.needsAuth ? 'text-garden-200' : 'text-slate-500'}`}
                     >
                       Authentication
                     </span>
                   </div>
                   <div
-                    className={`flex items-center gap-2 p-2 rounded-lg ${template.technicalRequirements.needsDatabase ? 'bg-purple-500/10' : 'bg-slate-700/30'}`}
+                    className={`flex items-center gap-2 p-2 rounded-lg ${template.technicalRequirements.needsDatabase ? 'bg-gold-500/10' : 'bg-slate-700/30'}`}
                   >
                     <span
                       className={
                         template.technicalRequirements.needsDatabase
-                          ? 'text-purple-400'
+                          ? 'text-gold-400'
                           : 'text-slate-500'
                       }
                     >
                       {template.technicalRequirements.needsDatabase ? '✓' : '○'}
                     </span>
                     <span
-                      className={`text-sm ${template.technicalRequirements.needsDatabase ? 'text-purple-200' : 'text-slate-500'}`}
+                      className={`text-sm ${template.technicalRequirements.needsDatabase ? 'text-gold-200' : 'text-slate-500'}`}
                     >
                       Database
                     </span>
@@ -209,7 +209,7 @@ export function TemplatePreview({ template, onClose, onSelect }: TemplatePreview
                       {template.requiredFeatures.map((feature, index) => (
                         <span
                           key={index}
-                          className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-200 border border-blue-500/30"
+                          className="text-xs px-2 py-1 rounded-full bg-garden-500/20 text-garden-200 border border-garden-500/30"
                         >
                           {feature}
                         </span>
@@ -291,7 +291,7 @@ export function TemplatePreview({ template, onClose, onSelect }: TemplatePreview
           </button>
           <button
             onClick={onSelect}
-            className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium transition-all shadow-lg"
+            className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-garden-600 to-gold-600 hover:from-garden-700 hover:to-gold-700 text-white font-medium transition-all shadow-lg"
           >
             Use This Template
           </button>

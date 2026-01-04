@@ -127,7 +127,7 @@ export function EditableField({
       case 'low':
         return 'bg-green-500/20 text-green-300 border-green-500/30';
       default:
-        return 'bg-zinc-500/20 text-zinc-300 border-zinc-500/30';
+        return 'bg-slate-500/20 text-slate-300 border-slate-500/30';
     }
   };
 
@@ -138,7 +138,7 @@ export function EditableField({
       <div className={`relative ${className}`}>
         {label && (
           <label
-            className={`text-xs text-zinc-500 uppercase tracking-wide block mb-1 ${labelClassName}`}
+            className={`text-xs text-slate-500 uppercase tracking-wide block mb-1 ${labelClassName}`}
           >
             {label}
           </label>
@@ -154,7 +154,7 @@ export function EditableField({
               placeholder={placeholder}
               maxLength={maxLength}
               rows={3}
-              className="flex-1 bg-zinc-800 border border-blue-500 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+              className="flex-1 bg-slate-800 border border-garden-500 rounded px-2 py-1 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-garden-500 resize-none"
             />
           ) : type === 'select' || type === 'priority' ? (
             <select
@@ -167,7 +167,7 @@ export function EditableField({
               }}
               onBlur={handleSave}
               onKeyDown={handleKeyDown}
-              className="flex-1 bg-zinc-800 border border-blue-500 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="flex-1 bg-slate-800 border border-garden-500 rounded px-2 py-1 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-garden-500"
             >
               {activeOptions?.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -185,7 +185,7 @@ export function EditableField({
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
               maxLength={maxLength}
-              className="flex-1 bg-zinc-800 border border-blue-500 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="flex-1 bg-slate-800 border border-garden-500 rounded px-2 py-1 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-garden-500"
             />
           )}
           <button
@@ -216,13 +216,13 @@ export function EditableField({
     >
       {label && (
         <label
-          className={`text-xs text-zinc-500 uppercase tracking-wide block mb-1 ${labelClassName}`}
+          className={`text-xs text-slate-500 uppercase tracking-wide block mb-1 ${labelClassName}`}
         >
           {label}
         </label>
       )}
       <div
-        className={`flex items-center gap-2 ${!readOnly ? 'group-hover:bg-zinc-800/50 rounded px-2 py-1 -mx-2 -my-1 transition-colors' : ''}`}
+        className={`flex items-center gap-2 ${!readOnly ? 'group-hover:bg-slate-800/50 rounded px-2 py-1 -mx-2 -my-1 transition-colors' : ''}`}
       >
         {type === 'priority' ? (
           <span className={`px-2 py-0.5 rounded text-xs border ${getPriorityColor(value)}`}>
@@ -230,7 +230,7 @@ export function EditableField({
           </span>
         ) : (
           <span
-            className={`text-zinc-100 ${!value ? 'text-zinc-500 italic' : ''} ${valueClassName}`}
+            className={`text-slate-100 ${!value ? 'text-slate-500 italic' : ''} ${valueClassName}`}
           >
             {getDisplayValue() || placeholder}
           </span>
@@ -238,7 +238,7 @@ export function EditableField({
         {!readOnly && (
           <PencilIcon
             size={12}
-            className="text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+            className="text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
           />
         )}
       </div>

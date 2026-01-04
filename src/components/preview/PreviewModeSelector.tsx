@@ -34,15 +34,15 @@ export function PreviewModeSelector({
 }: PreviewModeSelectorProps) {
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      <span className="text-zinc-400 text-xs">Preview:</span>
+      <span className="text-slate-400 text-xs">Preview:</span>
 
-      <div className="flex bg-zinc-800 rounded-lg p-0.5">
+      <div className="flex bg-slate-800 rounded-lg p-0.5">
         {/* Browser option - Frontend only */}
         <button
           onClick={() => onModeChange('browser')}
           disabled={disabled}
           className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
-            mode === 'browser' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:text-zinc-200'
+            mode === 'browser' ? 'bg-garden-600 text-white' : 'text-slate-400 hover:text-slate-200'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           title="Frontend-only preview (instant, runs in browser via esbuild-wasm)"
         >
@@ -63,8 +63,8 @@ export function PreviewModeSelector({
           disabled={disabled}
           className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
             mode === 'railway'
-              ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
-              : 'text-zinc-400 hover:text-zinc-200'
+              ? 'bg-gradient-to-r from-gold-600 to-pink-600 text-white'
+              : 'text-slate-400 hover:text-slate-200'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           title="Full-stack preview via Railway (deploys with real backend)"
         >
@@ -77,8 +77,8 @@ export function PreviewModeSelector({
 
       {/* Mode indicator */}
       {mode === 'railway' && (
-        <span className="text-purple-400 text-xs flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+        <span className="text-gold-400 text-xs flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-gold-500 animate-pulse" />
           Railway
         </span>
       )}

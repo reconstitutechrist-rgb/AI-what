@@ -39,19 +39,19 @@ function TouchCursor({
       <div
         className={`rounded-full border-2 transition-all duration-100 ${
           isPressed
-            ? 'w-10 h-10 border-blue-400 bg-blue-400/30'
-            : 'w-8 h-8 border-blue-300/50 bg-transparent'
+            ? 'w-10 h-10 border-garden-400 bg-garden-400/30'
+            : 'w-8 h-8 border-garden-300/50 bg-transparent'
         }`}
       />
       {/* Inner dot */}
       <div
         className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-100 ${
-          isPressed ? 'w-3 h-3 bg-blue-400' : 'w-2 h-2 bg-blue-300/70'
+          isPressed ? 'w-3 h-3 bg-garden-400' : 'w-2 h-2 bg-garden-300/70'
         }`}
       />
       {/* Ripple effect on press */}
       {isPressed && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full border border-blue-400/50 animate-ping" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full border border-garden-400/50 animate-ping" />
       )}
     </div>
   );
@@ -63,7 +63,7 @@ function TouchCursor({
 
 function TouchModeBadge() {
   return (
-    <div className="absolute top-2 left-2 z-50 flex items-center gap-1.5 px-2 py-1 bg-blue-600/90 text-white text-xs font-medium rounded-full shadow-lg">
+    <div className="absolute top-2 left-2 z-50 flex items-center gap-1.5 px-2 py-1 bg-garden-600/90 text-white text-xs font-medium rounded-full shadow-lg">
       <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
       <span>Touch Mode</span>
     </div>

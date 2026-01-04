@@ -223,9 +223,9 @@ class LayoutExportServiceClass {
 
     return {
       colors: {
-        primary: colors?.primary || '#3b82f6',
-        secondary: colors?.secondary || '#6366f1',
-        accent: colors?.accent || '#8b5cf6',
+        primary: colors?.primary || '#2ECC71',
+        secondary: colors?.secondary || '#C9A227',
+        accent: colors?.accent || '#F5A6C8',
         background: colors?.background || '#0f172a',
         surface: colors?.surface || '#1e293b',
         text: {
@@ -566,7 +566,7 @@ export function Hero() {
           Get started today and see the difference.
         </p>
         <div className="flex ${alignment === 'center' ? 'justify-center' : ''} gap-4">
-          <button className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors">
+          <button className="px-6 py-3 bg-garden-600 hover:bg-garden-500 text-white rounded-lg font-medium transition-colors">
             Get Started
           </button>
           <button className="px-6 py-3 border border-current rounded-lg font-medium hover:bg-white/10 transition-colors">

@@ -170,7 +170,7 @@ export default function RollbackHistory({
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                         confirmingRollback === point.id
                           ? 'bg-yellow-500 text-black animate-pulse'
-                          : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30'
+                          : 'bg-garden-500/20 text-garden-400 hover:bg-garden-500/30 border border-garden-500/30'
                       }`}
                     >
                       {confirmingRollback === point.id ? 'Confirm?' : '🔄 Rollback'}
@@ -204,7 +204,7 @@ export default function RollbackHistory({
                         </div>
                         <button
                           onClick={() => onRollbackFile(point.id, file.path)}
-                          className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded hover:bg-blue-500/10 transition-all flex-shrink-0"
+                          className="text-xs text-garden-400 hover:text-garden-300 px-2 py-1 rounded hover:bg-garden-500/10 transition-all flex-shrink-0"
                         >
                           Restore
                         </button>

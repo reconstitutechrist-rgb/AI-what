@@ -130,8 +130,8 @@ function FeatureCell({ value }: { value: boolean | string }) {
   if (value === false) {
     return (
       <div className="flex items-center justify-center">
-        <div className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center">
-          <XMarkIcon size={14} className="text-zinc-600" />
+        <div className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center">
+          <XMarkIcon size={14} className="text-slate-600" />
         </div>
       </div>
     );
@@ -147,12 +147,12 @@ function FeatureCell({ value }: { value: boolean | string }) {
 
 export function ComparisonTable() {
   return (
-    <section className="py-24 px-4 bg-zinc-900/30">
+    <section className="py-24 px-4 bg-slate-900/30">
       <div className="max-w-5xl mx-auto">
         {/* Section Header */}
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">How We Compare</h2>
-          <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-400 max-w-2xl mx-auto">
             See how AI App Builder stacks up against other popular AI code generators.
           </p>
         </div>
@@ -168,12 +168,14 @@ export function ComparisonTable() {
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th className="text-left p-4 text-zinc-400 font-medium">Feature</th>
+                <th className="text-left p-4 text-slate-400 font-medium">Feature</th>
                 {competitors.map((comp) => (
                   <th
                     key={comp.key}
                     className={`p-4 text-center font-medium ${
-                      comp.highlight ? 'text-blue-400 bg-blue-500/10 rounded-t-xl' : 'text-zinc-400'
+                      comp.highlight
+                        ? 'text-garden-400 bg-garden-500/10 rounded-t-xl'
+                        : 'text-slate-400'
                     }`}
                   >
                     {comp.name}
@@ -183,19 +185,19 @@ export function ComparisonTable() {
             </thead>
             <tbody>
               {features.map((feature, index) => (
-                <tr key={feature.name} className={index % 2 === 0 ? 'bg-zinc-900/50' : ''}>
-                  <td className="p-4 text-zinc-300">
+                <tr key={feature.name} className={index % 2 === 0 ? 'bg-slate-900/50' : ''}>
+                  <td className="p-4 text-slate-300">
                     <span className="flex items-center gap-2">
                       {feature.name}
                       {feature.exclusive && (
-                        <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded uppercase tracking-wide">
+                        <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-garden-500 to-gold-500 text-white rounded uppercase tracking-wide">
                           Exclusive
                         </span>
                       )}
                     </span>
                   </td>
                   {competitors.map((comp) => (
-                    <td key={comp.key} className={`p-4 ${comp.highlight ? 'bg-blue-500/5' : ''}`}>
+                    <td key={comp.key} className={`p-4 ${comp.highlight ? 'bg-garden-500/5' : ''}`}>
                       <FeatureCell
                         value={feature[comp.key as keyof typeof feature] as boolean | string}
                       />
@@ -215,10 +217,12 @@ export function ComparisonTable() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mt-12 text-center"
         >
-          <p className="text-zinc-400 mb-4">Ready to build with the most capable AI app builder?</p>
+          <p className="text-slate-400 mb-4">
+            Ready to build with the most capable AI app builder?
+          </p>
           <a
             href="/signup"
-            className="inline-flex items-center gap-2 px-6 py-3 text-white bg-blue-600 hover:bg-blue-500 rounded-lg font-medium transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 text-white bg-garden-600 hover:bg-garden-500 rounded-lg font-medium transition-colors"
           >
             Start Building Free
           </a>

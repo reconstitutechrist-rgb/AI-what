@@ -42,9 +42,9 @@ const PHASE_COLORS: Record<string, { bg: string; border: string; text: string }>
     text: 'text-slate-400',
   },
   in_progress: {
-    bg: 'bg-blue-500/20',
-    border: 'border-blue-500',
-    text: 'text-blue-400',
+    bg: 'bg-garden-500/20',
+    border: 'border-garden-500',
+    text: 'text-garden-400',
   },
   completed: {
     bg: 'bg-green-500/20',
@@ -93,9 +93,9 @@ function SubPhaseList({ subPhases }: { subPhases: AnalysisPhaseState['subPhases'
             <span
               className={`w-1.5 h-1.5 rounded-full ${
                 sub.status === 'completed'
-                  ? 'bg-green-400'
+                  ? 'bg-garden-400'
                   : sub.status === 'in_progress'
-                    ? 'bg-blue-400 animate-pulse'
+                    ? 'bg-garden-400 animate-pulse'
                     : sub.status === 'error'
                       ? 'bg-red-400'
                       : 'bg-slate-500'
@@ -105,7 +105,7 @@ function SubPhaseList({ subPhases }: { subPhases: AnalysisPhaseState['subPhases'
             {sub.status === 'in_progress' && sub.progress > 0 && (
               <span className="text-slate-500">{sub.progress}%</span>
             )}
-            {sub.status === 'completed' && <span className="text-green-400">✓</span>}
+            {sub.status === 'completed' && <span className="text-garden-400">✓</span>}
           </div>
         );
       })}
@@ -129,7 +129,7 @@ function PhaseCard({
       className={`
         relative p-3 rounded-lg border transition-all duration-300
         ${colors.bg} ${colors.border}
-        ${isActive ? 'ring-2 ring-blue-400/50 ring-offset-2 ring-offset-slate-900' : ''}
+        ${isActive ? 'ring-2 ring-garden-400/50 ring-offset-2 ring-offset-slate-900' : ''}
       `}
     >
       {/* Phase Header */}
@@ -142,7 +142,7 @@ function PhaseCard({
           )}
         </div>
         {phase.status === 'in_progress' && (
-          <div className="text-sm font-mono text-blue-400">{phase.progress}%</div>
+          <div className="text-sm font-mono text-garden-400">{phase.progress}%</div>
         )}
       </div>
 
@@ -150,7 +150,7 @@ function PhaseCard({
       {phase.status === 'in_progress' && (
         <div className="mt-2 h-1 bg-slate-700 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300"
+            className="h-full bg-gradient-to-r from-garden-500 to-gold-400 transition-all duration-300"
             style={{ width: `${phase.progress}%` }}
           />
         </div>
@@ -202,19 +202,19 @@ export function AnalysisProgressIndicator({
           {activePhase && (
             <>
               <PhaseIcon phaseId={activePhase.id} status="in_progress" />
-              <span className="text-blue-400 text-sm">{activePhase.label}</span>
+              <span className="text-garden-400 text-sm">{activePhase.label}</span>
             </>
           )}
           {!activePhase && state.overallProgress === 100 && (
             <>
-              <span className="text-green-400">✅</span>
-              <span className="text-green-400 text-sm">Complete</span>
+              <span className="text-garden-400">✅</span>
+              <span className="text-garden-400 text-sm">Complete</span>
             </>
           )}
         </div>
         <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 transition-all duration-300"
+            className="h-full bg-gradient-to-r from-garden-500 via-gold-400 to-blossom-400 transition-all duration-300"
             style={{ width: `${state.overallProgress}%` }}
           />
         </div>
@@ -272,7 +272,7 @@ export function AnalysisProgressIndicator({
         </div>
         <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 transition-all duration-500"
+            className="h-full bg-gradient-to-r from-garden-500 via-gold-400 to-blossom-400 transition-all duration-500"
             style={{ width: `${state.overallProgress}%` }}
           />
         </div>
@@ -293,9 +293,9 @@ export function AnalysisProgressIndicator({
                   transition-all duration-300
                   ${
                     phase.status === 'completed'
-                      ? 'bg-green-500 border-green-500'
+                      ? 'bg-garden-500 border-garden-500'
                       : phase.status === 'in_progress'
-                        ? 'bg-blue-500 border-blue-500 animate-pulse'
+                        ? 'bg-garden-500 border-garden-500 animate-pulse'
                         : phase.status === 'error'
                           ? 'bg-red-500 border-red-500'
                           : 'bg-slate-800 border-slate-600'
@@ -338,7 +338,7 @@ export function AnalysisProgressIndicator({
               </span>
             )}
             {state.quickAnalysis.layoutType && (
-              <span className="px-2 py-1 text-xs bg-purple-500/20 rounded text-purple-300">
+              <span className="px-2 py-1 text-xs bg-gold-500/20 rounded text-gold-300">
                 {state.quickAnalysis.layoutType}
               </span>
             )}
@@ -377,10 +377,10 @@ export function InlineAnalysisProgress({
   return (
     <div className={`flex items-center gap-2 text-sm ${className}`}>
       <span className="animate-pulse">{activePhase ? PHASE_ICONS[activePhase.id] : '⏳'}</span>
-      <span className="text-blue-400">{activePhase?.label || 'Processing...'}</span>
+      <span className="text-garden-400">{activePhase?.label || 'Processing...'}</span>
       <div className="w-20 h-1 bg-slate-700 rounded-full overflow-hidden">
         <div
-          className="h-full bg-blue-500 transition-all duration-300"
+          className="h-full bg-garden-500 transition-all duration-300"
           style={{ width: `${state.overallProgress}%` }}
         />
       </div>

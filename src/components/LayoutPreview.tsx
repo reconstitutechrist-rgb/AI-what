@@ -36,7 +36,7 @@ interface ImageGenerationState {
 type ViewMode = 'mobile' | 'tablet' | 'desktop';
 
 /** Default primary color used throughout the app */
-const DEFAULT_PRIMARY_COLOR = '#3B82F6';
+const DEFAULT_PRIMARY_COLOR = '#2ECC71';
 
 /** Current year for copyright - extracted to avoid creating Date on every render */
 const CURRENT_YEAR = new Date().getFullYear();
@@ -46,7 +46,7 @@ const DEFAULT_STATUS_COLORS = {
   success: '#22c55e',
   warning: '#eab308',
   error: '#ef4444',
-  info: '#3b82f6',
+  info: '#2ECC71',
 } as const;
 
 /** Status type for list items and badges */
@@ -264,13 +264,13 @@ const colorSchemes = {
   },
   auto: {
     // Auto mode: uses a balanced theme that works in both light/dark contexts
-    bg: 'bg-zinc-900',
-    text: 'text-zinc-100',
-    textMuted: 'text-zinc-400',
-    card: 'bg-zinc-800',
-    border: 'border-zinc-700',
-    sidebar: 'bg-zinc-850',
-    header: 'bg-zinc-800',
+    bg: 'bg-slate-900',
+    text: 'text-slate-100',
+    textMuted: 'text-slate-400',
+    card: 'bg-slate-800',
+    border: 'border-slate-700',
+    sidebar: 'bg-slate-850',
+    header: 'bg-slate-800',
   },
   custom: {
     // Custom mode: neutral base that works well with custom primary colors
@@ -293,9 +293,9 @@ type ColorScheme = (typeof colorSchemes)[keyof typeof colorSchemes];
 const cardHoverEffects = {
   none: '',
   lift: 'hover:-translate-y-1 hover:shadow-lg transition-all duration-200',
-  glow: 'hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all duration-200',
+  glow: 'hover:shadow-[0_0_20px_rgba(46,204,113,0.3)] transition-all duration-200',
   scale: 'hover:scale-[1.02] transition-transform duration-200',
-  border: 'hover:border-blue-500 transition-colors duration-200',
+  border: 'hover:border-garden-500 transition-colors duration-200',
 } as const;
 
 /**
@@ -442,8 +442,8 @@ function Selectable({
       data-element-label={elementLabel}
       className={`cursor-pointer transition-all ${
         isSelected
-          ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-transparent'
-          : 'hover:ring-1 hover:ring-blue-400/50'
+          ? 'ring-2 ring-garden-500 ring-offset-2 ring-offset-transparent'
+          : 'hover:ring-1 hover:ring-garden-400/50'
       } ${className}`}
       style={style}
     >
@@ -1690,7 +1690,7 @@ export function LayoutPreview({
             type="button"
             onClick={() => setViewMode('mobile')}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-              viewMode === 'mobile' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+              viewMode === 'mobile' ? 'bg-garden-600 text-white' : 'text-slate-400 hover:text-white'
             }`}
             title="Mobile view (375x667)"
           >
@@ -1700,7 +1700,7 @@ export function LayoutPreview({
             type="button"
             onClick={() => setViewMode('tablet')}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-              viewMode === 'tablet' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+              viewMode === 'tablet' ? 'bg-garden-600 text-white' : 'text-slate-400 hover:text-white'
             }`}
             title="Tablet view (768x1024)"
           >
@@ -1710,7 +1710,9 @@ export function LayoutPreview({
             type="button"
             onClick={() => setViewMode('desktop')}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-              viewMode === 'desktop' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+              viewMode === 'desktop'
+                ? 'bg-garden-600 text-white'
+                : 'text-slate-400 hover:text-white'
             }`}
             title="Desktop view (full width)"
           >
@@ -1956,25 +1958,25 @@ export function LayoutPreview({
 
       {/* Animation Demo Progress */}
       {isAnimationDemo && (
-        <div className="mt-4 px-4 py-3 bg-purple-500/20 border border-purple-500/30 rounded-lg">
+        <div className="mt-4 px-4 py-3 bg-gold-500/20 border border-gold-500/30 rounded-lg">
           <div className="flex items-center gap-3">
             <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-purple-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-gold-500"></span>
             </span>
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-purple-200">
+                <span className="text-sm text-gold-200">
                   Previewing: <strong className="font-medium capitalize">{demoElement}</strong>
                 </span>
-                <span className="text-xs text-purple-400">
+                <span className="text-xs text-gold-400">
                   {animationDemoIndex + 1} / {ANIMATION_DEMO_SEQUENCE.length}
                 </span>
               </div>
               {/* Progress bar */}
-              <div className="h-1 bg-purple-900/50 rounded-full overflow-hidden">
+              <div className="h-1 bg-gold-900/50 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-purple-500 transition-all duration-200"
+                  className="h-full bg-gold-500 transition-all duration-200"
                   style={{
                     width: `${((animationDemoIndex + 1) / ANIMATION_DEMO_SEQUENCE.length) * 100}%`,
                   }}
@@ -1984,7 +1986,7 @@ export function LayoutPreview({
             <button
               type="button"
               onClick={stopAnimationDemo}
-              className="text-xs text-purple-400 hover:text-purple-300 px-2 py-1 rounded hover:bg-purple-500/20"
+              className="text-xs text-gold-400 hover:text-gold-300 px-2 py-1 rounded hover:bg-gold-500/20"
               aria-label="Stop animation demo"
             >
               Stop
@@ -1995,16 +1997,16 @@ export function LayoutPreview({
 
       {/* Selected Element Info */}
       {!isAnimationDemo && selectedElement && (
-        <div className="mt-4 px-4 py-3 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+        <div className="mt-4 px-4 py-3 bg-garden-500/20 border border-garden-500/30 rounded-lg">
           <div className="flex items-center gap-2">
-            <span className="text-blue-400">🎯</span>
-            <span className="text-sm text-blue-200">
+            <span className="text-garden-400">🎯</span>
+            <span className="text-sm text-garden-200">
               Selected: <strong className="font-medium">{selectedElement}</strong>
             </span>
             <button
               type="button"
               onClick={() => onElementSelect?.(null)}
-              className="ml-auto text-xs text-blue-400 hover:text-blue-300"
+              className="ml-auto text-xs text-garden-400 hover:text-garden-300"
               aria-label="Clear element selection"
             >
               Clear selection

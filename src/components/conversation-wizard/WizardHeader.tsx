@@ -24,14 +24,14 @@ export function WizardHeader({
   onCancel,
 }: WizardHeaderProps) {
   return (
-    <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
+    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-purple-600/20 flex items-center justify-center">
-          <WandIcon size={20} className="text-purple-400" />
+        <div className="w-10 h-10 rounded-lg bg-gold-600/20 flex items-center justify-center">
+          <WandIcon size={20} className="text-gold-400" />
         </div>
         <div>
-          <h1 className="font-semibold text-zinc-100">App Planning Assistant</h1>
-          <p className="text-sm text-zinc-400">
+          <h1 className="font-semibold text-slate-100">App Planning Assistant</h1>
+          <p className="text-sm text-slate-400">
             {appName ? `Planning: ${appName}` : 'Describe your app idea'}
           </p>
         </div>
@@ -41,7 +41,7 @@ export function WizardHeader({
         {currentLayoutDesign && !importedLayoutDesign && (
           <button
             onClick={onImportLayout}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 rounded-lg border border-purple-500/30 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gold-600/20 text-gold-300 hover:bg-gold-600/30 rounded-lg border border-gold-500/30 transition-colors"
           >
             <PaletteIcon size={16} />
             Import Layout

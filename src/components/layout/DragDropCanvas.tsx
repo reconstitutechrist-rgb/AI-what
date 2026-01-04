@@ -270,10 +270,10 @@ export function DragDropCanvas({
       {/* Drag overlay for visual feedback */}
       <DragOverlay>
         {activeSection ? (
-          <div className="bg-slate-800/90 border-2 border-blue-500 rounded-lg p-4 shadow-2xl">
+          <div className="bg-slate-800/90 border-2 border-garden-500 rounded-lg p-4 shadow-2xl">
             <div className="flex items-center gap-2 text-white">
               <svg
-                className="w-5 h-5 text-blue-400"
+                className="w-5 h-5 text-garden-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"

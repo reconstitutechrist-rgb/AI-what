@@ -95,7 +95,7 @@ export function ExtractedColorsPanel({
         </button>
         <button
           onClick={onApply}
-          className="flex-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors"
+          className="flex-1 px-3 py-1.5 bg-garden-600 hover:bg-garden-500 text-white text-sm rounded-lg transition-colors"
         >
           Apply Colors
         </button>

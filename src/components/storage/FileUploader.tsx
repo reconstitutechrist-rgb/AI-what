@@ -160,7 +160,7 @@ export function FileUploader({
           relative rounded-xl border-2 border-dashed transition-all duration-300
           ${
             isDragging
-              ? 'border-blue-500 bg-blue-500/10'
+              ? 'border-garden-500 bg-garden-500/10'
               : 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10'
           }
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
@@ -238,7 +238,7 @@ export function FileUploader({
           <button
             onClick={handleUpload}
             disabled={isUploading || disabled}
-            className="w-full px-4 py-3 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full px-4 py-3 rounded-lg bg-gradient-to-r from-garden-600 to-gold-600 hover:from-garden-700 hover:to-gold-700 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isUploading ? (
               <>

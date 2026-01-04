@@ -129,14 +129,14 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({
           text-sm font-medium transition-colors
           ${
             disabled
-              ? 'bg-zinc-800/50 text-zinc-500 cursor-not-allowed'
-              : 'bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-zinc-100'
+              ? 'bg-slate-800/50 text-slate-500 cursor-not-allowed'
+              : 'bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-slate-100'
           }
-          border border-zinc-700
+          border border-slate-700
         `}
         title={`Current branch: ${activeBranchName}`}
       >
-        <GitBranchIcon size={16} className="text-violet-400" />
+        <GitBranchIcon size={16} className="text-garden-400" />
         <span className="max-w-[120px] truncate">{activeBranchName}</span>
         <ChevronDownIcon
           size={14}
@@ -150,13 +150,13 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({
           className="
             absolute top-full left-0 mt-1 z-50
             min-w-[200px] max-w-[280px]
-            bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl
+            bg-slate-900 border border-slate-700 rounded-lg shadow-xl
             overflow-hidden
           "
         >
           {/* Header */}
-          <div className="px-3 py-2 border-b border-zinc-800">
-            <span className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
+          <div className="px-3 py-2 border-b border-slate-800">
+            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
               Branches
             </span>
           </div>
@@ -176,20 +176,20 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({
                     transition-colors group
                     ${
                       isActive
-                        ? 'bg-violet-500/10 text-violet-300'
-                        : 'text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100'
+                        ? 'bg-garden-500/10 text-garden-300'
+                        : 'text-slate-300 hover:bg-slate-800 hover:text-slate-100'
                     }
                   `}
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     {isActive ? (
-                      <CheckIcon size={14} className="text-violet-400 flex-shrink-0" />
+                      <CheckIcon size={14} className="text-garden-400 flex-shrink-0" />
                     ) : (
                       <span className="w-[14px]" />
                     )}
                     <span className="truncate text-sm">{branch.name}</span>
                     {branch.isDefault && (
-                      <span className="text-xs text-zinc-500 flex-shrink-0">(default)</span>
+                      <span className="text-xs text-slate-500 flex-shrink-0">(default)</span>
                     )}
                   </div>
 
@@ -199,7 +199,7 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({
                       onClick={(e) => handleDeleteClick(e, branch.id)}
                       className="
                         p-1 rounded opacity-0 group-hover:opacity-100
-                        text-zinc-500 hover:text-red-400 hover:bg-red-500/10
+                        text-slate-500 hover:text-red-400 hover:bg-red-500/10
                         transition-all
                       "
                       title="Delete branch"
@@ -213,12 +213,12 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({
           </div>
 
           {/* Create New Branch */}
-          <div className="border-t border-zinc-800">
+          <div className="border-t border-slate-800">
             <button
               onClick={handleCreateClick}
               className="
                 flex items-center gap-2 w-full px-3 py-2.5
-                text-sm text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800
+                text-sm text-slate-300 hover:text-slate-100 hover:bg-slate-800
                 transition-colors
               "
             >

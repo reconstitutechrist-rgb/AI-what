@@ -176,7 +176,7 @@ export default function HunkApprovalCard({
             📍 Lines {hunk.startLine}–{hunk.endLine}
           </span>
           {hunk.lines.some((l) => l.comments.length > 0) && (
-            <span className="flex items-center gap-1 text-blue-400">
+            <span className="flex items-center gap-1 text-garden-400">
               💬 {hunk.lines.reduce((sum, l) => sum + l.comments.length, 0)} comments
             </span>
           )}

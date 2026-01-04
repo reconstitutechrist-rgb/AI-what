@@ -97,10 +97,10 @@ export function TemplatePicker({ isOpen, onSelect, onClose }: TemplatePickerProp
             <button
               key={template.id}
               onClick={() => onSelect(template)}
-              className="text-left p-4 bg-slate-800 border border-slate-700 rounded-xl hover:border-blue-500 hover:bg-slate-750 transition-all group"
+              className="text-left p-4 bg-slate-800 border border-slate-700 rounded-xl hover:border-garden-500 hover:bg-slate-750 transition-all group"
             >
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-slate-400 group-hover:text-blue-400 transition-colors">
+                <span className="text-slate-400 group-hover:text-garden-400 transition-colors">
                   {getCategoryIcon(template.category)}
                 </span>
                 <span className="text-sm font-medium text-white">{template.name}</span>
@@ -111,12 +111,12 @@ export function TemplatePicker({ isOpen, onSelect, onClose }: TemplatePickerProp
                   className={`text-xs px-2 py-0.5 rounded-full ${
                     template.design.basePreferences?.colorScheme === 'dark'
                       ? 'bg-slate-700 text-slate-300'
-                      : 'bg-gray-200 text-gray-700'
+                      : 'bg-slate-200 text-slate-700'
                   }`}
                 >
                   {template.design.basePreferences?.colorScheme}
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-garden-500/20 text-garden-300">
                   {template.design.basePreferences?.layout}
                 </span>
               </div>

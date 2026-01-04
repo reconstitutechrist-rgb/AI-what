@@ -109,7 +109,7 @@ export function ArchitectureTemplatePicker({
             placeholder="Search blueprints..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-300 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+            className="w-full pl-9 pr-4 py-2 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-300 placeholder-slate-500 focus:outline-none focus:border-garden-500"
           />
         </div>
 
@@ -119,7 +119,7 @@ export function ArchitectureTemplatePicker({
             onClick={() => setSelectedCategory('all')}
             className={`px-3 py-1.5 text-xs rounded-lg whitespace-nowrap transition-colors ${
               selectedCategory === 'all'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-garden-600 text-white'
                 : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-300'
             }`}
           >
@@ -131,7 +131,7 @@ export function ArchitectureTemplatePicker({
               onClick={() => setSelectedCategory(cat)}
               className={`px-3 py-1.5 text-xs rounded-lg whitespace-nowrap transition-colors flex items-center gap-1.5 ${
                 selectedCategory === cat
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-garden-600 text-white'
                   : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-300'
               }`}
             >
@@ -173,7 +173,7 @@ export function ArchitectureTemplatePicker({
                 setSelectedComplexity('all');
                 setSearchQuery('');
               }}
-              className="mt-2 text-sm text-blue-400 hover:text-blue-300"
+              className="mt-2 text-sm text-garden-400 hover:text-garden-300"
             >
               Clear filters
             </button>
@@ -220,7 +220,7 @@ function TemplateCard({
         <div className="flex items-center gap-2">
           <span className="text-2xl">{template.icon}</span>
           <div>
-            <h4 className="font-medium text-white group-hover:text-blue-400 transition-colors">
+            <h4 className="font-medium text-white group-hover:text-garden-400 transition-colors">
               {template.name}
             </h4>
             <span className="text-xs text-slate-500">

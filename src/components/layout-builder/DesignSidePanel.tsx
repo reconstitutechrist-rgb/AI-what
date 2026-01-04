@@ -117,7 +117,7 @@ export function DesignSidePanel({
           ? 'bg-red-600'
           : lintResult.summary.warnings > 0
             ? 'bg-yellow-600'
-            : 'bg-blue-600',
+            : 'bg-garden-600',
     },
     {
       id: 'shadcn',
@@ -175,8 +175,8 @@ export function DesignSidePanel({
         <div className="flex-shrink-0 border-b border-slate-700">
           {/* Mode Badge */}
           {analysisMode === 'pixel-perfect' && (
-            <div className="px-3 py-1.5 bg-purple-500/20 border-b border-purple-500/30">
-              <div className="flex items-center gap-2 text-xs text-purple-300">
+            <div className="px-3 py-1.5 bg-gold-500/20 border-b border-gold-500/30">
+              <div className="flex items-center gap-2 text-xs text-gold-300">
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
@@ -198,13 +198,13 @@ export function DesignSidePanel({
 
           {/* Selected Element Indicator */}
           {selectedElement && (
-            <div className="px-3 py-2 bg-blue-500/20 border-b border-blue-500/30 flex items-center justify-between">
-              <span className="text-xs text-blue-300">
+            <div className="px-3 py-2 bg-garden-500/20 border-b border-garden-500/30 flex items-center justify-between">
+              <span className="text-xs text-garden-300">
                 Selected: <strong>{selectedElement}</strong>
               </span>
               <button
                 onClick={onClearSelection}
-                className="text-xs text-blue-400 hover:text-blue-300"
+                className="text-xs text-garden-400 hover:text-garden-300"
               >
                 Clear
               </button>
@@ -226,13 +226,13 @@ export function DesignSidePanel({
                 {tab.label}
                 {tab.badge && tab.badge > 0 && (
                   <span
-                    className={`ml-1.5 px-1.5 py-0.5 text-[10px] ${tab.badgeColor || 'bg-purple-600'} text-white rounded-full`}
+                    className={`ml-1.5 px-1.5 py-0.5 text-[10px] ${tab.badgeColor || 'bg-gold-600'} text-white rounded-full`}
                   >
                     {tab.badge}
                   </span>
                 )}
                 {activeTab === tab.id && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-garden-500" />
                 )}
               </button>
             ))}

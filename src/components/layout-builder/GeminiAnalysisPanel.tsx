@@ -68,7 +68,7 @@ function SectionHeader({ icon, title }: { icon: string; title: string }) {
  */
 function VibeBadge({ keyword }: { keyword: string }) {
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gold-500/20 text-gold-300 border border-gold-500/30">
       {keyword}
     </span>
   );

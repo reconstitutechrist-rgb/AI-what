@@ -57,14 +57,14 @@ export function SuggestedActionsBar({
   return (
     <div className="px-6 py-2 flex flex-wrap gap-2">
       {elementType && (
-        <span className="flex items-center text-xs text-zinc-500 mr-2">{elementType}:</span>
+        <span className="flex items-center text-xs text-slate-500 mr-2">{elementType}:</span>
       )}
       {displayActions.map((action) => (
         <button
           key={'prompt' in action ? action.prompt : action.action}
           onClick={() => onAction(getActionString(action))}
           disabled={disabled}
-          className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {action.label}
         </button>

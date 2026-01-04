@@ -9,84 +9,124 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        'sans': ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        'sans': ['Outfit', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        'heading': ['Cormorant Garamond', 'Georgia', 'Cambria', 'Times New Roman', 'serif'],
+        'body': ['Outfit', 'system-ui', '-apple-system', 'sans-serif'],
       },
       colors: {
-        'primary': '#3B82F6',
-        'secondary': '#6366F1',
-        // Surface layers for consistent UI hierarchy
+        // Garden Theme - Primary semantic colors
+        'primary': '#2ECC71',
+        'secondary': '#C9A227',
+
+        // Garden green palette
+        garden: {
+          50: '#F6F9F2',
+          100: '#F0F5EC',
+          200: '#E6ECDF',
+          300: '#D4DEC8',
+          400: '#8FC99A',
+          500: '#7FB285',
+          600: '#4A9B5F',
+          700: '#2ECC71',
+          800: '#1D6F42',
+          900: '#1A3D26',
+          950: '#0B1A10',
+        },
+
+        // Gold palette
+        gold: {
+          50: '#FBF5E6',
+          100: '#F5ECD0',
+          200: '#E8D48B',
+          300: '#D4AF37',
+          400: '#C9A227',
+          500: '#B8922A',
+          600: '#9A7A22',
+          700: '#7C621B',
+          800: '#5E4A14',
+          900: '#40320D',
+        },
+
+        // Blossom/pink accent
+        blossom: {
+          50: '#FFF5F7',
+          100: '#FADCE6',
+          200: '#FFB8CA',
+          300: '#E89AAD',
+          400: '#C06C84',
+          500: '#A85A6F',
+          600: '#8A4859',
+          700: '#6C3644',
+          800: '#4E242F',
+          900: '#30121A',
+        },
+
+        // Surface layers for UI hierarchy - Light mode defaults
         surface: {
-          DEFAULT: '#09090b',      // zinc-950
-          elevated: '#18181b',     // zinc-900
-          overlay: '#27272a',      // zinc-800
-          border: '#3f3f46',       // zinc-700
+          DEFAULT: '#F6F9F2',
+          elevated: '#FEFCF8',
+          overlay: '#F0F5EC',
+          border: '#E6ECDF',
         },
-        // Linear/Vercel-inspired color palette
+
+        // Garden-inspired color palette (replaces linear)
         linear: {
-          bg: '#0a0a0a',
-          'bg-elevated': '#141414',
-          'bg-hover': '#1a1a1a',
-          'bg-subtle': '#18181b',
-          border: '#262626',
-          'border-subtle': '#1f1f1f',
-          text: '#fafafa',
-          'text-secondary': '#a1a1aa',
-          'text-muted': '#71717a',
-          accent: '#3b82f6',
-          'accent-hover': '#2563eb',
+          bg: '#F6F9F2',
+          'bg-elevated': '#FEFCF8',
+          'bg-hover': '#F0F5EC',
+          'bg-subtle': '#E6ECDF',
+          border: '#E6ECDF',
+          'border-subtle': '#D4DEC8',
+          text: '#1A3D26',
+          'text-secondary': '#5A7D64',
+          'text-muted': '#8BA895',
+          accent: '#2ECC71',
+          'accent-hover': '#1D6F42',
         },
-        zinc: {
-          750: '#323238',
-          850: '#1f1f23',
-          925: '#131316',
-        },
-        // Extended grays with more steps
-        gray: {
-          850: '#1f2937',
-          950: '#0d1117',
-        },
-        // Semantic colors
+
+        // Semantic colors - garden themed
         success: {
-          50: '#f0fdf4',
-          100: '#dcfce7',
-          200: '#bbf7d0',
-          300: '#86efac',
-          400: '#4ade80',
-          500: '#22c55e',
-          600: '#16a34a',
-          700: '#15803d',
-          800: '#166534',
-          900: '#14532d',
+          50: '#F6F9F2',
+          100: '#F0F5EC',
+          200: '#D4DEC8',
+          300: '#8FC99A',
+          400: '#4A9B5F',
+          500: '#2ECC71',
+          600: '#1D6F42',
+          700: '#1A5A38',
+          800: '#16472D',
+          900: '#123422',
         },
         warning: {
-          50: '#fffbeb',
-          100: '#fef3c7',
-          200: '#fde68a',
-          300: '#fcd34d',
-          400: '#fbbf24',
-          500: '#f59e0b',
-          600: '#d97706',
-          700: '#b45309',
-          800: '#92400e',
-          900: '#78350f',
+          50: '#FBF5E6',
+          100: '#F5ECD0',
+          200: '#E8D48B',
+          300: '#D4AF37',
+          400: '#C9A227',
+          500: '#B8922A',
+          600: '#9A7A22',
+          700: '#7C621B',
+          800: '#5E4A14',
+          900: '#40320D',
         },
         error: {
-          50: '#fef2f2',
-          100: '#fee2e2',
-          200: '#fecaca',
-          300: '#fca5a5',
-          400: '#f87171',
-          500: '#ef4444',
-          600: '#dc2626',
-          700: '#b91c1c',
-          800: '#991b1b',
-          900: '#7f1d1d',
+          50: '#FFF5F7',
+          100: '#FADCE6',
+          200: '#FFB8CA',
+          300: '#E89AAD',
+          400: '#C06C84',
+          500: '#A85A6F',
+          600: '#8A4859',
+          700: '#6C3644',
+          800: '#4E242F',
+          900: '#30121A',
         },
+
         // Glass/transparency utilities
         glass: {
-          light: 'rgba(255, 255, 255, 0.1)',
-          medium: 'rgba(255, 255, 255, 0.2)',
-          heavy: 'rgba(255, 255, 255, 0.3)',
+          light: 'rgba(46, 204, 113, 0.1)',
+          medium: 'rgba(46, 204, 113, 0.2)',
+          heavy: 'rgba(46, 204, 113, 0.3)',
         },
       },
       // Extended spacing scale
@@ -117,21 +157,31 @@ module.exports = {
         '8xl': ['6rem', { lineHeight: '1' }],
         '9xl': ['8rem', { lineHeight: '1' }],
       },
-      // Custom box shadows
+      // Custom box shadows - Garden themed
       boxShadow: {
         'inner-sm': 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)',
         'inner-md': 'inset 0 2px 4px 0 rgb(0 0 0 / 0.1)',
-        'glow-sm': '0 0 10px rgba(59, 130, 246, 0.3)',
-        'glow-md': '0 0 20px rgba(59, 130, 246, 0.4)',
-        'glow-lg': '0 0 30px rgba(59, 130, 246, 0.5)',
-        'glow-purple': '0 0 20px rgba(147, 51, 234, 0.4)',
-        'glow-green': '0 0 20px rgba(34, 197, 94, 0.4)',
-        'elevated-sm': '0 2px 8px -2px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06)',
-        'elevated-md': '0 4px 16px -4px rgba(0, 0, 0, 0.15), 0 2px 8px -2px rgba(0, 0, 0, 0.1)',
-        'elevated-lg': '0 8px 32px -8px rgba(0, 0, 0, 0.2), 0 4px 16px -4px rgba(0, 0, 0, 0.15)',
+        // Green glows for primary actions
+        'glow-sm': '0 0 10px rgba(46, 204, 113, 0.3)',
+        'glow-md': '0 0 20px rgba(46, 204, 113, 0.4)',
+        'glow-lg': '0 0 30px rgba(46, 204, 113, 0.5)',
+        // Gold glow for secondary/premium
+        'glow-gold': '0 0 20px rgba(201, 162, 39, 0.4)',
+        // Blossom glow for accents
+        'glow-blossom': '0 0 20px rgba(192, 108, 132, 0.4)',
+        // Keep green alias
+        'glow-green': '0 0 20px rgba(46, 204, 113, 0.4)',
+        // Soft garden shadows (light mode)
+        'garden-sm': '0 2px 8px -2px rgba(26, 61, 38, 0.08)',
+        'garden-md': '0 4px 16px -4px rgba(26, 61, 38, 0.12)',
+        'garden-lg': '0 8px 32px -8px rgba(26, 61, 38, 0.16)',
+        // Elevated shadows
+        'elevated-sm': '0 2px 8px -2px rgba(26, 61, 38, 0.08), 0 2px 4px -2px rgba(26, 61, 38, 0.04)',
+        'elevated-md': '0 4px 16px -4px rgba(26, 61, 38, 0.12), 0 2px 8px -2px rgba(26, 61, 38, 0.08)',
+        'elevated-lg': '0 8px 32px -8px rgba(26, 61, 38, 0.16), 0 4px 16px -4px rgba(26, 61, 38, 0.12)',
         // Button shadows
-        'btn': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-        'btn-hover': '0 1px 3px 0 rgb(0 0 0 / 0.1)',
+        'btn': '0 1px 2px 0 rgba(26, 61, 38, 0.05)',
+        'btn-hover': '0 1px 3px 0 rgba(26, 61, 38, 0.1)',
       },
       // Backdrop blur extensions
       backdropBlur: {
@@ -139,8 +189,11 @@ module.exports = {
         '2xl': '40px',
         '3xl': '64px',
       },
-      // Border radius extensions
+      // Border radius extensions - Garden theme uses 12-20px rounded corners
       borderRadius: {
+        'garden': '12px',
+        'garden-lg': '16px',
+        'garden-xl': '20px',
         '4xl': '2rem',
         '5xl': '2.5rem',
       },
@@ -215,12 +268,17 @@ module.exports = {
           '100%': { backgroundPosition: '200% 0' },
         },
         glow: {
-          '0%, 100%': { boxShadow: '0 0 5px rgba(59, 130, 246, 0.5)' },
-          '50%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.8)' },
+          '0%, 100%': { boxShadow: '0 0 5px rgba(46, 204, 113, 0.5)' },
+          '50%': { boxShadow: '0 0 20px rgba(46, 204, 113, 0.8)' },
         },
         pulseGlow: {
-          '0%, 100%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.5)' },
-          '50%': { boxShadow: '0 0 40px rgba(59, 130, 246, 0.8)' }
+          '0%, 100%': { boxShadow: '0 0 20px rgba(46, 204, 113, 0.5)' },
+          '50%': { boxShadow: '0 0 40px rgba(46, 204, 113, 0.8)' }
+        },
+        // Gold glow animation
+        glowGold: {
+          '0%, 100%': { boxShadow: '0 0 5px rgba(201, 162, 39, 0.5)' },
+          '50%': { boxShadow: '0 0 20px rgba(201, 162, 39, 0.8)' },
         }
       },
       animation: {
@@ -238,7 +296,8 @@ module.exports = {
         'bounce-soft': 'bounceSoft 1s ease-in-out infinite',
         'shimmer': 'shimmer 2s linear infinite',
         'glow': 'glow 2s ease-in-out infinite',
-        'pulse-glow': 'pulseGlow 2s ease-in-out infinite'
+        'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
+        'glow-gold': 'glowGold 2s ease-in-out infinite'
       }
     },
   },

@@ -58,8 +58,8 @@ export function LintPanel({ design }: LintPanelProps) {
               </span>
             )}
             {lintResult.summary.info > 0 && (
-              <span className="flex items-center gap-1 text-blue-400">
-                <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+              <span className="flex items-center gap-1 text-garden-400">
+                <span className="w-2 h-2 rounded-full bg-garden-400"></span>
                 {lintResult.summary.info} suggestions
               </span>
             )}
@@ -130,7 +130,7 @@ export function LintPanel({ design }: LintPanelProps) {
             <span className="text-yellow-400">⚠</span> Warning
           </span>
           <span className="flex items-center gap-1">
-            <span className="text-blue-400">ℹ</span> Suggestion
+            <span className="text-garden-400">ℹ</span> Suggestion
           </span>
         </div>
       </div>

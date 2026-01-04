@@ -76,12 +76,12 @@ export function RolesSection({ appConcept, onUpdate, readOnly = false }: RolesSe
         className="flex items-center gap-2 w-full text-left mb-2"
       >
         {isExpanded ? (
-          <ChevronDownIcon size={14} className="text-zinc-400" />
+          <ChevronDownIcon size={14} className="text-slate-400" />
         ) : (
-          <ChevronRightIcon size={14} className="text-zinc-400" />
+          <ChevronRightIcon size={14} className="text-slate-400" />
         )}
-        <UsersIcon size={14} className="text-zinc-400" />
-        <span className="text-xs text-zinc-500 uppercase tracking-wide">
+        <UsersIcon size={14} className="text-slate-400" />
+        <span className="text-xs text-slate-500 uppercase tracking-wide">
           User Roles ({roles.length})
         </span>
       </button>
@@ -89,12 +89,12 @@ export function RolesSection({ appConcept, onUpdate, readOnly = false }: RolesSe
       {isExpanded && (
         <div className="space-y-3 pl-5">
           {roles.length === 0 ? (
-            <p className="text-sm text-zinc-500 italic py-2">No roles defined</p>
+            <p className="text-sm text-slate-500 italic py-2">No roles defined</p>
           ) : (
             roles.map((role, roleIndex) => (
               <div
                 key={roleIndex}
-                className="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700/50"
+                className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50"
               >
                 <div className="flex items-center gap-2 mb-2">
                   <EditableField
@@ -107,7 +107,7 @@ export function RolesSection({ appConcept, onUpdate, readOnly = false }: RolesSe
                     <button
                       type="button"
                       onClick={() => handleDeleteRole(roleIndex)}
-                      className="ml-auto p-1 text-zinc-500 hover:text-red-400 transition-colors"
+                      className="ml-auto p-1 text-slate-500 hover:text-red-400 transition-colors"
                       title="Delete role"
                     >
                       <TrashIcon size={14} />
@@ -117,24 +117,24 @@ export function RolesSection({ appConcept, onUpdate, readOnly = false }: RolesSe
 
                 {/* Capabilities */}
                 <div className="space-y-1">
-                  <label className="text-[10px] text-zinc-600 uppercase tracking-wide">
+                  <label className="text-[10px] text-slate-600 uppercase tracking-wide">
                     Capabilities
                   </label>
                   {role.capabilities.map((cap, capIndex) => (
                     <div key={capIndex} className="flex items-center gap-2 group">
-                      <span className="w-1.5 h-1.5 bg-zinc-600 rounded-full" />
+                      <span className="w-1.5 h-1.5 bg-slate-600 rounded-full" />
                       <EditableField
                         value={cap}
                         onChange={(value) => handleUpdateCapability(roleIndex, capIndex, value)}
                         readOnly={readOnly}
-                        valueClassName="text-xs text-zinc-400"
+                        valueClassName="text-xs text-slate-400"
                         className="flex-1"
                       />
                       {!readOnly && (
                         <button
                           type="button"
                           onClick={() => handleDeleteCapability(roleIndex, capIndex)}
-                          className="p-0.5 text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                          className="p-0.5 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
                         >
                           <TrashIcon size={12} />
                         </button>
@@ -145,7 +145,7 @@ export function RolesSection({ appConcept, onUpdate, readOnly = false }: RolesSe
                     <button
                       type="button"
                       onClick={() => handleAddCapability(roleIndex)}
-                      className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 mt-1"
+                      className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 mt-1"
                     >
                       <PlusIcon size={12} />
                       Add capability
@@ -161,7 +161,7 @@ export function RolesSection({ appConcept, onUpdate, readOnly = false }: RolesSe
             <button
               type="button"
               onClick={handleAddRole}
-              className="flex items-center gap-2 w-full py-2 px-3 text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 rounded-lg border border-dashed border-zinc-700 hover:border-zinc-600 transition-colors"
+              className="flex items-center gap-2 w-full py-2 px-3 text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 rounded-lg border border-dashed border-slate-700 hover:border-slate-600 transition-colors"
             >
               <PlusIcon size={14} />
               Add Role

@@ -76,7 +76,7 @@ export default function ReviewSidebar({
         <h2 className="text-white font-semibold flex items-center gap-2">
           <span>📋</span>
           <span>Changes to Review</span>
-          <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
+          <span className="text-xs bg-garden-500/20 text-garden-400 px-2 py-0.5 rounded-full">
             {changes.length}
           </span>
         </h2>
@@ -90,7 +90,7 @@ export default function ReviewSidebar({
           <select
             value={categoryFilter}
             onChange={(e) => onCategoryFilterChange(e.target.value as ChangeCategory | 'all')}
-            className="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
           >
             {categories.map((cat) => (
               <option key={cat} value={cat}>
@@ -112,7 +112,7 @@ export default function ReviewSidebar({
                 onClick={() => onStatusFilterChange(status)}
                 className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   statusFilter === status
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-garden-600 text-white'
                     : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
                 }`}
               >
@@ -142,7 +142,7 @@ export default function ReviewSidebar({
                   onClick={() => onSelectFile(change.path)}
                   className={`w-full px-3 py-2.5 text-left transition-all ${
                     isSelected
-                      ? 'bg-blue-500/20 border-l-2 border-blue-500'
+                      ? 'bg-garden-500/20 border-l-2 border-garden-500'
                       : 'hover:bg-white/5 border-l-2 border-transparent'
                   }`}
                 >

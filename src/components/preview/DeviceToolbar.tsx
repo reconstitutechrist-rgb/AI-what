@@ -40,15 +40,15 @@ function DeviceToggle({
   ];
 
   return (
-    <div className="flex items-center bg-zinc-800 rounded-lg p-0.5 border border-zinc-700">
+    <div className="flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700">
       {devices.map((device) => (
         <button
           key={device.id}
           onClick={() => onSelect(device.id)}
           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors ${
             currentDeviceId === device.id || (!currentDeviceId && device.id === 'desktop')
-              ? 'bg-blue-600 text-white'
-              : 'text-zinc-400 hover:text-white'
+              ? 'bg-garden-600 text-white'
+              : 'text-slate-400 hover:text-white'
           }`}
           title={`${device.label} view (${device.title})`}
         >
@@ -80,7 +80,7 @@ export function DeviceToolbar({
 
   return (
     <div
-      className={`flex items-center justify-between gap-3 px-3 py-2 bg-zinc-900/80 backdrop-blur-sm border-b border-zinc-800 ${className}`}
+      className={`flex items-center justify-between gap-3 px-3 py-2 bg-slate-900/80 backdrop-blur-sm border-b border-slate-800 ${className}`}
     >
       {/* Left side: Device toggle and dimensions */}
       <div className="flex items-center gap-3">
@@ -88,14 +88,14 @@ export function DeviceToolbar({
         <DeviceToggle currentDeviceId={devicePreset} onSelect={onSelectDevice} />
 
         {/* Divider */}
-        <div className="w-px h-6 bg-zinc-700" />
+        <div className="w-px h-6 bg-slate-700" />
 
         {/* Dimensions display */}
-        <div className="flex items-center gap-2 text-xs text-zinc-400 font-mono">
+        <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
           <span>{width}</span>
           <span>×</span>
           <span>{height === 'auto' ? 'auto' : height}</span>
-          <span className="text-zinc-600">px</span>
+          <span className="text-slate-600">px</span>
         </div>
       </div>
 
@@ -106,7 +106,7 @@ export function DeviceToolbar({
           <button
             onClick={onCapture}
             disabled={isCapturing}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 disabled:opacity-50"
             title="Capture for AI"
           >
             {isCapturing ? (
@@ -124,7 +124,7 @@ export function DeviceToolbar({
         {onFullscreen && (
           <button
             onClick={onFullscreen}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-slate-800 hover:bg-slate-700 text-white border border-slate-700"
             title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
           >
             <span>{isFullscreen ? '⤓' : '⤢'}</span>
@@ -138,7 +138,7 @@ export function DeviceToolbar({
           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
             showConsole
               ? 'bg-green-600/20 text-green-300 border border-green-500/30'
-              : 'bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-700'
+              : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
           }`}
           title={showConsole ? 'Hide console' : 'Show console'}
         >

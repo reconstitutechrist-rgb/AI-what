@@ -14,7 +14,7 @@ export function CTASection() {
         transition={{ duration: 0.5 }}
         className="max-w-4xl mx-auto"
       >
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700 p-12 text-center">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-garden-600 via-garden-700 to-gold-600 p-12 text-center">
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-10">
             <div
@@ -27,7 +27,7 @@ export function CTASection() {
 
           {/* Glow Effects */}
           <div className="absolute top-0 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-purple-400/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-gold-400/20 rounded-full blur-3xl" />
 
           <div className="relative">
             {/* Icon */}
@@ -41,7 +41,7 @@ export function CTASection() {
             </h2>
 
             {/* Description */}
-            <p className="text-lg text-blue-100 mb-8 max-w-xl mx-auto">
+            <p className="text-lg text-garden-100 mb-8 max-w-xl mx-auto">
               Join developers who are building full-stack applications faster than ever. No credit
               card required to get started.
             </p>
@@ -50,7 +50,7 @@ export function CTASection() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/signup"
-                className="group flex items-center gap-2 px-8 py-4 text-lg font-semibold text-blue-600 bg-white hover:bg-blue-50 rounded-xl transition-all hover:scale-105"
+                className="group flex items-center gap-2 px-8 py-4 text-lg font-semibold text-garden-600 bg-white hover:bg-garden-50 rounded-xl transition-all hover:scale-105"
               >
                 <span>Start Building Free</span>
                 <ArrowRightIcon

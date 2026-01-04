@@ -54,7 +54,7 @@ function FileTreeNodeComponent({
           )}
           <FolderIcon
             size={14}
-            className={`flex-shrink-0 ${isExpanded ? 'text-blue-400' : 'text-slate-400'}`}
+            className={`flex-shrink-0 ${isExpanded ? 'text-garden-400' : 'text-slate-400'}`}
           />
           <span className="truncate">{node.name}</span>
         </button>
@@ -85,7 +85,7 @@ function FileTreeNodeComponent({
       onClick={() => onSelectFile(node.path)}
       className={`w-full flex items-center gap-1.5 px-2 py-1 text-sm transition-colors rounded ${
         isSelected
-          ? 'bg-blue-600/20 text-blue-300 border-l-2 border-blue-500'
+          ? 'bg-garden-600/20 text-garden-300 border-l-2 border-garden-500'
           : 'text-slate-300 hover:bg-white/5 hover:text-white border-l-2 border-transparent'
       }`}
       style={{ paddingLeft: `${8 + indentPx + 16}px` }}

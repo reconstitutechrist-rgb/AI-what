@@ -55,7 +55,7 @@ function FormatSelector({
             p-3 rounded-lg border text-left transition-all
             ${
               selected === format.value
-                ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/30'
+                ? 'border-garden-500 bg-garden-500/10 ring-2 ring-garden-500/30'
                 : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
             }
           `}
@@ -87,7 +87,7 @@ function SectionToggle({
         onClick={onToggle}
         className={`
           w-10 h-5 rounded-full transition-colors relative
-          ${enabled ? 'bg-blue-600' : 'bg-slate-700'}
+          ${enabled ? 'bg-garden-600' : 'bg-slate-700'}
         `}
       >
         <span
@@ -234,7 +234,7 @@ export function DocumentationExport({
             type="text"
             value={config.title || ''}
             onChange={(e) => setConfig({ ...config, title: e.target.value })}
-            className="w-full px-3 py-2 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-blue-500 focus:outline-none"
+            className="w-full px-3 py-2 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-garden-500 focus:outline-none"
           />
         </div>
         <div>
@@ -243,7 +243,7 @@ export function DocumentationExport({
             type="text"
             value={config.version || ''}
             onChange={(e) => setConfig({ ...config, version: e.target.value })}
-            className="w-full px-3 py-2 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-blue-500 focus:outline-none"
+            className="w-full px-3 py-2 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-garden-500 focus:outline-none"
           />
         </div>
       </div>
@@ -272,7 +272,7 @@ export function DocumentationExport({
               type="checkbox"
               checked={config.includeCSSVariables}
               onChange={(e) => setConfig({ ...config, includeCSSVariables: e.target.checked })}
-              className="rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-blue-500"
+              className="rounded border-slate-600 bg-slate-800 text-garden-600 focus:ring-garden-500"
             />
             <span className="text-sm text-slate-300">Include CSS Variables</span>
           </label>
@@ -281,7 +281,7 @@ export function DocumentationExport({
               type="checkbox"
               checked={config.includeTailwindConfig}
               onChange={(e) => setConfig({ ...config, includeTailwindConfig: e.target.checked })}
-              className="rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-blue-500"
+              className="rounded border-slate-600 bg-slate-800 text-garden-600 focus:ring-garden-500"
             />
             <span className="text-sm text-slate-300">Include Tailwind Config</span>
           </label>
@@ -290,7 +290,7 @@ export function DocumentationExport({
               type="checkbox"
               checked={config.includeCodeSnippets}
               onChange={(e) => setConfig({ ...config, includeCodeSnippets: e.target.checked })}
-              className="rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-blue-500"
+              className="rounded border-slate-600 bg-slate-800 text-garden-600 focus:ring-garden-500"
             />
             <span className="text-sm text-slate-300">Include Code Snippets</span>
           </label>
@@ -304,7 +304,7 @@ export function DocumentationExport({
       <div className="flex gap-3">
         <button
           onClick={handleDownload}
-          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors font-medium"
+          className="flex-1 px-4 py-2 bg-garden-600 text-white rounded-lg hover:bg-garden-500 transition-colors font-medium"
         >
           Download {format.toUpperCase()}
         </button>

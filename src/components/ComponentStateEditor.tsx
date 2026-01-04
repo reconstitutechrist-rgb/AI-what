@@ -55,7 +55,7 @@ function ColorInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={label}
-        className="flex-1 px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-md text-slate-200 focus:border-blue-500 focus:outline-none"
+        className="flex-1 px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-md text-slate-200 focus:border-garden-500 focus:outline-none"
       />
     </div>
   );
@@ -86,13 +86,13 @@ function PropertyEditor({
             onChange={(e) =>
               onChange(property.unit ? `${e.target.value}${property.unit}` : e.target.value)
             }
-            className="flex-1 accent-blue-500"
+            className="flex-1 accent-garden-500"
           />
           <input
             type="text"
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className="w-20 px-2 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-md text-slate-200 focus:border-blue-500 focus:outline-none"
+            className="w-20 px-2 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-md text-slate-200 focus:border-garden-500 focus:outline-none"
           />
         </div>
       );
@@ -102,7 +102,7 @@ function PropertyEditor({
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-md text-slate-200 focus:border-blue-500 focus:outline-none"
+          className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-md text-slate-200 focus:border-garden-500 focus:outline-none"
         >
           {property.options?.map((opt) => (
             <option key={opt} value={opt}>
@@ -119,7 +119,7 @@ function PropertyEditor({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={property.label}
-          className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-md text-slate-200 focus:border-blue-500 focus:outline-none"
+          className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-md text-slate-200 focus:border-garden-500 focus:outline-none"
         />
       );
   }
@@ -157,7 +157,7 @@ function StateTabs({
               flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all
               ${
                 isActive
-                  ? 'bg-blue-600 text-white shadow-lg'
+                  ? 'bg-garden-600 text-white shadow-lg'
                   : 'text-slate-400 hover:text-white hover:bg-slate-700'
               }
             `}
@@ -195,7 +195,7 @@ function ComponentTypeTabs({
             px-4 py-2 text-sm font-medium rounded-lg transition-all border
             ${
               currentType === type
-                ? 'bg-purple-600/20 border-purple-500 text-purple-300'
+                ? 'bg-gold-600/20 border-gold-500 text-gold-300'
                 : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-300'
             }
           `}

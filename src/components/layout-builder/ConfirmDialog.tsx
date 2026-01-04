@@ -29,7 +29,7 @@ export function ConfirmDialog({
   const variantStyles = {
     warning: 'bg-yellow-600 hover:bg-yellow-500',
     danger: 'bg-red-600 hover:bg-red-500',
-    info: 'bg-blue-600 hover:bg-blue-500',
+    info: 'bg-garden-600 hover:bg-garden-500',
   };
 
   return (

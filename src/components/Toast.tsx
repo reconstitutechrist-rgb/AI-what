@@ -47,7 +47,7 @@ const toastStyles: Record<ToastType, string> = {
   success: 'bg-green-500/20 border-green-500/30 text-green-200',
   error: 'bg-red-500/20 border-red-500/30 text-red-200',
   warning: 'bg-yellow-500/20 border-yellow-500/30 text-yellow-200',
-  info: 'bg-blue-500/20 border-blue-500/30 text-blue-200',
+  info: 'bg-garden-500/20 border-garden-500/30 text-garden-200',
 };
 
 /**

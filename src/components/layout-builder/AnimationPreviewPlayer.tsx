@@ -134,7 +134,7 @@ export function AnimationPreviewPlayer({
         <div
           ref={elementRef}
           style={animationStyle}
-          className="w-32 h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg flex items-center justify-center"
+          className="w-32 h-32 bg-gradient-to-br from-garden-500 to-gold-500 rounded-xl shadow-lg flex items-center justify-center"
         >
           <span className="text-white font-medium text-sm">Preview</span>
         </div>
@@ -163,7 +163,7 @@ export function AnimationPreviewPlayer({
             type="button"
             onClick={play}
             disabled={isPlaying && !loop}
-            className="flex-1 px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-400 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2 text-sm bg-garden-600 hover:bg-garden-500 disabled:bg-slate-700 disabled:text-slate-400 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
@@ -194,7 +194,7 @@ export function AnimationPreviewPlayer({
         <div className="font-mono text-xs text-slate-300 space-y-1">
           {Object.entries(keyframes).map(([key, styles]) => (
             <div key={key} className="flex">
-              <span className="text-blue-400 w-12">{key}</span>
+              <span className="text-garden-400 w-12">{key}</span>
               <span className="text-slate-500">
                 {Object.entries(styles)
                   .map(([p, v]) => `${p}: ${v}`)

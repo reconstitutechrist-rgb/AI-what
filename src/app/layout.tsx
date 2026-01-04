@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: 'AI App Builder',
   description: 'Build React components and apps using AI - the right way',
   manifest: '/manifest.json',
-  themeColor: '#1e40af',
+  themeColor: '#2ECC71',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',

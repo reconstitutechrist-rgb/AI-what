@@ -193,8 +193,8 @@ function PropertyTrack({
               w-4 h-4 rotate-45 cursor-move transition-all
               ${
                 selectedKeyframeId === kf.id
-                  ? 'bg-blue-500 ring-2 ring-blue-300 scale-110'
-                  : 'bg-amber-500 hover:bg-amber-400'
+                  ? 'bg-garden-500 ring-2 ring-garden-300 scale-110'
+                  : 'bg-gold-400 hover:bg-gold-300'
               }
               ${dragging === kf.id ? 'scale-125' : ''}
             `}
@@ -230,7 +230,7 @@ function PlaybackControls({
       <button
         onClick={onPlayPause}
         className={`p-2 rounded-lg transition-colors ${
-          isPlaying ? 'bg-red-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-500'
+          isPlaying ? 'bg-red-600 text-white' : 'bg-garden-600 text-white hover:bg-garden-500'
         }`}
       >
         {isPlaying ? (
@@ -274,7 +274,7 @@ function PlaybackControls({
       <button
         onClick={onLoopToggle}
         className={`p-2 rounded-lg transition-colors ${
-          loop ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-400 hover:text-white'
+          loop ? 'bg-gold-600 text-white' : 'bg-slate-700 text-slate-400 hover:text-white'
         }`}
         title="Loop"
       >
@@ -308,7 +308,7 @@ function AnimationPreview({
   return (
     <div className="p-6 bg-slate-900 rounded-lg border border-slate-700 flex items-center justify-center min-h-[120px]">
       <div
-        className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg shadow-lg"
+        className="w-16 h-16 bg-gradient-to-br from-garden-500 to-gold-400 rounded-lg shadow-lg"
         style={style}
       />
     </div>
@@ -330,7 +330,7 @@ function AnimationSettings({
           type="text"
           value={animation.name}
           onChange={(e) => onChange({ name: e.target.value })}
-          className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-blue-500 focus:outline-none"
+          className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-garden-500 focus:outline-none"
         />
       </div>
       <div>
@@ -342,7 +342,7 @@ function AnimationSettings({
           min={100}
           max={10000}
           step={100}
-          className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-blue-500 focus:outline-none"
+          className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-garden-500 focus:outline-none"
         />
       </div>
       <div>
@@ -354,7 +354,7 @@ function AnimationSettings({
           min={0}
           max={5000}
           step={100}
-          className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-blue-500 focus:outline-none"
+          className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-garden-500 focus:outline-none"
         />
       </div>
       <div>
@@ -366,7 +366,7 @@ function AnimationSettings({
               iterationCount: e.target.value === 'infinite' ? 'infinite' : parseInt(e.target.value),
             })
           }
-          className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-blue-500 focus:outline-none"
+          className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-garden-500 focus:outline-none"
         >
           <option value={1}>1</option>
           <option value={2}>2</option>
@@ -380,7 +380,7 @@ function AnimationSettings({
         <select
           value={animation.direction}
           onChange={(e) => onChange({ direction: e.target.value as CustomAnimation['direction'] })}
-          className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-blue-500 focus:outline-none"
+          className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-garden-500 focus:outline-none"
         >
           <option value="normal">Normal</option>
           <option value="reverse">Reverse</option>
@@ -393,7 +393,7 @@ function AnimationSettings({
         <select
           value={animation.fillMode}
           onChange={(e) => onChange({ fillMode: e.target.value as CustomAnimation['fillMode'] })}
-          className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-blue-500 focus:outline-none"
+          className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-garden-500 focus:outline-none"
         >
           <option value="none">None</option>
           <option value="forwards">Forwards</option>
@@ -648,7 +648,7 @@ export function AnimationTimeline({
               onClick={() => togglePropertyTrack(track.property)}
               className={`px-2 py-1 text-[10px] rounded transition-colors ${
                 activeProperties.has(track.property)
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-garden-600 text-white'
                   : 'bg-slate-800 text-slate-500 hover:text-slate-300'
               }`}
             >
@@ -683,7 +683,7 @@ export function AnimationTimeline({
                 }
                 min={0}
                 max={100}
-                className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-blue-500 focus:outline-none"
+                className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-garden-500 focus:outline-none"
               />
             </div>
 
@@ -716,7 +716,7 @@ export function AnimationTimeline({
                         max={track.max}
                         step={track.step || 1}
                         placeholder={`Enter ${track.label.toLowerCase()}`}
-                        className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-blue-500 focus:outline-none"
+                        className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-garden-500 focus:outline-none"
                       />
                     ) : (
                       <input
@@ -726,7 +726,7 @@ export function AnimationTimeline({
                           handleKeyframePropertyChange(track.property, e.target.value)
                         }
                         placeholder={`Enter ${track.label.toLowerCase()}`}
-                        className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-blue-500 focus:outline-none"
+                        className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-garden-500 focus:outline-none"
                       />
                     )}
                   </div>
@@ -742,7 +742,7 @@ export function AnimationTimeline({
                   typeof selectedKeyframe.easing === 'string' ? selectedKeyframe.easing : 'ease'
                 }
                 onChange={(e) => handleEasingChange(e.target.value as EasingFunction)}
-                className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-blue-500 focus:outline-none"
+                className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-200 focus:border-garden-500 focus:outline-none"
               >
                 <option value="linear">Linear</option>
                 <option value="ease">Ease</option>
@@ -764,7 +764,7 @@ export function AnimationTimeline({
       <div className="flex gap-2">
         <button
           onClick={handleExport}
-          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors font-medium"
+          className="flex-1 px-4 py-2 bg-garden-600 text-white rounded-lg hover:bg-garden-500 transition-colors font-medium"
         >
           Export CSS
         </button>

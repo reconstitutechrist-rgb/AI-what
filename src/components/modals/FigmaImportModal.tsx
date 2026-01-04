@@ -98,7 +98,7 @@ export function FigmaImportModal({ isOpen, onClose, onImportComplete }: FigmaImp
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gold-500 to-pink-500 flex items-center justify-center">
               <FigmaIcon className="w-5 h-5 text-white" />
             </div>
             <h2 className="text-lg font-semibold text-white">Import from Figma</h2>
@@ -137,7 +137,7 @@ export function FigmaImportModal({ isOpen, onClose, onImportComplete }: FigmaImp
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
                   placeholder="https://www.figma.com/file/..."
-                  className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-transparent"
                   disabled={isImporting}
                 />
                 {urlInput && !isUrlValid && (
@@ -158,7 +158,7 @@ export function FigmaImportModal({ isOpen, onClose, onImportComplete }: FigmaImp
               <button
                 onClick={handleUrlImport}
                 disabled={!isUrlValid || isImporting}
-                className="w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 disabled:text-slate-500 text-white font-medium rounded-lg transition-colors"
+                className="w-full py-3 px-4 bg-gold-600 hover:bg-gold-700 disabled:bg-slate-700 disabled:text-slate-500 text-white font-medium rounded-lg transition-colors"
               >
                 {isImporting ? 'Importing...' : 'Import from URL'}
               </button>
@@ -176,7 +176,7 @@ export function FigmaImportModal({ isOpen, onClose, onImportComplete }: FigmaImp
                   onChange={(e) => setJsonInput(e.target.value)}
                   placeholder='{"documentName": "My Design", "colors": [...], ...}'
                   rows={8}
-                  className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
+                  className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-transparent font-mono text-sm"
                   disabled={isImporting}
                 />
               </div>
@@ -201,7 +201,7 @@ export function FigmaImportModal({ isOpen, onClose, onImportComplete }: FigmaImp
                 <button
                   onClick={handleJsonImport}
                   disabled={!jsonInput.trim() || isImporting}
-                  className="flex-1 py-3 px-4 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 disabled:text-slate-500 text-white font-medium rounded-lg transition-colors"
+                  className="flex-1 py-3 px-4 bg-gold-600 hover:bg-gold-700 disabled:bg-slate-700 disabled:text-slate-500 text-white font-medium rounded-lg transition-colors"
                 >
                   {isImporting ? 'Importing...' : 'Import JSON'}
                 </button>
@@ -212,7 +212,7 @@ export function FigmaImportModal({ isOpen, onClose, onImportComplete }: FigmaImp
           {activeTab === 'plugin' && (
             <div className="space-y-4">
               <div className="bg-slate-800/50 rounded-lg p-6 text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-gold-500 to-pink-500 flex items-center justify-center">
                   <FigmaIcon className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2">
@@ -223,7 +223,7 @@ export function FigmaImportModal({ isOpen, onClose, onImportComplete }: FigmaImp
                 </p>
                 <div className="space-y-3 text-left text-sm text-slate-300">
                   <div className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-medium">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gold-600 text-white flex items-center justify-center text-xs font-medium">
                       1
                     </span>
                     <span>
@@ -231,7 +231,7 @@ export function FigmaImportModal({ isOpen, onClose, onImportComplete }: FigmaImp
                     </span>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-medium">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gold-600 text-white flex items-center justify-center text-xs font-medium">
                       2
                     </span>
                     <span>
@@ -243,13 +243,13 @@ export function FigmaImportModal({ isOpen, onClose, onImportComplete }: FigmaImp
                     </span>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-medium">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gold-600 text-white flex items-center justify-center text-xs font-medium">
                       3
                     </span>
                     <span>Select a frame in Figma and run the plugin</span>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-medium">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gold-600 text-white flex items-center justify-center text-xs font-medium">
                       4
                     </span>
                     <span>Click &quot;Send to AI App Builder&quot; in the plugin</span>
@@ -273,7 +273,7 @@ export function FigmaImportModal({ isOpen, onClose, onImportComplete }: FigmaImp
               </div>
               <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-purple-500 transition-all duration-300"
+                  className="h-full bg-gold-500 transition-all duration-300"
                   style={{ width: `${progress.progress}%` }}
                 />
               </div>
@@ -371,7 +371,7 @@ function TabButton({
       onClick={onClick}
       className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
         active
-          ? 'text-purple-400 border-b-2 border-purple-400 bg-slate-800/50'
+          ? 'text-gold-400 border-b-2 border-gold-400 bg-slate-800/50'
           : 'text-slate-400 hover:text-white hover:bg-slate-800/30'
       }`}
     >

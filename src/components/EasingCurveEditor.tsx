@@ -92,7 +92,7 @@ function PresetButton({
         px-2 py-1 text-[10px] rounded transition-all
         ${
           isSelected
-            ? 'bg-blue-600 text-white'
+            ? 'bg-garden-600 text-white'
             : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
         }
       `}
@@ -150,7 +150,7 @@ function AnimationPreviewBall({
 
       {/* Ball */}
       <div
-        className="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full shadow-lg transition-none"
+        className="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-gradient-to-br from-garden-400 to-gold-500 rounded-full shadow-lg transition-none"
         style={{
           left: `calc(8px + ${easedProgress * (100 - 16)}%)`,
         }}
@@ -158,7 +158,7 @@ function AnimationPreviewBall({
 
       {/* Progress indicator */}
       <div className="absolute bottom-1 left-2 right-2 h-0.5 bg-slate-700 rounded overflow-hidden">
-        <div className="h-full bg-blue-500/50" style={{ width: `${progress * 100}%` }} />
+        <div className="h-full bg-garden-500/50" style={{ width: `${progress * 100}%` }} />
       </div>
     </div>
   );
@@ -295,13 +295,13 @@ function CurveCanvas({
       <line x1={p3.x} y1={p3.y} x2={p2.x} y2={p2.y} stroke="#10B981" strokeWidth="1.5" />
 
       {/* Bezier curve */}
-      <path d={curvePath} fill="none" stroke="#3B82F6" strokeWidth="3" />
+      <path d={curvePath} fill="none" stroke="#2ECC71" strokeWidth="3" />
 
       {/* Curve preview (actual easing) */}
       <polyline
         points={curvePoints.map((p) => `${p.x},${p.y}`).join(' ')}
         fill="none"
-        stroke="#60A5FA"
+        stroke="#6EE7A0"
         strokeWidth="1"
         strokeDasharray="3"
         opacity={0.5}
@@ -396,7 +396,7 @@ function BezierInputs({
             step={0.05}
             min={i % 2 === 0 ? 0 : -0.5}
             max={i % 2 === 0 ? 1 : 1.5}
-            className="w-full px-2 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded text-slate-200 text-center focus:border-blue-500 focus:outline-none"
+            className="w-full px-2 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded text-slate-200 text-center focus:border-garden-500 focus:outline-none"
           />
         </div>
       ))}
@@ -537,7 +537,7 @@ export function EasingCurveEditor({
             <button
               onClick={() => setIsPlaying(!isPlaying)}
               className={`px-3 py-1 text-xs rounded-lg transition-colors ${
-                isPlaying ? 'bg-red-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-500'
+                isPlaying ? 'bg-red-600 text-white' : 'bg-garden-600 text-white hover:bg-garden-500'
               }`}
             >
               {isPlaying ? 'Stop' : 'Play'}

@@ -39,7 +39,7 @@ export function ClickableOverlay({
   onElementSelect,
   enabled = true,
   selectedElementId,
-  hoverColor = 'rgb(59, 130, 246)', // blue-500
+  hoverColor = 'rgb(46, 204, 113)', // garden-500
 }: ClickableOverlayProps) {
   const [hoverPreview, setHoverPreview] = useState<HoverPreview | null>(null);
   const [isHovering, setIsHovering] = useState(false);
@@ -226,7 +226,7 @@ export function ClickableOverlay({
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
           <div className="px-3 py-2 rounded-lg bg-gray-900/90 text-gray-300 text-sm shadow-lg flex items-center gap-2">
             <svg
-              className="w-4 h-4 text-blue-400"
+              className="w-4 h-4 text-garden-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"

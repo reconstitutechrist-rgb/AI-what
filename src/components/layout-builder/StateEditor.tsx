@@ -83,10 +83,10 @@ export function StateEditor({
             className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white"
           >
             <option value="default">Default Browser</option>
-            <option value="ring-2 ring-blue-500">Blue Ring</option>
-            <option value="ring-2 ring-offset-2 ring-blue-500">Blue Ring with Offset</option>
+            <option value="ring-2 ring-garden-500">Garden Ring</option>
+            <option value="ring-2 ring-offset-2 ring-garden-500">Garden Ring with Offset</option>
             <option value="ring-2 ring-green-500">Green Ring</option>
-            <option value="ring-2 ring-purple-500">Purple Ring</option>
+            <option value="ring-2 ring-gold-500">Gold Ring</option>
             <option value="none">No Ring (not recommended)</option>
           </select>
         </div>
@@ -209,7 +209,7 @@ export function StateEditor({
             onClick={() => applyLoadingPreset(preset)}
             className={`p-3 text-left rounded-lg border transition-colors ${
               interactions.loading?.type === preset.interactions.loading?.type
-                ? 'bg-blue-900/30 border-blue-500'
+                ? 'bg-garden-900/30 border-garden-500'
                 : 'bg-slate-800 border-slate-700 hover:bg-slate-700'
             }`}
           >

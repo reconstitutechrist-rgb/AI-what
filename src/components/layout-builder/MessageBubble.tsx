@@ -73,7 +73,7 @@ export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
       <div
         className={`max-w-[85%] rounded-2xl px-4 py-3 ${
           isUser
-            ? 'bg-blue-600 text-white'
+            ? 'bg-garden-600 text-white'
             : hasError
               ? 'bg-red-500/20 border border-red-500/30 text-slate-100'
               : 'bg-slate-700 text-slate-100'
@@ -152,7 +152,7 @@ export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
 
         {/* Timestamp */}
         <div
-          className={`text-xs mt-2 ${isUser ? 'text-blue-200' : hasError ? 'text-red-300/70' : 'text-slate-400'}`}
+          className={`text-xs mt-2 ${isUser ? 'text-garden-200' : hasError ? 'text-red-300/70' : 'text-slate-400'}`}
         >
           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>

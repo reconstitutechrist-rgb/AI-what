@@ -86,7 +86,7 @@ function SegmentedControl<T extends string>({
             title={option.description || option.pixels}
             className={`flex-1 px-2 py-1.5 text-xs rounded transition-all ${
               value === option.value
-                ? 'bg-blue-600 text-white'
+                ? 'bg-garden-600 text-white'
                 : 'text-slate-400 hover:text-white hover:bg-slate-700'
             }`}
           >
@@ -165,24 +165,24 @@ function BoxModelDiagram({ spacing }: { spacing: Partial<SpacingSettings> }) {
 
         {/* Section padding indicator */}
         <div
-          className="relative border-2 border-dashed border-purple-500/30 rounded-lg transition-all"
+          className="relative border-2 border-dashed border-gold-500/30 rounded-lg transition-all"
           style={{ padding: `${sectionPadding}px` }}
         >
           {/* Section padding label */}
-          <div className="absolute -top-0.5 left-2 px-1 bg-slate-900 text-[10px] text-purple-400">
+          <div className="absolute -top-0.5 left-2 px-1 bg-slate-900 text-[10px] text-gold-400">
             section: {spacing.sectionPadding || 'md'}
           </div>
 
           {/* Container width indicator */}
           <div
-            className="mx-auto border-2 border-dashed border-blue-500/30 rounded transition-all"
+            className="mx-auto border-2 border-dashed border-garden-500/30 rounded transition-all"
             style={{
               width: `${containerScale * 100}%`,
               padding: `${componentGap + 8}px`,
             }}
           >
             {/* Container width label */}
-            <div className="absolute top-4 right-2 px-1 bg-slate-900 text-[10px] text-blue-400">
+            <div className="absolute top-4 right-2 px-1 bg-slate-900 text-[10px] text-garden-400">
               container: {spacing.containerWidth || 'standard'}
             </div>
 
@@ -210,11 +210,11 @@ function BoxModelDiagram({ spacing }: { spacing: Partial<SpacingSettings> }) {
         <div className="mt-3 flex flex-wrap gap-3 text-[10px]">
           <div className="flex items-center gap-1">
             <span className="w-3 h-0.5 bg-purple-500/50" />
-            <span className="text-purple-400">Section</span>
+            <span className="text-gold-400">Section</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="w-3 h-0.5 bg-blue-500/50" />
-            <span className="text-blue-400">Container</span>
+            <span className="w-3 h-0.5 bg-garden-500/50" />
+            <span className="text-garden-400">Container</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="w-3 h-0.5 bg-green-500/50" />
@@ -241,7 +241,7 @@ function GridOverlayToggle({
       type="button"
       onClick={() => onToggle(!enabled)}
       className={`w-full mt-4 px-3 py-2 rounded-md flex items-center justify-center gap-2 transition-all ${
-        enabled ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+        enabled ? 'bg-garden-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
       }`}
     >
       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

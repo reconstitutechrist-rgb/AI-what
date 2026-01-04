@@ -96,9 +96,9 @@ function MediaPreview({
   const getStatusIcon = () => {
     switch (item.status) {
       case 'uploading':
-        return <LoaderIcon className="w-4 h-4 animate-spin text-blue-400" />;
+        return <LoaderIcon className="w-4 h-4 animate-spin text-garden-400" />;
       case 'analyzing':
-        return <LoaderIcon className="w-4 h-4 animate-spin text-purple-400" />;
+        return <LoaderIcon className="w-4 h-4 animate-spin text-gold-400" />;
       case 'error':
         return <AlertCircleIcon className="w-4 h-4 text-red-400" />;
       case 'ready':
@@ -112,7 +112,7 @@ function MediaPreview({
     <div
       className={`relative group rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
         isSelected
-          ? 'border-purple-500 ring-2 ring-purple-500/30'
+          ? 'border-gold-500 ring-2 ring-gold-500/30'
           : 'border-white/10 hover:border-white/30'
       }`}
       onClick={onSelect}
@@ -145,7 +145,7 @@ function MediaPreview({
       <div className="absolute top-2 right-2">
         <span
           className={`px-1.5 py-0.5 rounded text-xs font-medium ${
-            item.type === 'image' ? 'bg-blue-500/80 text-white' : 'bg-purple-500/80 text-white'
+            item.type === 'image' ? 'bg-garden-500/80 text-white' : 'bg-gold-500/80 text-white'
           }`}
         >
           {item.type === 'image' ? 'IMG' : 'VID'}
@@ -247,7 +247,7 @@ function Dropzone({
     <div
       className={`relative border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-all ${
         isDragging
-          ? 'border-purple-500 bg-purple-500/10'
+          ? 'border-gold-500 bg-gold-500/10'
           : 'border-white/20 hover:border-white/40 hover:bg-white/5'
       }`}
       onDragOver={handleDragOver}

@@ -47,7 +47,7 @@ export function CharacterCounter({ current, limit, className = '' }: CharacterCo
       <div className="flex-1 h-1 bg-slate-700 rounded-full overflow-hidden">
         <div
           className={`h-full transition-all duration-300 ${
-            isOverLimit ? 'bg-red-500' : isNearLimit ? 'bg-yellow-500' : 'bg-blue-500'
+            isOverLimit ? 'bg-red-500' : isNearLimit ? 'bg-yellow-500' : 'bg-garden-500'
           }`}
           style={{ width: `${Math.min(percentage, 100)}%` }}
         />

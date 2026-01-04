@@ -72,7 +72,7 @@ export function PhaseControlPanel({
         {!isBuilding ? (
           <button
             onClick={onStartBuild}
-            className="flex-1 px-4 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-medium transition-all hover:shadow-lg hover:shadow-blue-500/20 flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2.5 rounded-lg bg-gradient-to-r from-garden-600 to-gold-600 hover:from-garden-500 hover:to-gold-500 text-white font-medium transition-all hover:shadow-lg hover:shadow-garden-500/20 flex items-center justify-center gap-2"
           >
             <span>🚀</span>
             <span>Start Build</span>
@@ -109,7 +109,7 @@ export function PhaseControlPanel({
             </div>
             <button
               onClick={() => onViewPhaseDetails(currentPhase.id)}
-              className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+              className="text-xs text-garden-400 hover:text-blue-300 transition-colors"
             >
               View Details →
             </button>
@@ -120,7 +120,7 @@ export function PhaseControlPanel({
           <div className="flex items-center gap-2">
             <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
               <div
-                className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                className="h-full bg-garden-500 rounded-full transition-all duration-300"
                 style={{
                   width: `${(currentPhase.tasks.filter((t) => t.status === 'completed').length / currentPhase.tasks.length) * 100}%`,
                 }}
@@ -192,7 +192,7 @@ export function PhaseControlPanel({
             const isCurrentPhase = phase.id === progress.currentPhaseId;
             const statusColors = {
               completed: 'text-green-400',
-              'in-progress': 'text-blue-400',
+              'in-progress': 'text-garden-400',
               skipped: 'text-slate-500',
               pending: 'text-slate-400',
             };
@@ -208,7 +208,7 @@ export function PhaseControlPanel({
                 key={phase.id}
                 onClick={() => onViewPhaseDetails(phase.id)}
                 className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left text-sm transition-all ${
-                  isCurrentPhase ? 'bg-blue-500/20 text-white' : 'hover:bg-white/5 text-slate-300'
+                  isCurrentPhase ? 'bg-garden-500/20 text-white' : 'hover:bg-white/5 text-slate-300'
                 }`}
               >
                 <span className={statusColors[phase.status]}>{statusIcons[phase.status]}</span>

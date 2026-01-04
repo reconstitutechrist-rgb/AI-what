@@ -78,16 +78,16 @@ export function PhasedBuildPanel({
       <div className="px-6 py-4 border-b border-white/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600/20 to-purple-600/20 flex items-center justify-center">
-              <LayersIcon size={20} className="text-blue-400" />
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-garden-600/20 to-gold-500/20 flex items-center justify-center">
+              <LayersIcon size={20} className="text-garden-400" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-zinc-100">
+              <h2 className="text-lg font-semibold text-slate-100">
                 {dynamicPlan ? `Building: ${dynamicPlan.appName}` : 'Phase-Driven Build'}
               </h2>
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm text-slate-400">
                 {dynamicPlan && (
-                  <span className="mr-2 px-1.5 py-0.5 rounded bg-zinc-800 text-xs">
+                  <span className="mr-2 px-1.5 py-0.5 rounded bg-slate-800 text-xs">
                     {dynamicPlan.complexity}
                   </span>
                 )}
@@ -147,7 +147,7 @@ export function PhasedBuildPanel({
 
       {/* Panel Footer */}
       <div className="px-6 py-4 border-t border-white/10 flex justify-between items-center">
-        <div className="flex items-center gap-2 text-xs text-zinc-500">
+        <div className="flex items-center gap-2 text-xs text-slate-500">
           <InfoIcon size={14} />
           <span>Each phase focuses on specific aspects of your app for better quality.</span>
         </div>

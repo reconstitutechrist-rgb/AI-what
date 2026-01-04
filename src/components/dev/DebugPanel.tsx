@@ -224,7 +224,7 @@ export function DebugPanel(): React.ReactElement | null {
                       ? value
                         ? 'text-green-400'
                         : 'text-gray-500'
-                      : 'text-blue-400'
+                      : 'text-garden-400'
                   }
                 >
                   {String(value)}
@@ -294,7 +294,7 @@ export function DebugPanel(): React.ReactElement | null {
               debugStore.sseEvents.slice(0, 30).map((evt) => (
                 <div key={evt.id} className="py-1 border-b border-gray-800">
                   <div className="flex items-center justify-between">
-                    <span className="text-purple-400">{evt.type}</span>
+                    <span className="text-gold-400">{evt.type}</span>
                     <span className="text-gray-600">{formatTime(evt.timestamp)}</span>
                   </div>
                   <div className="text-gray-500 truncate text-[10px]">{evt.data}</div>
@@ -318,7 +318,7 @@ export function DebugPanel(): React.ReactElement | null {
                 <div className="bg-gray-800 rounded p-2 mb-3">
                   <div className="flex justify-between mb-1">
                     <span className="text-gray-400">Total Input:</span>
-                    <span className="text-blue-400">
+                    <span className="text-garden-400">
                       {debugStore.tokenUsage.reduce((sum, u) => sum + u.input, 0).toLocaleString()}
                     </span>
                   </div>
@@ -343,7 +343,7 @@ export function DebugPanel(): React.ReactElement | null {
                       <span className="text-gray-600">{formatTime(usage.timestamp)}</span>
                     </div>
                     <div className="flex gap-3 text-[10px]">
-                      <span className="text-blue-400">in: {usage.input}</span>
+                      <span className="text-garden-400">in: {usage.input}</span>
                       <span className="text-green-400">out: {usage.output}</span>
                       {usage.cached > 0 && (
                         <span className="text-yellow-400">cached: {usage.cached}</span>

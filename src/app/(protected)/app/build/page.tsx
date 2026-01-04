@@ -43,25 +43,25 @@ export default function BuildPage() {
         className="h-[calc(100vh-56px)] flex items-center justify-center"
       >
         <div className="text-center max-w-md px-4">
-          <div className="w-20 h-20 rounded-2xl bg-zinc-800/50 border border-zinc-700/50 flex items-center justify-center mb-6 mx-auto">
-            <RocketIcon size={40} className="text-zinc-600" />
+          <div className="w-20 h-20 rounded-2xl bg-slate-800/50 border border-slate-700/50 flex items-center justify-center mb-6 mx-auto">
+            <RocketIcon size={40} className="text-slate-600" />
           </div>
           <h2 className="text-2xl font-bold text-white mb-3">No Build Plan Yet</h2>
-          <p className="text-zinc-400 mb-8">
+          <p className="text-slate-400 mb-8">
             Start with the Wizard to create your app concept and generate a build plan, or skip
             directly to the Builder.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <button
               onClick={handleStartWizard}
-              className="flex items-center gap-2 px-6 py-3 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all"
+              className="flex items-center gap-2 px-6 py-3 text-sm font-medium text-white bg-gradient-to-r from-garden-600 to-garden-500 hover:from-garden-500 hover:to-garden-400 rounded-xl shadow-lg shadow-garden-500/25 hover:shadow-garden-500/40 transition-all"
             >
               <WandIcon size={18} />
               Start with Wizard
             </button>
             <button
               onClick={() => router.push('/app')}
-              className="px-6 py-3 text-sm font-medium text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-600 rounded-xl transition-colors"
+              className="px-6 py-3 text-sm font-medium text-slate-400 hover:text-white border border-slate-700 hover:border-slate-600 rounded-xl transition-colors"
             >
               Skip to Builder
             </button>

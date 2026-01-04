@@ -19,18 +19,18 @@ const footerLinks = {
 
 export function Footer() {
   return (
-    <footer className="bg-zinc-900/50 border-t border-zinc-800">
+    <footer className="bg-slate-900/50 border-t border-slate-800">
       <div className="max-w-6xl mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-garden-500 to-gold-500 flex items-center justify-center">
                 <RocketIcon size={18} className="text-white" />
               </div>
               <span className="text-lg font-semibold text-white">AI App Builder</span>
             </Link>
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-slate-500">
               Build full-stack React applications with AI-powered planning and code generation.
             </p>
           </div>
@@ -43,7 +43,7 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-zinc-400 hover:text-white transition-colors"
+                    className="text-sm text-slate-400 hover:text-white transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -60,7 +60,7 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-zinc-400 hover:text-white transition-colors"
+                    className="text-sm text-slate-400 hover:text-white transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -77,7 +77,7 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-zinc-400 hover:text-white transition-colors"
+                    className="text-sm text-slate-400 hover:text-white transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -88,12 +88,12 @@ export function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-12 pt-8 border-t border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-zinc-500">
+        <div className="mt-12 pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-slate-500">
             &copy; {new Date().getFullYear()} AI App Builder. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
-            <span className="text-sm text-zinc-600">Powered by Claude AI</span>
+            <span className="text-sm text-slate-600">Powered by Claude AI</span>
           </div>
         </div>
       </div>

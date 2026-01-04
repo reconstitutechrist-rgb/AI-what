@@ -159,19 +159,19 @@ const SideButtons = React.memo(function SideButtons({
     >
       {/* Power button */}
       <div
-        className="bg-zinc-600 rounded-sm"
+        className="bg-slate-600 rounded-sm"
         style={{ width: 3, height: Math.min(height * 0.06, 40) }}
       />
       {side === 'left' && (
         <>
           {/* Volume up */}
           <div
-            className="bg-zinc-600 rounded-sm"
+            className="bg-slate-600 rounded-sm"
             style={{ width: 3, height: Math.min(height * 0.08, 50) }}
           />
           {/* Volume down */}
           <div
-            className="bg-zinc-600 rounded-sm"
+            className="bg-slate-600 rounded-sm"
             style={{ width: 3, height: Math.min(height * 0.08, 50) }}
           />
         </>
@@ -207,7 +207,7 @@ export function DeviceFrame({
   if (!hasFrame) {
     return (
       <div
-        className={`relative bg-zinc-900 rounded-lg shadow-2xl ${className}`}
+        className={`relative bg-slate-900 rounded-lg shadow-2xl ${className}`}
         style={{
           width: displayWidth,
           height: displayHeight,
@@ -267,7 +267,7 @@ export function DeviceFrame({
           {/* Camera indicator for tablet */}
           {device === 'tablet' && config.hasCamera && (
             <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10">
-              <div className="w-2 h-2 rounded-full bg-zinc-800" />
+              <div className="w-2 h-2 rounded-full bg-slate-800" />
             </div>
           )}
 

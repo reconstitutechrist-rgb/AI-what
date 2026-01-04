@@ -78,7 +78,7 @@ export function FileCard({
         relative group rounded-xl border transition-all duration-300
         ${
           isSelected
-            ? 'bg-blue-500/20 border-blue-500/60 shadow-lg shadow-blue-500/20'
+            ? 'bg-garden-500/20 border-garden-500/60 shadow-lg shadow-garden-500/20'
             : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
         }
         ${isLoading ? 'opacity-50 pointer-events-none' : ''}
@@ -100,15 +100,15 @@ export function FileCard({
         <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center z-10">
           <div className="flex gap-1">
             <div
-              className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+              className="w-2 h-2 bg-garden-500 rounded-full animate-bounce"
               style={{ animationDelay: '0ms' }}
             ></div>
             <div
-              className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+              className="w-2 h-2 bg-garden-500 rounded-full animate-bounce"
               style={{ animationDelay: '150ms' }}
             ></div>
             <div
-              className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+              className="w-2 h-2 bg-garden-500 rounded-full animate-bounce"
               style={{ animationDelay: '300ms' }}
             ></div>
           </div>
@@ -133,7 +133,7 @@ export function FileCard({
       <div className="p-4">
         {/* File Name */}
         <h3
-          className="text-white font-medium text-sm truncate mb-1 group-hover:text-blue-400 transition-colors"
+          className="text-white font-medium text-sm truncate mb-1 group-hover:text-garden-400 transition-colors"
           title={file.name}
         >
           {file.name}
@@ -154,7 +154,7 @@ export function FileCard({
                 e.stopPropagation();
                 onDownload(file);
               }}
-              className="flex-1 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-all flex items-center justify-center gap-1"
+              className="flex-1 px-3 py-2 rounded-lg bg-garden-600 hover:bg-garden-700 text-white text-xs font-medium transition-all flex items-center justify-center gap-1"
               title="Download file"
               aria-label={`Download ${file.name}`}
             >
@@ -195,7 +195,7 @@ export function FileCard({
 
       {/* Selection Indicator */}
       {isSelected && (
-        <div className="absolute top-3 right-3 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+        <div className="absolute top-3 right-3 w-6 h-6 bg-garden-500 rounded-full flex items-center justify-center shadow-lg">
           <span className="text-white text-xs">✓</span>
         </div>
       )}

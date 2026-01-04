@@ -56,9 +56,9 @@ function getPhaseIcon(phase: ProgressType['phase']): string {
 function getPhaseColor(phase: ProgressType['phase']): string {
   switch (phase) {
     case 'starting':
-      return 'text-blue-400';
+      return 'text-garden-400';
     case 'thinking':
-      return 'text-purple-400';
+      return 'text-gold-400';
     case 'generating':
       return 'text-yellow-400';
     case 'validating':
@@ -134,7 +134,7 @@ export function StreamingProgress({ progress, onCancel }: StreamingProgressProps
           </div>
           <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 transition-all duration-300 ease-out"
+              className="h-full bg-gradient-to-r from-garden-500 via-gold-500 to-blossom-500 transition-all duration-300 ease-out"
               style={{ width: `${progressPercent}%` }}
             />
           </div>

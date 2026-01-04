@@ -243,14 +243,14 @@ export function PerformanceReport({
       aria-labelledby="performance-report-title"
     >
       <div
-        className="bg-slate-900 rounded-2xl border border-purple-500/30 max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl"
+        className="bg-slate-900 rounded-2xl border border-gold-500/30 max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="px-6 py-5 border-b border-purple-500/30 bg-purple-500/10">
+        <div className="px-6 py-5 border-b border-gold-500/30 bg-gold-500/10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-xl bg-gold-500/20 flex items-center justify-center">
                 <span className="text-3xl">⚡</span>
               </div>
               <div>
@@ -258,7 +258,7 @@ export function PerformanceReport({
                   Performance Report
                 </h3>
                 {report && (
-                  <p className="text-sm text-purple-200/80">
+                  <p className="text-sm text-gold-200/80">
                     Benchmarked {new Date(report.timestamp).toLocaleString()}
                   </p>
                 )}
@@ -278,7 +278,7 @@ export function PerformanceReport({
         <div className="flex-1 min-h-0 overflow-y-auto p-6">
           {isBenchmarking ? (
             <div className="flex flex-col items-center justify-center py-16">
-              <div className="w-16 h-16 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mb-4" />
+              <div className="w-16 h-16 border-4 border-gold-500/30 border-t-gold-500 rounded-full animate-spin mb-4" />
               <p className="text-slate-400 text-lg">Running performance benchmark...</p>
             </div>
           ) : !report ? (
@@ -288,7 +288,7 @@ export function PerformanceReport({
               {onRunBenchmark && (
                 <button
                   onClick={onRunBenchmark}
-                  className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium transition-all"
+                  className="px-4 py-2 rounded-lg bg-gold-600 hover:bg-gold-700 text-white font-medium transition-all"
                 >
                   Run Benchmark
                 </button>
@@ -344,7 +344,7 @@ export function PerformanceReport({
                                           ? 'text-red-400'
                                           : issue.type === 'warning'
                                             ? 'text-yellow-400'
-                                            : 'text-blue-400'
+                                            : 'text-garden-400'
                                       }`}
                                     >
                                       {issue.type === 'error'
@@ -356,8 +356,8 @@ export function PerformanceReport({
                                     <div className="flex-1">
                                       <p className="text-sm text-slate-300">{issue.message}</p>
                                       {issue.recommendation && (
-                                        <div className="mt-2 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                                          <p className="text-xs text-blue-300 flex items-start gap-2">
+                                        <div className="mt-2 p-2 rounded-lg bg-garden-500/10 border border-garden-500/20">
+                                          <p className="text-xs text-garden-300 flex items-start gap-2">
                                             <span>💡</span>
                                             <span>{issue.recommendation}</span>
                                           </p>
@@ -388,7 +388,7 @@ export function PerformanceReport({
           {onRunBenchmark && !isBenchmarking && (
             <button
               onClick={onRunBenchmark}
-              className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition-all"
+              className="px-4 py-2 rounded-lg bg-gold-600 hover:bg-gold-700 text-white text-sm font-medium transition-all"
             >
               🔄 Run Benchmark
             </button>

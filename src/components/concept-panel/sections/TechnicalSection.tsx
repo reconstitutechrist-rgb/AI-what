@@ -30,7 +30,7 @@ function TechToggle({
   return (
     <label
       className={`flex items-start gap-3 p-2 rounded-lg transition-colors ${
-        !readOnly ? 'cursor-pointer hover:bg-zinc-800/50' : ''
+        !readOnly ? 'cursor-pointer hover:bg-slate-800/50' : ''
       }`}
     >
       <input
@@ -38,16 +38,16 @@ function TechToggle({
         checked={checked}
         onChange={(e) => !readOnly && onChange(e.target.checked)}
         disabled={readOnly}
-        className="mt-0.5 rounded border-zinc-600 bg-zinc-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+        className="mt-0.5 rounded border-slate-600 bg-slate-800 text-garden-500 focus:ring-garden-500 focus:ring-offset-0"
       />
       <div className="flex-1">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-zinc-200">{label}</span>
+          <span className="text-sm text-slate-200">{label}</span>
           {checked && (
             <span className={`px-1.5 py-0.5 text-[10px] rounded ${colorClass}`}>Active</span>
           )}
         </div>
-        <p className="text-xs text-zinc-500 mt-0.5">{description}</p>
+        <p className="text-xs text-slate-500 mt-0.5">{description}</p>
       </div>
     </label>
   );
@@ -86,14 +86,14 @@ export function TechnicalSection({
         className="flex items-center gap-2 w-full text-left mb-2"
       >
         {isExpanded ? (
-          <ChevronDownIcon size={14} className="text-zinc-400" />
+          <ChevronDownIcon size={14} className="text-slate-400" />
         ) : (
-          <ChevronRightIcon size={14} className="text-zinc-400" />
+          <ChevronRightIcon size={14} className="text-slate-400" />
         )}
-        <SettingsIcon size={14} className="text-zinc-400" />
-        <span className="text-xs text-zinc-500 uppercase tracking-wide">Technical</span>
+        <SettingsIcon size={14} className="text-slate-400" />
+        <span className="text-xs text-slate-500 uppercase tracking-wide">Technical</span>
         {activeCount > 0 && (
-          <span className="ml-auto px-1.5 py-0.5 text-[10px] bg-blue-500/20 text-blue-300 rounded">
+          <span className="ml-auto px-1.5 py-0.5 text-[10px] bg-garden-500/20 text-garden-300 rounded">
             {activeCount} active
           </span>
         )}
@@ -107,7 +107,7 @@ export function TechnicalSection({
             checked={!!tech.needsAuth}
             onChange={(checked) => handleUpdate('needsAuth', checked)}
             readOnly={readOnly}
-            colorClass="bg-blue-500/20 text-blue-300"
+            colorClass="bg-garden-500/20 text-garden-300"
           />
 
           <TechToggle
@@ -134,7 +134,7 @@ export function TechnicalSection({
             checked={!!tech.needsRealtime}
             onChange={(checked) => handleUpdate('needsRealtime', checked)}
             readOnly={readOnly}
-            colorClass="bg-purple-500/20 text-purple-300"
+            colorClass="bg-gold-500/20 text-gold-300"
           />
 
           <TechToggle
@@ -148,8 +148,8 @@ export function TechnicalSection({
 
           {/* Advanced options - collapsed by default */}
           {(tech.needsI18n || tech.needsOfflineSupport || tech.needsCaching) && (
-            <div className="pt-2 border-t border-zinc-800 mt-2 space-y-1">
-              <p className="text-[10px] text-zinc-600 uppercase tracking-wide mb-1">Advanced</p>
+            <div className="pt-2 border-t border-slate-800 mt-2 space-y-1">
+              <p className="text-[10px] text-slate-600 uppercase tracking-wide mb-1">Advanced</p>
               {tech.needsI18n && (
                 <span className="inline-block px-2 py-0.5 text-xs bg-indigo-500/20 text-indigo-300 rounded mr-1">
                   i18n

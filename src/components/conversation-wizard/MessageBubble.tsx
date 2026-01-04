@@ -21,10 +21,10 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       <div
         className={`max-w-[80%] rounded-lg px-4 py-3 ${
           message.role === 'user'
-            ? 'bg-blue-600 text-white'
+            ? 'bg-garden-600 text-white'
             : message.role === 'system'
-              ? 'bg-zinc-900 border-l-2 border-purple-500 text-zinc-300'
-              : 'bg-zinc-800 text-zinc-100'
+              ? 'bg-slate-900 border-l-2 border-gold-500 text-slate-300'
+              : 'bg-slate-800 text-slate-100'
         }`}
       >
         {/* Attachments */}
@@ -84,7 +84,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             }
             // Horizontal rule
             if (line === '---') {
-              return <hr key={`${message.id}-line-${i}`} className="my-3 border-zinc-700" />;
+              return <hr key={`${message.id}-line-${i}`} className="my-3 border-slate-700" />;
             }
             // Tables (simple rendering)
             if (line.startsWith('|')) {

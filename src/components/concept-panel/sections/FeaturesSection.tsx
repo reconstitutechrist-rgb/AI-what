@@ -53,11 +53,11 @@ export function FeaturesSection({ appConcept, onUpdate, readOnly = false }: Feat
         className="flex items-center gap-2 w-full text-left mb-2"
       >
         {isExpanded ? (
-          <ChevronDownIcon size={14} className="text-zinc-400" />
+          <ChevronDownIcon size={14} className="text-slate-400" />
         ) : (
-          <ChevronRightIcon size={14} className="text-zinc-400" />
+          <ChevronRightIcon size={14} className="text-slate-400" />
         )}
-        <span className="text-xs text-zinc-500 uppercase tracking-wide">
+        <span className="text-xs text-slate-500 uppercase tracking-wide">
           Features ({features.length})
         </span>
         {/* Priority summary */}
@@ -83,7 +83,7 @@ export function FeaturesSection({ appConcept, onUpdate, readOnly = false }: Feat
       {isExpanded && (
         <div className="space-y-2">
           {features.length === 0 ? (
-            <p className="text-sm text-zinc-500 italic py-2">No features defined yet</p>
+            <p className="text-sm text-slate-500 italic py-2">No features defined yet</p>
           ) : (
             features.map((feature, index) => (
               <FeatureCard
@@ -101,7 +101,7 @@ export function FeaturesSection({ appConcept, onUpdate, readOnly = false }: Feat
             <button
               type="button"
               onClick={handleAddFeature}
-              className="flex items-center gap-2 w-full py-2 px-3 text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 rounded-lg border border-dashed border-zinc-700 hover:border-zinc-600 transition-colors"
+              className="flex items-center gap-2 w-full py-2 px-3 text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 rounded-lg border border-dashed border-slate-700 hover:border-slate-600 transition-colors"
             >
               <PlusIcon size={14} />
               Add Feature

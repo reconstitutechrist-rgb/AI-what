@@ -69,7 +69,7 @@ function AnimationPreview({
   return (
     <div className="relative w-16 h-16 bg-slate-800 rounded-lg overflow-hidden flex items-center justify-center">
       <div
-        className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded"
+        className="w-8 h-8 bg-gradient-to-br from-garden-500 to-gold-400 rounded"
         style={getAnimationStyle()}
       />
       {/* CSS Keyframes injection */}
@@ -166,9 +166,9 @@ function AnimationCard({
 
   const getTypeColor = (type: string) => {
     const colors: Record<string, string> = {
-      fade: 'bg-blue-500/20 text-blue-400',
+      fade: 'bg-garden-500/20 text-garden-400',
       slide: 'bg-green-500/20 text-green-400',
-      scale: 'bg-purple-500/20 text-purple-400',
+      scale: 'bg-gold-500/20 text-gold-400',
       rotate: 'bg-orange-500/20 text-orange-400',
       'hover-effect': 'bg-pink-500/20 text-pink-400',
       'scroll-reveal': 'bg-cyan-500/20 text-cyan-400',
@@ -277,7 +277,7 @@ const variants = {
               {animation.duration}
             </span>
             <span>{animation.easing}</span>
-            <span className="text-purple-400">{Math.round(animation.confidence * 100)}% match</span>
+            <span className="text-gold-400">{Math.round(animation.confidence * 100)}% match</span>
           </div>
           {/* Show target element if bound */}
           {currentTargetElement && (
@@ -324,7 +324,7 @@ const variants = {
             <div className="relative">
               <button
                 onClick={() => setShowElementDropdown(!showElementDropdown)}
-                className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-lg text-sm text-left flex items-center justify-between hover:border-purple-500/50 transition-colors"
+                className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-lg text-sm text-left flex items-center justify-between hover:border-gold-500/50 transition-colors"
               >
                 <span className={currentTargetElement ? 'text-white' : 'text-slate-500'}>
                   {currentTargetElement || 'Select element...'}
@@ -342,7 +342,7 @@ const variants = {
                         onEnableElementSelection();
                         setShowElementDropdown(false);
                       }}
-                      className="w-full px-3 py-2.5 text-left text-sm text-purple-400 hover:bg-purple-500/20 flex items-center gap-2 border-b border-white/10"
+                      className="w-full px-3 py-2.5 text-left text-sm text-gold-400 hover:bg-gold-500/20 flex items-center gap-2 border-b border-white/10"
                     >
                       <svg
                         className="w-4 h-4"
@@ -385,7 +385,7 @@ const variants = {
                                 }}
                                 className={`w-full px-3 py-2 text-left text-sm hover:bg-slate-700 flex items-center justify-between ${
                                   currentTargetElement === el.selector
-                                    ? 'bg-purple-500/20 text-purple-300'
+                                    ? 'bg-gold-500/20 text-gold-300'
                                     : 'text-slate-300'
                                 }`}
                               >
@@ -507,7 +507,7 @@ const variants = {
                   onClick={() => setCodeFormat('css')}
                   className={`px-2 py-1 text-xs rounded transition-colors ${
                     codeFormat === 'css'
-                      ? 'bg-purple-500/30 text-purple-400'
+                      ? 'bg-gold-500/30 text-gold-400'
                       : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
                   }`}
                 >
@@ -517,7 +517,7 @@ const variants = {
                   onClick={() => setCodeFormat('tailwind')}
                   className={`px-2 py-1 text-xs rounded transition-colors ${
                     codeFormat === 'tailwind'
-                      ? 'bg-purple-500/30 text-purple-400'
+                      ? 'bg-gold-500/30 text-gold-400'
                       : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
                   }`}
                 >
@@ -527,7 +527,7 @@ const variants = {
                   onClick={() => setCodeFormat('framer')}
                   className={`px-2 py-1 text-xs rounded transition-colors ${
                     codeFormat === 'framer'
-                      ? 'bg-purple-500/30 text-purple-400'
+                      ? 'bg-gold-500/30 text-gold-400'
                       : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
                   }`}
                 >
@@ -563,7 +563,7 @@ const variants = {
               disabled={!currentTargetElement && !selectedElement}
               className={`w-full py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
                 currentTargetElement || selectedElement
-                  ? 'bg-purple-500 hover:bg-purple-600 text-white'
+                  ? 'bg-gold-500 hover:bg-gold-600 text-white'
                   : 'bg-slate-700 text-slate-400 cursor-not-allowed'
               }`}
             >
@@ -616,7 +616,7 @@ export function AnimationPanel({
       <div className="px-4 py-3 border-b border-white/10">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-white flex items-center gap-2">
-            <ZapIcon className="w-5 h-5 text-purple-400" />
+            <ZapIcon className="w-5 h-5 text-gold-400" />
             Detected Animations
           </h3>
           <div className="flex items-center gap-2">
@@ -626,7 +626,7 @@ export function AnimationPanel({
             {showCreateCustomButton && onCreateCustom && (
               <button
                 onClick={onCreateCustom}
-                className="px-3 py-1 text-xs bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors flex items-center gap-1"
+                className="px-3 py-1 text-xs bg-purple-600 hover:bg-gold-500 text-white rounded-lg transition-colors flex items-center gap-1"
               >
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path

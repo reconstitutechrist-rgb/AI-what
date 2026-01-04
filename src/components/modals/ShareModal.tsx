@@ -82,13 +82,13 @@ export default function ShareModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-gray-900 rounded-xl border border-gray-800 w-full max-w-md mx-4 shadow-2xl">
+      <div className="bg-slate-900 rounded-xl border border-slate-800 w-full max-w-md mx-4 shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-800">
+        <div className="flex items-center justify-between p-4 border-b border-slate-800">
           <h2 className="text-lg font-semibold text-white">Share App</h2>
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800"
+            className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -110,12 +110,12 @@ export default function ShareModal({
         {/* Content */}
         <div className="p-4 space-y-4">
           {/* App Title */}
-          <div className="text-sm text-gray-400">
+          <div className="text-sm text-slate-400">
             Sharing <span className="text-white font-medium">{appTitle}</span>
           </div>
 
           {/* Toggle */}
-          <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
             <div className="flex items-center gap-3">
               {isPublic ? (
                 <svg
@@ -145,7 +145,7 @@ export default function ShareModal({
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="text-gray-400"
+                  className="text-slate-400"
                 >
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                   <path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -153,7 +153,7 @@ export default function ShareModal({
               )}
               <div>
                 <div className="text-white font-medium">{isPublic ? 'Public' : 'Private'}</div>
-                <div className="text-xs text-gray-400">
+                <div className="text-xs text-slate-400">
                   {isPublic ? 'Anyone with the link can view' : 'Only you can access'}
                 </div>
               </div>
@@ -162,7 +162,7 @@ export default function ShareModal({
               onClick={handleToggleShare}
               disabled={isLoading}
               className={`relative w-12 h-6 rounded-full transition-colors ${
-                isPublic ? 'bg-green-600' : 'bg-gray-600'
+                isPublic ? 'bg-green-600' : 'bg-slate-600'
               } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <div
@@ -176,17 +176,17 @@ export default function ShareModal({
           {/* Share Link */}
           {isPublic && previewUrl && (
             <div className="space-y-2">
-              <label className="text-sm text-gray-400">Share Link</label>
+              <label className="text-sm text-slate-400">Share Link</label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={previewUrl}
                   readOnly
-                  className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
+                  className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm"
                 />
                 <button
                   onClick={handleCopyLink}
-                  className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-colors"
+                  className="px-3 py-2 bg-garden-600 hover:bg-garden-700 text-white rounded-lg flex items-center gap-2 transition-colors"
                 >
                   {copied ? (
                     <svg
@@ -233,10 +233,10 @@ export default function ShareModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-800">
+        <div className="p-4 border-t border-slate-800">
           <button
             onClick={onClose}
-            className="w-full py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
+            className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
           >
             Done
           </button>

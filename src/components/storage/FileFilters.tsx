@@ -65,7 +65,7 @@ export function FileFilters({
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search files..."
-          className="w-full px-4 py-2.5 pl-10 rounded-lg glass-panel border border-white/20 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500/60 transition-all duration-300"
+          className="w-full px-4 py-2.5 pl-10 rounded-lg glass-panel border border-white/20 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-garden-500 focus:border-garden-500/60 transition-all duration-300"
           aria-label="Search files"
         />
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
@@ -91,7 +91,7 @@ export function FileFilters({
                 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200
                 ${
                   selectedType === type
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                    ? 'bg-garden-600 text-white shadow-lg shadow-garden-500/20'
                     : 'bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white border border-white/10'
                 }
               `}
@@ -110,7 +110,7 @@ export function FileFilters({
             value={sortBy}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onChange={(e) => onSortChange(e.target.value as any, sortOrder)}
-            className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
             aria-label="Sort by"
           >
             {sortOptions.map((option) => (

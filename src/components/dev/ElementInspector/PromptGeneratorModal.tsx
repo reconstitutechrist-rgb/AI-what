@@ -83,7 +83,7 @@ export function PromptGeneratorModal({
                     ? 'bg-green-500 text-white'
                     : copyStatus === 'error'
                       ? 'bg-red-500 text-white'
-                      : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white shadow-lg'
+                      : 'bg-gradient-to-r from-garden-500 to-gold-600 hover:from-garden-600 hover:to-gold-700 text-white shadow-lg'
                 }
               `}
             >

@@ -41,13 +41,13 @@ export function PhaseProgressIndicator({
 
   const getPhaseStatusColor = (status: BuildPhase['status'], isCurrentPhase: boolean) => {
     if (isCurrentPhase && status === 'in-progress') {
-      return 'bg-blue-500/30 border-blue-500/60 shadow-blue-500/20';
+      return 'bg-garden-500/30 border-garden-500/60 shadow-garden-500/20';
     }
     switch (status) {
       case 'completed':
         return 'bg-green-500/20 border-green-500/40';
       case 'in-progress':
-        return 'bg-blue-500/20 border-blue-500/40 animate-pulse';
+        return 'bg-garden-500/20 border-garden-500/40 animate-pulse';
       case 'skipped':
         return 'bg-slate-600/20 border-slate-500/40 opacity-50';
       case 'pending':
@@ -61,7 +61,7 @@ export function PhaseProgressIndicator({
       case 'completed':
         return 'bg-green-500';
       case 'in-progress':
-        return 'bg-blue-500';
+        return 'bg-garden-500';
       default:
         return 'bg-slate-600';
     }
@@ -79,7 +79,7 @@ export function PhaseProgressIndicator({
         <div className="flex items-center gap-4 text-sm">
           <span className="text-green-400">✅ {completedCount} done</span>
           {inProgressPhase && (
-            <span className="text-blue-400">
+            <span className="text-garden-400">
               ⏳ Phase {inProgressPhase.order}: {inProgressPhase.name}
             </span>
           )}
@@ -89,7 +89,7 @@ export function PhaseProgressIndicator({
         {/* Toggle to expand */}
         <button
           onClick={() => setExpandedView(!expandedView)}
-          className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+          className="text-xs text-garden-400 hover:text-blue-300 transition-colors"
         >
           {expandedView ? '▲ Collapse phases' : `▼ Show all ${phases.length} phases`}
         </button>
@@ -105,7 +105,7 @@ export function PhaseProgressIndicator({
                   onClick={() => onPhaseClick?.(phase.id)}
                   className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm transition-all ${
                     isCurrentPhase
-                      ? 'bg-blue-500/20 border border-blue-500/40'
+                      ? 'bg-garden-500/20 border border-garden-500/40'
                       : 'bg-white/5 hover:bg-white/10'
                   }`}
                 >
@@ -149,7 +149,7 @@ export function PhaseProgressIndicator({
                   transition-all duration-300 hover:scale-110
                   ${getPhaseStatusColor(phase.status, isCurrentPhase)}
                   ${onPhaseClick && (phase.status !== 'pending' || isPast) ? 'cursor-pointer' : 'cursor-default'}
-                  ${isCurrentPhase ? 'ring-2 ring-blue-400 ring-offset-2 ring-offset-slate-900' : ''}
+                  ${isCurrentPhase ? 'ring-2 ring-garden-400 ring-offset-2 ring-offset-slate-900' : ''}
                 `}
               >
                 <span className="text-lg">{getPhaseStatusIcon(phase.status)}</span>
@@ -210,7 +210,7 @@ export function PhaseProgressIndicator({
       {/* Progress Bar */}
       <div className="w-full h-2 bg-slate-700 rounded-full mb-6 overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500"
+          className="h-full bg-gradient-to-r from-garden-500 to-gold-500 rounded-full transition-all duration-500"
           style={{ width: `${progress.percentComplete}%` }}
         />
       </div>

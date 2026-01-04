@@ -142,7 +142,7 @@ function FontPicker({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search fonts..."
-              className="w-full px-2 py-1.5 bg-slate-700 rounded text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full px-2 py-1.5 bg-slate-700 rounded text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-garden-500"
               autoFocus
             />
           </div>
@@ -157,7 +157,7 @@ function FontPicker({
                   onClick={() => setActiveCategory(cat.id)}
                   className={`px-2 py-1 text-xs rounded whitespace-nowrap transition-colors ${
                     activeCategory === cat.id
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-garden-600 text-white'
                       : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                   }`}
                 >
@@ -175,7 +175,7 @@ function FontPicker({
                 type="button"
                 onClick={() => handleSelect(font)}
                 className={`w-full px-3 py-2 text-left hover:bg-slate-700 transition-colors flex items-center justify-between ${
-                  value === font.family ? 'bg-blue-600/20 text-blue-400' : 'text-slate-300'
+                  value === font.family ? 'bg-garden-600/20 text-garden-400' : 'text-slate-300'
                 }`}
                 style={{
                   fontFamily: loadedFonts.has(font.family) ? font.family : 'inherit',
@@ -223,7 +223,7 @@ function SegmentedControl<T extends string>({
             title={option.example}
             className={`flex-1 px-2 py-1.5 text-xs rounded transition-all ${
               value === option.value
-                ? 'bg-blue-600 text-white'
+                ? 'bg-garden-600 text-white'
                 : 'text-slate-400 hover:text-white hover:bg-slate-700'
             }`}
           >

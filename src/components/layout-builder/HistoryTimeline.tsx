@@ -193,7 +193,7 @@ export function HistoryTimeline({
                     key={version.id}
                     className={`relative group rounded-lg border transition-all cursor-pointer ${
                       isSelected
-                        ? 'border-blue-500 bg-blue-500/10'
+                        ? 'border-garden-500 bg-garden-500/10'
                         : isCurrent
                           ? 'border-green-500/50 bg-green-500/5'
                           : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
@@ -244,7 +244,7 @@ export function HistoryTimeline({
                                 type="text"
                                 value={editName}
                                 onChange={(e) => setEditName(e.target.value)}
-                                className="flex-1 px-2 py-1 text-sm bg-slate-900 border border-slate-600 rounded text-white focus:outline-none focus:border-blue-500"
+                                className="flex-1 px-2 py-1 text-sm bg-slate-900 border border-slate-600 rounded text-white focus:outline-none focus:border-garden-500"
                                 placeholder="Version name..."
                                 autoFocus
                                 onClick={(e) => e.stopPropagation()}
@@ -343,7 +343,7 @@ export function HistoryTimeline({
                               e.stopPropagation();
                               handleRestore(version);
                             }}
-                            className="flex-1 px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded-md transition-colors"
+                            className="flex-1 px-3 py-1.5 text-xs bg-garden-600 hover:bg-garden-500 text-white rounded-md transition-colors"
                           >
                             Restore
                           </button>

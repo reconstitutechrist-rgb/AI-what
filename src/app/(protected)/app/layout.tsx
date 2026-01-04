@@ -54,7 +54,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Animated Background Gradients */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
           <motion.div
-            className="absolute top-0 -left-1/4 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px]"
+            className="absolute top-0 -left-1/4 w-[600px] h-[600px] bg-garden-600/10 rounded-full blur-[120px]"
             animate={{
               x: [0, 30, 0],
               y: [0, 20, 0],
@@ -66,7 +66,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             }}
           />
           <motion.div
-            className="absolute top-1/3 -right-1/4 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px]"
+            className="absolute top-1/3 -right-1/4 w-[500px] h-[500px] bg-gold-500/10 rounded-full blur-[120px]"
             animate={{
               x: [0, -20, 0],
               y: [0, 30, 0],

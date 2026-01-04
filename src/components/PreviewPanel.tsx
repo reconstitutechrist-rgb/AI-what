@@ -90,16 +90,16 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = React.memo(function Pre
   onScreenshot,
 }) {
   return (
-    <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden h-full flex flex-col">
+    <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden h-full flex flex-col">
       {/* Tabs Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800 bg-zinc-900/50">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-800 bg-slate-900/50">
         {/* Tab Buttons */}
         <button
           onClick={() => onTabChange('preview')}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
             activeTab === 'preview' || (activeTab === 'chat' && currentComponent)
-              ? 'bg-zinc-800 text-zinc-100'
-              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+              ? 'bg-slate-800 text-slate-100'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
           }`}
         >
           <EyeIcon size={16} />
@@ -109,8 +109,8 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = React.memo(function Pre
           onClick={() => onTabChange('code')}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
             activeTab === 'code'
-              ? 'bg-zinc-800 text-zinc-100'
-              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+              ? 'bg-slate-800 text-slate-100'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
           }`}
         >
           <CodeIcon size={16} />
@@ -180,13 +180,13 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = React.memo(function Pre
         {!currentComponent || !hasValidCode(currentComponent) ? (
           // Empty State - shown when no component or component has no valid code
           <div className="h-full flex flex-col items-center justify-center text-center px-4">
-            <div className="w-16 h-16 rounded-2xl bg-zinc-800 flex items-center justify-center mb-4">
-              <MessageSquareIcon size={32} className="text-zinc-600" />
+            <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center mb-4">
+              <MessageSquareIcon size={32} className="text-slate-600" />
             </div>
-            <h3 className="text-lg font-medium text-zinc-100 mb-2">
+            <h3 className="text-lg font-medium text-slate-100 mb-2">
               {currentComponent ? 'Building Your App' : 'Start Building'}
             </h3>
-            <p className="text-sm text-zinc-400 max-w-sm">
+            <p className="text-sm text-slate-400 max-w-sm">
               {currentComponent
                 ? 'Describe your app in the chat panel to generate the preview.'
                 : 'Describe what you want to build in the chat panel, and your app will appear here.'}

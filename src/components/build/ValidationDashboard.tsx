@@ -154,7 +154,7 @@ export function ValidationDashboard({
         <button
           onClick={onRunValidation}
           disabled={isValidating}
-          className="flex-1 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="flex-1 px-4 py-2.5 rounded-lg bg-garden-600 hover:bg-garden-500 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {isValidating ? (
             <>

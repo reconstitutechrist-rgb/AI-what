@@ -27,7 +27,7 @@ interface SelectionHighlightProps {
 export function SelectionHighlight({
   selectedElement,
   containerRef,
-  borderColor = 'rgb(59, 130, 246)', // blue-500
+  borderColor = 'rgb(46, 204, 113)', // garden-500
   showLabel = true,
   animated = true,
   onDoneEditing,

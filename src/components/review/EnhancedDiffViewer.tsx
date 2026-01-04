@@ -248,7 +248,7 @@ export default function EnhancedDiffViewer({
                               </span>
                               <button
                                 onClick={() => handleLineClick(hunk.id, line.number)}
-                                className="opacity-0 group-hover:opacity-100 px-2 py-0.5 text-blue-400 hover:text-blue-300 transition-opacity"
+                                className="opacity-0 group-hover:opacity-100 px-2 py-0.5 text-garden-400 hover:text-garden-300 transition-opacity"
                                 title="Add comment"
                               >
                                 💬
@@ -263,7 +263,7 @@ export default function EnhancedDiffViewer({
 
                 {/* Comment input */}
                 {commentingLine?.hunkId === hunk.id && (
-                  <div className="p-3 bg-blue-500/10 border-t border-blue-500/30">
+                  <div className="p-3 bg-garden-500/10 border-t border-garden-500/30">
                     <div className="flex items-start gap-2">
                       <span className="text-sm">💬</span>
                       <div className="flex-1">
@@ -273,7 +273,7 @@ export default function EnhancedDiffViewer({
                           value={commentText}
                           onChange={(e) => setCommentText(e.target.value)}
                           placeholder="Add a comment..."
-                          className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                          className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-garden-500 resize-none"
                           rows={2}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -302,7 +302,7 @@ export default function EnhancedDiffViewer({
                             <button
                               onClick={handleSubmitComment}
                               disabled={!commentText.trim()}
-                              className="px-3 py-1 rounded text-xs bg-blue-600 hover:bg-blue-700 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="px-3 py-1 rounded text-xs bg-garden-600 hover:bg-garden-700 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               Add Comment
                             </button>

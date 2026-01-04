@@ -237,7 +237,7 @@ export function MediaUploadZone({
                 onClick={() => onAnalysisModeChange('standard')}
                 className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                   analysisMode === 'standard'
-                    ? 'bg-purple-500 text-white'
+                    ? 'bg-gold-500 text-white'
                     : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                 }`}
               >
@@ -247,7 +247,7 @@ export function MediaUploadZone({
                 onClick={() => onAnalysisModeChange('pixel-perfect')}
                 className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                   analysisMode === 'pixel-perfect'
-                    ? 'bg-purple-500 text-white'
+                    ? 'bg-gold-500 text-white'
                     : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                 }`}
               >
@@ -265,7 +265,7 @@ export function MediaUploadZone({
           <div className="p-3 pt-0">
             <button
               onClick={handleConfirmVideoUpload}
-              className="w-full py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-medium transition-colors"
+              className="w-full py-2.5 bg-gold-500 hover:bg-gold-600 text-white rounded-lg text-sm font-medium transition-colors"
             >
               Analyze Video
             </button>
@@ -281,7 +281,7 @@ export function MediaUploadZone({
       <div
         className={`relative border-2 border-dashed rounded-lg cursor-pointer transition-all ${
           isDragging
-            ? 'border-purple-500 bg-purple-500/10'
+            ? 'border-gold-500 bg-gold-500/10'
             : 'border-white/20 hover:border-white/40 hover:bg-white/5'
         } ${compact ? 'p-2' : 'p-4'}`}
         onDragOver={(e) => {
@@ -305,7 +305,7 @@ export function MediaUploadZone({
 
         {isProcessing ? (
           <div className="flex items-center justify-center gap-2 py-2">
-            <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-gold-500 border-t-transparent rounded-full animate-spin" />
             <span className="text-sm text-slate-400">Processing...</span>
           </div>
         ) : compact ? (

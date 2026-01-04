@@ -127,18 +127,21 @@ export function AppConceptPanel({
     return (
       <button
         onClick={onToggleCollapse}
-        className="w-10 h-full bg-zinc-900/80 border-x border-zinc-800 flex flex-col items-center justify-center gap-2 hover:bg-zinc-800/80 transition-colors group"
+        className="w-10 h-full bg-slate-900/80 border-x border-slate-800 flex flex-col items-center justify-center gap-2 hover:bg-slate-800/80 transition-colors group"
         title="Show App Concept"
       >
         <ChevronRightIcon
           size={16}
-          className="text-zinc-500 group-hover:text-zinc-300 transition-colors"
+          className="text-slate-500 group-hover:text-slate-300 transition-colors"
         />
-        <span className="text-[10px] text-zinc-600 group-hover:text-zinc-400 transition-colors [writing-mode:vertical-lr] rotate-180">
+        <span className="text-[10px] text-slate-600 group-hover:text-slate-400 transition-colors [writing-mode:vertical-lr] rotate-180">
           App Concept
         </span>
         {appConcept && (
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" title="Concept loaded" />
+          <div
+            className="w-2 h-2 bg-garden-500 rounded-full animate-pulse"
+            title="Concept loaded"
+          />
         )}
       </button>
     );
@@ -147,16 +150,16 @@ export function AppConceptPanel({
   // Empty state
   if (!appConcept) {
     return (
-      <div className="h-full flex flex-col bg-zinc-900/50 border-x border-zinc-800">
+      <div className="h-full flex flex-col bg-slate-900/50 border-x border-slate-800">
         {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-zinc-800">
+        <div className="flex items-center justify-between p-3 border-b border-slate-800">
           <div className="flex items-center gap-2">
-            <SparklesIcon size={16} className="text-blue-400" />
-            <h2 className="text-sm font-medium text-zinc-200">App Concept</h2>
+            <SparklesIcon size={16} className="text-garden-400" />
+            <h2 className="text-sm font-medium text-slate-200">App Concept</h2>
           </div>
           <button
             onClick={onToggleCollapse}
-            className="p-1 text-zinc-500 hover:text-zinc-300 transition-colors"
+            className="p-1 text-slate-500 hover:text-slate-300 transition-colors"
             title="Collapse panel"
           >
             <ChevronLeftIcon size={16} />
@@ -166,9 +169,9 @@ export function AppConceptPanel({
         {/* Empty content */}
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="text-center">
-            <SparklesIcon size={32} className="text-zinc-700 mx-auto mb-3" />
-            <p className="text-sm text-zinc-500">No concept yet</p>
-            <p className="text-xs text-zinc-600 mt-1">
+            <SparklesIcon size={32} className="text-slate-700 mx-auto mb-3" />
+            <p className="text-sm text-slate-500">No concept yet</p>
+            <p className="text-xs text-slate-600 mt-1">
               Start planning your app in the chat to see the concept here
             </p>
           </div>
@@ -178,12 +181,12 @@ export function AppConceptPanel({
   }
 
   return (
-    <div className="h-full flex flex-col bg-zinc-900/50 border-x border-zinc-800">
+    <div className="h-full flex flex-col bg-slate-900/50 border-x border-slate-800">
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-zinc-800 flex-shrink-0">
+      <div className="flex items-center justify-between p-3 border-b border-slate-800 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <SparklesIcon size={16} className="text-blue-400" />
-          <h2 className="text-sm font-medium text-zinc-200">App Concept</h2>
+          <SparklesIcon size={16} className="text-garden-400" />
+          <h2 className="text-sm font-medium text-slate-200">App Concept</h2>
           {mode === 'act' && (
             <span className="px-1.5 py-0.5 text-[10px] bg-green-500/20 text-green-400 rounded">
               Building
@@ -197,8 +200,8 @@ export function AppConceptPanel({
               onClick={() => setConceptPanelEditMode(!conceptPanelEditMode)}
               className={`p-1.5 rounded transition-colors ${
                 conceptPanelEditMode
-                  ? 'bg-blue-500/20 text-blue-400'
-                  : 'text-zinc-500 hover:text-zinc-300'
+                  ? 'bg-garden-500/20 text-garden-400'
+                  : 'text-slate-500 hover:text-slate-300'
               }`}
               title={conceptPanelEditMode ? 'View mode' : 'Edit mode'}
             >
@@ -207,7 +210,7 @@ export function AppConceptPanel({
           )}
           <button
             onClick={onToggleCollapse}
-            className="p-1.5 text-zinc-500 hover:text-zinc-300 transition-colors"
+            className="p-1.5 text-slate-500 hover:text-slate-300 transition-colors"
             title="Collapse panel"
           >
             <ChevronLeftIcon size={16} />
@@ -222,13 +225,13 @@ export function AppConceptPanel({
           <BasicInfoSection appConcept={appConcept} onUpdate={handleUpdate} readOnly={isReadOnly} />
 
           {/* Divider */}
-          <div className="border-t border-zinc-800" />
+          <div className="border-t border-slate-800" />
 
           {/* Features */}
           <FeaturesSection appConcept={appConcept} onUpdate={handleUpdate} readOnly={isReadOnly} />
 
           {/* Divider */}
-          <div className="border-t border-zinc-800" />
+          <div className="border-t border-slate-800" />
 
           {/* UI Preferences */}
           <UIPreferencesSection
@@ -238,7 +241,7 @@ export function AppConceptPanel({
           />
 
           {/* Divider */}
-          <div className="border-t border-zinc-800" />
+          <div className="border-t border-slate-800" />
 
           {/* Technical Requirements */}
           <TechnicalSection appConcept={appConcept} onUpdate={handleUpdate} readOnly={isReadOnly} />
@@ -246,7 +249,7 @@ export function AppConceptPanel({
           {/* Roles (if any) - conditionally render with divider */}
           {(appConcept.roles?.length || !isReadOnly) && (
             <>
-              <div className="border-t border-zinc-800" />
+              <div className="border-t border-slate-800" />
               <RolesSection appConcept={appConcept} onUpdate={handleUpdate} readOnly={isReadOnly} />
             </>
           )}
@@ -254,7 +257,7 @@ export function AppConceptPanel({
           {/* Workflows (if any) - conditionally render with divider */}
           {(appConcept.workflows?.length || !isReadOnly) && (
             <>
-              <div className="border-t border-zinc-800" />
+              <div className="border-t border-slate-800" />
               <WorkflowsSection
                 appConcept={appConcept}
                 onUpdate={handleUpdate}
@@ -266,7 +269,7 @@ export function AppConceptPanel({
           {/* Phase Plan (if generated) */}
           {phasePlan && (
             <>
-              <div className="border-t border-zinc-800" />
+              <div className="border-t border-slate-800" />
               <PhasePlanSection
                 phasePlan={phasePlan}
                 completedPhases={completedPhases}
@@ -282,10 +285,10 @@ export function AppConceptPanel({
 
       {/* Footer with action button */}
       {mode === 'plan' && phasePlan && onStartBuilding && (
-        <div className="p-3 border-t border-zinc-800 flex-shrink-0">
+        <div className="p-3 border-t border-slate-800 flex-shrink-0">
           <button
             onClick={onStartBuilding}
-            className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white text-sm font-medium rounded-lg transition-all shadow-lg shadow-blue-500/20"
+            className="w-full py-2.5 px-4 bg-gradient-to-r from-garden-600 to-garden-500 hover:from-garden-500 hover:to-garden-400 text-white text-sm font-medium rounded-lg transition-all shadow-lg shadow-garden-500/20"
           >
             Start Building
           </button>
@@ -294,16 +297,16 @@ export function AppConceptPanel({
 
       {/* ACT mode footer with build controls */}
       {mode === 'act' && buildState && (
-        <div className="p-3 border-t border-zinc-800 flex-shrink-0 space-y-2">
+        <div className="p-3 border-t border-slate-800 flex-shrink-0 space-y-2">
           {/* Progress bar */}
           <div className="flex items-center gap-2">
-            <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+            <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-500"
+                className="h-full bg-gradient-to-r from-garden-500 to-gold-500 transition-all duration-500"
                 style={{ width: `${buildState.progress.percentComplete}%` }}
               />
             </div>
-            <span className="text-xs text-zinc-400 min-w-[3rem] text-right">
+            <span className="text-xs text-slate-400 min-w-[3rem] text-right">
               {buildState.progress.percentComplete}%
             </span>
           </div>
@@ -332,7 +335,7 @@ export function AppConceptPanel({
                   const phase = buildState.currentPhase;
                   if (phase) onSkipPhase(phase.number);
                 }}
-                className="py-1.5 px-3 text-xs bg-zinc-700 text-zinc-300 hover:bg-zinc-600 rounded-lg transition-colors"
+                className="py-1.5 px-3 text-xs bg-slate-700 text-slate-300 hover:bg-slate-600 rounded-lg transition-colors"
               >
                 ⏭️ Skip
               </button>

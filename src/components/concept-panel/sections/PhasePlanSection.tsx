@@ -79,13 +79,13 @@ export function PhasePlanSection({
         className="flex items-center gap-2 w-full text-left mb-2"
       >
         {isExpanded ? (
-          <ChevronDownIcon size={14} className="text-zinc-400" />
+          <ChevronDownIcon size={14} className="text-slate-400" />
         ) : (
-          <ChevronRightIcon size={14} className="text-zinc-400" />
+          <ChevronRightIcon size={14} className="text-slate-400" />
         )}
-        <ListChecksIcon size={14} className="text-zinc-400" />
-        <span className="text-xs text-zinc-500 uppercase tracking-wide">Implementation Plan</span>
-        <span className="ml-auto text-xs text-zinc-500">
+        <ListChecksIcon size={14} className="text-slate-400" />
+        <span className="text-xs text-slate-500 uppercase tracking-wide">Implementation Plan</span>
+        <span className="ml-auto text-xs text-slate-500">
           {completedCount}/{totalCount}
         </span>
       </button>
@@ -95,13 +95,13 @@ export function PhasePlanSection({
           {/* Progress bar */}
           {completedCount > 0 && (
             <div className="mb-3">
-              <div className="flex items-center justify-between text-xs text-zinc-500 mb-1">
+              <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
                 <span>Progress</span>
                 <span>{progress}%</span>
               </div>
-              <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-garden-500 to-green-500 transition-all duration-500"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -132,11 +132,11 @@ export function PhasePlanSection({
                     isFailed
                       ? 'bg-red-500/10 border border-red-500/30'
                       : isCurrent
-                        ? 'bg-blue-500/10 border border-blue-500/30'
+                        ? 'bg-garden-500/10 border border-garden-500/30'
                         : isCompleted
                           ? 'bg-green-500/5'
-                          : 'bg-zinc-800/30'
-                  } ${isClickable ? 'cursor-pointer hover:bg-zinc-700/50' : ''}`}
+                          : 'bg-slate-800/30'
+                  } ${isClickable ? 'cursor-pointer hover:bg-slate-700/50' : ''}`}
                 >
                   {/* Phase number/status icon */}
                   <div
@@ -146,8 +146,8 @@ export function PhasePlanSection({
                         : isCompleted
                           ? 'bg-green-500/20 text-green-400'
                           : isCurrent
-                            ? 'bg-blue-500/20 text-blue-400'
-                            : 'bg-zinc-700 text-zinc-500'
+                            ? 'bg-garden-500/20 text-garden-400'
+                            : 'bg-slate-700 text-slate-500'
                     }`}
                   >
                     {isFailed ? (
@@ -168,10 +168,10 @@ export function PhasePlanSection({
                         isFailed
                           ? 'text-red-300'
                           : isCompleted
-                            ? 'text-zinc-400 line-through'
+                            ? 'text-slate-400 line-through'
                             : isCurrent
-                              ? 'text-blue-300'
-                              : 'text-zinc-300'
+                              ? 'text-garden-300'
+                              : 'text-slate-300'
                       }`}
                     >
                       {phase.name}
@@ -182,18 +182,18 @@ export function PhasePlanSection({
                         {builtSummary}
                       </span>
                     ) : phase.domain ? (
-                      <span className="text-[10px] text-zinc-600">{phase.domain}</span>
+                      <span className="text-[10px] text-slate-600">{phase.domain}</span>
                     ) : null}
                   </div>
 
                   {/* Click indicator in ACT mode */}
                   {isClickable && (
-                    <ChevronRightIcon size={12} className="text-zinc-600 flex-shrink-0" />
+                    <ChevronRightIcon size={12} className="text-slate-600 flex-shrink-0" />
                   )}
 
                   {/* Estimated tokens (only in PLAN mode) */}
                   {mode === 'plan' && phase.estimatedTokens && (
-                    <span className="text-[10px] text-zinc-600 flex-shrink-0">
+                    <span className="text-[10px] text-slate-600 flex-shrink-0">
                       ~{Math.round(phase.estimatedTokens / 1000)}k
                     </span>
                   )}
@@ -203,7 +203,7 @@ export function PhasePlanSection({
           </div>
 
           {/* Summary stats */}
-          <div className="pt-2 border-t border-zinc-800 mt-2 flex items-center gap-4 text-xs text-zinc-500">
+          <div className="pt-2 border-t border-slate-800 mt-2 flex items-center gap-4 text-xs text-slate-500">
             <span>Total: {phasePlan.totalPhases} phases</span>
             {phasePlan.estimatedTotalTokens && (
               <span>~{Math.round(phasePlan.estimatedTotalTokens / 1000)}k tokens</span>

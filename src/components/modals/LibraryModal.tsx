@@ -103,16 +103,16 @@ export function LibraryModal({
     >
       <FocusTrap onEscape={onClose}>
         <div
-          className="bg-zinc-900 rounded-xl border border-zinc-800 max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col shadow-2xl"
+          className="bg-slate-900 rounded-xl border border-slate-800 max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Library Header */}
-          <div className="px-6 py-4 border-b border-zinc-800">
+          <div className="px-6 py-4 border-b border-slate-800">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-zinc-100 flex items-center gap-2">
-                <FolderIcon size={20} className="text-zinc-400" />
+              <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
+                <FolderIcon size={20} className="text-slate-400" />
                 My Content
-                <span className="text-sm font-normal text-zinc-500">
+                <span className="text-sm font-normal text-slate-500">
                   ({contentTab === 'apps' ? components.length : storageFiles.length})
                 </span>
               </h2>
@@ -127,8 +127,8 @@ export function LibraryModal({
                 onClick={() => onContentTabChange('apps')}
                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   contentTab === 'apps'
-                    ? 'bg-zinc-800 text-zinc-100'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                    ? 'bg-slate-800 text-slate-100'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                 }`}
               >
                 <RocketIcon size={16} />
@@ -138,8 +138,8 @@ export function LibraryModal({
                 onClick={() => onContentTabChange('files')}
                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   contentTab === 'files'
-                    ? 'bg-zinc-800 text-zinc-100'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                    ? 'bg-slate-800 text-slate-100'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                 }`}
               >
                 <FolderIcon size={16} />
@@ -154,7 +154,7 @@ export function LibraryModal({
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder="Search apps..."
-                className="w-full px-4 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                className="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-garden-500 focus:border-transparent transition-colors"
                 id="app-search"
                 name="app-search"
                 autoComplete="off"
@@ -183,10 +183,10 @@ export function LibraryModal({
               // Apps Tab Content
               filteredComponents.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="w-16 h-16 rounded-2xl bg-zinc-800 flex items-center justify-center mx-auto mb-4">
-                    <FolderIcon size={32} className="text-zinc-600" />
+                  <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                    <FolderIcon size={32} className="text-slate-600" />
                   </div>
-                  <p className="text-sm text-zinc-400">
+                  <p className="text-sm text-slate-400">
                     {searchQuery ? 'No apps match your search' : 'No apps yet. Start building!'}
                   </p>
                 </div>
@@ -195,11 +195,11 @@ export function LibraryModal({
                   {filteredComponents.map((comp) => (
                     <div
                       key={comp.id}
-                      className="bg-zinc-800/50 rounded-lg border border-zinc-700 p-4 hover:bg-zinc-800 transition-colors cursor-pointer group"
+                      className="bg-slate-800/50 rounded-lg border border-slate-700 p-4 hover:bg-slate-800 transition-colors cursor-pointer group"
                       onClick={() => onLoadComponent(comp)}
                     >
                       <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-medium text-zinc-100 group-hover:text-blue-400 transition-colors">
+                        <h3 className="font-medium text-slate-100 group-hover:text-garden-400 transition-colors">
                           {comp.name}
                         </h3>
                         <div className="flex gap-1">
@@ -213,7 +213,7 @@ export function LibraryModal({
                             <StarIcon
                               size={16}
                               filled={comp.isFavorite}
-                              className={comp.isFavorite ? 'text-yellow-400' : 'text-zinc-500'}
+                              className={comp.isFavorite ? 'text-yellow-400' : 'text-slate-500'}
                             />
                           </button>
                           <button
@@ -245,10 +245,10 @@ export function LibraryModal({
                           </button>
                         </div>
                       </div>
-                      <p className="text-sm text-zinc-400 line-clamp-2 mb-3">{comp.description}</p>
-                      <div className="flex items-center justify-between text-xs text-zinc-500">
+                      <p className="text-sm text-slate-400 line-clamp-2 mb-3">{comp.description}</p>
+                      <div className="flex items-center justify-between text-xs text-slate-500">
                         <span>{new Date(comp.timestamp).toLocaleDateString()}</span>
-                        <span className="text-blue-400">Load →</span>
+                        <span className="text-garden-400">Load →</span>
                       </div>
                     </div>
                   ))}
@@ -259,11 +259,11 @@ export function LibraryModal({
               <>
                 {!user ? (
                   <div className="flex flex-col items-center justify-center py-16 px-4">
-                    <div className="w-16 h-16 rounded-2xl bg-zinc-800 flex items-center justify-center mb-4">
-                      <LockIcon size={32} className="text-zinc-600" />
+                    <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center mb-4">
+                      <LockIcon size={32} className="text-slate-600" />
                     </div>
-                    <h3 className="text-lg font-medium text-zinc-100 mb-2">Sign In Required</h3>
-                    <p className="text-sm text-zinc-400 text-center max-w-md">
+                    <h3 className="text-lg font-medium text-slate-100 mb-2">Sign In Required</h3>
+                    <p className="text-sm text-slate-400 text-center max-w-md">
                       Please sign in to access file storage
                     </p>
                   </div>
@@ -294,9 +294,9 @@ export function LibraryModal({
 
                     {/* Bulk Actions */}
                     {selectedFiles.size > 0 && (
-                      <div className="fixed bottom-6 right-6 bg-zinc-800 rounded-lg border border-zinc-700 shadow-2xl p-4">
+                      <div className="fixed bottom-6 right-6 bg-slate-800 rounded-lg border border-slate-700 shadow-2xl p-4">
                         <div className="flex items-center gap-3">
-                          <span className="text-zinc-100 text-sm">
+                          <span className="text-slate-100 text-sm">
                             {selectedFiles.size} selected
                           </span>
                           <button onClick={onBulkDelete} className="btn-danger">

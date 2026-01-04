@@ -275,7 +275,7 @@ function SearchInput({ value, onChange }: { value: string; onChange: (value: str
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Search shortcuts..."
-        className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+        className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:border-garden-500"
       />
       {value && (
         <button
@@ -356,9 +356,9 @@ export function KeyboardShortcutsPanel({ isOpen, onClose }: KeyboardShortcutsPan
           {/* Header */}
           <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-slate-900 border-b border-slate-700">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/10 rounded-lg">
+              <div className="p-2 bg-garden-500/10 rounded-lg">
                 <svg
-                  className="w-5 h-5 text-blue-400"
+                  className="w-5 h-5 text-garden-400"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -424,7 +424,7 @@ export function KeyboardShortcutsPanel({ isOpen, onClose }: KeyboardShortcutsPan
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="mt-2 text-sm text-blue-400 hover:text-blue-300"
+                  className="mt-2 text-sm text-garden-400 hover:text-blue-300"
                 >
                   Clear search
                 </button>

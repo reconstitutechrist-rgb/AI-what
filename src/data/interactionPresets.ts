@@ -58,11 +58,11 @@ export const hoverPresets: InteractionPreset[] = [
     category: 'hover',
     interactions: {
       hover: {
-        boxShadow: '0 0 20px rgba(59, 130, 246, 0.5)',
+        boxShadow: '0 0 20px rgba(46, 204, 113, 0.5)',
         transition: 'box-shadow 0.2s ease',
       },
     },
-    tailwindClasses: 'hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] transition-shadow duration-200',
+    tailwindClasses: 'hover:shadow-[0_0_20px_rgba(46,204,113,0.5)] transition-shadow duration-200',
   },
   {
     id: 'hover-brighten',
@@ -84,11 +84,11 @@ export const hoverPresets: InteractionPreset[] = [
     category: 'hover',
     interactions: {
       hover: {
-        borderColor: '#3B82F6',
+        borderColor: '#2ECC71',
         transition: 'border-color 0.2s ease',
       },
     },
-    tailwindClasses: 'hover:border-blue-500 transition-colors duration-200',
+    tailwindClasses: 'hover:border-garden-500 transition-colors duration-200',
   },
 ];
 
@@ -281,7 +281,7 @@ export const loadingPresets: InteractionPreset[] = [
     interactions: {
       loading: {
         type: 'progress',
-        color: '#3B82F6',
+        color: '#2ECC71',
       },
     },
   },

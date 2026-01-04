@@ -93,19 +93,19 @@ export function CreateBranchModal({
     >
       <FocusTrap onEscape={onClose}>
         <div
-          className="bg-zinc-900 rounded-xl border border-zinc-800 max-w-md w-full overflow-hidden shadow-2xl"
+          className="bg-slate-900 rounded-xl border border-slate-800 max-w-md w-full overflow-hidden shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Modal Header */}
-          <div className="px-6 py-4 border-b border-zinc-800">
+          <div className="px-6 py-4 border-b border-slate-800">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-violet-600/20 flex items-center justify-center">
-                  <GitBranchIcon size={20} className="text-violet-400" />
+                <div className="w-10 h-10 rounded-lg bg-gold-600/20 flex items-center justify-center">
+                  <GitBranchIcon size={20} className="text-gold-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-zinc-100">Create New Branch</h3>
-                  <p className="text-sm text-zinc-400">
+                  <h3 className="text-lg font-semibold text-slate-100">Create New Branch</h3>
+                  <p className="text-sm text-slate-400">
                     Branch from {sourceBranch?.name || 'main'} (v{sourceVersionNumber})
                   </p>
                 </div>
@@ -122,7 +122,7 @@ export function CreateBranchModal({
             <div>
               <label
                 htmlFor="branch-name"
-                className="block text-sm font-medium text-zinc-300 mb-1.5"
+                className="block text-sm font-medium text-slate-300 mb-1.5"
               >
                 Branch Name <span className="text-red-400">*</span>
               </label>
@@ -136,14 +136,14 @@ export function CreateBranchModal({
                 disabled={isSubmitting}
                 className={`
                   w-full px-3 py-2 rounded-lg
-                  bg-zinc-800 border text-zinc-100
-                  placeholder:text-zinc-500
+                  bg-slate-800 border text-slate-100
+                  placeholder:text-slate-500
                   focus:outline-none focus:ring-2
                   disabled:opacity-50 disabled:cursor-not-allowed
                   ${
                     error
                       ? 'border-red-500/50 focus:ring-red-500/30'
-                      : 'border-zinc-700 focus:ring-violet-500/30 focus:border-violet-500'
+                      : 'border-slate-700 focus:ring-gold-500/30 focus:border-gold-500'
                   }
                 `}
               />
@@ -153,7 +153,7 @@ export function CreateBranchModal({
                   <span>{error}</span>
                 </div>
               )}
-              <p className="mt-1.5 text-xs text-zinc-500">
+              <p className="mt-1.5 text-xs text-slate-500">
                 Use lowercase letters, numbers, and hyphens
               </p>
             </div>
@@ -162,9 +162,9 @@ export function CreateBranchModal({
             <div>
               <label
                 htmlFor="branch-description"
-                className="block text-sm font-medium text-zinc-300 mb-1.5"
+                className="block text-sm font-medium text-slate-300 mb-1.5"
               >
-                Description <span className="text-zinc-500">(optional)</span>
+                Description <span className="text-slate-500">(optional)</span>
               </label>
               <textarea
                 id="branch-description"
@@ -175,9 +175,9 @@ export function CreateBranchModal({
                 disabled={isSubmitting}
                 className="
                   w-full px-3 py-2 rounded-lg
-                  bg-zinc-800 border border-zinc-700 text-zinc-100
-                  placeholder:text-zinc-500
-                  focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500
+                  bg-slate-800 border border-slate-700 text-slate-100
+                  placeholder:text-slate-500
+                  focus:outline-none focus:ring-2 focus:ring-gold-500/30 focus:border-gold-500
                   disabled:opacity-50 disabled:cursor-not-allowed
                   resize-none
                 "
@@ -185,8 +185,8 @@ export function CreateBranchModal({
             </div>
 
             {/* Info Box */}
-            <div className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
-              <p className="text-xs text-zinc-400">
+            <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
+              <p className="text-xs text-slate-400">
                 Creating a branch copies the current code and conversation history. Changes made on
                 this branch won&apos;t affect other branches.
               </p>
@@ -200,9 +200,9 @@ export function CreateBranchModal({
                 disabled={isSubmitting}
                 className="
                   px-4 py-2 rounded-lg text-sm font-medium
-                  text-zinc-300 hover:text-zinc-100
-                  bg-zinc-800 hover:bg-zinc-700
-                  border border-zinc-700
+                  text-slate-300 hover:text-slate-100
+                  bg-slate-800 hover:bg-slate-700
+                  border border-slate-700
                   transition-colors
                   disabled:opacity-50 disabled:cursor-not-allowed
                 "
@@ -215,7 +215,7 @@ export function CreateBranchModal({
                 className="
                   px-4 py-2 rounded-lg text-sm font-medium
                   text-white
-                  bg-violet-600 hover:bg-violet-500
+                  bg-gold-600 hover:bg-gold-500
                   transition-colors
                   disabled:opacity-50 disabled:cursor-not-allowed
                 "

@@ -42,11 +42,11 @@ function FilterButton({
   };
 
   const colors: Record<LogFilter, string> = {
-    all: 'text-zinc-300',
+    all: 'text-slate-300',
     error: 'text-red-400',
     warn: 'text-yellow-400',
-    info: 'text-blue-400',
-    log: 'text-zinc-400',
+    info: 'text-garden-400',
+    log: 'text-slate-400',
   };
 
   const isActive = activeFilter === filter;
@@ -55,7 +55,7 @@ function FilterButton({
     <button
       onClick={() => onClick(filter)}
       className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
-        isActive ? 'bg-zinc-700 text-white' : `${colors[filter]} hover:bg-zinc-800`
+        isActive ? 'bg-slate-700 text-white' : `${colors[filter]} hover:bg-slate-800`
       }`}
       title={`Filter: ${filter}`}
     >
@@ -67,7 +67,7 @@ function FilterButton({
               ? 'bg-red-500/20 text-red-300'
               : filter === 'warn'
                 ? 'bg-yellow-500/20 text-yellow-300'
-                : 'bg-zinc-700 text-zinc-300'
+                : 'bg-slate-700 text-slate-300'
           }`}
         >
           {count}
@@ -118,7 +118,7 @@ function ResizeHandle({ onResize }: { onResize: (deltaX: number) => void }) {
       className="absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize group"
       onMouseDown={handleMouseDown}
     >
-      <div className="absolute left-0 top-0 bottom-0 w-1 bg-zinc-700 group-hover:bg-blue-500 transition-colors" />
+      <div className="absolute left-0 top-0 bottom-0 w-1 bg-slate-700 group-hover:bg-garden-500 transition-colors" />
     </div>
   );
 }
@@ -138,9 +138,9 @@ function ConsoleHeader({
   logCounts: Record<string, number>;
 }) {
   return (
-    <div className="flex items-center justify-between px-3 py-2 bg-zinc-900 border-b border-zinc-800">
+    <div className="flex items-center justify-between px-3 py-2 bg-slate-900 border-b border-slate-800">
       <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-zinc-300">📟 Console</span>
+        <span className="text-sm font-medium text-slate-300">📟 Console</span>
 
         {/* Filter buttons */}
         <div className="flex items-center gap-1 ml-2">
@@ -166,7 +166,7 @@ function ConsoleHeader({
         {/* Clear button */}
         <button
           onClick={onClear}
-          className="flex items-center gap-1 px-2 py-1 text-xs text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors"
+          className="flex items-center gap-1 px-2 py-1 text-xs text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors"
           title="Clear console"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -183,7 +183,7 @@ function ConsoleHeader({
         {/* Close button */}
         <button
           onClick={onClose}
-          className="flex items-center justify-center w-6 h-6 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors"
+          className="flex items-center justify-center w-6 h-6 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors"
           title="Close console"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -221,7 +221,7 @@ function CollapsedIndicator({
           ? 'border-red-500/50 bg-red-500/10 hover:bg-red-500/20'
           : hasWarnings
             ? 'border-yellow-500/50 bg-yellow-500/10 hover:bg-yellow-500/20'
-            : 'border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800'
+            : 'border-slate-800 bg-slate-900/50 hover:bg-slate-800'
       }`}
       title="Open console"
     >
@@ -239,7 +239,7 @@ function CollapsedIndicator({
       )}
 
       <svg
-        className="w-4 h-4 text-zinc-500 mt-2"
+        className="w-4 h-4 text-slate-500 mt-2"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -294,7 +294,7 @@ export function ConsolePanel({
 
   return (
     <div
-      className={`relative flex flex-col h-full bg-zinc-950 border-l border-zinc-800 ${className}`}
+      className={`relative flex flex-col h-full bg-slate-950 border-l border-slate-800 ${className}`}
       style={{ width }}
     >
       {/* Resize handle */}
@@ -383,15 +383,15 @@ function ConsolePanelContent({
       case 'warn':
         return 'text-yellow-400 bg-yellow-500/10';
       case 'info':
-        return 'text-blue-400';
+        return 'text-garden-400';
       default:
-        return 'text-zinc-300';
+        return 'text-slate-300';
     }
   };
 
   if (filteredLogs.length === 0) {
     return (
-      <div className="h-full flex items-center justify-center text-zinc-500 text-sm">
+      <div className="h-full flex items-center justify-center text-slate-500 text-sm">
         No console output yet
       </div>
     );
@@ -401,7 +401,7 @@ function ConsolePanelContent({
     <div className="h-full overflow-auto p-2 font-mono text-xs">
       {filteredLogs.map((log) => (
         <div key={log.id} className={`py-1 px-2 rounded ${getLogColor(log.type)}`}>
-          <span className="text-zinc-500 mr-2">{log.timestamp.toLocaleTimeString()}</span>
+          <span className="text-slate-500 mr-2">{log.timestamp.toLocaleTimeString()}</span>
           <span>{log.message}</span>
         </div>
       ))}

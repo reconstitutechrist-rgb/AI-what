@@ -113,13 +113,13 @@ export function AppNavigation({
           {/* Logo & Project Name */}
           <div className="flex items-center gap-4">
             <Link href="/" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-garden-500 to-gold-400 flex items-center justify-center">
                 <RocketIcon size={18} className="text-white" />
               </div>
             </Link>
             <div className="hidden sm:flex items-center gap-2">
               <span className="text-sm font-medium text-white">{projectName}</span>
-              <span className="text-xs text-zinc-500">v1.0.0</span>
+              <span className="text-xs text-garden-600/70">v1.0.0</span>
             </div>
           </div>
 
@@ -138,10 +138,10 @@ export function AppNavigation({
                     transition-all duration-200
                     ${
                       isActive
-                        ? 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-white border border-blue-500/30'
+                        ? 'bg-gradient-to-r from-garden-600/20 to-gold-500/20 text-white border border-garden-500/30'
                         : isCompleted
-                          ? 'text-zinc-300 hover:text-white hover:bg-white/5'
-                          : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
+                          ? 'text-slate-300 hover:text-white hover:bg-white/5'
+                          : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
                     }
                   `}
                   title={item.description}
@@ -152,10 +152,10 @@ export function AppNavigation({
                     w-5 h-5 rounded-full flex items-center justify-center text-xs
                     ${
                       isActive
-                        ? 'bg-blue-500 text-white'
+                        ? 'bg-garden-500 text-white'
                         : isCompleted
-                          ? 'bg-green-500/20 text-green-400'
-                          : 'bg-zinc-800 text-zinc-500'
+                          ? 'bg-garden-500/20 text-garden-400'
+                          : 'bg-slate-800 text-slate-500'
                     }
                   `}
                   >
@@ -174,7 +174,7 @@ export function AppNavigation({
             {pathname !== '/app' && (
               <button
                 onClick={() => router.push('/app')}
-                className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-xs text-zinc-400 hover:text-white transition-colors"
+                className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors"
               >
                 Skip to Builder →
               </button>
@@ -185,7 +185,7 @@ export function AppNavigation({
               <button
                 onClick={onSave}
                 disabled={isSaving}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 rounded-lg shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-garden-600 to-garden-500 hover:from-garden-500 hover:to-garden-400 rounded-lg shadow-lg shadow-garden-500/25 hover:shadow-garden-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <SaveIcon size={16} />
                 <span className="hidden sm:inline">{isSaving ? 'Saving...' : 'Save'}</span>
@@ -195,7 +195,7 @@ export function AppNavigation({
             {/* Menu Button */}
             <button
               onClick={onMenuClick}
-              className="flex items-center justify-center w-9 h-9 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 text-zinc-400 hover:text-white transition-colors"
+              className="flex items-center justify-center w-9 h-9 rounded-lg bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 text-slate-400 hover:text-white transition-colors"
               title="Menu"
             >
               <MenuIcon size={18} />
@@ -218,16 +218,16 @@ export function AppNavigation({
                   transition-colors
                   ${
                     isActive
-                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+                      ? 'bg-garden-600/20 text-garden-400 border border-garden-500/30'
                       : isCompleted
-                        ? 'text-zinc-400 bg-zinc-800/50'
-                        : 'text-zinc-500'
+                        ? 'text-slate-400 bg-slate-800/50'
+                        : 'text-slate-500'
                   }
                 `}
               >
                 <span
                   className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
-                    isCompleted ? 'bg-green-500/20 text-green-400' : 'bg-zinc-800'
+                    isCompleted ? 'bg-garden-500/20 text-garden-400' : 'bg-slate-800'
                   }`}
                 >
                   {isCompleted ? <CheckIcon size={10} /> : item.step}

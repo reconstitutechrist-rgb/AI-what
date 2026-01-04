@@ -30,11 +30,11 @@ export function FeatureCard({ feature, onUpdate, onDelete, readOnly = false }: F
   }, [showDeleteConfirm, onDelete]);
 
   return (
-    <div className="group bg-zinc-800/50 rounded-lg p-3 border border-zinc-700/50 hover:border-zinc-600/50 transition-colors">
+    <div className="group bg-slate-800/50 rounded-lg p-3 border border-slate-700/50 hover:border-slate-600/50 transition-colors">
       <div className="flex items-start gap-2">
         {/* Drag handle (visual only for now) */}
         {!readOnly && (
-          <div className="mt-1 text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
+          <div className="mt-1 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
             <GripVerticalIcon size={14} />
           </div>
         )}
@@ -59,7 +59,7 @@ export function FeatureCard({ feature, onUpdate, onDelete, readOnly = false }: F
               type="textarea"
               placeholder="Add a description..."
               readOnly={readOnly}
-              valueClassName="text-xs text-zinc-400"
+              valueClassName="text-xs text-slate-400"
             />
           )}
         </div>
@@ -81,7 +81,7 @@ export function FeatureCard({ feature, onUpdate, onDelete, readOnly = false }: F
               className={`p-1 rounded transition-colors ${
                 showDeleteConfirm
                   ? 'bg-red-500/20 text-red-400'
-                  : 'text-zinc-500 opacity-0 group-hover:opacity-100 hover:text-red-400'
+                  : 'text-slate-500 opacity-0 group-hover:opacity-100 hover:text-red-400'
               }`}
               title={showDeleteConfirm ? 'Click again to confirm' : 'Delete feature'}
             >

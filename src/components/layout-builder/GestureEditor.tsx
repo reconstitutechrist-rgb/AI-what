@@ -71,9 +71,7 @@ export function GestureEditor({
             <h3 className="font-medium text-white">Touch Gestures</h3>
             <p className="text-xs text-slate-400 mt-0.5">{elementId}</p>
           </div>
-          <span className="px-2 py-0.5 text-xs bg-purple-900/30 text-purple-400 rounded">
-            Mobile
-          </span>
+          <span className="px-2 py-0.5 text-xs bg-gold-900/30 text-gold-400 rounded">Mobile</span>
         </div>
       </div>
 
@@ -89,7 +87,7 @@ export function GestureEditor({
               className={`p-3 text-left rounded-lg border transition-colors ${
                 interactions.gesture?.type === preset.interactions.gesture?.type &&
                 interactions.gesture?.action === preset.interactions.gesture?.action
-                  ? 'bg-purple-900/30 border-purple-500'
+                  ? 'bg-gold-900/30 border-gold-500'
                   : 'bg-slate-800 border-slate-700 hover:bg-slate-700'
               }`}
             >
@@ -107,7 +105,7 @@ export function GestureEditor({
               <button
                 type="button"
                 onClick={() => setShowCustom(!showCustom)}
-                className="text-xs text-blue-400 hover:text-blue-300"
+                className="text-xs text-garden-400 hover:text-garden-300"
               >
                 {showCustom ? 'Hide Options' : 'Customize'}
               </button>

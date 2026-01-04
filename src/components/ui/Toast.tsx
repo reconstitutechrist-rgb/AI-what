@@ -52,7 +52,7 @@ function ErrorIcon() {
 
 function InfoIcon() {
   return (
-    <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="w-5 h-5 text-garden-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -114,7 +114,7 @@ function getStyles(type: ToastVariant): string {
       return `${baseStyles} border-yellow-500 bg-yellow-500/10`;
     case 'info':
     default:
-      return `${baseStyles} border-blue-500 bg-blue-500/10`;
+      return `${baseStyles} border-garden-500 bg-garden-500/10`;
   }
 }
 

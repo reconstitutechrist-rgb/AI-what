@@ -216,11 +216,11 @@ export function SideDrawer({
             className="fixed right-0 top-0 h-full w-80 max-w-[85vw] bg-[#0a0a0f]/95 backdrop-blur-xl border-l border-white/10 z-50 flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+            <div className="flex items-center justify-between p-4 border-b border-slate-800">
               <h2 className="text-lg font-semibold text-white">Menu</h2>
               <button
                 onClick={onClose}
-                className="p-2 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
               >
                 <XIcon size={20} />
               </button>
@@ -228,14 +228,14 @@ export function SideDrawer({
 
             {/* User Section */}
             {user && (
-              <div className="p-4 border-b border-zinc-800">
+              <div className="p-4 border-b border-slate-800">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-garden-500 to-gold-500 flex items-center justify-center">
                     <UserIcon size={20} className="text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-white truncate">{user.email}</p>
-                    <p className="text-xs text-zinc-500">Free Plan</p>
+                    <p className="text-xs text-slate-500">Free Plan</p>
                   </div>
                 </div>
               </div>
@@ -245,7 +245,7 @@ export function SideDrawer({
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
               {menuSections.map((section) => (
                 <div key={section.title}>
-                  <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
+                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                     {section.title}
                   </h3>
                   <div className="space-y-1">
@@ -258,22 +258,24 @@ export function SideDrawer({
                           w-full flex items-center gap-3 p-3 rounded-xl
                           transition-colors text-left
                           ${
-                            item.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-zinc-800/50'
+                            item.disabled
+                              ? 'opacity-50 cursor-not-allowed'
+                              : 'hover:bg-slate-800/50'
                           }
                         `}
                       >
-                        <div className="text-zinc-400">{item.icon}</div>
+                        <div className="text-slate-400">{item.icon}</div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-white">{item.label}</span>
                             {item.badge}
                           </div>
-                          <span className="text-xs text-zinc-500">{item.description}</span>
+                          <span className="text-xs text-slate-500">{item.description}</span>
                         </div>
                         {item.toggle && (
                           <div
                             className={`w-8 h-5 rounded-full transition-colors ${
-                              theme === 'dark' ? 'bg-blue-600' : 'bg-zinc-700'
+                              theme === 'dark' ? 'bg-garden-600' : 'bg-slate-700'
                             }`}
                           >
                             <div
@@ -291,11 +293,11 @@ export function SideDrawer({
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t border-zinc-800">
+            <div className="p-4 border-t border-slate-800">
               {user ? (
                 <button
                   onClick={handleSignOut}
-                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-zinc-800/50 hover:bg-red-600/20 text-zinc-400 hover:text-red-400 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-slate-800/50 hover:bg-red-600/20 text-slate-400 hover:text-red-400 transition-colors"
                 >
                   <LogoutIcon size={18} />
                   <span className="text-sm font-medium">Sign Out</span>
@@ -306,7 +308,7 @@ export function SideDrawer({
                     router.push('/login');
                     onClose();
                   }}
-                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-garden-600 hover:bg-garden-500 text-white transition-colors"
                 >
                   <UserIcon size={18} />
                   <span className="text-sm font-medium">Sign In</span>

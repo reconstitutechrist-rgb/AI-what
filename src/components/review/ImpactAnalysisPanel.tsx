@@ -94,7 +94,7 @@ export default function ImpactAnalysisPanel({
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 px-3 py-2 text-xs font-medium transition-all ${
                   activeTab === tab.id
-                    ? 'bg-white/10 text-white border-b-2 border-blue-500'
+                    ? 'bg-white/10 text-white border-b-2 border-garden-500'
                     : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`}
               >
@@ -127,7 +127,7 @@ export default function ImpactAnalysisPanel({
                       key={idx}
                       className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/20 border border-white/5"
                     >
-                      <span className="text-blue-400">📄</span>
+                      <span className="text-garden-400">📄</span>
                       <span className="text-sm text-slate-300 truncate">{file}</span>
                     </div>
                   ))
@@ -145,7 +145,7 @@ export default function ImpactAnalysisPanel({
                       key={idx}
                       className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/20 border border-white/5"
                     >
-                      <span className="text-purple-400">⚛️</span>
+                      <span className="text-gold-400">⚛️</span>
                       <span className="text-sm text-slate-300">{component}</span>
                     </div>
                   ))

@@ -88,7 +88,7 @@ function BreakpointTabs({
             flex-1 px-2 py-1.5 text-xs font-medium rounded transition-all relative
             ${
               selected === bp
-                ? 'bg-blue-600 text-white'
+                ? 'bg-garden-600 text-white'
                 : 'text-slate-400 hover:text-white hover:bg-slate-700'
             }
           `}
@@ -119,7 +119,7 @@ function PropertyRow({
       <div className="w-32 flex items-center gap-2">
         <span className="text-xs text-slate-400">{label}</span>
         {isOverridden && (
-          <span className="w-1.5 h-1.5 bg-blue-400 rounded-full" title="Has override" />
+          <span className="w-1.5 h-1.5 bg-garden-400 rounded-full" title="Has override" />
         )}
       </div>
       <div className="flex-1">{children}</div>
@@ -151,7 +151,7 @@ function SelectInput<T extends string>({
     <select
       value={value || ''}
       onChange={(e) => onChange((e.target.value as T) || undefined)}
-      className="w-full px-2 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded text-slate-200 focus:border-blue-500 focus:outline-none"
+      className="w-full px-2 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded text-slate-200 focus:border-garden-500 focus:outline-none"
     >
       <option value="">{placeholder || 'Inherit'}</option>
       {options.map((opt) => (
@@ -224,7 +224,7 @@ function NumberInput({
           key={opt}
           onClick={() => onChange(opt)}
           className={`px-2 py-1 text-xs rounded min-w-[32px] ${
-            value === opt ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'
+            value === opt ? 'bg-garden-600 text-white' : 'bg-slate-800 text-slate-400'
           }`}
         >
           {opt}
@@ -253,7 +253,7 @@ function SpacingInput({
           const val = parseFloat(e.target.value);
           onChange(val === 1 ? undefined : val);
         }}
-        className="flex-1 accent-blue-500"
+        className="flex-1 accent-garden-500"
       />
       <span className="text-xs text-slate-400 w-12 text-right">
         {value !== undefined ? `${value}x` : '1x'}

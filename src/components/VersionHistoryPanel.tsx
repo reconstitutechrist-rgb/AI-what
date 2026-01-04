@@ -189,7 +189,7 @@ function VersionItem({
       onClick={onSelect}
       className={`w-full text-left p-3 rounded-lg border transition-all ${
         isSelected
-          ? 'bg-blue-600/20 border-blue-500'
+          ? 'bg-garden-600/20 border-garden-500'
           : 'bg-slate-800/50 border-slate-700 hover:bg-slate-700/50 hover:border-slate-600'
       }`}
     >
@@ -233,7 +233,7 @@ function VersionItem({
                 e.stopPropagation();
                 onRestore();
               }}
-              className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded transition-colors"
+              className="p-1.5 text-slate-400 hover:text-garden-400 hover:bg-garden-400/10 rounded transition-colors"
               title="Restore this version"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -305,7 +305,7 @@ function ComparisonView({
             className="flex items-center gap-2 text-xs text-slate-400 bg-slate-800/50 px-2 py-1.5 rounded"
           >
             <svg
-              className="w-3 h-3 text-blue-400 flex-shrink-0"
+              className="w-3 h-3 text-garden-400 flex-shrink-0"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -361,7 +361,7 @@ export function VersionHistoryPanel({
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
           <div className="flex items-center gap-2">
             <svg
-              className="w-5 h-5 text-blue-400"
+              className="w-5 h-5 text-garden-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"

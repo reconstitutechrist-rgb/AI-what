@@ -122,7 +122,7 @@ function LayerItem({
     <div
       className={`
         flex items-center gap-2 px-2 py-1.5 cursor-pointer transition-all
-        ${isSelected ? 'bg-blue-500/20 border-l-2 border-blue-500' : 'hover:bg-slate-700/50 border-l-2 border-transparent'}
+        ${isSelected ? 'bg-garden-500/20 border-l-2 border-garden-500' : 'hover:bg-slate-700/50 border-l-2 border-transparent'}
         ${isDragging ? 'opacity-50' : ''}
         ${layer.locked ? 'opacity-70' : ''}
       `}
@@ -253,7 +253,7 @@ function AddLayerForm({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g., Drawer"
-          className="w-full px-2 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded text-slate-200 focus:border-blue-500 focus:outline-none"
+          className="w-full px-2 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded text-slate-200 focus:border-garden-500 focus:outline-none"
           autoFocus
         />
       </div>
@@ -289,7 +289,7 @@ function AddLayerForm({
       <div className="flex gap-2">
         <button
           type="submit"
-          className="flex-1 px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500 transition-colors"
+          className="flex-1 px-3 py-1.5 text-xs bg-garden-600 text-white rounded hover:bg-garden-500 transition-colors"
         >
           Add Layer
         </button>
@@ -447,7 +447,7 @@ export function LayerPanel({
             onClick={() => setShowUseCases(!showUseCases)}
             className={`text-[10px] px-2 py-1 rounded transition-colors ${
               showUseCases
-                ? 'bg-purple-600/30 text-purple-300 hover:bg-purple-600/40'
+                ? 'bg-gold-600/30 text-gold-300 hover:bg-gold-600/40'
                 : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
             }`}
             title={showUseCases ? 'Show technical names' : 'Show use cases'}
@@ -456,7 +456,7 @@ export function LayerPanel({
           </button>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="text-xs px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-500 transition-colors"
+            className="text-xs px-2 py-1 rounded bg-garden-600 text-white hover:bg-garden-500 transition-colors"
           >
             + Add
           </button>

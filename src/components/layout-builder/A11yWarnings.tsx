@@ -39,8 +39,8 @@ const SEVERITY_CONFIG: Record<
   },
   info: {
     icon: 'ℹ️',
-    color: 'text-blue-400',
-    bgColor: 'bg-blue-500/10 border-blue-500/30',
+    color: 'text-garden-400',
+    bgColor: 'bg-garden-500/10 border-garden-500/30',
     label: 'Info',
   },
 };
@@ -157,7 +157,7 @@ export function A11yWarnings({
           >
             {result.summary.warnings} warnings
           </span>
-          <span className="px-2 py-1 text-xs rounded-full bg-blue-500/20 text-blue-400">
+          <span className="px-2 py-1 text-xs rounded-full bg-garden-500/20 text-garden-400">
             {result.summary.info} suggestions
           </span>
         </div>

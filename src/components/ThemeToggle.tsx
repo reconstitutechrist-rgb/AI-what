@@ -83,7 +83,7 @@ export function ThemeToggle({
           text-slate-800 dark:text-slate-200
           transition-all duration-300
           hover:scale-105 active:scale-95
-          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+          focus:outline-none focus:ring-2 focus:ring-garden-500 focus:ring-offset-2
           dark:focus:ring-offset-slate-900
         `}
         aria-label={`Switch to ${resolvedTheme === 'dark' ? 'light' : 'dark'} theme`}
@@ -112,7 +112,7 @@ export function ThemeToggle({
           text-slate-800 dark:text-slate-200
           transition-all duration-300
           hover:scale-105 active:scale-95
-          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+          focus:outline-none focus:ring-2 focus:ring-garden-500 focus:ring-offset-2
           dark:focus:ring-offset-slate-900
         `}
         aria-label="Theme settings"
@@ -153,7 +153,7 @@ export function ThemeToggle({
                 transition-colors duration-200
                 ${
                   theme === option.value
-                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                    ? 'bg-garden-100 dark:bg-garden-900/30 text-garden-700 dark:text-garden-300'
                     : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                 }
               `}
@@ -162,7 +162,7 @@ export function ThemeToggle({
             >
               <span className="text-lg">{option.icon}</span>
               <span className="text-sm font-medium">{option.label}</span>
-              {theme === option.value && <span className="ml-auto text-blue-500">✓</span>}
+              {theme === option.value && <span className="ml-auto text-garden-500">✓</span>}
             </button>
           ))}
         </div>

@@ -1234,8 +1234,8 @@ export function LayoutBuilderWizard({
               onClick={() => setShowComparisonView(!showComparisonView)}
               className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-2 ${
                 showComparisonView
-                  ? 'bg-blue-600 text-white'
-                  : 'text-zinc-400 hover:text-white bg-zinc-900/50 hover:bg-zinc-800/50'
+                  ? 'bg-garden-600 text-white'
+                  : 'text-slate-400 hover:text-white bg-slate-900/50 hover:bg-slate-800/50'
               }`}
               title="Toggle side-by-side comparison view"
             >
@@ -1258,7 +1258,7 @@ export function LayoutBuilderWizard({
               className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-2 ${
                 showDesignSidePanel
                   ? 'bg-slate-700 text-white'
-                  : 'text-zinc-400 hover:text-white bg-zinc-900/50 hover:bg-zinc-800/50'
+                  : 'text-slate-400 hover:text-white bg-slate-900/50 hover:bg-slate-800/50'
               }`}
               title="Toggle design panel"
             >
@@ -1288,7 +1288,7 @@ export function LayoutBuilderWizard({
             <button
               onClick={undo}
               disabled={!canUndo}
-              className="p-2 text-zinc-400 hover:text-white disabled:text-slate-600 disabled:cursor-not-allowed transition-colors"
+              className="p-2 text-slate-400 hover:text-white disabled:text-slate-600 disabled:cursor-not-allowed transition-colors"
               title="Undo (Ctrl+Z)"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1303,7 +1303,7 @@ export function LayoutBuilderWizard({
             <button
               onClick={redo}
               disabled={!canRedo}
-              className="p-2 text-zinc-400 hover:text-white disabled:text-slate-600 disabled:cursor-not-allowed transition-colors"
+              className="p-2 text-slate-400 hover:text-white disabled:text-slate-600 disabled:cursor-not-allowed transition-colors"
               title="Redo (Ctrl+Shift+Z)"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1322,8 +1322,8 @@ export function LayoutBuilderWizard({
             onClick={toggleAdvancedMode}
             className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-2 ${
               isAdvancedMode
-                ? 'bg-purple-600 text-white'
-                : 'text-zinc-400 hover:text-white bg-zinc-900/50 hover:bg-zinc-800/50'
+                ? 'bg-gold-500 text-white'
+                : 'text-slate-400 hover:text-white bg-slate-900/50 hover:bg-slate-800/50'
             }`}
             title={isAdvancedMode ? 'Switch to Basic Mode' : 'Show Advanced Tools'}
           >
@@ -1396,7 +1396,7 @@ export function LayoutBuilderWizard({
           </button>
           <button
             onClick={handleClose}
-            className="p-2 text-zinc-400 hover:text-white transition-colors"
+            className="p-2 text-slate-400 hover:text-white transition-colors"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
@@ -1436,7 +1436,7 @@ export function LayoutBuilderWizard({
                 <button
                   type="button"
                   onClick={loadMoreMessages}
-                  className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-900/50 hover:bg-zinc-800/50 rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-slate-400 hover:text-white bg-slate-900/50 hover:bg-slate-800/50 rounded-lg transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
@@ -1461,13 +1461,13 @@ export function LayoutBuilderWizard({
               <div className="flex justify-start mb-4">
                 <div className="bg-slate-700 rounded-2xl px-4 py-3 text-slate-300">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-garden-400 rounded-full animate-bounce" />
                     <div
-                      className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                      className="w-2 h-2 bg-garden-400 rounded-full animate-bounce"
                       style={{ animationDelay: '0.1s' }}
                     />
                     <div
-                      className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                      className="w-2 h-2 bg-garden-400 rounded-full animate-bounce"
                       style={{ animationDelay: '0.2s' }}
                     />
                   </div>
@@ -1501,7 +1501,7 @@ export function LayoutBuilderWizard({
             <div className="px-4 py-2 border-t border-white/5">
               <button
                 onClick={() => setShowComponentLibrary(true)}
-                className="w-full px-3 py-2 text-sm text-zinc-400 hover:text-white bg-zinc-900/30 hover:bg-zinc-800/50 rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="w-full px-3 py-2 text-sm text-slate-400 hover:text-white bg-slate-900/30 hover:bg-slate-800/50 rounded-lg transition-colors flex items-center justify-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
@@ -1540,7 +1540,7 @@ export function LayoutBuilderWizard({
               {referenceImages.length > 0 && (
                 <div className="px-3 pb-3">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs text-zinc-400">
+                    <span className="text-xs text-slate-400">
                       Reference Images ({referenceImages.length})
                     </span>
                     <button
@@ -1773,7 +1773,7 @@ export function LayoutBuilderWizard({
               <button
                 type="button"
                 onClick={() => setShowCodePreview(false)}
-                className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-900/50 rounded-lg transition-colors"
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-900/50 rounded-lg transition-colors"
                 aria-label="Close code preview"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1814,7 +1814,7 @@ export function LayoutBuilderWizard({
               <button
                 type="button"
                 onClick={() => setShowAnimationTimeline(false)}
-                className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-900/50 rounded-lg transition-colors"
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-900/50 rounded-lg transition-colors"
                 aria-label="Close animation timeline"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1854,7 +1854,7 @@ export function LayoutBuilderWizard({
               <button
                 type="button"
                 onClick={() => setShowLayerPanel(false)}
-                className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-900/50 rounded-lg transition-colors"
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-900/50 rounded-lg transition-colors"
                 aria-label="Close layer panel"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1888,7 +1888,7 @@ export function LayoutBuilderWizard({
                 <button
                   type="button"
                   onClick={() => setShowDarkModeEditor(false)}
-                  className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-900/50 rounded-lg transition-colors"
+                  className="p-2 text-slate-400 hover:text-white hover:bg-slate-900/50 rounded-lg transition-colors"
                   aria-label="Close dark mode editor"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1927,7 +1927,7 @@ export function LayoutBuilderWizard({
                 <button
                   type="button"
                   onClick={() => setShowBreakpointEditor(false)}
-                  className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-900/50 rounded-lg transition-colors"
+                  className="p-2 text-slate-400 hover:text-white hover:bg-slate-900/50 rounded-lg transition-colors"
                   aria-label="Close breakpoint editor"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

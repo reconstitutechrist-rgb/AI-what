@@ -98,7 +98,7 @@ export function ViewOptionsMenu({
         </svg>
         View
         {activeCount > 0 && (
-          <span className="px-1.5 py-0.5 text-[10px] bg-blue-600 text-white rounded-full">
+          <span className="px-1.5 py-0.5 text-[10px] bg-garden-600 text-white rounded-full">
             {activeCount}
           </span>
         )}
@@ -122,12 +122,12 @@ export function ViewOptionsMenu({
             <div className="relative">
               {isAnimationDemo ? (
                 <span className="relative flex h-4 w-4 items-center justify-center">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-gold-500"></span>
                 </span>
               ) : (
                 <svg
-                  className="w-4 h-4 text-purple-400"
+                  className="w-4 h-4 text-gold-400"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -154,7 +154,7 @@ export function ViewOptionsMenu({
               </div>
             </div>
             {isAnimationDemo && (
-              <span className="px-1.5 py-0.5 text-[10px] bg-purple-600 text-white rounded-full">
+              <span className="px-1.5 py-0.5 text-[10px] bg-gold-600 text-white rounded-full">
                 On
               </span>
             )}

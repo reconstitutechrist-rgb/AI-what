@@ -99,7 +99,7 @@ function ColorSwatch({ color, label }: { color: string; label: string }) {
       />
       <div className="text-left">
         <div className="text-xs text-slate-400">{label}</div>
-        <div className="text-sm font-mono text-white group-hover:text-purple-400 transition-colors">
+        <div className="text-sm font-mono text-white group-hover:text-gold-400 transition-colors">
           {copied ? <CheckIcon className="w-4 h-4 text-green-400" /> : color}
         </div>
       </div>
@@ -526,7 +526,7 @@ export function SpecSheetPanel({
             {analysis.spacing.baseUnit && (
               <div className="flex items-center justify-between p-2 bg-slate-800/50 rounded">
                 <span className="text-sm text-white">Base Unit</span>
-                <span className="text-sm font-mono text-purple-400">
+                <span className="text-sm font-mono text-gold-400">
                   {analysis.spacing.baseUnit}px
                 </span>
               </div>
@@ -534,7 +534,7 @@ export function SpecSheetPanel({
             {analysis.spacing.containerMaxWidth && (
               <div className="flex items-center justify-between p-2 bg-slate-800/50 rounded">
                 <span className="text-sm text-white">Container Max Width</span>
-                <span className="text-sm font-mono text-purple-400">
+                <span className="text-sm font-mono text-gold-400">
                   {analysis.spacing.containerMaxWidth}
                 </span>
               </div>

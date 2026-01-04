@@ -95,7 +95,7 @@ export default function PricingPage() {
           {/* Header */}
           <div className="text-center mb-16">
             <h1 className="text-4xl font-bold text-white mb-4">Simple, Transparent Pricing</h1>
-            <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
+            <p className="text-lg text-slate-400 max-w-2xl mx-auto">
               Start free and scale as you grow. No hidden fees, no surprises.
             </p>
           </div>
@@ -107,12 +107,12 @@ export default function PricingPage() {
                 key={tier.name}
                 className={`relative p-8 rounded-2xl border ${
                   tier.highlighted
-                    ? 'bg-blue-600/10 border-blue-500/50'
-                    : 'bg-zinc-900/50 border-zinc-800'
+                    ? 'bg-garden-600/10 border-garden-500/50'
+                    : 'bg-slate-900/50 border-slate-800'
                 }`}
               >
                 {tier.highlighted && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-blue-600 text-white text-sm font-medium rounded-full">
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-garden-600 text-white text-sm font-medium rounded-full">
                     Most Popular
                   </div>
                 )}
@@ -121,16 +121,16 @@ export default function PricingPage() {
                   <h3 className="text-xl font-semibold text-white mb-2">{tier.name}</h3>
                   <div className="flex items-baseline gap-1">
                     <span className="text-4xl font-bold text-white">{tier.price}</span>
-                    <span className="text-zinc-500">{tier.period}</span>
+                    <span className="text-slate-500">{tier.period}</span>
                   </div>
-                  <p className="text-sm text-zinc-400 mt-2">{tier.description}</p>
+                  <p className="text-sm text-slate-400 mt-2">{tier.description}</p>
                 </div>
 
                 <ul className="space-y-3 mb-8">
                   {tier.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-3">
                       <CheckIcon size={18} className="text-green-400 mt-0.5 flex-shrink-0" />
-                      <span className="text-zinc-300 text-sm">{feature}</span>
+                      <span className="text-slate-300 text-sm">{feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -139,8 +139,8 @@ export default function PricingPage() {
                   href={tier.ctaHref}
                   className={`block w-full py-3 text-center font-medium rounded-lg transition-colors ${
                     tier.highlighted
-                      ? 'bg-blue-600 hover:bg-blue-500 text-white'
-                      : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'
+                      ? 'bg-garden-600 hover:bg-garden-500 text-white'
+                      : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
                   } ${tier.cta === 'Coming Soon' ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {tier.cta}
@@ -158,10 +158,10 @@ export default function PricingPage() {
               {faqs.map((faq) => (
                 <div
                   key={faq.question}
-                  className="p-6 bg-zinc-900/50 border border-zinc-800 rounded-xl"
+                  className="p-6 bg-slate-900/50 border border-slate-800 rounded-xl"
                 >
                   <h3 className="text-lg font-medium text-white mb-2">{faq.question}</h3>
-                  <p className="text-zinc-400">{faq.answer}</p>
+                  <p className="text-slate-400">{faq.answer}</p>
                 </div>
               ))}
             </div>

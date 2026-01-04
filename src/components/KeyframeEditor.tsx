@@ -93,7 +93,7 @@ function NumberInput({
         <button
           onClick={() => onChange(hasValue ? undefined : (min ?? 0))}
           className={`text-[10px] px-1.5 py-0.5 rounded ${
-            hasValue ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'
+            hasValue ? 'bg-garden-600 text-white' : 'bg-slate-700 text-slate-400'
           }`}
         >
           {hasValue ? 'On' : 'Off'}
@@ -110,7 +110,7 @@ function NumberInput({
               min={min}
               max={max}
               step={step}
-              className="flex-1 accent-blue-500"
+              className="flex-1 accent-garden-500"
             />
           )}
           <div className="flex items-center">
@@ -124,7 +124,7 @@ function NumberInput({
               min={min}
               max={max}
               step={step}
-              className="w-16 px-2 py-1 text-sm bg-slate-800 border border-slate-600 rounded-l-md text-slate-200 text-center focus:border-blue-500 focus:outline-none"
+              className="w-16 px-2 py-1 text-sm bg-slate-800 border border-slate-600 rounded-l-md text-slate-200 text-center focus:border-garden-500 focus:outline-none"
             />
             {unit && (
               <span className="px-2 py-1 text-xs bg-slate-700 border border-l-0 border-slate-600 rounded-r-md text-slate-400">
@@ -156,7 +156,7 @@ function ColorInput({
         <button
           onClick={() => onChange(hasValue ? undefined : '#3B82F6')}
           className={`text-[10px] px-1.5 py-0.5 rounded ${
-            hasValue ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'
+            hasValue ? 'bg-garden-600 text-white' : 'bg-slate-700 text-slate-400'
           }`}
         >
           {hasValue ? 'On' : 'Off'}
@@ -176,7 +176,7 @@ function ColorInput({
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
             placeholder="#000000"
-            className="flex-1 px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-md text-slate-200 focus:border-blue-500 focus:outline-none"
+            className="flex-1 px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-md text-slate-200 focus:border-garden-500 focus:outline-none"
           />
         </div>
       )}
@@ -204,7 +204,7 @@ function StringInput({
         <button
           onClick={() => onChange(hasValue ? undefined : '')}
           className={`text-[10px] px-1.5 py-0.5 rounded ${
-            hasValue ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'
+            hasValue ? 'bg-garden-600 text-white' : 'bg-slate-700 text-slate-400'
           }`}
         >
           {hasValue ? 'On' : 'Off'}
@@ -217,7 +217,7 @@ function StringInput({
           value={value || ''}
           onChange={(e) => onChange(e.target.value || undefined)}
           placeholder={placeholder}
-          className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-md text-slate-200 focus:border-blue-500 focus:outline-none"
+          className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-md text-slate-200 focus:border-garden-500 focus:outline-none"
         />
       )}
     </div>
@@ -262,7 +262,7 @@ function EasingSelector({
       <select
         value={showCustom ? 'custom' : typeof value === 'string' ? value : 'custom'}
         onChange={(e) => handlePresetChange(e.target.value)}
-        className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-md text-slate-200 focus:border-blue-500 focus:outline-none"
+        className="w-full px-3 py-1.5 text-sm bg-slate-800 border border-slate-600 rounded-md text-slate-200 focus:border-garden-500 focus:outline-none"
       >
         {EASING_PRESETS.slice(0, 10).map((preset) => (
           <option key={preset.id as string} value={preset.id as string}>
@@ -284,7 +284,7 @@ function EasingSelector({
                 step={0.05}
                 min={i % 2 === 0 ? 0 : -2}
                 max={i % 2 === 0 ? 1 : 2}
-                className="w-full px-2 py-1 text-xs bg-slate-800 border border-slate-600 rounded text-slate-200 text-center focus:border-blue-500 focus:outline-none"
+                className="w-full px-2 py-1 text-xs bg-slate-800 border border-slate-600 rounded text-slate-200 text-center focus:border-garden-500 focus:outline-none"
               />
             </div>
           ))}
@@ -369,7 +369,7 @@ function KeyframePreview({ properties }: { properties: KeyframeProperties }) {
   return (
     <div className="flex items-center justify-center p-4 bg-slate-900 rounded-lg border border-slate-700">
       <div
-        className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg"
+        className="w-12 h-12 bg-gradient-to-br from-garden-500 to-gold-600 rounded-lg"
         style={style}
       />
     </div>
@@ -530,7 +530,7 @@ export function KeyframeEditor({
             onChange={(e) => updateTime(parseInt(e.target.value))}
             min={0}
             max={100}
-            className="flex-1 accent-blue-500"
+            className="flex-1 accent-garden-500"
           />
           <div className="flex items-center">
             <input
@@ -539,7 +539,7 @@ export function KeyframeEditor({
               onChange={(e) => updateTime(parseInt(e.target.value) || 0)}
               min={0}
               max={100}
-              className="w-14 px-2 py-1 text-sm bg-slate-800 border border-slate-600 rounded-l-md text-slate-200 text-center focus:border-blue-500 focus:outline-none"
+              className="w-14 px-2 py-1 text-sm bg-slate-800 border border-slate-600 rounded-l-md text-slate-200 text-center focus:border-garden-500 focus:outline-none"
             />
             <span className="px-2 py-1 text-xs bg-slate-700 border border-l-0 border-slate-600 rounded-r-md text-slate-400">
               %

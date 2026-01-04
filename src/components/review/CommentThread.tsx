@@ -56,13 +56,13 @@ export default function CommentThread({
   const needsAttentionCount = comments.filter((c) => c.needsAttention).length;
 
   return (
-    <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 overflow-hidden">
+    <div className="rounded-lg border border-garden-500/30 bg-garden-500/10 overflow-hidden">
       {/* Header */}
-      <div className="px-3 py-2 border-b border-blue-500/20 bg-blue-500/5 flex items-center justify-between">
+      <div className="px-3 py-2 border-b border-garden-500/20 bg-garden-500/5 flex items-center justify-between">
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-blue-400">💬</span>
-          <span className="text-blue-300 font-medium">Line {lineNumber}</span>
-          <span className="text-blue-400/60">
+          <span className="text-garden-400">💬</span>
+          <span className="text-garden-300 font-medium">Line {lineNumber}</span>
+          <span className="text-garden-400/60">
             • {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
           </span>
           {unresolvedCount > 0 && (
@@ -78,14 +78,14 @@ export default function CommentThread({
         </div>
         <button
           onClick={() => setIsAdding(true)}
-          className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+          className="text-xs text-garden-400 hover:text-garden-300 transition-colors"
         >
           + Add Comment
         </button>
       </div>
 
       {/* Comments List */}
-      <div className="divide-y divide-blue-500/10">
+      <div className="divide-y divide-garden-500/10">
         {comments.map((comment) => (
           <div
             key={comment.id}
@@ -160,14 +160,14 @@ export default function CommentThread({
 
       {/* Add Comment Form */}
       {isAdding && (
-        <div className="px-3 py-3 border-t border-blue-500/20 bg-blue-500/5">
+        <div className="px-3 py-3 border-t border-garden-500/20 bg-garden-500/5">
           <textarea
             autoFocus
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Add a comment... (Ctrl+Enter to submit)"
-            className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-garden-500 resize-none"
             rows={2}
           />
           <div className="flex items-center justify-between mt-2">
@@ -187,7 +187,7 @@ export default function CommentThread({
               <button
                 onClick={handleSubmit}
                 disabled={!newComment.trim()}
-                className="px-3 py-1 rounded text-xs bg-blue-600 hover:bg-blue-700 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-1 rounded text-xs bg-garden-600 hover:bg-garden-700 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Add Comment
               </button>
@@ -202,7 +202,7 @@ export default function CommentThread({
           <p className="text-sm text-slate-400">No comments yet</p>
           <button
             onClick={() => setIsAdding(true)}
-            className="mt-2 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+            className="mt-2 text-xs text-garden-400 hover:text-garden-300 transition-colors"
           >
             Add the first comment
           </button>

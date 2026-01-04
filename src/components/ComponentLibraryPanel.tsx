@@ -87,7 +87,7 @@ export function ComponentLibraryPanel({
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-32 px-2 py-1 text-xs bg-slate-900 border border-slate-600 rounded text-slate-300 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              className="w-32 px-2 py-1 text-xs bg-slate-900 border border-slate-600 rounded text-slate-300 placeholder-slate-500 focus:outline-none focus:border-garden-500"
             />
             {searchQuery && (
               <button
@@ -131,7 +131,7 @@ export function ComponentLibraryPanel({
           onClick={() => setActiveCategory('all')}
           className={`px-2.5 py-1 text-xs rounded-md whitespace-nowrap transition-colors ${
             activeCategory === 'all'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-garden-600 text-white'
               : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-slate-300'
           }`}
         >
@@ -143,7 +143,7 @@ export function ComponentLibraryPanel({
             onClick={() => setActiveCategory(cat)}
             className={`px-2.5 py-1 text-xs rounded-md whitespace-nowrap transition-colors ${
               activeCategory === cat
-                ? 'bg-blue-600 text-white'
+                ? 'bg-garden-600 text-white'
                 : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-slate-300'
             }`}
           >

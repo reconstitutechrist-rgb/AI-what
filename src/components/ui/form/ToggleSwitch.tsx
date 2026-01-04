@@ -24,7 +24,7 @@ export function ToggleSwitch({ enabled, onChange, label, description }: ToggleSw
         onClick={() => onChange(!enabled)}
         className={`
           relative inline-flex h-6 w-11 items-center rounded-full transition-colors
-          ${enabled ? 'bg-blue-600' : 'bg-slate-600'}
+          ${enabled ? 'bg-garden-600' : 'bg-slate-600'}
         `}
       >
         <span

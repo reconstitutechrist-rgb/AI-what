@@ -49,8 +49,8 @@ const ERROR_CONFIG: Record<ErrorType, { icon: string; color: string; bgColor: st
   },
   ai: {
     icon: '🤖',
-    color: 'text-purple-400',
-    bgColor: 'bg-purple-500/10 border-purple-500/30',
+    color: 'text-gold-400',
+    bgColor: 'bg-gold-500/10 border-gold-500/30',
   },
   validation: {
     icon: '⚠️',
@@ -59,8 +59,8 @@ const ERROR_CONFIG: Record<ErrorType, { icon: string; color: string; bgColor: st
   },
   render: {
     icon: '🖼️',
-    color: 'text-blue-400',
-    bgColor: 'bg-blue-500/10 border-blue-500/30',
+    color: 'text-garden-400',
+    bgColor: 'bg-garden-500/10 border-garden-500/30',
   },
   storage: {
     icon: '💾',
@@ -279,7 +279,7 @@ export function ErrorRecovery({
               type="button"
               onClick={handleRetry}
               disabled={isRetrying}
-              className="flex-1 px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-400 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 text-sm bg-garden-600 hover:bg-garden-500 disabled:bg-slate-700 disabled:text-slate-400 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               {isRetrying ? (
                 <>

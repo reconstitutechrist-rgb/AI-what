@@ -82,12 +82,12 @@ export function WorkflowsSection({
         className="flex items-center gap-2 w-full text-left mb-2"
       >
         {isExpanded ? (
-          <ChevronDownIcon size={14} className="text-zinc-400" />
+          <ChevronDownIcon size={14} className="text-slate-400" />
         ) : (
-          <ChevronRightIcon size={14} className="text-zinc-400" />
+          <ChevronRightIcon size={14} className="text-slate-400" />
         )}
-        <WorkflowIcon size={14} className="text-zinc-400" />
-        <span className="text-xs text-zinc-500 uppercase tracking-wide">
+        <WorkflowIcon size={14} className="text-slate-400" />
+        <span className="text-xs text-slate-500 uppercase tracking-wide">
           Workflows ({workflows.length})
         </span>
       </button>
@@ -95,12 +95,12 @@ export function WorkflowsSection({
       {isExpanded && (
         <div className="space-y-3 pl-5">
           {workflows.length === 0 ? (
-            <p className="text-sm text-zinc-500 italic py-2">No workflows defined</p>
+            <p className="text-sm text-slate-500 italic py-2">No workflows defined</p>
           ) : (
             workflows.map((workflow, workflowIndex) => (
               <div
                 key={workflowIndex}
-                className="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700/50"
+                className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50"
               >
                 <div className="flex items-center gap-2 mb-2">
                   <EditableField
@@ -113,7 +113,7 @@ export function WorkflowsSection({
                     <button
                       type="button"
                       onClick={() => handleDeleteWorkflow(workflowIndex)}
-                      className="ml-auto p-1 text-zinc-500 hover:text-red-400 transition-colors"
+                      className="ml-auto p-1 text-slate-500 hover:text-red-400 transition-colors"
                       title="Delete workflow"
                     >
                       <TrashIcon size={14} />
@@ -128,31 +128,33 @@ export function WorkflowsSection({
                     onChange={(description) => handleUpdateWorkflow(workflowIndex, { description })}
                     placeholder="Describe this workflow..."
                     readOnly={readOnly}
-                    valueClassName="text-xs text-zinc-500"
+                    valueClassName="text-xs text-slate-500"
                     className="mb-2"
                   />
                 )}
 
                 {/* Steps */}
                 <div className="space-y-1">
-                  <label className="text-[10px] text-zinc-600 uppercase tracking-wide">Steps</label>
+                  <label className="text-[10px] text-slate-600 uppercase tracking-wide">
+                    Steps
+                  </label>
                   {workflow.steps.map((step, stepIndex) => (
                     <div key={stepIndex} className="flex items-center gap-2 group">
-                      <span className="w-5 h-5 flex items-center justify-center text-[10px] text-zinc-500 bg-zinc-800 rounded-full flex-shrink-0">
+                      <span className="w-5 h-5 flex items-center justify-center text-[10px] text-slate-500 bg-slate-800 rounded-full flex-shrink-0">
                         {stepIndex + 1}
                       </span>
                       <EditableField
                         value={step}
                         onChange={(value) => handleUpdateStep(workflowIndex, stepIndex, value)}
                         readOnly={readOnly}
-                        valueClassName="text-xs text-zinc-400"
+                        valueClassName="text-xs text-slate-400"
                         className="flex-1"
                       />
                       {!readOnly && (
                         <button
                           type="button"
                           onClick={() => handleDeleteStep(workflowIndex, stepIndex)}
-                          className="p-0.5 text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                          className="p-0.5 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
                         >
                           <TrashIcon size={12} />
                         </button>
@@ -163,7 +165,7 @@ export function WorkflowsSection({
                     <button
                       type="button"
                       onClick={() => handleAddStep(workflowIndex)}
-                      className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 mt-1"
+                      className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 mt-1"
                     >
                       <PlusIcon size={12} />
                       Add step
@@ -173,15 +175,15 @@ export function WorkflowsSection({
 
                 {/* Involved roles */}
                 {workflow.involvedRoles.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-zinc-700/50">
-                    <label className="text-[10px] text-zinc-600 uppercase tracking-wide block mb-1">
+                  <div className="mt-2 pt-2 border-t border-slate-700/50">
+                    <label className="text-[10px] text-slate-600 uppercase tracking-wide block mb-1">
                       Roles
                     </label>
                     <div className="flex flex-wrap gap-1">
                       {workflow.involvedRoles.map((role, i) => (
                         <span
                           key={i}
-                          className="px-1.5 py-0.5 text-[10px] bg-zinc-700 text-zinc-300 rounded"
+                          className="px-1.5 py-0.5 text-[10px] bg-slate-700 text-slate-300 rounded"
                         >
                           {role}
                         </span>
@@ -198,7 +200,7 @@ export function WorkflowsSection({
             <button
               type="button"
               onClick={handleAddWorkflow}
-              className="flex items-center gap-2 w-full py-2 px-3 text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 rounded-lg border border-dashed border-zinc-700 hover:border-zinc-600 transition-colors"
+              className="flex items-center gap-2 w-full py-2 px-3 text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 rounded-lg border border-dashed border-slate-700 hover:border-slate-600 transition-colors"
             >
               <PlusIcon size={14} />
               Add Workflow

@@ -69,7 +69,7 @@ function ViewModeSelector({
             px-3 py-1.5 rounded text-sm transition-all
             ${
               mode === m.id
-                ? 'bg-blue-500 text-white'
+                ? 'bg-garden-500 text-white'
                 : 'text-slate-400 hover:text-white hover:bg-slate-700'
             }
           `}
@@ -277,7 +277,7 @@ export function DesignComparison({
           <button
             key={region.id}
             onClick={() => handleRegionClick(region)}
-            className="absolute border-2 border-dashed border-blue-400/50 hover:border-blue-400 hover:bg-blue-400/10 transition-all cursor-pointer group"
+            className="absolute border-2 border-dashed border-garden-400/50 hover:border-garden-400 hover:bg-garden-400/10 transition-all cursor-pointer group"
             style={{
               left: `${region.x}%`,
               top: `${region.y}%`,
@@ -286,7 +286,7 @@ export function DesignComparison({
             }}
             title={`Adjust ${region.name}`}
           >
-            <span className="absolute top-1 left-1 px-1 py-0.5 text-xs bg-blue-500 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="absolute top-1 left-1 px-1 py-0.5 text-xs bg-garden-500 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity">
               {region.name}
             </span>
           </button>
@@ -347,7 +347,7 @@ export function DesignComparison({
                 step="0.1"
                 value={overlayOpacity}
                 onChange={(e) => setOverlayOpacity(parseFloat(e.target.value))}
-                className="w-32 accent-blue-500"
+                className="w-32 accent-garden-500"
               />
               <span className="text-xs text-slate-400">Reference</span>
             </div>
@@ -389,7 +389,7 @@ export function DesignComparison({
             {/* Toggle button */}
             <button
               onClick={() => setShowGenerated(!showGenerated)}
-              className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center gap-2"
+              className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 px-4 py-2 bg-garden-500 hover:bg-garden-600 text-white rounded-lg transition-colors flex items-center gap-2"
             >
               <span>🔄</span>
               <span>Toggle View</span>
@@ -418,7 +418,7 @@ export function DesignComparison({
                 type="checkbox"
                 checked={syncScroll}
                 onChange={(e) => setSyncScroll(e.target.checked)}
-                className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500"
+                className="rounded border-slate-600 bg-slate-700 text-garden-500 focus:ring-garden-500"
               />
               Sync scroll
             </label>
@@ -431,7 +431,7 @@ export function DesignComparison({
                 type="checkbox"
                 checked={showClickableRegions}
                 onChange={(e) => setShowClickableRegions(e.target.checked)}
-                className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500"
+                className="rounded border-slate-600 bg-slate-700 text-garden-500 focus:ring-garden-500"
               />
               Show regions
             </label>
@@ -487,7 +487,7 @@ export function DesignComparison({
           {analysis.layout?.type && (
             <div className="flex items-center gap-2 flex-shrink-0">
               <span className="text-xs text-slate-500">Layout:</span>
-              <span className="text-xs text-purple-400 capitalize">{analysis.layout.type}</span>
+              <span className="text-xs text-gold-400 capitalize">{analysis.layout.type}</span>
             </div>
           )}
 
@@ -495,7 +495,7 @@ export function DesignComparison({
           {analysis.components && (
             <div className="flex items-center gap-2 flex-shrink-0">
               <span className="text-xs text-slate-500">Components:</span>
-              <span className="text-xs text-blue-400">
+              <span className="text-xs text-garden-400">
                 {
                   Object.keys(analysis.components).filter(
                     (k) => analysis.components[k as keyof typeof analysis.components]

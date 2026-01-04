@@ -216,7 +216,7 @@ export function PreviewContainer({
 
   if (!appData) {
     return (
-      <div className={`flex items-center justify-center p-8 bg-zinc-800 rounded-lg ${className}`}>
+      <div className={`flex items-center justify-center p-8 bg-slate-800 rounded-lg ${className}`}>
         <div className="text-red-400">Failed to parse app data</div>
       </div>
     );
@@ -229,7 +229,7 @@ export function PreviewContainer({
         <div className="flex items-center justify-between mb-2 px-1">
           <PreviewModeSelector mode={previewMode} onModeChange={handleModeChange} />
           {detectedAppType === 'FULL_STACK' && (
-            <span className="text-xs text-purple-400 flex items-center gap-1">
+            <span className="text-xs text-gold-400 flex items-center gap-1">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeLinecap="round"
@@ -246,14 +246,14 @@ export function PreviewContainer({
 
       {/* Info banner for full-stack in Browser mode */}
       {showFullStackWarning && (
-        <div className="mb-2 px-3 py-2 bg-blue-900/30 border border-blue-700/50 rounded-lg text-blue-300 text-xs flex items-center justify-between">
+        <div className="mb-2 px-3 py-2 bg-garden-900/30 border border-garden-700/50 rounded-lg text-garden-300 text-xs flex items-center justify-between">
           <span>
             <span className="font-medium">Note:</span> API routes are mocked in-browser. For real
             database, switch to Full-Stack.
           </span>
           <button
             onClick={() => handleModeChange('railway')}
-            className="ml-2 px-2 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded text-xs transition-colors"
+            className="ml-2 px-2 py-1 bg-gold-600 hover:bg-gold-500 text-white rounded text-xs transition-colors"
           >
             Switch to Full-Stack
           </button>
@@ -265,7 +265,7 @@ export function PreviewContainer({
         id="sandpack-preview"
         className={`flex-1 min-h-0 ${
           devicePreset === 'phone'
-            ? 'flex items-center justify-center bg-zinc-900/50 overflow-auto p-4'
+            ? 'flex items-center justify-center bg-slate-900/50 overflow-auto p-4'
             : ''
         }`}
       >

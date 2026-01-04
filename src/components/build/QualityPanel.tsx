@@ -86,7 +86,7 @@ function PipelineProgress({
             <div
               className={`w-3 h-3 rounded-full transition-all ${
                 step.status === 'running'
-                  ? 'bg-blue-500 animate-pulse'
+                  ? 'bg-garden-500 animate-pulse'
                   : step.status === 'passed'
                     ? 'bg-green-500'
                     : step.status === 'failed'
@@ -295,7 +295,7 @@ export function QualityPanel({
   // Get overall status badge
   const getStatusBadge = () => {
     if (isChecking) {
-      return { text: 'Checking...', color: 'bg-blue-500/20 text-blue-400' };
+      return { text: 'Checking...', color: 'bg-garden-500/20 text-garden-400' };
     }
     if (!qualityReport && !validationResult) {
       return { text: 'Not Run', color: 'bg-slate-500/20 text-slate-400' };
@@ -417,7 +417,7 @@ export function QualityPanel({
                     onClick={() =>
                       setSelectedFix(selectedFix?.issueId === fix.issueId ? null : fix)
                     }
-                    className="text-xs text-blue-400 hover:underline"
+                    className="text-xs text-garden-400 hover:underline"
                   >
                     Diff
                   </button>
@@ -457,7 +457,7 @@ export function QualityPanel({
                       </div>
                     )}
                     {issue.suggestion && (
-                      <div className="text-xs text-blue-400 mt-1">{issue.suggestion}</div>
+                      <div className="text-xs text-garden-400 mt-1">{issue.suggestion}</div>
                     )}
                   </div>
                 </div>
@@ -486,7 +486,7 @@ export function QualityPanel({
         <select
           value={strictness}
           onChange={(e) => onStrictnessChange?.(e.target.value as ReviewStrictness)}
-          className="bg-slate-700 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="bg-slate-700 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-garden-500"
         >
           <option value="relaxed">Relaxed</option>
           <option value="standard">Standard</option>
@@ -499,7 +499,7 @@ export function QualityPanel({
         <button
           onClick={handleRunQualityCheck}
           disabled={isChecking}
-          className="flex-1 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="flex-1 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-garden-500 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {isChecking ? (
             <>

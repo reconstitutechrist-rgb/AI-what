@@ -105,7 +105,7 @@ export const HeaderDropdown: React.FC<HeaderDropdownProps> = ({
             ${
               item.variant === 'danger'
                 ? 'text-red-400 hover:text-red-300 hover:bg-red-950/50'
-                : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
             }
             ${item.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
             ${isSubmenuItem ? 'pl-4' : ''}
@@ -114,33 +114,33 @@ export const HeaderDropdown: React.FC<HeaderDropdownProps> = ({
           aria-disabled={item.disabled}
         >
           {item.icon && (
-            <span className="w-4 h-4 flex items-center justify-center text-zinc-500 shrink-0">
+            <span className="w-4 h-4 flex items-center justify-center text-slate-500 shrink-0">
               {item.icon}
             </span>
           )}
           <span className="flex-1 text-left">
             <span className="block">{item.label}</span>
             {item.description && (
-              <span className="block text-xs text-zinc-500 font-normal mt-0.5">
+              <span className="block text-xs text-slate-500 font-normal mt-0.5">
                 {item.description}
               </span>
             )}
           </span>
           {item.badge !== undefined && (
-            <span className="px-1.5 py-0.5 text-xs bg-zinc-700 text-zinc-300 rounded">
+            <span className="px-1.5 py-0.5 text-xs bg-slate-700 text-slate-300 rounded">
               {item.badge}
             </span>
           )}
           {item.shortcut && (
-            <span className="ml-auto text-xs text-zinc-500 font-mono">{item.shortcut}</span>
+            <span className="ml-auto text-xs text-slate-500 font-mono">{item.shortcut}</span>
           )}
-          {hasSubmenu && <ChevronRightIcon size={14} className="text-zinc-500" />}
+          {hasSubmenu && <ChevronRightIcon size={14} className="text-slate-500" />}
         </button>
 
         {/* Submenu */}
         {hasSubmenu && isSubmenuOpen && (
           <div
-            className="absolute left-full top-0 ml-1 min-w-[180px] py-1 bg-zinc-900 border border-zinc-800 rounded-lg shadow-lg shadow-black/30 z-50"
+            className="absolute left-full top-0 ml-1 min-w-[180px] py-1 bg-slate-900 border border-slate-800 rounded-lg shadow-lg shadow-black/30 z-50"
             role="menu"
           >
             {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */}
@@ -148,7 +148,7 @@ export const HeaderDropdown: React.FC<HeaderDropdownProps> = ({
           </div>
         )}
 
-        {item.dividerAfter && <div className="my-1 h-px bg-zinc-800" />}
+        {item.dividerAfter && <div className="my-1 h-px bg-slate-800" />}
       </div>
     );
   };
@@ -169,7 +169,7 @@ export const HeaderDropdown: React.FC<HeaderDropdownProps> = ({
         className={`
           linear-btn-ghost flex items-center gap-1.5
           ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-          ${isOpen ? 'bg-zinc-800 text-white' : ''}
+          ${isOpen ? 'bg-slate-800 text-white' : ''}
         `}
         aria-haspopup="true"
         aria-expanded={isOpen}
@@ -186,7 +186,7 @@ export const HeaderDropdown: React.FC<HeaderDropdownProps> = ({
         <div
           className={`
             absolute top-full mt-1 min-w-[200px] py-1
-            bg-zinc-900 border border-zinc-800 rounded-lg
+            bg-slate-900 border border-slate-800 rounded-lg
             shadow-lg shadow-black/30 z-dropdown
             animate-fade-in
             ${align === 'right' ? 'right-0' : 'left-0'}

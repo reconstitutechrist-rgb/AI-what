@@ -52,8 +52,8 @@ export default function DiffPreview({ summary, files, onApprove, onReject }: Dif
   const getChangeTypeColor = (type: DiffChange['type']) => {
     const colors = {
       ADD_IMPORT: 'text-green-400',
-      INSERT_AFTER: 'text-blue-400',
-      INSERT_BEFORE: 'text-blue-400',
+      INSERT_AFTER: 'text-garden-400',
+      INSERT_BEFORE: 'text-garden-400',
       REPLACE: 'text-yellow-400',
       DELETE: 'text-red-400',
       APPEND: 'text-green-400',
@@ -72,7 +72,7 @@ export default function DiffPreview({ summary, files, onApprove, onReject }: Dif
 
   const getActionColor = (action: FileDiff['action']) => {
     const colors = {
-      MODIFY: 'border-blue-500/30 bg-blue-500/10',
+      MODIFY: 'border-garden-500/30 bg-garden-500/10',
       CREATE: 'border-green-500/30 bg-green-500/10',
       DELETE: 'border-red-500/30 bg-red-500/10',
     };
@@ -104,15 +104,15 @@ export default function DiffPreview({ summary, files, onApprove, onReject }: Dif
   return (
     <div className="space-y-4">
       {/* Summary Header */}
-      <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 rounded-xl p-4">
+      <div className="bg-gradient-to-r from-garden-500/20 to-gold-500/20 border border-garden-500/30 rounded-xl p-4">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-garden-500/20 flex items-center justify-center flex-shrink-0">
             <span className="text-2xl">✨</span>
           </div>
           <div className="flex-1">
             <h3 className="text-white font-semibold mb-1">Proposed Changes</h3>
-            <p className="text-sm text-blue-200 leading-relaxed">{summary}</p>
-            <div className="flex items-center gap-4 mt-3 text-xs text-blue-200/80">
+            <p className="text-sm text-garden-200 leading-relaxed">{summary}</p>
+            <div className="flex items-center gap-4 mt-3 text-xs text-garden-200/80">
               <span>
                 📁 {files.length} {files.length === 1 ? 'file' : 'files'}
               </span>

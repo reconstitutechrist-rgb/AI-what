@@ -89,7 +89,7 @@ export function TemplatesMenu({
             className="w-full px-3 py-2.5 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-3"
           >
             <svg
-              className="w-4 h-4 text-blue-400"
+              className="w-4 h-4 text-garden-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -112,7 +112,7 @@ export function TemplatesMenu({
             className="w-full px-3 py-2.5 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-3"
           >
             <svg
-              className="w-4 h-4 text-purple-400"
+              className="w-4 h-4 text-gold-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -154,7 +154,7 @@ export function TemplatesMenu({
               <div className="text-xs text-slate-500">Restore previous versions</div>
             </div>
             {historyCount > 0 && (
-              <span className="px-1.5 py-0.5 text-[10px] bg-blue-600 text-white rounded-full">
+              <span className="px-1.5 py-0.5 text-[10px] bg-garden-600 text-white rounded-full">
                 {historyCount > 9 ? '9+' : historyCount}
               </span>
             )}

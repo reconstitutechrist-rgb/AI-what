@@ -121,7 +121,7 @@ export function InspectorPanel({
             w-full py-3 rounded-lg font-medium transition-all
             ${
               selectedElements.length > 0
-                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white shadow-lg'
+                ? 'bg-gradient-to-r from-garden-500 to-gold-600 hover:from-garden-600 hover:to-gold-700 text-white shadow-lg'
                 : 'bg-gray-700 text-gray-400 cursor-not-allowed'
             }
           `}

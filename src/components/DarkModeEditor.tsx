@@ -145,7 +145,7 @@ function ColorComparisonRow({
       <div className="w-24 flex items-center gap-2">
         <span className="text-xs text-slate-400">{label}</span>
         {isOverridden && (
-          <span className="w-1.5 h-1.5 bg-blue-400 rounded-full" title="Has override" />
+          <span className="w-1.5 h-1.5 bg-garden-400 rounded-full" title="Has override" />
         )}
       </div>
 
@@ -176,7 +176,7 @@ function ColorComparisonRow({
           value={darkValue || ''}
           onChange={(e) => onDarkChange(e.target.value)}
           placeholder="Auto"
-          className="w-24 px-2 py-1 text-xs bg-slate-800 border border-slate-600 rounded text-slate-200 focus:border-blue-500 focus:outline-none"
+          className="w-24 px-2 py-1 text-xs bg-slate-800 border border-slate-600 rounded text-slate-200 focus:border-garden-500 focus:outline-none"
         />
         {isTextColor && darkValue && (
           <ContrastBadge foreground={darkValue} background={backgroundDark} />
@@ -349,7 +349,7 @@ export function DarkModeEditor({
         <div className="flex gap-2">
           <button
             onClick={handleAutoGenerate}
-            className="px-3 py-1.5 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition-colors"
+            className="px-3 py-1.5 text-xs bg-gold-600 text-white rounded-lg hover:bg-gold-500 transition-colors"
           >
             Auto-Generate All
           </button>

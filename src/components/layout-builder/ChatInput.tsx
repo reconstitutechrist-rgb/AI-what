@@ -132,7 +132,7 @@ export function ChatInput({
         )}
 
         {hasSelection && (
-          <span className="text-xs text-blue-400 ml-auto">
+          <span className="text-xs text-garden-400 ml-auto">
             Element selected - AI will see it highlighted
           </span>
         )}
@@ -150,7 +150,7 @@ export function ChatInput({
         {/* Image routing hint */}
         {(hasImages || includeCapture) && !isLoading && (
           <div className="ml-2 flex items-center gap-1">
-            <span className="text-xs text-purple-400">Visual analysis enabled</span>
+            <span className="text-xs text-gold-400">Visual analysis enabled</span>
           </div>
         )}
       </div>
@@ -163,14 +163,14 @@ export function ChatInput({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Describe what you'd like to change..."
-          className="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-400 resize-none focus:outline-none focus:border-blue-500 transition-colors"
+          className="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-400 resize-none focus:outline-none focus:border-garden-500 transition-colors"
           rows={2}
           disabled={isLoading}
         />
         <button
           type="submit"
           disabled={isLoading || (!input.trim() && !includeCapture)}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors"
+          className="px-6 py-3 bg-garden-600 hover:bg-garden-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors"
         >
           {isLoading ? '...' : 'Send'}
         </button>

@@ -169,7 +169,7 @@ export function BrowserPreview({
   if (status === 'error' && errors.length > 0) {
     return (
       <div className={`flex flex-col ${className}`}>
-        <div className="flex flex-col p-6 bg-zinc-800 rounded-lg flex-1 overflow-auto">
+        <div className="flex flex-col p-6 bg-slate-800 rounded-lg flex-1 overflow-auto">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-10 h-10 rounded-full bg-red-900/50 flex items-center justify-center">
               <svg
@@ -188,7 +188,7 @@ export function BrowserPreview({
             </div>
             <div>
               <div className="text-red-400 font-medium">Build Error</div>
-              <div className="text-zinc-500 text-sm">
+              <div className="text-slate-500 text-sm">
                 {errors.length} error{errors.length !== 1 ? 's' : ''} found
               </div>
             </div>
@@ -213,8 +213,8 @@ export function BrowserPreview({
   if (status !== 'ready') {
     return (
       <div className={`flex flex-col ${className}`}>
-        <div className="flex flex-col items-center justify-center p-8 bg-zinc-800 rounded-lg flex-1">
-          <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center mb-6 shadow-lg animate-pulse">
+        <div className="flex flex-col items-center justify-center p-8 bg-slate-800 rounded-lg flex-1">
+          <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-garden-600 to-garden-400 flex items-center justify-center mb-6 shadow-lg animate-pulse">
             <svg
               className="w-8 h-8 text-white"
               fill="none"
@@ -230,10 +230,10 @@ export function BrowserPreview({
             </svg>
           </div>
 
-          <div className="text-zinc-300 text-sm font-medium">
+          <div className="text-slate-300 text-sm font-medium">
             {status === 'initializing' ? 'Initializing bundler...' : 'Bundling...'}
           </div>
-          <div className="text-zinc-500 text-xs mt-2">Using esbuild-wasm for instant preview</div>
+          <div className="text-slate-500 text-xs mt-2">Using esbuild-wasm for instant preview</div>
         </div>
       </div>
     );
@@ -269,14 +269,14 @@ export function BrowserPreview({
         />
 
         {/* Toolbar */}
-        <div className="absolute top-0 left-0 right-0 bg-zinc-900/90 backdrop-blur-sm px-3 py-1.5 flex items-center gap-2 border-b border-zinc-700">
+        <div className="absolute top-0 left-0 right-0 bg-slate-900/90 backdrop-blur-sm px-3 py-1.5 flex items-center gap-2 border-b border-slate-700">
           <div className="w-2 h-2 rounded-full bg-green-500" title="Ready" />
-          <span className="text-zinc-400 text-xs font-mono flex-1">Browser Preview</span>
+          <span className="text-slate-400 text-xs font-mono flex-1">Browser Preview</span>
 
           {/* Feature indicators */}
           {hasDatabase && (
             <span
-              className="text-xs px-1.5 py-0.5 rounded bg-purple-900/50 text-purple-300 border border-purple-700/50"
+              className="text-xs px-1.5 py-0.5 rounded bg-gold-900/50 text-gold-300 border border-gold-700/50"
               title="In-browser SQLite database active"
             >
               DB
@@ -284,7 +284,7 @@ export function BrowserPreview({
           )}
           {hasApiRoutes && (
             <span
-              className="text-xs px-1.5 py-0.5 rounded bg-blue-900/50 text-blue-300 border border-blue-700/50"
+              className="text-xs px-1.5 py-0.5 rounded bg-garden-900/50 text-garden-300 border border-garden-700/50"
               title="API route mocking active"
             >
               API
@@ -293,7 +293,7 @@ export function BrowserPreview({
 
           <button
             onClick={handleRefresh}
-            className="text-zinc-400 hover:text-zinc-200 transition-colors p-1"
+            className="text-slate-400 hover:text-slate-200 transition-colors p-1"
             title="Refresh"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

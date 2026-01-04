@@ -23,14 +23,14 @@ const features = [
     title: 'Dual AI System (Gemini + Claude)',
     description:
       'EXCLUSIVE: Two AI models working together. Gemini as Creative Director for visual analysis, Claude as Precision Architect for code. Intelligent routing picks the right AI for each task.',
-    gradient: 'from-purple-500 to-pink-500',
+    gradient: 'from-gold-500 to-blossom-500',
   },
   {
     icon: CubeIcon,
     title: 'Intelligent Phased Generation',
     description:
       'EXCLUSIVE: Build complex apps in 2-25+ intelligent phases based on complexity. Each phase is reviewed, validated, and tested before proceeding — no broken one-shot generations.',
-    gradient: 'from-blue-500 to-cyan-500',
+    gradient: 'from-garden-500 to-cyan-500',
   },
   {
     icon: CodeBracketIcon,
@@ -51,7 +51,7 @@ const features = [
     title: 'Builder Tab (Planned vs Built)',
     description:
       "EXCLUSIVE: See what's being built in each phase. Compare what was planned vs what was actually built with visual side-by-side comparison — ensure everything is correct before moving on.",
-    gradient: 'from-indigo-500 to-violet-500',
+    gradient: 'from-garden-500 to-gold-500',
   },
 ];
 
@@ -83,7 +83,7 @@ export function FeaturesGrid() {
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
             Why Developers Choose Us
           </h2>
-          <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-400 max-w-2xl mx-auto">
             Built different from the ground up. Features that actually matter for building real
             applications.
           </p>
@@ -101,7 +101,7 @@ export function FeaturesGrid() {
             <motion.div
               key={feature.title}
               variants={itemVariants}
-              className="group relative p-6 bg-zinc-900/50 border border-zinc-800 rounded-2xl hover:border-zinc-700 transition-all hover:bg-zinc-900/80"
+              className="group relative p-6 bg-slate-900/50 border border-slate-800 rounded-2xl hover:border-slate-700 transition-all hover:bg-slate-900/80"
             >
               {/* Icon */}
               <div
@@ -112,7 +112,7 @@ export function FeaturesGrid() {
 
               {/* Content */}
               <h3 className="text-xl font-semibold text-white mb-2">{feature.title}</h3>
-              <p className="text-zinc-400 leading-relaxed">{feature.description}</p>
+              <p className="text-slate-400 leading-relaxed">{feature.description}</p>
 
               {/* Hover Glow */}
               <div

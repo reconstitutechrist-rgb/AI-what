@@ -44,7 +44,7 @@ export function SuggestedActionsBar({
       <div className="flex flex-col gap-2 px-4 py-3 border-t border-slate-700">
         {/* Element context label */}
         <div className="flex items-center gap-2 text-xs text-slate-400">
-          <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded">
+          <span className="px-2 py-0.5 bg-garden-500/20 text-garden-300 rounded">
             {selectedElement.displayName || selectedElement.type}
           </span>
           <span>Quick actions:</span>
@@ -55,7 +55,7 @@ export function SuggestedActionsBar({
             <button
               key={quickAction.label}
               onClick={() => handleQuickAction(quickAction)}
-              className="px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-200 text-sm font-medium transition-colors flex items-center gap-1.5 border border-blue-500/30"
+              className="px-3 py-1.5 rounded-lg bg-garden-600/20 hover:bg-garden-600/30 text-garden-200 text-sm font-medium transition-colors flex items-center gap-1.5 border border-garden-500/30"
             >
               {quickAction.label}
             </button>

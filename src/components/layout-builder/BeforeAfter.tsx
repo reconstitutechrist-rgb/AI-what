@@ -85,7 +85,7 @@ export function BeforeAfter({
             onClick={() => setViewMode('split')}
             className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
               viewMode === 'split'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-garden-600 text-white'
                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
             }`}
           >
@@ -96,7 +96,7 @@ export function BeforeAfter({
             onClick={() => setViewMode('toggle')}
             className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
               viewMode === 'toggle'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-garden-600 text-white'
                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
             }`}
           >
@@ -206,7 +206,7 @@ export function BeforeAfter({
             <button
               type="button"
               onClick={onApprove}
-              className="px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-500 rounded-lg transition-colors flex items-center gap-2"
+              className="px-4 py-2 text-sm bg-garden-600 text-white hover:bg-garden-500 rounded-lg transition-colors flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path

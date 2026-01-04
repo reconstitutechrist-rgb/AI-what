@@ -26,7 +26,7 @@ export function OptionCard({ option, isSelected, onClick, index }: OptionCardPro
       onClick={onClick}
       className={`w-full text-left rounded-lg overflow-hidden transition-all ${
         isSelected
-          ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-900'
+          ? 'ring-2 ring-garden-500 ring-offset-2 ring-offset-slate-900'
           : 'hover:ring-1 hover:ring-slate-600'
       }`}
     >
@@ -46,8 +46,8 @@ export function OptionCard({ option, isSelected, onClick, index }: OptionCardPro
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-700 to-slate-800">
             <div className="text-center">
-              <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-blue-500/20 flex items-center justify-center">
-                <span className="text-2xl font-bold text-blue-400">
+              <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-garden-500/20 flex items-center justify-center">
+                <span className="text-2xl font-bold text-garden-400">
                   {index !== undefined ? String.fromCharCode(65 + index) : '?'}
                 </span>
               </div>
@@ -60,7 +60,7 @@ export function OptionCard({ option, isSelected, onClick, index }: OptionCardPro
 
         {/* Selection indicator */}
         {isSelected && (
-          <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+          <div className="absolute top-2 right-2 w-6 h-6 bg-garden-500 rounded-full flex items-center justify-center">
             <svg
               className="w-4 h-4 text-white"
               fill="none"

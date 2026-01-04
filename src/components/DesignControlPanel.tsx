@@ -165,7 +165,9 @@ function SegmentedControl<T extends string>({
             type="button"
             onClick={() => onChange(option.value)}
             className={`flex-1 px-2 py-1 text-xs rounded transition-all ${
-              value === option.value ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+              value === option.value
+                ? 'bg-garden-600 text-white'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
             {option.label}
@@ -231,7 +233,7 @@ function Toggle({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`relative w-9 h-5 rounded-full transition-colors ${
-          checked ? 'bg-blue-600' : 'bg-slate-600'
+          checked ? 'bg-garden-600' : 'bg-slate-600'
         }`}
       >
         <span
@@ -374,7 +376,7 @@ export function DesignControlPanel({
       >
         <div className="flex items-center gap-2">
           <svg
-            className="w-4 h-4 text-blue-400"
+            className="w-4 h-4 text-garden-400"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -632,7 +634,7 @@ export function DesignControlPanel({
                   onClick={() => setComponentDesignTab('states')}
                   className={`flex-1 px-2 py-1 text-xs rounded transition-all ${
                     componentDesignTab === 'states'
-                      ? 'bg-purple-600 text-white'
+                      ? 'bg-gold-600 text-white'
                       : 'text-slate-400 hover:text-white'
                   }`}
                 >
@@ -643,7 +645,7 @@ export function DesignControlPanel({
                   onClick={() => setComponentDesignTab('buttons')}
                   className={`flex-1 px-2 py-1 text-xs rounded transition-all ${
                     componentDesignTab === 'buttons'
-                      ? 'bg-purple-600 text-white'
+                      ? 'bg-gold-600 text-white'
                       : 'text-slate-400 hover:text-white'
                   }`}
                 >
@@ -654,7 +656,7 @@ export function DesignControlPanel({
                   onClick={() => setComponentDesignTab('links')}
                   className={`flex-1 px-2 py-1 text-xs rounded transition-all ${
                     componentDesignTab === 'links'
-                      ? 'bg-purple-600 text-white'
+                      ? 'bg-gold-600 text-white'
                       : 'text-slate-400 hover:text-white'
                   }`}
                 >

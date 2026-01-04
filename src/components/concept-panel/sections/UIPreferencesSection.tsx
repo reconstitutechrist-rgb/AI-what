@@ -57,12 +57,12 @@ export function UIPreferencesSection({
         className="flex items-center gap-2 w-full text-left mb-2"
       >
         {isExpanded ? (
-          <ChevronDownIcon size={14} className="text-zinc-400" />
+          <ChevronDownIcon size={14} className="text-slate-400" />
         ) : (
-          <ChevronRightIcon size={14} className="text-zinc-400" />
+          <ChevronRightIcon size={14} className="text-slate-400" />
         )}
-        <PaletteIcon size={14} className="text-zinc-400" />
-        <span className="text-xs text-zinc-500 uppercase tracking-wide">UI Preferences</span>
+        <PaletteIcon size={14} className="text-slate-400" />
+        <span className="text-xs text-slate-500 uppercase tracking-wide">UI Preferences</span>
       </button>
 
       {isExpanded && (
@@ -97,25 +97,25 @@ export function UIPreferencesSection({
           {/* Color swatches */}
           {(prefs.primaryColor || prefs.secondaryColor || prefs.accentColor) && (
             <div className="space-y-2">
-              <label className="text-xs text-zinc-500 uppercase tracking-wide block">Colors</label>
+              <label className="text-xs text-slate-500 uppercase tracking-wide block">Colors</label>
               <div className="flex gap-2">
                 {prefs.primaryColor && (
                   <div
-                    className="w-6 h-6 rounded border border-zinc-600"
+                    className="w-6 h-6 rounded border border-slate-600"
                     style={{ backgroundColor: prefs.primaryColor }}
                     title={`Primary: ${prefs.primaryColor}`}
                   />
                 )}
                 {prefs.secondaryColor && (
                   <div
-                    className="w-6 h-6 rounded border border-zinc-600"
+                    className="w-6 h-6 rounded border border-slate-600"
                     style={{ backgroundColor: prefs.secondaryColor }}
                     title={`Secondary: ${prefs.secondaryColor}`}
                   />
                 )}
                 {prefs.accentColor && (
                   <div
-                    className="w-6 h-6 rounded border border-zinc-600"
+                    className="w-6 h-6 rounded border border-slate-600"
                     style={{ backgroundColor: prefs.accentColor }}
                     title={`Accent: ${prefs.accentColor}`}
                   />

@@ -41,7 +41,7 @@ export function StorageStats({ stats, onUpgrade }: StorageStatsProps) {
   const getProgressColor = (): string => {
     if (isCritical) return 'bg-red-500';
     if (isWarning) return 'bg-yellow-500';
-    return 'bg-blue-500';
+    return 'bg-garden-500';
   };
 
   // Get icon based on usage
@@ -62,7 +62,7 @@ export function StorageStats({ stats, onUpgrade }: StorageStatsProps) {
         {onUpgrade && (isWarning || isCritical) && (
           <button
             onClick={onUpgrade}
-            className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium transition-all"
+            className="px-3 py-1.5 rounded-lg bg-gold-600 hover:bg-gold-700 text-white text-xs font-medium transition-all"
             aria-label="Upgrade storage"
           >
             ⬆️ Upgrade

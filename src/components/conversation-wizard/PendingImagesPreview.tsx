@@ -20,11 +20,11 @@ export function PendingImagesPreview({ images, onRemove }: PendingImagesPreviewP
           <img
             src={img}
             alt={`Upload ${i + 1}`}
-            className="w-16 h-16 object-cover rounded-lg border border-zinc-700"
+            className="w-16 h-16 object-cover rounded-lg border border-slate-700"
           />
           <button
             onClick={() => onRemove(i)}
-            className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-800 border border-zinc-700 rounded-full flex items-center justify-center"
+            className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-slate-800 border border-slate-700 rounded-full flex items-center justify-center"
           >
             <XIcon size={12} />
           </button>

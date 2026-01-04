@@ -281,14 +281,14 @@ function PresetCard({
         p-3 rounded-lg border transition-all text-left
         ${
           isSelected
-            ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/30'
+            ? 'border-garden-500 bg-garden-500/10 ring-2 ring-garden-500/30'
             : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
         }
       `}
     >
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-medium text-slate-200">{preset.name}</span>
-        {isSelected && <span className="text-xs text-blue-400">Active</span>}
+        {isSelected && <span className="text-xs text-garden-400">Active</span>}
       </div>
       <div className="flex justify-center py-2">
         <StatePreview componentType="link" spec={preset.spec} forcedState="default" />
@@ -320,7 +320,7 @@ function ColorPicker({
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="flex-1 px-2 py-1 text-sm bg-slate-800 border border-slate-600 rounded text-slate-200 focus:border-blue-500 focus:outline-none"
+        className="flex-1 px-2 py-1 text-sm bg-slate-800 border border-slate-600 rounded text-slate-200 focus:border-garden-500 focus:outline-none"
       />
     </div>
   );
@@ -365,7 +365,7 @@ function VariantManager({
         </label>
         <button
           onClick={onAdd}
-          className="text-xs px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-500 transition-colors"
+          className="text-xs px-2 py-1 rounded bg-garden-600 text-white hover:bg-garden-500 transition-colors"
         >
           + Add Variant
         </button>
@@ -378,7 +378,7 @@ function VariantManager({
               group relative flex items-center gap-1 px-3 py-1.5 rounded-lg border transition-all cursor-pointer
               ${
                 selectedIndex === index
-                  ? 'border-blue-500 bg-blue-500/20 text-blue-300'
+                  ? 'border-garden-500 bg-garden-500/20 text-garden-300'
                   : 'border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600'
               }
             `}

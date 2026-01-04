@@ -57,9 +57,9 @@ export function ReviewStatusIndicator({
       case 'checking':
         return {
           icon: '🔍',
-          bgColor: 'bg-blue-500/20',
-          textColor: 'text-blue-400',
-          borderColor: 'border-blue-500/30',
+          bgColor: 'bg-garden-500/20',
+          textColor: 'text-garden-400',
+          borderColor: 'border-garden-500/30',
           animate: true,
         };
       case 'passed':
@@ -180,7 +180,7 @@ export function ReviewStatusBadge({
       case 'pending':
         return { bg: 'bg-slate-500/20', text: 'text-slate-400', icon: '○' };
       case 'checking':
-        return { bg: 'bg-blue-500/20', text: 'text-blue-400', icon: '🔍' };
+        return { bg: 'bg-garden-500/20', text: 'text-garden-400', icon: '🔍' };
       case 'passed':
         return { bg: 'bg-green-500/20', text: 'text-green-400', icon: '✅' };
       case 'warning':

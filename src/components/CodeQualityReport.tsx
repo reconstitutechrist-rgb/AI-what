@@ -35,7 +35,7 @@ const getSeverityColor = (severity: string): string => {
     case 'medium':
       return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
     case 'low':
-      return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+      return 'bg-garden-500/20 text-garden-300 border-garden-500/30';
     default:
       return 'bg-slate-500/20 text-slate-300 border-slate-500/30';
   }
@@ -101,14 +101,14 @@ export function CodeQualityReport({
       aria-labelledby="quality-report-title"
     >
       <div
-        className="bg-slate-900 rounded-2xl border border-blue-500/30 max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl"
+        className="bg-slate-900 rounded-2xl border border-garden-500/30 max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="px-6 py-5 border-b border-blue-500/30 bg-blue-500/10">
+        <div className="px-6 py-5 border-b border-garden-500/30 bg-garden-500/10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-xl bg-garden-500/20 flex items-center justify-center">
                 <span className="text-3xl">📊</span>
               </div>
               <div>
@@ -116,7 +116,7 @@ export function CodeQualityReport({
                   Code Quality Report
                 </h3>
                 {report && (
-                  <p className="text-sm text-blue-200/80">
+                  <p className="text-sm text-garden-200/80">
                     Generated {new Date(report.timestamp).toLocaleString()}
                   </p>
                 )}
@@ -136,7 +136,7 @@ export function CodeQualityReport({
         <div className="flex-1 min-h-0 overflow-y-auto p-6">
           {isAnalyzing ? (
             <div className="flex flex-col items-center justify-center py-16">
-              <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-4" />
+              <div className="w-16 h-16 border-4 border-garden-500/30 border-t-garden-500 rounded-full animate-spin mb-4" />
               <p className="text-slate-400 text-lg">Analyzing code quality...</p>
             </div>
           ) : !report ? (
@@ -146,7 +146,7 @@ export function CodeQualityReport({
               {onReanalyze && (
                 <button
                   onClick={onReanalyze}
-                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-all"
+                  className="px-4 py-2 rounded-lg bg-garden-600 hover:bg-garden-700 text-white font-medium transition-all"
                 >
                   Run Analysis
                 </button>
@@ -239,7 +239,7 @@ export function CodeQualityReport({
                                           ? 'text-red-400'
                                           : issue.type === 'warning'
                                             ? 'text-yellow-400'
-                                            : 'text-blue-400'
+                                            : 'text-garden-400'
                                       }`}
                                     >
                                       {issue.type === 'error'
@@ -281,7 +281,7 @@ export function CodeQualityReport({
           {onReanalyze && !isAnalyzing && (
             <button
               onClick={onReanalyze}
-              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-all"
+              className="px-4 py-2 rounded-lg bg-garden-600 hover:bg-garden-700 text-white text-sm font-medium transition-all"
             >
               🔄 Re-analyze
             </button>

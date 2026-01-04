@@ -149,7 +149,7 @@ export default function FullAppPreview({ appDataJson, onScreenshot }: FullAppPre
             </button>
             <button
               onClick={() => setActiveTab('code')}
-              className="px-4 py-2 rounded-lg font-medium transition-all bg-blue-600 text-white"
+              className="px-4 py-2 rounded-lg font-medium transition-all bg-garden-600 text-white"
             >
               💻 Code
             </button>

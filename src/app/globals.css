@@ -2,83 +2,105 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Inter font from Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* Garden Theme Fonts from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
 
 /* ============================================
    Theme System CSS Variables
    ============================================ */
 
 :root {
-  /* Light theme defaults */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8fafc;
-  --bg-tertiary: #f1f5f9;
-  --bg-gradient-start: #f8fafc;
-  --bg-gradient-mid: #e2e8f0;
-  --bg-gradient-end: #f1f5f9;
-  
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  
-  --border-color: #e2e8f0;
-  --border-light: #f1f5f9;
-  
-  --accent-primary: #3b82f6;
-  --accent-hover: #2563eb;
-  --accent-secondary: #6366f1;
-  
-  --glass-bg: rgba(255, 255, 255, 0.8);
-  --glass-border: rgba(0, 0, 0, 0.1);
-  
-  --shadow-color: rgba(0, 0, 0, 0.1);
-  --shadow-color-strong: rgba(0, 0, 0, 0.2);
-  
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --error: #ef4444;
-  --info: #3b82f6;
-  
+  /* Light theme - Garden/Nature inspired */
+  --bg-primary: #F6F9F2;
+  --bg-secondary: #FEFCF8;
+  --bg-tertiary: #F0F5EC;
+  --bg-gradient-start: #F6F9F2;
+  --bg-gradient-mid: #FEFCF8;
+  --bg-gradient-end: #F0F5EC;
+
+  --text-primary: #1A3D26;
+  --text-secondary: #5A7D64;
+  --text-muted: #8BA895;
+
+  --border-color: #E6ECDF;
+  --border-light: #D4DEC8;
+
+  /* Green palette */
+  --accent-primary: #2ECC71;
+  --accent-hover: #1D6F42;
+  --accent-secondary: #4A9B5F;
+  --accent-muted: #7FB285;
+
+  /* Gold palette */
+  --gold-primary: #C9A227;
+  --gold-light: #E8D48B;
+  --gold-bg: #FBF5E6;
+
+  /* Blossom accent */
+  --blossom-bg: #FADCE6;
+  --blossom-text: #C06C84;
+
+  --glass-bg: rgba(254, 252, 248, 0.8);
+  --glass-border: rgba(26, 61, 38, 0.1);
+
+  --shadow-color: rgba(26, 61, 38, 0.08);
+  --shadow-color-strong: rgba(26, 61, 38, 0.15);
+
+  --success: #2ECC71;
+  --warning: #C9A227;
+  --error: #C06C84;
+  --info: #4A9B5F;
+
   /* Legacy variables for compatibility */
-  --bg: #ffffff;
-  --text: #0f172a;
+  --bg: #F6F9F2;
+  --text: #1A3D26;
 }
 
 [data-theme="dark"] {
-  /* Dark theme */
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-tertiary: #334155;
-  --bg-gradient-start: #0f172a;
-  --bg-gradient-mid: #1e293b;
-  --bg-gradient-end: #0f172a;
-  
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #64748b;
-  
-  --border-color: #334155;
-  --border-light: #1e293b;
-  
-  --accent-primary: #3b82f6;
-  --accent-hover: #60a5fa;
-  --accent-secondary: #818cf8;
-  
-  --glass-bg: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  
+  /* Dark theme - Garden/Nature inspired */
+  --bg-primary: #0B1A10;
+  --bg-secondary: #12261A;
+  --bg-tertiary: #1A3424;
+  --bg-gradient-start: #0B1A10;
+  --bg-gradient-mid: #12261A;
+  --bg-gradient-end: #0B1A10;
+
+  --text-primary: #F5FBF7;
+  --text-secondary: #7A9B84;
+  --text-muted: #5A7B64;
+
+  --border-color: #1A3424;
+  --border-light: #2A4A34;
+
+  /* Green palette */
+  --accent-primary: #3EE085;
+  --accent-hover: #2ECC71;
+  --accent-secondary: #5AB86E;
+  --accent-muted: #8FC99A;
+
+  /* Gold palette */
+  --gold-primary: #E8C547;
+  --gold-light: #D4AF37;
+  --gold-bg: rgba(232, 197, 71, 0.15);
+
+  /* Blossom accent */
+  --blossom-bg: rgba(255, 184, 202, 0.15);
+  --blossom-text: #FFB8CA;
+
+  --glass-bg: rgba(18, 38, 26, 0.8);
+  --glass-border: rgba(62, 224, 133, 0.1);
+
   --shadow-color: rgba(0, 0, 0, 0.3);
   --shadow-color-strong: rgba(0, 0, 0, 0.5);
-  
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --error: #ef4444;
-  --info: #60a5fa;
-  
+
+  --success: #3EE085;
+  --warning: #E8C547;
+  --error: #FFB8CA;
+  --info: #5AB86E;
+
   /* Legacy variables for compatibility */
-  --bg: #0b1020;
-  --text: #e6eef8;
+  --bg: #0B1A10;
+  --text: #F5FBF7;
 }
 
 html, body, #__next {
@@ -92,7 +114,7 @@ html {
 
 body {
   margin: 0;
-  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  font-family: 'Outfit', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   transition: background-color 0.3s ease, color 0.3s ease;
@@ -123,13 +145,13 @@ pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', '
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #3B82F6, #8B5CF6);
+  background: linear-gradient(to bottom, #2ECC71, #4A9B5F);
   border-radius: 4px;
   transition: background 0.3s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #2563EB, #7C3AED);
+  background: linear-gradient(to bottom, #1D6F42, #2ECC71);
 }
 
 /* Smooth scrolling */
@@ -139,23 +161,23 @@ html {
 
 /* Glassmorphism utility class - reduced blur for better readability */
 .glass-panel {
-  background: rgba(24, 24, 27, 0.8);
+  background: var(--glass-bg);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(63, 63, 70, 0.5);
+  border: 1px solid var(--glass-border);
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 /* Solid surface panel for non-blurred containers */
 .surface-panel {
-  background: #18181b;
-  border: 1px solid #3f3f46;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
 }
 
 /* Gradient text utility */
 .gradient-text {
-  background: linear-gradient(to right, #60a5fa, #a855f7, #ec4899);
+  background: linear-gradient(to right, #2ECC71, #C9A227, #C06C84);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -200,10 +222,10 @@ html {
 /* Focus glow animation */
 @keyframes focus-glow {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    box-shadow: 0 0 0 0 rgba(46, 204, 113, 0);
   }
   50% {
-    box-shadow: 0 0 20px 5px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 0 20px 5px rgba(46, 204, 113, 0.4);
   }
 }
 
@@ -280,7 +302,7 @@ html {
 }
 
 .resize-handle:focus-visible {
-  outline: 2px solid rgba(59, 130, 246, 0.8);
+  outline: 2px solid rgba(46, 204, 113, 0.8);
   outline-offset: -1px;
 }
 
@@ -307,11 +329,11 @@ html {
 
 .resize-handle-horizontal:hover,
 .resize-handle-horizontal.resize-handle-active {
-  background-color: rgba(59, 130, 246, 0.3);
+  background-color: rgba(46, 204, 113, 0.3);
 }
 
 .resize-handle-horizontal.resize-handle-dragging {
-  background-color: rgba(59, 130, 246, 0.5);
+  background-color: rgba(46, 204, 113, 0.5);
 }
 
 /* Vertical Handle (horizontal divider - for vertical layout) */
@@ -337,26 +359,26 @@ html {
 
 .resize-handle-vertical:hover,
 .resize-handle-vertical.resize-handle-active {
-  background-color: rgba(59, 130, 246, 0.3);
+  background-color: rgba(46, 204, 113, 0.3);
 }
 
 .resize-handle-vertical.resize-handle-dragging {
-  background-color: rgba(59, 130, 246, 0.5);
+  background-color: rgba(46, 204, 113, 0.5);
 }
 
 /* Handle Indicator (visual dot or line) */
 .resize-handle-indicator {
-  background: rgba(148, 163, 184, 0.3);
+  background: rgba(127, 178, 133, 0.3);
   pointer-events: none;
 }
 
 .resize-handle:hover .resize-handle-indicator,
 .resize-handle.resize-handle-active .resize-handle-indicator {
-  background: rgba(59, 130, 246, 0.8);
+  background: rgba(46, 204, 113, 0.8);
 }
 
 .resize-handle.resize-handle-dragging .resize-handle-indicator {
-  background: rgba(59, 130, 246, 1);
+  background: rgba(46, 204, 113, 1);
 }
 
 /* Disabled Handle */
@@ -391,16 +413,16 @@ html {
   .resize-handle-horizontal.resize-handle-active,
   .resize-handle-vertical:hover,
   .resize-handle-vertical.resize-handle-active {
-    background-color: rgba(59, 130, 246, 0.6);
+    background-color: rgba(46, 204, 113, 0.6);
   }
-  
+
   .resize-handle-indicator {
-    background: rgba(148, 163, 184, 0.5);
+    background: rgba(127, 178, 133, 0.5);
   }
-  
+
   .resize-handle:hover .resize-handle-indicator,
   .resize-handle.resize-handle-active .resize-handle-indicator {
-    background: rgba(59, 130, 246, 1);
+    background: rgba(46, 204, 113, 1);
   }
 }
 
@@ -420,55 +442,77 @@ html {
 }
 
 /* ============================================
-   Linear/Vercel Design System Utilities
+   Garden Theme Design System Utilities
    ============================================ */
 
 /* Header button base style */
 .linear-btn {
-  @apply px-3 py-1.5 rounded-md text-sm font-medium
+  @apply px-3 py-1.5 rounded-xl text-sm font-medium
          transition-colors duration-150 flex items-center gap-2;
 }
 
 .linear-btn-ghost {
-  @apply linear-btn bg-transparent text-zinc-400
-         hover:bg-zinc-800 hover:text-zinc-100;
+  background: transparent;
+  color: var(--text-secondary);
+}
+.linear-btn-ghost:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .linear-btn-primary {
-  @apply linear-btn bg-blue-600 text-white
-         hover:bg-blue-500;
+  background: var(--accent-primary);
+  color: white;
+}
+.linear-btn-primary:hover {
+  background: var(--accent-hover);
 }
 
 .linear-btn-secondary {
-  @apply linear-btn bg-zinc-800 text-zinc-200
-         hover:bg-zinc-700;
+  background: var(--gold-primary);
+  color: white;
+}
+.linear-btn-secondary:hover {
+  background: var(--gold-light);
+  color: var(--text-primary);
 }
 
 /* Dropdown container */
 .linear-dropdown {
-  @apply absolute top-full mt-1 min-w-[200px] py-1
-         bg-zinc-900 border border-zinc-800 rounded-lg
-         shadow-lg shadow-black/30 z-dropdown;
+  @apply absolute top-full mt-1 min-w-[200px] py-1 rounded-xl z-dropdown;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 20px var(--shadow-color);
 }
 
 /* Dropdown item */
 .linear-dropdown-item {
-  @apply px-3 py-2 text-sm text-zinc-300 flex items-center gap-3
-         hover:bg-zinc-800 hover:text-white transition-colors cursor-pointer;
+  @apply px-3 py-2 text-sm flex items-center gap-3 transition-colors cursor-pointer;
+  color: var(--text-secondary);
+}
+.linear-dropdown-item:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .linear-dropdown-item-danger {
-  @apply linear-dropdown-item text-red-400 hover:text-red-300 hover:bg-red-950/50;
+  color: var(--blossom-text);
+}
+.linear-dropdown-item-danger:hover {
+  background: var(--blossom-bg);
+  color: var(--blossom-text);
 }
 
 /* Dropdown shortcut hint */
 .linear-dropdown-shortcut {
-  @apply ml-auto text-xs text-zinc-500 font-mono;
+  @apply ml-auto text-xs font-mono;
+  color: var(--text-muted);
 }
 
 /* Dropdown divider */
 .linear-dropdown-divider {
-  @apply my-1 h-px bg-zinc-800;
+  @apply my-1 h-px;
+  background: var(--border-color);
 }
 
 /* Status dot indicator */
@@ -477,26 +521,27 @@ html {
 }
 
 .status-dot-draft {
-  @apply bg-yellow-500;
+  background: var(--gold-primary);
 }
 
 .status-dot-saved {
-  @apply bg-green-500;
+  background: var(--accent-primary);
 }
 
 .status-dot-generating {
-  @apply bg-blue-500 animate-pulse;
+  @apply animate-pulse;
+  background: var(--accent-secondary);
 }
 
 .status-dot-error {
-  @apply bg-red-500;
+  background: var(--blossom-text);
 }
 
 /* Header container */
 .linear-header {
-  @apply h-14 px-4 flex items-center gap-4
-         bg-zinc-950 border-b border-zinc-800
-         sticky top-0 z-sticky;
+  @apply h-14 px-4 flex items-center gap-4 sticky top-0 z-sticky;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
 }
 
 /* ============================================
@@ -506,33 +551,60 @@ html {
 /* Base button styles */
 .btn {
   @apply inline-flex items-center justify-center gap-2
-         font-medium rounded-lg transition-colors
-         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-zinc-900;
+         font-medium rounded-xl transition-colors
+         focus:outline-none focus:ring-2 focus:ring-offset-2;
+  --tw-ring-color: var(--accent-primary);
+  --tw-ring-offset-color: var(--bg-primary);
 }
 
-/* Primary button - main actions */
+/* Primary button - main actions (green) */
 .btn-primary {
-  @apply btn px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm;
+  @apply btn px-4 py-2 text-white text-sm;
+  background: var(--accent-primary);
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
 }
 
-/* Secondary button - secondary actions */
+/* Secondary button - secondary actions (gold) */
 .btn-secondary {
-  @apply btn px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-sm border border-zinc-700;
+  @apply btn px-4 py-2 text-sm;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+.btn-secondary:hover {
+  background: var(--border-light);
 }
 
 /* Ghost button - minimal style */
 .btn-ghost {
-  @apply btn px-3 py-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 text-sm;
+  @apply btn px-3 py-2 text-sm;
+  color: var(--text-secondary);
+}
+.btn-ghost:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
 }
 
 /* Danger button - destructive actions */
 .btn-danger {
-  @apply btn px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm;
+  @apply btn px-4 py-2 text-sm;
+  background: var(--blossom-text);
+  color: white;
+}
+.btn-danger:hover {
+  background: #A85A6F;
 }
 
 /* Icon-only button */
 .btn-icon {
-  @apply btn p-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded-md;
+  @apply btn p-2 rounded-xl;
+  color: var(--text-secondary);
+}
+.btn-icon:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
 }
 
 /* Small button variant */
@@ -543,4 +615,26 @@ html {
 /* Large button variant */
 .btn-lg {
   @apply px-6 py-3 text-base;
+}
+
+/* Gold button variant - for premium/secondary emphasis */
+.btn-gold {
+  @apply btn px-4 py-2 text-sm;
+  background: var(--gold-primary);
+  color: white;
+}
+.btn-gold:hover {
+  background: var(--gold-light);
+  color: var(--text-primary);
+}
+
+/* Blossom button variant - for accent actions */
+.btn-blossom {
+  @apply btn px-4 py-2 text-sm;
+  background: var(--blossom-bg);
+  color: var(--blossom-text);
+}
+.btn-blossom:hover {
+  background: var(--blossom-text);
+  color: white;
 }
