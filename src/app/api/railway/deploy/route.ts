@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import path from 'path';
+import pako from 'pako';
 import { DeployRequestSchema, type RailwayDeployment, type AppFile } from '@/types/railway';
 
 // ============================================================================
@@ -254,6 +255,7 @@ function generatePackageJson(
     dependencies: {
       react: '^18.2.0',
       'react-dom': '^18.2.0',
+      pako: '^2.1.0', // Required for decompressing files
       ...dependencies, // Include ALL dependencies for full-stack
     },
     devDependencies: {
@@ -267,6 +269,7 @@ function generatePackageJson(
 
 /**
  * Generate vite.config.js content
+ * Optimized for preview builds - skips minification and sourcemaps for faster deploys
  */
 function generateViteConfig(): string {
   return `import { defineConfig } from 'vite';
@@ -282,6 +285,13 @@ export default defineConfig({
     host: '0.0.0.0',
     port: parseInt(process.env.PORT || '3000', 10),
   },
+  build: {
+    minify: false,              // Skip minification for preview
+    sourcemap: false,           // Skip sourcemaps
+    target: 'esnext',           // Less transpilation
+    cssMinify: false,           // Skip CSS minification
+    reportCompressedSize: false // Skip gzip size calculation
+  }
 });
 `;
 }
@@ -540,9 +550,10 @@ async function deployToService(
   // Alternative approach: Use Railway's volume and upload files there
   // For MVP, we'll create a deployment with inline environment variables
 
-  // Set service variables with file contents (base64 encoded)
+  // Set service variables with file contents (gzip compressed + base64 encoded)
+  const compressedFiles = pako.deflate(JSON.stringify(files));
   const variables: Record<string, string> = {
-    APP_FILES: Buffer.from(JSON.stringify(files)).toString('base64'),
+    APP_FILES: Buffer.from(compressedFiles).toString('base64'),
     NODE_ENV: 'production',
   };
 
@@ -562,10 +573,12 @@ async function deployToService(
   );
 
   // Build the extraction script as a single-line command
-  // This script: 1) extracts files from APP_FILES env var, 2) installs deps, 3) builds, 4) serves
+  // This script: 1) decompresses + extracts files from APP_FILES env var, 2) installs deps, 3) builds, 4) serves
   const extractScript = `
+const pako=require('pako');
 const fs=require('fs');
-const f=JSON.parse(Buffer.from(process.env.APP_FILES,'base64').toString());
+const compressed=Buffer.from(process.env.APP_FILES,'base64');
+const f=JSON.parse(pako.inflate(compressed,{to:'string'}));
 Object.entries(f).forEach(([p,c])=>{
   const d=p.split('/').slice(0,-1).join('/');
   if(d)fs.mkdirSync(d,{recursive:true});
@@ -582,7 +595,9 @@ console.log('Files extracted:',Object.keys(f).length);
 
   // Wrap in /bin/sh -c for proper shell execution
   // Railway Docker image deployments run in exec form which doesn't support && without a shell
-  const startCommand = `/bin/sh -c 'node -e "${escapedScript}" && npm install && npm run build && npm start'`;
+  // The pre-built image has common deps in /app/node_modules - copy them first for faster installs
+  // Must create node_modules dir first, otherwise cp fails silently
+  const startCommand = `/bin/sh -c 'node -e "${escapedScript}" && mkdir -p node_modules && cp -rn /app/node_modules/* ./node_modules/ 2>/dev/null || true && npm install --prefer-offline && npm run build && npm start'`;
 
   railwayLog.debug('Start command', { length: startCommand.length });
 
@@ -598,7 +613,7 @@ console.log('Files extracted:',Object.keys(f).length);
       serviceId,
       input: {
         source: {
-          image: 'node:20', // Full Node image (not alpine) - includes OpenSSL for Prisma
+          image: 'williosrealios/railway-preview:latest', // Pre-built image with React/Vite/Tailwind for faster deploys
         },
         startCommand,
       },

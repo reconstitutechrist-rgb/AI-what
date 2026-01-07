@@ -36,8 +36,8 @@ class RailwayService {
   private pollFailureCount = 0;
   private currentPollInterval: number;
 
-  // Auto-cleanup after 30 minutes of idle
-  private static readonly CLEANUP_TIMEOUT_MS = 30 * 60 * 1000;
+  // Auto-cleanup after 1 hour of idle (extended for better warm deploy UX)
+  private static readonly CLEANUP_TIMEOUT_MS = 60 * 60 * 1000;
   // Initial poll interval (3 seconds)
   private static readonly INITIAL_POLL_INTERVAL_MS = 3000;
   // Maximum poll interval after backoff (30 seconds)
