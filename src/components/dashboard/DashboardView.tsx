@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useDashboard } from '@/hooks/useDashboard';
+import { useAppStore } from '@/store/useAppStore';
 import { StatsCards } from './StatsCards';
 import { ProjectFilters } from './ProjectFilters';
 import { ProjectList } from './ProjectList';
@@ -32,6 +33,11 @@ export function DashboardView() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showDeployModal, setShowDeployModal] = useState<string | null>(null);
 
+  // Store actions for clearing state before new project
+  const setAppConcept = useAppStore((state) => state.setAppConcept);
+  const setCurrentLayoutDesign = useAppStore((state) => state.setCurrentLayoutDesign);
+  const setDynamicPhasePlan = useAppStore((state) => state.setDynamicPhasePlan);
+
   // Handle ?deploy=projectId query param from AI Builder redirect
   const deployProjectId = searchParams.get('deploy');
   useEffect(() => {
@@ -48,6 +54,10 @@ export function DashboardView() {
   }, [deployProjectId, projects]);
 
   const handleNewProject = () => {
+    // Clear project state to ensure naming modal shows fresh
+    setAppConcept(null);
+    setCurrentLayoutDesign(null);
+    setDynamicPhasePlan(null);
     router.push('/app/wizard');
   };
 
