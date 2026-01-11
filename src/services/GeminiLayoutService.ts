@@ -313,7 +313,17 @@ class GeminiLayoutService {
   "confidence": 0.0-1.0
 }
 
-Analyze the screenshot carefully. Extract exact hex colors where visible. Identify all UI components. Describe the overall design aesthetic.
+Analyze the screenshot carefully and extract the ACTUAL colors visible in the image.
+
+CRITICAL COLOR EXTRACTION RULES:
+- Extract the EXACT hex colors you see, not typical UI defaults
+- Include ALL prominent colors: whites, light colors, pastels, greens, oranges
+- If the image has a white or light background, use #FFFFFF or the actual light color
+- Do NOT default to dark colors (#0F172A, #1E293B) unless the image is actually dark
+- Primary color should be the most visually prominent accent/brand color
+- Background should match what you actually see in the image
+
+Identify all UI components. Describe the overall design aesthetic.
 
 Return ONLY valid JSON, no markdown formatting or explanation.`;
 

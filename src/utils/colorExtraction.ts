@@ -242,10 +242,10 @@ function samplePixels(imageData: Uint8ClampedArray, sampleSize: number = 1000): 
     // Skip transparent pixels
     if (a < 128) continue;
 
-    // Skip only pure white or pure black pixels (allow dark themes through)
-    // Previously 0.95/0.05 was too aggressive and removed valid dark theme colors
+    // Only skip near-black pixels - allow ALL other colors including white
+    // This ensures white backgrounds are captured for light theme images
     const luminance = getLuminance(r, g, b);
-    if (luminance > 0.99 || luminance < 0.01) continue;
+    if (luminance < 0.01) continue;
 
     pixels.push({ r, g, b });
   }
@@ -259,50 +259,74 @@ function samplePixels(imageData: Uint8ClampedArray, sampleSize: number = 1000): 
 
 /**
  * Categorize extracted colors into design roles
+ * Uses area coverage (percentage) for primary/secondary selection
+ * Uses adaptive lightness-based selection for background/surface
  */
 function categorizeColors(colors: ExtractedColor[], isDark: boolean): ColorPalette {
-  // Sort by different criteria
+  // Sort by different criteria for role assignment
+  const byArea = [...colors].sort((a, b) => b.percentage - a.percentage);
   const bySaturation = [...colors].sort((a, b) => b.hsl.s - a.hsl.s);
-  const byLightness = [...colors].sort((a, b) => a.hsl.l - b.hsl.l);
 
-  // Most saturated color is likely the primary/accent
-  const primary = bySaturation[0]?.hex || '#3B82F6';
-  const accent = bySaturation[1]?.hex || bySaturation[0]?.hex || '#8B5CF6';
+  // Filter out very light (background-like) and very dark colors from accent candidates
+  const accentCandidates = colors.filter((c) => c.hsl.l >= 20 && c.hsl.l <= 80 && c.hsl.s >= 20);
+  const sortedAccentCandidates = [...accentCandidates].sort((a, b) => b.percentage - a.percentage);
 
-  // Find secondary - different hue from primary if possible
+  // Primary: largest area color that has some saturation (not pure white/black/gray)
+  // If no saturated colors, fall back to largest area overall
+  const primary = sortedAccentCandidates[0]?.hex || byArea[0]?.hex || '#3B82F6';
+
+  // Accent: most saturated color for visual pop
+  const accent = bySaturation[0]?.hex || primary;
+
+  // Secondary: second largest accent candidate with different hue, or fallback to accent
   let secondary = accent;
-  for (const color of bySaturation) {
-    const primaryHsl = rgbToHsl(hexToRgb(primary).r, hexToRgb(primary).g, hexToRgb(primary).b);
+  const primaryHsl = rgbToHsl(hexToRgb(primary).r, hexToRgb(primary).g, hexToRgb(primary).b);
+  for (const color of sortedAccentCandidates) {
+    if (color.hex === primary) continue;
     const hueDiff = Math.abs(color.hsl.h - primaryHsl.h);
-    if (hueDiff > 30 && hueDiff < 180) {
+    // Accept colors with different hue or similar hue but different saturation
+    if (hueDiff > 30 || Math.abs(color.hsl.s - primaryHsl.s) > 20) {
       secondary = color.hex;
       break;
     }
   }
 
-  // Background and surface based on lightness
+  // Adaptive background/surface selection based on actual image content
+  // Group colors by lightness ranges
+  const darkColors = colors.filter((c) => c.hsl.l < 30);
+  const lightColors = colors.filter((c) => c.hsl.l > 70);
+
+  // Calculate total area for each lightness group
+  const darkArea = darkColors.reduce((sum, c) => sum + c.percentage, 0);
+  const lightArea = lightColors.reduce((sum, c) => sum + c.percentage, 0);
+
+  // Determine background based on which lightness group dominates
+  // Use a threshold to avoid flipping on borderline cases
   let background: string;
   let surface: string;
   let text: string;
   let textMuted: string;
   let border: string;
 
-  if (isDark) {
-    // Dark mode - find dark colors
-    const darkColors = byLightness.filter((c) => c.hsl.l < 30);
-    background = darkColors[0]?.hex || '#0F172A';
-    surface = darkColors[1]?.hex || '#1E293B';
-    text = '#F8FAFC';
-    textMuted = '#94A3B8';
-    border = '#334155';
-  } else {
-    // Light mode - find light colors
-    const lightColors = byLightness.filter((c) => c.hsl.l > 70);
-    background = lightColors[lightColors.length - 1]?.hex || '#FFFFFF';
-    surface = lightColors[lightColors.length - 2]?.hex || '#F8FAFC';
+  // If light colors dominate (>30% of image) or isDark is false, use light theme
+  const useLightTheme = lightArea > 30 || (!isDark && lightArea > 10);
+
+  if (useLightTheme) {
+    // Light mode - use lightest colors for background
+    const sortedLight = [...lightColors].sort((a, b) => b.hsl.l - a.hsl.l);
+    background = sortedLight[0]?.hex || '#FFFFFF';
+    surface = sortedLight[1]?.hex || sortedLight[0]?.hex || '#F8FAFC';
     text = '#0F172A';
     textMuted = '#64748B';
     border = '#E2E8F0';
+  } else {
+    // Dark mode - use darkest colors for background
+    const sortedDark = [...darkColors].sort((a, b) => a.hsl.l - b.hsl.l);
+    background = sortedDark[0]?.hex || '#0F172A';
+    surface = sortedDark[1]?.hex || sortedDark[0]?.hex || '#1E293B';
+    text = '#F8FAFC';
+    textMuted = '#94A3B8';
+    border = '#334155';
   }
 
   return {
