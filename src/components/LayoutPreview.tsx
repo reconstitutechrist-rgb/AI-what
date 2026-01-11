@@ -485,19 +485,20 @@ function Header({
   isMobile = false,
 }: HeaderProps) {
   // Compute inline styles from AI-generated colorSettings (overrides Tailwind classes)
+  // NOTE: Use [colorSettings] as dependency to ensure re-render when design changes
   const headerInlineStyle = useMemo(
     () => (colorSettings?.background ? { backgroundColor: colorSettings.background } : undefined),
-    [colorSettings?.background]
+    [colorSettings]
   );
 
   const textInlineStyle = useMemo(
     () => (colorSettings?.text ? { color: colorSettings.text } : undefined),
-    [colorSettings?.text]
+    [colorSettings]
   );
 
   const mutedTextInlineStyle = useMemo(
     () => (colorSettings?.textMuted ? { color: colorSettings.textMuted } : undefined),
-    [colorSettings?.textMuted]
+    [colorSettings]
   );
   // Animation classes based on effects settings
   const animBase = getAnimationClass(effectsSettings?.animations, 'base');
@@ -662,6 +663,7 @@ function Sidebar({
 
   // Compute inline styles from AI-generated colorSettings (overrides Tailwind classes)
   // Use surface for sidebar background, falling back to secondary
+  // NOTE: Use [colorSettings] as dependency to ensure re-render when design changes
   const sidebarInlineStyle = useMemo(
     () =>
       colorSettings?.surface
@@ -669,17 +671,17 @@ function Sidebar({
         : colorSettings?.secondary
           ? { backgroundColor: colorSettings.secondary }
           : undefined,
-    [colorSettings?.surface, colorSettings?.secondary]
+    [colorSettings]
   );
 
   const textInlineStyle = useMemo(
     () => (colorSettings?.text ? { color: colorSettings.text } : undefined),
-    [colorSettings?.text]
+    [colorSettings]
   );
 
   const mutedTextInlineStyle = useMemo(
     () => (colorSettings?.textMuted ? { color: colorSettings.textMuted } : undefined),
-    [colorSettings?.textMuted]
+    [colorSettings]
   );
 
   // Get width based on design settings
@@ -819,14 +821,15 @@ function Hero({
   const radiusClass = getBorderRadiusClass(effectsSettings?.borderRadius);
 
   // Compute inline styles from AI-generated colorSettings
+  // NOTE: Use [colorSettings] as dependency to ensure re-render when design changes
   const textInlineStyle = useMemo(
     () => (colorSettings?.text ? { color: colorSettings.text } : undefined),
-    [colorSettings?.text]
+    [colorSettings]
   );
 
   const mutedTextInlineStyle = useMemo(
     () => (colorSettings?.textMuted ? { color: colorSettings.textMuted } : undefined),
-    [colorSettings?.textMuted]
+    [colorSettings]
   );
 
   // Generate background style with image or gradient fallback
@@ -914,6 +917,7 @@ function StatsRow({
   const hoverAnimation = getAnimationClass(effectsSettings?.animations, 'hover');
 
   // Compute inline styles from AI-generated colorSettings
+  // NOTE: Use [colorSettings] as dependency to ensure re-render when design changes
   const cardInlineStyle = useMemo(
     () =>
       colorSettings?.surface
@@ -921,17 +925,17 @@ function StatsRow({
         : colorSettings?.secondary
           ? { backgroundColor: colorSettings.secondary }
           : undefined,
-    [colorSettings?.surface, colorSettings?.secondary]
+    [colorSettings]
   );
 
   const textInlineStyle = useMemo(
     () => (colorSettings?.text ? { color: colorSettings.text } : undefined),
-    [colorSettings?.text]
+    [colorSettings]
   );
 
   const mutedTextInlineStyle = useMemo(
     () => (colorSettings?.textMuted ? { color: colorSettings.textMuted } : undefined),
-    [colorSettings?.textMuted]
+    [colorSettings]
   );
 
   return (
@@ -995,6 +999,7 @@ function CardGrid({
 
   // Compute inline styles from AI-generated colorSettings (overrides Tailwind classes)
   // Use surface for card background, falling back to secondary
+  // NOTE: Use [colorSettings] as dependency to ensure re-render when design changes
   const cardInlineStyle = useMemo(
     () =>
       colorSettings?.surface
@@ -1002,17 +1007,17 @@ function CardGrid({
         : colorSettings?.secondary
           ? { backgroundColor: colorSettings.secondary }
           : undefined,
-    [colorSettings?.surface, colorSettings?.secondary]
+    [colorSettings]
   );
 
   const textInlineStyle = useMemo(
     () => (colorSettings?.text ? { color: colorSettings.text } : undefined),
-    [colorSettings?.text]
+    [colorSettings]
   );
 
   const mutedTextInlineStyle = useMemo(
     () => (colorSettings?.textMuted ? { color: colorSettings.textMuted } : undefined),
-    [colorSettings?.textMuted]
+    [colorSettings]
   );
 
   // Get hover effect class - combine with animation level
@@ -1153,6 +1158,7 @@ function ListItems({
   const hoverAnimation = getAnimationClass(effectsSettings?.animations, 'hover');
 
   // Compute inline styles from AI-generated colorSettings
+  // NOTE: Use [colorSettings] as dependency to ensure re-render when design changes
   const cardInlineStyle = useMemo(
     () =>
       colorSettings?.surface
@@ -1160,17 +1166,17 @@ function ListItems({
         : colorSettings?.secondary
           ? { backgroundColor: colorSettings.secondary }
           : undefined,
-    [colorSettings?.surface, colorSettings?.secondary]
+    [colorSettings]
   );
 
   const textInlineStyle = useMemo(
     () => (colorSettings?.text ? { color: colorSettings.text } : undefined),
-    [colorSettings?.text]
+    [colorSettings]
   );
 
   const mutedTextInlineStyle = useMemo(
     () => (colorSettings?.textMuted ? { color: colorSettings.textMuted } : undefined),
-    [colorSettings?.textMuted]
+    [colorSettings]
   );
 
   // Get status badge styling based on status text
@@ -1239,6 +1245,7 @@ function Footer({ appName, colors, onElementSelect, selectedElement, colorSettin
   };
 
   // Compute inline styles from AI-generated colorSettings
+  // NOTE: Use [colorSettings] as dependency to ensure re-render when design changes
   const footerInlineStyle = useMemo(
     () =>
       colorSettings?.surface
@@ -1246,12 +1253,12 @@ function Footer({ appName, colors, onElementSelect, selectedElement, colorSettin
         : colorSettings?.background
           ? { backgroundColor: colorSettings.background }
           : undefined,
-    [colorSettings?.surface, colorSettings?.background]
+    [colorSettings]
   );
 
   const mutedTextInlineStyle = useMemo(
     () => (colorSettings?.textMuted ? { color: colorSettings.textMuted } : undefined),
-    [colorSettings?.textMuted]
+    [colorSettings]
   );
 
   return (

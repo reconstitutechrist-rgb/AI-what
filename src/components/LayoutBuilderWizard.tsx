@@ -803,6 +803,8 @@ export function LayoutBuilderWizard({
           background: palette.background,
           surface: palette.surface,
           text: palette.text,
+          textMuted: palette.textMuted,
+          border: palette.border,
         },
       },
     });
