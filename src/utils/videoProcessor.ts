@@ -494,7 +494,7 @@ export async function createVideoThumbnail(
 
     video.onseeked = () => {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const thumbnail = canvas.toDataURL('image/jpeg', 0.7);
+      const thumbnail = canvas.toDataURL('image/jpeg', 0.92);
       URL.revokeObjectURL(video.src);
       resolve(thumbnail);
     };

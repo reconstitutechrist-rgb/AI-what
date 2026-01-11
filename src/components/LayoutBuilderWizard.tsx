@@ -98,27 +98,26 @@ const MESSAGES_PAGE_SIZE = 20;
 /** Maximum messages to render at once for performance */
 const MAX_RENDERED_MESSAGES = 100;
 
-/** Maximum dimensions for compressed reference images */
-const MAX_IMAGE_DIMENSION = 800;
+/** Maximum dimensions for reference images (higher for better AI vision accuracy) */
+const MAX_IMAGE_DIMENSION = 1600;
 
-/** JPEG quality for compressed images (0-1) */
-const IMAGE_COMPRESSION_QUALITY = 0.7;
+/** JPEG quality for non-PNG images (0-1) - only used when input is not PNG */
+const JPEG_QUALITY = 0.95;
 
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
 
 /**
- * Compress an image file to a smaller size
- * @param file - The image file to compress
+ * Process an image file for AI vision analysis
+ * Preserves PNG format for color accuracy, resizes if needed
+ * @param file - The image file to process
  * @param maxDimension - Maximum width/height
- * @param quality - JPEG quality (0-1)
- * @returns Promise with compressed base64 data URL and size info
+ * @returns Promise with processed base64 data URL and size info
  */
 async function compressImage(
   file: File,
-  maxDimension: number = MAX_IMAGE_DIMENSION,
-  quality: number = IMAGE_COMPRESSION_QUALITY
+  maxDimension: number = MAX_IMAGE_DIMENSION
 ): Promise<{ dataUrl: string; originalSize: number; compressedSize: number }> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -129,6 +128,9 @@ async function compressImage(
       reject(new Error('Could not get canvas context'));
       return;
     }
+
+    // Determine if input is PNG (preserve lossless format for color accuracy)
+    const isPng = file.type === 'image/png';
 
     img.onload = () => {
       // Calculate new dimensions while maintaining aspect ratio
@@ -146,12 +148,21 @@ async function compressImage(
       // Set canvas size and draw image
       canvas.width = width;
       canvas.height = height;
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, width, height);
+
+      // Only fill white background for JPEG (which doesn't support transparency)
+      // PNG keeps transparency for accurate color representation
+      if (!isPng) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+      }
+
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Convert to JPEG with compression
-      const dataUrl = canvas.toDataURL('image/jpeg', quality);
+      // Preserve PNG format for lossless color accuracy
+      // Use high-quality JPEG only for non-PNG inputs
+      const dataUrl = isPng
+        ? canvas.toDataURL('image/png')
+        : canvas.toDataURL('image/jpeg', JPEG_QUALITY);
 
       // Calculate approximate compressed size (base64 is ~33% larger than binary)
       const compressedSize = Math.round((dataUrl.length * 3) / 4);

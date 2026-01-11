@@ -30,6 +30,33 @@ import {
 } from '@/data/fontDatabase';
 
 // ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Extract MIME type from a base64 data URL
+ * Returns the actual MIME type to ensure correct image format is sent to Claude
+ */
+function getMediaType(
+  imageBase64: string
+): 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' {
+  const match = imageBase64.match(/^data:(image\/[^;]+);base64,/);
+  if (match) {
+    const mimeType = match[1];
+    if (
+      mimeType === 'image/jpeg' ||
+      mimeType === 'image/png' ||
+      mimeType === 'image/gif' ||
+      mimeType === 'image/webp'
+    ) {
+      return mimeType;
+    }
+  }
+  // Default to PNG if we can't determine the type (lossless, safe default)
+  return 'image/png';
+}
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -246,6 +273,8 @@ export class DesignReplicator {
     callbacks?.onPhaseProgress?.('quick', 10, 'Starting quick analysis');
 
     try {
+      // Extract media type before stripping prefix
+      const mediaType = getMediaType(imageBase64);
       // Remove data URL prefix if present
       const base64Data = imageBase64.replace(/^data:image\/[^;]+;base64,/, '');
 
@@ -262,7 +291,7 @@ export class DesignReplicator {
                 type: 'image',
                 source: {
                   type: 'base64',
-                  media_type: 'image/jpeg',
+                  media_type: mediaType,
                   data: base64Data,
                 },
               },
@@ -316,6 +345,8 @@ export class DesignReplicator {
     callbacks?.onPhaseProgress?.('deep', 5, 'Starting deep analysis');
 
     try {
+      // Extract media type before stripping prefix
+      const mediaType = getMediaType(imageBase64);
       const base64Data = imageBase64.replace(/^data:image\/[^;]+;base64,/, '');
 
       // Build enhanced prompt with quick analysis context
@@ -348,7 +379,7 @@ Use this as a starting point and expand with full details.`;
                 type: 'image',
                 source: {
                   type: 'base64',
-                  media_type: 'image/jpeg',
+                  media_type: mediaType,
                   data: base64Data,
                 },
               },

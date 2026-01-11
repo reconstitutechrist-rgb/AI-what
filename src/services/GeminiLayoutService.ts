@@ -10,6 +10,31 @@
 import { GoogleGenerativeAI, Part } from '@google/generative-ai';
 
 // ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Extract MIME type from a base64 data URL
+ * Returns the actual MIME type to ensure correct image format is sent to Gemini
+ */
+function getMimeType(imageBase64: string): 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp' {
+  const match = imageBase64.match(/^data:(image\/[^;]+);base64,/);
+  if (match) {
+    const mimeType = match[1];
+    if (
+      mimeType === 'image/png' ||
+      mimeType === 'image/jpeg' ||
+      mimeType === 'image/gif' ||
+      mimeType === 'image/webp'
+    ) {
+      return mimeType;
+    }
+  }
+  // Default to PNG if we can't determine the type
+  return 'image/png';
+}
+
+// ============================================================================
 // Type Definitions
 // ============================================================================
 
@@ -228,7 +253,7 @@ class GeminiLayoutService {
 
     const imagePart: Part = {
       inlineData: {
-        mimeType: 'image/png',
+        mimeType: getMimeType(imageBase64),
         data: imageBase64.replace(/^data:image\/\w+;base64,/, ''),
       },
     };
@@ -325,7 +350,7 @@ Return ONLY valid JSON, no markdown formatting or explanation.`;
 
     const imagePart: Part = {
       inlineData: {
-        mimeType: 'image/png',
+        mimeType: getMimeType(imageBase64),
         data: imageBase64.replace(/^data:image\/\w+;base64,/, ''),
       },
     };
@@ -378,7 +403,7 @@ Return ONLY valid JSON, no markdown formatting.`;
 
     const imagePart: Part = {
       inlineData: {
-        mimeType: 'image/png',
+        mimeType: getMimeType(imageBase64),
         data: imageBase64.replace(/^data:image\/\w+;base64,/, ''),
       },
     };
@@ -428,7 +453,7 @@ Return ONLY valid JSON, no markdown.`;
 
     const imagePart: Part = {
       inlineData: {
-        mimeType: 'image/png',
+        mimeType: getMimeType(imageBase64),
         data: imageBase64.replace(/^data:image\/\w+;base64,/, ''),
       },
     };
@@ -490,7 +515,7 @@ Return ONLY valid JSON, no markdown.`;
       for (const imageBase64 of request.images) {
         parts.push({
           inlineData: {
-            mimeType: 'image/png',
+            mimeType: getMimeType(imageBase64),
             data: imageBase64.replace(/^data:image\/\w+;base64,/, ''),
           },
         });
@@ -600,7 +625,7 @@ Always maintain a helpful, creative, and enthusiastic tone.`;
 
     const imagePart: Part = {
       inlineData: {
-        mimeType: 'image/png',
+        mimeType: getMimeType(imageBase64),
         data: imageBase64.replace(/^data:image\/\w+;base64,/, ''),
       },
     };

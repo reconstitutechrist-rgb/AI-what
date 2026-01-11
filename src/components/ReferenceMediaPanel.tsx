@@ -420,7 +420,7 @@ export function ReferenceMediaPanel({
             canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
             ctx?.drawImage(video, 0, 0);
-            const thumbnail = canvas.toDataURL('image/jpeg', 0.7);
+            const thumbnail = canvas.toDataURL('image/jpeg', 0.92);
 
             setMediaItems((prev) =>
               prev.map((item) =>

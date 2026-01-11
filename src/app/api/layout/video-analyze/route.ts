@@ -16,6 +16,33 @@ import type {
 } from '@/types/layoutDesign';
 import { matchAnimationToPreset } from '@/data/animationPresets';
 
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Extract MIME type from a base64 data URL
+ * Returns the actual MIME type to ensure correct image format is sent to Claude
+ */
+function getMediaType(
+  imageDataUrl: string
+): 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' {
+  const match = imageDataUrl.match(/^data:(image\/[^;]+);base64,/);
+  if (match) {
+    const mimeType = match[1];
+    if (
+      mimeType === 'image/jpeg' ||
+      mimeType === 'image/png' ||
+      mimeType === 'image/gif' ||
+      mimeType === 'image/webp'
+    ) {
+      return mimeType;
+    }
+  }
+  // Default to JPEG for video frames (most common)
+  return 'image/jpeg';
+}
+
 // Vercel serverless function config
 export const maxDuration = 120; // 2 minutes for video processing
 export const dynamic = 'force-dynamic';
@@ -75,7 +102,7 @@ async function analyzeFramePair(
               type: 'image',
               source: {
                 type: 'base64',
-                media_type: 'image/jpeg',
+                media_type: getMediaType(frame1.imageDataUrl),
                 data: frame1.imageDataUrl.replace(/^data:image\/[a-z]+;base64,/, ''),
               },
             },
@@ -83,7 +110,7 @@ async function analyzeFramePair(
               type: 'image',
               source: {
                 type: 'base64',
-                media_type: 'image/jpeg',
+                media_type: getMediaType(frame2.imageDataUrl),
                 data: frame2.imageDataUrl.replace(/^data:image\/[a-z]+;base64,/, ''),
               },
             },
@@ -232,7 +259,7 @@ async function analyzeDesignFromKeyFrame(frame: ExtractedFrame): Promise<{
               type: 'image',
               source: {
                 type: 'base64',
-                media_type: 'image/jpeg',
+                media_type: getMediaType(frame.imageDataUrl),
                 data: frame.imageDataUrl.replace(/^data:image\/[a-z]+;base64,/, ''),
               },
             },

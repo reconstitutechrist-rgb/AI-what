@@ -8,9 +8,9 @@ import html2canvas from 'html2canvas';
 export interface CaptureOptions {
   elementId?: string;
   element?: HTMLElement;
-  quality?: number; // 0-1, default 0.7
-  maxWidth?: number; // default 1200
-  maxHeight?: number; // default 800
+  quality?: number; // 0-1, default 0.92 (high quality for AI vision accuracy)
+  maxWidth?: number; // default 1600
+  maxHeight?: number; // default 1200
   format?: 'jpeg' | 'png';
   backgroundColor?: string;
 }
@@ -68,9 +68,9 @@ export async function captureElement(options: CaptureOptions): Promise<CaptureRe
   const {
     elementId,
     element,
-    quality = 0.7,
-    maxWidth = 1200,
-    maxHeight = 800,
+    quality = 0.92, // High quality for AI vision color accuracy
+    maxWidth = 1600,
+    maxHeight = 1200,
     format = 'jpeg',
     backgroundColor = '#0F172A', // Dark background matching preview
   } = options;
@@ -135,9 +135,9 @@ export async function captureLayoutPreview(
 ): Promise<CaptureResult> {
   return captureElement({
     elementId: previewElementId,
-    quality: 0.75,
-    maxWidth: 1200,
-    maxHeight: 900,
+    quality: 0.92, // High quality for AI vision color accuracy
+    maxWidth: 1600,
+    maxHeight: 1200,
     format: 'jpeg',
   });
 }
