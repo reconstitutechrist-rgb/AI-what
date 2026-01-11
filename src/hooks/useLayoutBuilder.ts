@@ -740,43 +740,64 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
         setMessages((prev) => [...prev, assistantMessage]);
 
         // Update design with any changes - use updateDesign to track history
-        if (data.updatedDesign && Object.keys(data.updatedDesign).length > 0) {
+        // Check for either updatedDesign content OR geminiAnalysis (which has colors to apply)
+        const hasDesignUpdates = data.updatedDesign && Object.keys(data.updatedDesign).length > 0;
+        const hasGeminiColors = data.geminiAnalysis?.colorPalette;
+
+        if (hasDesignUpdates || hasGeminiColors) {
           // Merge updates with current design
           const baseStyles = defaultLayoutDesign.globalStyles;
+
+          // If we have Gemini analysis but no design updates, create colors from Gemini
+          const geminiColors = hasGeminiColors
+            ? {
+                primary: data.geminiAnalysis!.colorPalette.primary,
+                secondary: data.geminiAnalysis!.colorPalette.secondary,
+                accent: data.geminiAnalysis!.colorPalette.accent,
+                background: data.geminiAnalysis!.colorPalette.background,
+                surface: data.geminiAnalysis!.colorPalette.surface,
+                text: data.geminiAnalysis!.colorPalette.text,
+                textMuted: data.geminiAnalysis!.colorPalette.textMuted,
+                border: data.geminiAnalysis!.colorPalette.textMuted,
+              }
+            : undefined;
+
           const mergedDesign = {
             ...design,
-            ...data.updatedDesign,
+            ...(data.updatedDesign || {}),
             globalStyles: {
               ...design.globalStyles,
-              ...data.updatedDesign.globalStyles,
+              ...(data.updatedDesign?.globalStyles || {}),
               typography: {
                 ...baseStyles.typography,
                 ...design.globalStyles?.typography,
-                ...data.updatedDesign.globalStyles?.typography,
+                ...(data.updatedDesign?.globalStyles?.typography || {}),
               },
               colors: {
                 ...baseStyles.colors,
                 ...design.globalStyles?.colors,
-                ...data.updatedDesign.globalStyles?.colors,
+                // Apply Gemini colors first, then any updatedDesign colors override
+                ...(geminiColors || {}),
+                ...(data.updatedDesign?.globalStyles?.colors || {}),
               },
               spacing: {
                 ...baseStyles.spacing,
                 ...design.globalStyles?.spacing,
-                ...data.updatedDesign.globalStyles?.spacing,
+                ...(data.updatedDesign?.globalStyles?.spacing || {}),
               },
               effects: {
                 ...baseStyles.effects,
                 ...design.globalStyles?.effects,
-                ...data.updatedDesign.globalStyles?.effects,
+                ...(data.updatedDesign?.globalStyles?.effects || {}),
               },
             },
             components: {
               ...design.components,
-              ...data.updatedDesign.components,
+              ...(data.updatedDesign?.components || {}),
             },
             structure: {
               ...design.structure,
-              ...data.updatedDesign.structure,
+              ...(data.updatedDesign?.structure || {}),
             },
           } as Partial<LayoutDesign>;
           setDesign(mergedDesign);
