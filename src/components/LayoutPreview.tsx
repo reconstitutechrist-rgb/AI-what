@@ -466,6 +466,7 @@ interface HeaderProps {
   headerDesign?: Partial<HeaderDesign>;
   navDesign?: Partial<NavigationDesign>;
   effectsSettings?: Partial<EffectsSettings>;
+  colorSettings?: Partial<ColorSettings>;
   isMobile?: boolean;
 }
 
@@ -480,8 +481,24 @@ function Header({
   headerDesign,
   navDesign,
   effectsSettings,
+  colorSettings,
   isMobile = false,
 }: HeaderProps) {
+  // Compute inline styles from AI-generated colorSettings (overrides Tailwind classes)
+  const headerInlineStyle = useMemo(
+    () => (colorSettings?.background ? { backgroundColor: colorSettings.background } : undefined),
+    [colorSettings?.background]
+  );
+
+  const textInlineStyle = useMemo(
+    () => (colorSettings?.text ? { color: colorSettings.text } : undefined),
+    [colorSettings?.text]
+  );
+
+  const mutedTextInlineStyle = useMemo(
+    () => (colorSettings?.textMuted ? { color: colorSettings.textMuted } : undefined),
+    [colorSettings?.textMuted]
+  );
   // Animation classes based on effects settings
   const animBase = getAnimationClass(effectsSettings?.animations, 'base');
   const animHover = getAnimationClass(effectsSettings?.animations, 'hover');
@@ -554,16 +571,24 @@ function Header({
       isSelected={selectedElement === 'header'}
       onClick={handleSelect}
       className={`${getHeaderBgStyle()} border-b ${colors.border} px-4 ${getHeightClass()}`}
+      style={headerInlineStyle}
     >
       <div className="flex items-center justify-between">
-        <div className={`${style.fontWeight} ${colors.text} ${isMobile ? 'text-sm' : ''}`}>
+        <div
+          className={`${style.fontWeight} ${colors.text} ${isMobile ? 'text-sm' : ''}`}
+          style={textInlineStyle}
+        >
           {appName || 'App Name'}
         </div>
         {/* Navigation - hidden on mobile */}
         {!isMobile && (
           <nav className="flex items-center gap-4">
             {navItems.slice(0, 4).map((item, index) => (
-              <span key={`nav-${item}`} className={getNavItemStyle(index === 0)}>
+              <span
+                key={`nav-${item}`}
+                className={getNavItemStyle(index === 0)}
+                style={index !== 0 ? mutedTextInlineStyle : textInlineStyle}
+              >
                 {item}
               </span>
             ))}
@@ -575,6 +600,7 @@ function Header({
             <button
               type="button"
               className={`p-2 rounded-lg ${colors.textMuted} hover:opacity-80`}
+              style={mutedTextInlineStyle}
               aria-label="Open menu"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -591,7 +617,9 @@ function Header({
             <button
               type="button"
               className={`px-3 py-1.5 text-sm text-white ${style.buttonStyle} ${animBase} ${animHover}`}
-              style={{ backgroundColor: primaryColor || DEFAULT_PRIMARY_COLOR }}
+              style={{
+                backgroundColor: colorSettings?.primary || primaryColor || DEFAULT_PRIMARY_COLOR,
+              }}
             >
               {headerDesign?.ctaText || 'Sign In'}
             </button>
@@ -613,6 +641,7 @@ interface SidebarProps {
   onElementSelect?: (id: string | null) => void;
   selectedElement?: string | null;
   sidebarDesign?: Partial<SidebarDesign>;
+  colorSettings?: Partial<ColorSettings>;
 }
 
 function Sidebar({
@@ -623,12 +652,35 @@ function Sidebar({
   onElementSelect,
   selectedElement,
   sidebarDesign,
+  colorSettings,
 }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(sidebarDesign?.defaultCollapsed || false);
 
   const handleSelect = (id: string) => {
     onElementSelect?.(selectedElement === id ? null : id);
   };
+
+  // Compute inline styles from AI-generated colorSettings (overrides Tailwind classes)
+  // Use surface for sidebar background, falling back to secondary
+  const sidebarInlineStyle = useMemo(
+    () =>
+      colorSettings?.surface
+        ? { backgroundColor: colorSettings.surface }
+        : colorSettings?.secondary
+          ? { backgroundColor: colorSettings.secondary }
+          : undefined,
+    [colorSettings?.surface, colorSettings?.secondary]
+  );
+
+  const textInlineStyle = useMemo(
+    () => (colorSettings?.text ? { color: colorSettings.text } : undefined),
+    [colorSettings?.text]
+  );
+
+  const mutedTextInlineStyle = useMemo(
+    () => (colorSettings?.textMuted ? { color: colorSettings.textMuted } : undefined),
+    [colorSettings?.textMuted]
+  );
 
   // Get width based on design settings
   const getWidthClass = () => {
@@ -664,6 +716,7 @@ function Sidebar({
       isSelected={selectedElement === 'sidebar'}
       onClick={handleSelect}
       className={`${colors.sidebar} border-r ${colors.border} ${getWidthClass()} p-4 flex-shrink-0 transition-all duration-200`}
+      style={sidebarInlineStyle}
     >
       <div className={`${style.spacing} flex flex-col`}>
         {/* Collapse toggle button */}
@@ -675,6 +728,7 @@ function Sidebar({
               setIsCollapsed(!isCollapsed);
             }}
             className={`mb-4 p-2 rounded-lg ${colors.textMuted} hover:bg-white/10 transition-colors self-end`}
+            style={mutedTextInlineStyle}
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <svg
@@ -694,7 +748,11 @@ function Sidebar({
         )}
 
         {/* Menu title */}
-        {!isCollapsed && <div className={`${style.fontWeight} ${colors.text} mb-4`}>Menu</div>}
+        {!isCollapsed && (
+          <div className={`${style.fontWeight} ${colors.text} mb-4`} style={textInlineStyle}>
+            Menu
+          </div>
+        )}
 
         {/* Navigation items */}
         {navItems.map((item, index) => (
@@ -703,7 +761,14 @@ function Sidebar({
             className={`px-3 py-2 rounded-lg text-sm cursor-pointer transition-all flex items-center gap-3 ${
               index === 0 ? 'text-white' : `${colors.textMuted} hover:opacity-80`
             }`}
-            style={index === 0 ? { backgroundColor: primaryColor || DEFAULT_PRIMARY_COLOR } : {}}
+            style={
+              index === 0
+                ? {
+                    backgroundColor:
+                      colorSettings?.primary || primaryColor || DEFAULT_PRIMARY_COLOR,
+                  }
+                : mutedTextInlineStyle || {}
+            }
             title={isCollapsed ? item : undefined}
           >
             {(sidebarDesign?.iconOnly || isCollapsed) && <IconPlaceholder />}
@@ -729,6 +794,7 @@ interface HeroProps {
   selectedElement?: string | null;
   effectsSettings?: Partial<EffectsSettings>;
   backgroundImage?: string;
+  colorSettings?: Partial<ColorSettings>;
 }
 
 function Hero({
@@ -742,6 +808,7 @@ function Hero({
   selectedElement,
   effectsSettings,
   backgroundImage,
+  colorSettings,
 }: HeroProps) {
   const handleSelect = (id: string) => {
     onElementSelect?.(selectedElement === id ? null : id);
@@ -751,9 +818,20 @@ function Hero({
   const animationHover = getAnimationClass(effectsSettings?.animations, 'hover');
   const radiusClass = getBorderRadiusClass(effectsSettings?.borderRadius);
 
+  // Compute inline styles from AI-generated colorSettings
+  const textInlineStyle = useMemo(
+    () => (colorSettings?.text ? { color: colorSettings.text } : undefined),
+    [colorSettings?.text]
+  );
+
+  const mutedTextInlineStyle = useMemo(
+    () => (colorSettings?.textMuted ? { color: colorSettings.textMuted } : undefined),
+    [colorSettings?.textMuted]
+  );
+
   // Generate background style with image or gradient fallback
   const getHeroBackgroundStyle = (): React.CSSProperties => {
-    const color = primaryColor || DEFAULT_PRIMARY_COLOR;
+    const color = colorSettings?.primary || primaryColor || DEFAULT_PRIMARY_COLOR;
 
     if (backgroundImage) {
       return {
@@ -783,18 +861,20 @@ function Hero({
     >
       <h1
         className={`text-2xl ${style.fontWeight} ${hasImage ? 'text-white' : colors.text} mb-3 ${animationBase}`}
+        style={hasImage ? undefined : textInlineStyle}
       >
         {title}
       </h1>
       <p
         className={`${hasImage ? 'text-white/80' : colors.textMuted} mb-6 max-w-md mx-auto text-sm ${animationBase}`}
+        style={hasImage ? undefined : mutedTextInlineStyle}
       >
         {subtitle}
       </p>
       <button
         type="button"
         className={`px-6 py-2.5 text-white ${style.buttonStyle} ${radiusClass} ${animationBase} ${animationHover}`}
-        style={{ backgroundColor: primaryColor || DEFAULT_PRIMARY_COLOR }}
+        style={{ backgroundColor: colorSettings?.primary || primaryColor || DEFAULT_PRIMARY_COLOR }}
       >
         {cta}
       </button>
@@ -812,6 +892,7 @@ interface StatsRowProps {
   onElementSelect?: (id: string | null) => void;
   selectedElement?: string | null;
   effectsSettings?: Partial<EffectsSettings>;
+  colorSettings?: Partial<ColorSettings>;
 }
 
 function StatsRow({
@@ -821,6 +902,7 @@ function StatsRow({
   onElementSelect,
   selectedElement,
   effectsSettings,
+  colorSettings,
 }: StatsRowProps) {
   const handleSelect = (id: string) => {
     onElementSelect?.(selectedElement === id ? null : id);
@@ -830,6 +912,27 @@ function StatsRow({
   const shadowClass = getShadowClass(effectsSettings?.shadows);
   const animationBase = getAnimationClass(effectsSettings?.animations, 'base');
   const hoverAnimation = getAnimationClass(effectsSettings?.animations, 'hover');
+
+  // Compute inline styles from AI-generated colorSettings
+  const cardInlineStyle = useMemo(
+    () =>
+      colorSettings?.surface
+        ? { backgroundColor: colorSettings.surface }
+        : colorSettings?.secondary
+          ? { backgroundColor: colorSettings.secondary }
+          : undefined,
+    [colorSettings?.surface, colorSettings?.secondary]
+  );
+
+  const textInlineStyle = useMemo(
+    () => (colorSettings?.text ? { color: colorSettings.text } : undefined),
+    [colorSettings?.text]
+  );
+
+  const mutedTextInlineStyle = useMemo(
+    () => (colorSettings?.textMuted ? { color: colorSettings.textMuted } : undefined),
+    [colorSettings?.textMuted]
+  );
 
   return (
     <Selectable
@@ -843,9 +946,14 @@ function StatsRow({
           <div
             key={`stat-${stat.label}`}
             className={`${colors.card} border ${colors.border} p-4 text-center ${radiusClass} ${shadowClass} ${animationBase} ${hoverAnimation}`}
+            style={cardInlineStyle}
           >
-            <div className={`text-xl ${style.fontWeight} ${colors.text}`}>{stat.value}</div>
-            <div className={`text-xs ${colors.textMuted} mt-1`}>{stat.label}</div>
+            <div className={`text-xl ${style.fontWeight} ${colors.text}`} style={textInlineStyle}>
+              {stat.value}
+            </div>
+            <div className={`text-xs ${colors.textMuted} mt-1`} style={mutedTextInlineStyle}>
+              {stat.label}
+            </div>
           </div>
         ))}
       </div>
@@ -866,6 +974,7 @@ interface CardGridProps {
   cardDesign?: Partial<CardDesign>;
   effectsSettings?: Partial<EffectsSettings>;
   cardImages?: string[];
+  colorSettings?: Partial<ColorSettings>;
 }
 
 function CardGrid({
@@ -878,10 +987,33 @@ function CardGrid({
   cardDesign,
   effectsSettings,
   cardImages = [],
+  colorSettings,
 }: CardGridProps) {
   const handleSelect = (id: string) => {
     onElementSelect?.(selectedElement === id ? null : id);
   };
+
+  // Compute inline styles from AI-generated colorSettings (overrides Tailwind classes)
+  // Use surface for card background, falling back to secondary
+  const cardInlineStyle = useMemo(
+    () =>
+      colorSettings?.surface
+        ? { backgroundColor: colorSettings.surface }
+        : colorSettings?.secondary
+          ? { backgroundColor: colorSettings.secondary }
+          : undefined,
+    [colorSettings?.surface, colorSettings?.secondary]
+  );
+
+  const textInlineStyle = useMemo(
+    () => (colorSettings?.text ? { color: colorSettings.text } : undefined),
+    [colorSettings?.text]
+  );
+
+  const mutedTextInlineStyle = useMemo(
+    () => (colorSettings?.textMuted ? { color: colorSettings.textMuted } : undefined),
+    [colorSettings?.textMuted]
+  );
 
   // Get hover effect class - combine with animation level
   const getHoverEffect = () => {
@@ -928,6 +1060,7 @@ function CardGrid({
             <div
               key={`card-${card.title}`}
               className={`${getCardStyleClass()} overflow-hidden ${getHoverEffect()} ${radiusClass} ${animationBase}`}
+              style={cardInlineStyle}
             >
               {/* Card Image */}
               {hasImage && (
@@ -948,22 +1081,33 @@ function CardGrid({
               {/* Card Content */}
               <div className="p-4">
                 <div className="flex items-start justify-between mb-2">
-                  <h3 className={`${style.fontWeight} ${colors.text} text-sm`}>{card.title}</h3>
+                  <h3
+                    className={`${style.fontWeight} ${colors.text} text-sm`}
+                    style={textInlineStyle}
+                  >
+                    {card.title}
+                  </h3>
                   {cardDesign?.showBadge !== false && (
                     <span
                       className="text-xs px-2 py-0.5 rounded-full text-white"
-                      style={{ backgroundColor: primaryColor || DEFAULT_PRIMARY_COLOR }}
+                      style={{
+                        backgroundColor:
+                          colorSettings?.primary || primaryColor || DEFAULT_PRIMARY_COLOR,
+                      }}
                     >
                       {card.tag}
                     </span>
                   )}
                 </div>
-                <p className={`text-xs ${colors.textMuted}`}>{card.subtitle}</p>
+                <p className={`text-xs ${colors.textMuted}`} style={mutedTextInlineStyle}>
+                  {card.subtitle}
+                </p>
                 {cardDesign?.showFooter && (
                   <div className={`mt-3 pt-3 border-t ${colors.border} flex justify-end`}>
                     <button
                       type="button"
                       className={`text-xs ${colors.textMuted} hover:opacity-80`}
+                      style={mutedTextInlineStyle}
                     >
                       View Details
                     </button>
@@ -1008,6 +1152,27 @@ function ListItems({
   const animationBase = getAnimationClass(effectsSettings?.animations, 'base');
   const hoverAnimation = getAnimationClass(effectsSettings?.animations, 'hover');
 
+  // Compute inline styles from AI-generated colorSettings
+  const cardInlineStyle = useMemo(
+    () =>
+      colorSettings?.surface
+        ? { backgroundColor: colorSettings.surface }
+        : colorSettings?.secondary
+          ? { backgroundColor: colorSettings.secondary }
+          : undefined,
+    [colorSettings?.surface, colorSettings?.secondary]
+  );
+
+  const textInlineStyle = useMemo(
+    () => (colorSettings?.text ? { color: colorSettings.text } : undefined),
+    [colorSettings?.text]
+  );
+
+  const mutedTextInlineStyle = useMemo(
+    () => (colorSettings?.textMuted ? { color: colorSettings.textMuted } : undefined),
+    [colorSettings?.textMuted]
+  );
+
   // Get status badge styling based on status text
   const getStatusBadgeStyle = (status: string): { backgroundColor: string; color: string } => {
     const statusType = mapStatusToType(status);
@@ -1025,7 +1190,10 @@ function ListItems({
       onClick={handleSelect}
       className="px-4 py-6"
     >
-      <div className={`${colors.card} border ${colors.border} overflow-hidden ${radiusClass}`}>
+      <div
+        className={`${colors.card} border ${colors.border} overflow-hidden ${radiusClass}`}
+        style={cardInlineStyle}
+      >
         {items.slice(0, 5).map((item, index, slicedArr) => (
           <div
             key={`list-${item.title}`}
@@ -1034,8 +1202,12 @@ function ListItems({
             }`}
           >
             <div>
-              <div className={`text-sm ${colors.text}`}>{item.title}</div>
-              <div className={`text-xs ${colors.textMuted}`}>{item.meta}</div>
+              <div className={`text-sm ${colors.text}`} style={textInlineStyle}>
+                {item.title}
+              </div>
+              <div className={`text-xs ${colors.textMuted}`} style={mutedTextInlineStyle}>
+                {item.meta}
+              </div>
             </div>
             <span
               className="text-xs px-2 py-1 rounded-full font-medium"
@@ -1058,12 +1230,29 @@ interface FooterProps {
   colors: ColorScheme;
   onElementSelect?: (id: string | null) => void;
   selectedElement?: string | null;
+  colorSettings?: Partial<ColorSettings>;
 }
 
-function Footer({ appName, colors, onElementSelect, selectedElement }: FooterProps) {
+function Footer({ appName, colors, onElementSelect, selectedElement, colorSettings }: FooterProps) {
   const handleSelect = (id: string) => {
     onElementSelect?.(selectedElement === id ? null : id);
   };
+
+  // Compute inline styles from AI-generated colorSettings
+  const footerInlineStyle = useMemo(
+    () =>
+      colorSettings?.surface
+        ? { backgroundColor: colorSettings.surface }
+        : colorSettings?.background
+          ? { backgroundColor: colorSettings.background }
+          : undefined,
+    [colorSettings?.surface, colorSettings?.background]
+  );
+
+  const mutedTextInlineStyle = useMemo(
+    () => (colorSettings?.textMuted ? { color: colorSettings.textMuted } : undefined),
+    [colorSettings?.textMuted]
+  );
 
   return (
     <Selectable
@@ -1071,15 +1260,17 @@ function Footer({ appName, colors, onElementSelect, selectedElement }: FooterPro
       isSelected={selectedElement === 'footer'}
       onClick={handleSelect}
       className={`${colors.header} border-t ${colors.border} px-4 py-4`}
+      style={footerInlineStyle}
     >
       <div className="flex items-center justify-between">
-        <div className={`text-xs ${colors.textMuted}`}>
+        <div className={`text-xs ${colors.textMuted}`} style={mutedTextInlineStyle}>
           © {CURRENT_YEAR} {appName || 'My App'}. All rights reserved.
         </div>
         <div className="flex items-center gap-4">
           <button
             type="button"
             className={`text-xs ${colors.textMuted} hover:opacity-80`}
+            style={mutedTextInlineStyle}
             aria-label="View privacy policy"
           >
             Privacy
@@ -1087,6 +1278,7 @@ function Footer({ appName, colors, onElementSelect, selectedElement }: FooterPro
           <button
             type="button"
             className={`text-xs ${colors.textMuted} hover:opacity-80`}
+            style={mutedTextInlineStyle}
             aria-label="View terms of service"
           >
             Terms
@@ -1158,6 +1350,7 @@ function DashboardLayout({
         navDesign={navDesign}
         effectsSettings={effectsSettings}
         isMobile={isMobile}
+        colorSettings={colorSettings}
       />
       <div className="flex flex-1 overflow-hidden">
         {/* Hide sidebar on mobile, show collapsed on tablet */}
@@ -1174,6 +1367,7 @@ function DashboardLayout({
               // Force collapsed on tablet
               defaultCollapsed: isTablet ? true : sidebarDesign?.defaultCollapsed,
             }}
+            colorSettings={colorSettings}
           />
         )}
         <main className={`flex-1 min-h-0 overflow-y-auto ${isMobile ? 'p-2' : 'p-4'}`}>
@@ -1184,6 +1378,7 @@ function DashboardLayout({
             onElementSelect={onElementSelect}
             selectedElement={selectedElement}
             effectsSettings={effectsSettings}
+            colorSettings={colorSettings}
           />
           <CardGrid
             cards={content.cards}
@@ -1195,6 +1390,7 @@ function DashboardLayout({
             cardDesign={cardDesign}
             effectsSettings={effectsSettings}
             cardImages={generatedImages?.cards}
+            colorSettings={colorSettings}
           />
           <ListItems
             items={content.listItems}
@@ -1212,6 +1408,7 @@ function DashboardLayout({
         colors={colors}
         onElementSelect={onElementSelect}
         selectedElement={selectedElement}
+        colorSettings={colorSettings}
       />
     </div>
   );
@@ -1232,7 +1429,7 @@ function MultiPageLayout({
   cardDesign,
   navDesign,
   effectsSettings,
-  colorSettings: _colorSettings, // Not used in this layout but part of shared props
+  colorSettings,
   viewMode = 'desktop',
   generatedImages,
 }: LayoutComponentProps) {
@@ -1252,6 +1449,7 @@ function MultiPageLayout({
         navDesign={navDesign}
         effectsSettings={effectsSettings}
         isMobile={isMobile}
+        colorSettings={colorSettings}
       />
       <main className={`flex-1 min-h-0 overflow-y-auto ${isMobile ? 'px-2' : ''}`}>
         <Hero
@@ -1265,6 +1463,7 @@ function MultiPageLayout({
           selectedElement={selectedElement}
           effectsSettings={effectsSettings}
           backgroundImage={generatedImages?.hero}
+          colorSettings={colorSettings}
         />
         <StatsRow
           stats={content.stats}
@@ -1273,6 +1472,7 @@ function MultiPageLayout({
           onElementSelect={onElementSelect}
           selectedElement={selectedElement}
           effectsSettings={effectsSettings}
+          colorSettings={colorSettings}
         />
         <CardGrid
           cards={content.cards}
@@ -1284,6 +1484,7 @@ function MultiPageLayout({
           cardDesign={cardDesign}
           effectsSettings={effectsSettings}
           cardImages={generatedImages?.cards}
+          colorSettings={colorSettings}
         />
       </main>
       <Footer
@@ -1291,6 +1492,7 @@ function MultiPageLayout({
         colors={colors}
         onElementSelect={onElementSelect}
         selectedElement={selectedElement}
+        colorSettings={colorSettings}
       />
     </div>
   );
@@ -1331,6 +1533,7 @@ function SinglePageLayout({
         navDesign={navDesign}
         effectsSettings={effectsSettings}
         isMobile={isMobile}
+        colorSettings={colorSettings}
       />
       <main className={`flex-1 min-h-0 overflow-y-auto ${isMobile ? 'px-2' : ''}`}>
         <Hero
@@ -1344,6 +1547,7 @@ function SinglePageLayout({
           selectedElement={selectedElement}
           effectsSettings={effectsSettings}
           backgroundImage={generatedImages?.hero}
+          colorSettings={colorSettings}
         />
         <CardGrid
           cards={content.cards}
@@ -1355,6 +1559,7 @@ function SinglePageLayout({
           cardDesign={cardDesign}
           effectsSettings={effectsSettings}
           cardImages={generatedImages?.cards}
+          colorSettings={colorSettings}
         />
         <ListItems
           items={content.listItems}
@@ -1371,6 +1576,7 @@ function SinglePageLayout({
         colors={colors}
         onElementSelect={onElementSelect}
         selectedElement={selectedElement}
+        colorSettings={colorSettings}
       />
     </div>
   );

@@ -242,9 +242,10 @@ function samplePixels(imageData: Uint8ClampedArray, sampleSize: number = 1000): 
     // Skip transparent pixels
     if (a < 128) continue;
 
-    // Skip very white or very black pixels (often backgrounds)
+    // Skip only pure white or pure black pixels (allow dark themes through)
+    // Previously 0.95/0.05 was too aggressive and removed valid dark theme colors
     const luminance = getLuminance(r, g, b);
-    if (luminance > 0.95 || luminance < 0.05) continue;
+    if (luminance > 0.99 || luminance < 0.01) continue;
 
     pixels.push({ r, g, b });
   }

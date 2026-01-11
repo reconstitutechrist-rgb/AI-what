@@ -17,7 +17,10 @@ import {
   type ModelRouting,
   type RoutingDecision,
 } from '@/utils/modelRouter';
-import type { VisualAnalysis, ExtractedStyles } from '@/services/GeminiLayoutService';
+import geminiLayoutService, {
+  type VisualAnalysis,
+  type ExtractedStyles,
+} from '@/services/GeminiLayoutService';
 import type {
   LayoutDesign,
   LayoutMessage,
@@ -927,8 +930,11 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
 
   /**
    * Add a reference image
+   * Clears Gemini cache to ensure fresh color analysis for the new image
    */
   const addReferenceImage = useCallback((imageData: string) => {
+    // Clear Gemini cache to prevent stale color data from previous images
+    geminiLayoutService.clearCache();
     setReferenceImages((prev) => [...prev, imageData]);
   }, []);
 

@@ -603,15 +603,19 @@ Always maintain a helpful, creative, and enthusiastic tone.`;
   }
 
   private getCacheKey(imageBase64: string): string {
-    // Create a simple hash for caching
+    // Create a robust hash that samples the entire image to prevent collisions
+    // Previously only used first 1000 chars, causing different images to return same cached colors
     let hash = 0;
-    const sample = imageBase64.slice(0, 1000); // Use first 1000 chars for hash
-    for (let i = 0; i < sample.length; i++) {
-      const char = sample.charCodeAt(i);
+    const len = imageBase64.length;
+    // Sample every 100th character across the entire image for better distribution
+    const step = Math.max(1, Math.floor(len / 1000));
+    for (let i = 0; i < len; i += step) {
+      const char = imageBase64.charCodeAt(i);
       hash = (hash << 5) - hash + char;
       hash = hash & hash;
     }
-    return `gemini-${hash.toString(36)}`;
+    // Include length in key to further prevent collisions between different-sized images
+    return `gemini-${len}-${hash.toString(36)}`;
   }
 
   /**
