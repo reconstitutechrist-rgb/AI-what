@@ -114,12 +114,20 @@ export async function POST(request: Request) {
       );
     }
 
-    // Collect all images
+    // Collect images - ONLY send reference images when they exist
+    // When user uploads a reference image, they want colors extracted from THAT image
+    // Preview screenshot should NOT be mixed in, as it confuses the color extraction
     const allImages: string[] = [];
-    if (previewScreenshot) allImages.push(previewScreenshot);
-    if (referenceImages) allImages.push(...referenceImages);
+    if (referenceImages && referenceImages.length > 0) {
+      // User uploaded reference images - ONLY send these for color extraction
+      allImages.push(...referenceImages);
+    } else if (previewScreenshot) {
+      // No reference - send preview for context questions
+      allImages.push(previewScreenshot);
+    }
 
     const hasImages = allImages.length > 0;
+    const hasReferenceImages = referenceImages && referenceImages.length > 0;
 
     // Determine effective model mode using smart routing when 'auto'
     let effectiveModelMode = modelMode;
@@ -157,8 +165,18 @@ export async function POST(request: Request) {
         const geminiService = getGeminiLayoutService();
 
         if (geminiService.checkAvailability()) {
-          // Analyze the first image (typically the preview screenshot)
-          geminiAnalysis = await geminiService.analyzeScreenshot(allImages[0]);
+          // Analyze the first image in the array
+          // Due to our reordering above, this will be:
+          // - The first reference image (if user uploaded one) - for design replication
+          // - OR the preview screenshot (if no reference images) - for current state analysis
+          const imageToAnalyze = allImages[0];
+          const isReferenceImage = hasReferenceImages;
+
+          console.log(
+            `[Gemini] Analyzing ${isReferenceImage ? 'reference image' : 'preview screenshot'}`
+          );
+
+          geminiAnalysis = await geminiService.analyzeScreenshot(imageToAnalyze);
           geminiDuration = Date.now() - geminiStart;
 
           geminiMessage = buildGeminiSummary(geminiAnalysis);

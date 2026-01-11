@@ -72,10 +72,17 @@ export async function POST(request: Request) {
       });
     }
 
-    // Collect all images
+    // Collect images - prioritize reference images over preview screenshot
+    // When user uploads a reference image, they want colors extracted from THAT image
+    // Preview screenshot is only useful when no reference image is provided
     const allImages: string[] = [];
-    if (previewScreenshot) allImages.push(previewScreenshot);
-    if (referenceImages) allImages.push(...referenceImages);
+    if (referenceImages && referenceImages.length > 0) {
+      // User uploaded reference images - ONLY send these for color extraction
+      allImages.push(...referenceImages);
+    } else if (previewScreenshot) {
+      // No reference - send preview for context questions
+      allImages.push(previewScreenshot);
+    }
 
     // Use Gemini service
     const geminiService = getGeminiLayoutService();
