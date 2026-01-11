@@ -1094,6 +1094,65 @@ export function LayoutBuilderWizard({
             success('Video analyzed - no animations detected');
           }
 
+          // Apply design summary if available (colors, fonts, layout type)
+          if (videoAnalysis.designSummary) {
+            const { dominantColors, detectedFonts, layoutType } = videoAnalysis.designSummary;
+            const currentStyles = design.globalStyles ?? defaultGlobalStyles;
+
+            // Apply extracted colors to colorSettings
+            if (dominantColors && dominantColors.length > 0) {
+              updateDesign({
+                globalStyles: {
+                  ...currentStyles,
+                  colors: {
+                    ...currentStyles.colors,
+                    primary: dominantColors[0],
+                    secondary: dominantColors[1] || dominantColors[0],
+                    accent: dominantColors[2] || dominantColors[0],
+                    background: dominantColors[3] || currentStyles.colors?.background || '#1a1a2e',
+                    surface: dominantColors[4] || currentStyles.colors?.surface || '#16213e',
+                  } as ColorSettings,
+                },
+              });
+              info(`Applied ${dominantColors.length} colors from video`);
+            }
+
+            // Apply detected fonts to typography
+            if (detectedFonts && detectedFonts.length > 0) {
+              const updatedStyles = design.globalStyles ?? defaultGlobalStyles;
+              updateDesign({
+                globalStyles: {
+                  ...updatedStyles,
+                  typography: {
+                    ...updatedStyles.typography,
+                    headingFont: detectedFonts[0],
+                    fontFamily: detectedFonts[1] || detectedFonts[0], // Body font
+                  } as TypographySettings,
+                },
+              });
+            }
+
+            // Update layout type if detected
+            if (layoutType) {
+              const layoutMapping: Record<string, 'single-page' | 'multi-page' | 'dashboard'> = {
+                'landing page': 'single-page',
+                landing: 'single-page',
+                dashboard: 'dashboard',
+                'e-commerce': 'multi-page',
+                portfolio: 'single-page',
+                blog: 'multi-page',
+                saas: 'dashboard',
+              };
+              const mappedLayout = layoutMapping[layoutType.toLowerCase()] || 'single-page';
+              updateDesign({
+                basePreferences: {
+                  ...design.basePreferences,
+                  layout: mappedLayout,
+                } as typeof design.basePreferences,
+              });
+            }
+          }
+
           // Auto-enable pixel-perfect mode with video
           setAnalysisMode('pixel-perfect');
         } else {
@@ -1106,7 +1165,7 @@ export function LayoutBuilderWizard({
         setIsProcessingVideo(false);
       }
     },
-    [success, error, analysisProgress]
+    [success, error, info, analysisProgress, design, updateDesign]
   );
 
   // Handle video file upload from input element

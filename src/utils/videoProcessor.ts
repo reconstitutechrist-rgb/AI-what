@@ -24,7 +24,7 @@ export const VIDEO_CONFIG = {
   keyFrameInterval: 5, // Every 5 seconds for major analysis
   thumbnailWidth: 800,
   thumbnailHeight: 600,
-  compressionQuality: 0.8,
+  compressionQuality: 0.92, // High quality for accurate color extraction
 };
 
 // ============================================================================

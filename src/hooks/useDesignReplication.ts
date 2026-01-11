@@ -421,12 +421,15 @@ export function useDesignReplication(
   const applyAnalysisToDesign = useCallback(
     (currentDesign: Partial<LayoutDesign>): Partial<LayoutDesign> => {
       const analysis = state.deepAnalysis || state.quickAnalysis;
-      if (!analysis) return currentDesign;
+      const videoDesign = state.videoAnalysis?.designSummary;
+
+      // Return if no analysis results available
+      if (!analysis && !videoDesign) return currentDesign;
 
       const updatedDesign = { ...currentDesign };
 
-      // Apply colors if available
-      if ('colors' in analysis && analysis.colors) {
+      // Apply colors if available from image analysis
+      if (analysis && 'colors' in analysis && analysis.colors) {
         const colors = analysis.colors as CompleteDesignAnalysis['colors'];
         const currentStyles = updatedDesign.globalStyles ?? defaultGlobalStyles;
         updatedDesign.globalStyles = {
@@ -448,7 +451,7 @@ export function useDesignReplication(
       }
 
       // Apply typography if available
-      if ('typography' in analysis && analysis.typography) {
+      if (analysis && 'typography' in analysis && analysis.typography) {
         const typography = analysis.typography as CompleteDesignAnalysis['typography'];
         const currentStyles = updatedDesign.globalStyles ?? defaultGlobalStyles;
         updatedDesign.globalStyles = {
@@ -461,12 +464,47 @@ export function useDesignReplication(
         };
       }
 
+      // Apply video analysis design summary if available
+      if (videoDesign) {
+        const currentStyles = updatedDesign.globalStyles ?? defaultGlobalStyles;
+
+        // Apply colors from video analysis
+        if (videoDesign.dominantColors && videoDesign.dominantColors.length > 0) {
+          const colors = videoDesign.dominantColors;
+          updatedDesign.globalStyles = {
+            ...currentStyles,
+            colors: {
+              ...currentStyles.colors,
+              primary: colors[0],
+              secondary: colors[1] || colors[0],
+              accent: colors[2] || colors[0],
+              background: colors[3] || currentStyles.colors?.background || '#1a1a2e',
+              surface: colors[4] || currentStyles.colors?.surface || '#16213e',
+            },
+          };
+        }
+
+        // Apply fonts from video analysis
+        if (videoDesign.detectedFonts && videoDesign.detectedFonts.length > 0) {
+          const fonts = videoDesign.detectedFonts;
+          const updatedStyles = updatedDesign.globalStyles ?? defaultGlobalStyles;
+          updatedDesign.globalStyles = {
+            ...updatedStyles,
+            typography: {
+              ...updatedStyles.typography,
+              headingFont: fonts[0],
+              fontFamily: fonts[1] || fonts[0], // Body font
+            },
+          };
+        }
+      }
+
       setState((prev) => ({ ...prev, generatedDesign: updatedDesign }));
       onDesignGenerated?.(updatedDesign);
 
       return updatedDesign;
     },
-    [state.deepAnalysis, state.quickAnalysis, onDesignGenerated]
+    [state.deepAnalysis, state.quickAnalysis, state.videoAnalysis, onDesignGenerated]
   );
 
   // -------------------------------------------------------------------------
