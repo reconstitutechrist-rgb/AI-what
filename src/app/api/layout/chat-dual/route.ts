@@ -213,7 +213,7 @@ export async function POST(request: Request) {
           referenceImages?.length || 0
         );
         const geminiContext = geminiAnalysis
-          ? `\n\n## Creative Director's Visual Analysis (from Gemini)\n${JSON.stringify(geminiAnalysis, null, 2)}\n\nUse this analysis to inform your structural decisions.`
+          ? `\n\n## Creative Director's Visual Analysis (from Gemini)\n${JSON.stringify(geminiAnalysis, null, 2)}\n\nIMPORTANT: Gemini has extracted the accurate colors from the reference image. Do NOT describe or suggest specific colors in your response - defer to Gemini's colorPalette above. Focus only on layout structure and implementation details.`
           : '';
 
         // Build messages array
@@ -264,6 +264,21 @@ export async function POST(request: Request) {
         // Try to extract design updates from Claude's response
         const extractionResult = await extractDesignUpdates(claudeMessage, currentDesign);
         if (extractionResult) {
+          // If Gemini analysis exists, remove any color updates Claude extracted
+          // Gemini's colors from the actual image should be the single source of truth
+          if (geminiAnalysis && extractionResult.updates.globalStyles?.colors) {
+            // Strip Claude's colors - Gemini is the source of truth for colors
+            const { colors: _stripColors, ...restGlobalStyles } =
+              extractionResult.updates.globalStyles;
+            extractionResult.updates = {
+              ...extractionResult.updates,
+              globalStyles: restGlobalStyles as typeof extractionResult.updates.globalStyles,
+            };
+            // Also remove color-related changes from the changes array
+            extractionResult.changes = extractionResult.changes.filter(
+              (c) => !c.property.includes('colors')
+            );
+          }
           updatedDesign = extractionResult.updates;
           designChanges = extractionResult.changes;
         }
@@ -313,6 +328,23 @@ export async function POST(request: Request) {
 
     // Merge with current design
     const mergedDesign = mergeDesigns(currentDesign as Partial<LayoutDesign>, updatedDesign);
+
+    // CRITICAL: If Gemini analysis exists, force Gemini's colors to be the ONLY colors
+    // This bypasses any deep merge issues that might preserve old/Claude colors
+    if (geminiAnalysis) {
+      const geminiColors =
+        convertGeminiToDesignUpdates(geminiAnalysis).updates.globalStyles?.colors;
+      if (geminiColors && mergedDesign.globalStyles) {
+        mergedDesign.globalStyles.colors = geminiColors;
+      }
+    }
+
+    // Debug logging for color flow verification (can be removed once issue is confirmed fixed)
+    console.log('[chat-dual] Color flow debug:', {
+      hasGeminiAnalysis: !!geminiAnalysis,
+      geminiColors: geminiAnalysis?.colorPalette,
+      finalColors: mergedDesign.globalStyles?.colors,
+    });
 
     const totalDuration = Date.now() - startTime;
 
@@ -406,7 +438,7 @@ function buildCombinedMessage(
   modelMode: string | undefined
 ): string {
   if (geminiMessage && claudeMessage) {
-    return `## Visual Analysis (Gemini)\n\n${geminiMessage}\n\n---\n\n## Implementation Details (Claude)\n\n${claudeMessage}`;
+    return `## Visual Analysis (Gemini - Colors Applied)\n\n${geminiMessage}\n\n---\n\n## Structure & Implementation (Claude)\n\n${claudeMessage}`;
   }
 
   if (geminiMessage) {
@@ -558,6 +590,39 @@ function convertGeminiToDesignUpdates(analysis: VisualAnalysis): {
   updates: Partial<LayoutDesign>;
   changes: DesignChange[];
 } {
+  // Detect structure from Gemini's component analysis
+  const hasHeader = analysis.components?.some((c) => c.type === 'header') ?? false;
+  const hasSidebar = analysis.components?.some((c) => c.type === 'sidebar') ?? false;
+  const hasFooter = analysis.components?.some((c) => c.type === 'footer') ?? false;
+
+  // Determine sidebar position from component analysis
+  const sidebarComponent = analysis.components?.find((c) => c.type === 'sidebar');
+  const sidebarPosition: 'left' | 'right' =
+    sidebarComponent?.position?.area === 'right' ? 'right' : 'left';
+
+  // Map Gemini's layoutType to LayoutStructure type
+  const structureType = (():
+    | 'single-page'
+    | 'multi-page'
+    | 'dashboard'
+    | 'landing'
+    | 'wizard'
+    | 'split' => {
+    switch (analysis.layoutType) {
+      case 'dashboard':
+        return 'dashboard';
+      case 'landing':
+        return 'landing';
+      case 'e-commerce':
+      case 'portfolio':
+      case 'blog':
+      case 'saas':
+        return 'single-page';
+      default:
+        return 'single-page';
+    }
+  })();
+
   const updates: Partial<LayoutDesign> = {
     globalStyles: {
       colors: {
@@ -594,6 +659,17 @@ function convertGeminiToDesignUpdates(analysis: VisualAnalysis): {
         gradients: analysis.effects.hasGradients,
       },
     },
+    // Structure from Gemini's layoutType and detected components
+    structure: {
+      type: structureType,
+      hasHeader,
+      hasSidebar,
+      hasFooter,
+      sidebarPosition,
+      headerType: 'sticky' as const,
+      contentLayout: 'centered' as const,
+      mainContentWidth: 'standard' as const,
+    },
   };
 
   const changes: DesignChange[] = [
@@ -614,6 +690,12 @@ function convertGeminiToDesignUpdates(analysis: VisualAnalysis): {
       oldValue: undefined,
       newValue: JSON.stringify(updates.globalStyles?.effects),
       reason: 'Identified visual effects',
+    },
+    {
+      property: 'structure',
+      oldValue: undefined,
+      newValue: JSON.stringify(updates.structure),
+      reason: `Layout structure detected: ${structureType} with ${[hasHeader && 'header', hasSidebar && 'sidebar', hasFooter && 'footer'].filter(Boolean).join(', ') || 'no sections'}`,
     },
   ];
 

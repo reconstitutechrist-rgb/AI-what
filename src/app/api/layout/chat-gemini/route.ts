@@ -187,13 +187,37 @@ export async function POST(request: Request) {
       };
     }
 
+    // Build merged design
+    const mergedDesign =
+      Object.keys(designUpdates).length > 0
+        ? mergeDesigns(currentDesign as Partial<LayoutDesign>, designUpdates)
+        : (currentDesign as Partial<LayoutDesign>);
+
+    // Use imageAnalysis from analyzeScreenshot (accurate) or fall back to chat response
+    const finalAnalysis = imageAnalysis || geminiResponse.analysis;
+
+    // CRITICAL: If Gemini analysis exists, force Gemini's colors to be the ONLY colors
+    // This bypasses any deep merge issues that might preserve old colors
+    if (finalAnalysis?.colorPalette) {
+      const geminiColors = {
+        primary: finalAnalysis.colorPalette.primary,
+        secondary: finalAnalysis.colorPalette.secondary,
+        accent: finalAnalysis.colorPalette.accent,
+        background: finalAnalysis.colorPalette.background,
+        surface: finalAnalysis.colorPalette.surface,
+        text: finalAnalysis.colorPalette.text,
+        textMuted: finalAnalysis.colorPalette.textMuted,
+        border: finalAnalysis.colorPalette.textMuted,
+      };
+      if (mergedDesign.globalStyles) {
+        mergedDesign.globalStyles.colors = geminiColors;
+      }
+    }
+
     // Build response
     const response = {
       message: geminiResponse.message,
-      updatedDesign:
-        Object.keys(designUpdates).length > 0
-          ? mergeDesigns(currentDesign as Partial<LayoutDesign>, designUpdates)
-          : currentDesign,
+      updatedDesign: mergedDesign,
       suggestedActions:
         (geminiResponse.suggestedActions?.map((a) => ({
           label: a.label,
@@ -201,8 +225,7 @@ export async function POST(request: Request) {
         })) as SuggestedAction[]) || [],
       designChanges: [] as DesignChange[],
       tokensUsed: { input: 0, output: 0 }, // Gemini doesn't expose token counts the same way
-      // Use imageAnalysis from analyzeScreenshot (accurate) or fall back to chat response
-      geminiAnalysis: imageAnalysis || geminiResponse.analysis,
+      geminiAnalysis: finalAnalysis,
       modelUsed: 'gemini' as const,
       duration,
     };

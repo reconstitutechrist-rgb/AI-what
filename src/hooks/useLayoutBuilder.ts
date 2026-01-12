@@ -838,13 +838,25 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
                 ...design.globalStyles?.typography,
                 ...(data.updatedDesign?.globalStyles?.typography || {}),
               },
-              colors: {
-                ...baseStyles.colors,
-                ...design.globalStyles?.colors,
-                ...(data.updatedDesign?.globalStyles?.colors || {}),
-                // Gemini colors MUST come last to override API response colors
-                ...(geminiColors || {}),
-              },
+              // When Gemini colors exist, use them as the COMPLETE color set (no spreading old values)
+              // This prevents old colors from persisting through spread operations
+              colors: geminiColors
+                ? {
+                    primary: geminiColors.primary,
+                    secondary: geminiColors.secondary,
+                    accent: geminiColors.accent,
+                    background: geminiColors.background,
+                    surface: geminiColors.surface,
+                    text: geminiColors.text,
+                    textMuted: geminiColors.textMuted,
+                    border: geminiColors.border,
+                  }
+                : {
+                    // Only spread when no Gemini colors
+                    ...baseStyles.colors,
+                    ...design.globalStyles?.colors,
+                    ...(data.updatedDesign?.globalStyles?.colors || {}),
+                  },
               spacing: {
                 ...baseStyles.spacing,
                 ...design.globalStyles?.spacing,
@@ -863,6 +875,14 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
             structure: {
               ...design.structure,
               ...(data.updatedDesign?.structure || {}),
+              // If Gemini detected structure from reference image, apply it
+              ...(data.geminiAnalysis?.components
+                ? {
+                    hasHeader: data.geminiAnalysis.components.some((c) => c.type === 'header'),
+                    hasSidebar: data.geminiAnalysis.components.some((c) => c.type === 'sidebar'),
+                    hasFooter: data.geminiAnalysis.components.some((c) => c.type === 'footer'),
+                  }
+                : {}),
             },
           } as Partial<LayoutDesign>;
           setDesign(mergedDesign);
