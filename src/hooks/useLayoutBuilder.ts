@@ -841,9 +841,9 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
               colors: {
                 ...baseStyles.colors,
                 ...design.globalStyles?.colors,
-                // Apply Gemini colors first, then any updatedDesign colors override
-                ...(geminiColors || {}),
                 ...(data.updatedDesign?.globalStyles?.colors || {}),
+                // Gemini colors MUST come last to override API response colors
+                ...(geminiColors || {}),
               },
               spacing: {
                 ...baseStyles.spacing,
