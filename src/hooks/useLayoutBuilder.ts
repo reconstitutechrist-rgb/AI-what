@@ -95,6 +95,33 @@ function hashDesign(design: Partial<LayoutDesign>): string {
   }
 }
 
+/**
+ * Determine if a hex color is "dark" based on relative luminance.
+ * Used to auto-detect colorScheme from extracted background color.
+ */
+function isColorDark(hexColor: string | undefined): boolean {
+  if (!hexColor || !hexColor.startsWith('#')) return true; // Default to dark
+
+  const hex = hexColor.replace('#', '');
+  // Handle both 3 and 6 character hex codes
+  const fullHex =
+    hex.length === 3
+      ? hex
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : hex;
+
+  const r = parseInt(fullHex.substring(0, 2), 16);
+  const g = parseInt(fullHex.substring(2, 4), 16);
+  const b = parseInt(fullHex.substring(4, 6), 16);
+
+  // Calculate relative luminance using sRGB formula
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+  return luminance < 0.5;
+}
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -829,9 +856,44 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
               }
             : undefined;
 
+          // Map Gemini's layoutType to basePreferences.layout
+          // This ensures the preview renders the correct layout component
+          const geminiLayoutType = data.geminiAnalysis?.layoutType;
+          const mappedLayout: 'single-page' | 'multi-page' | 'dashboard' | undefined = (() => {
+            if (!geminiLayoutType) return undefined;
+            switch (geminiLayoutType) {
+              case 'dashboard':
+                return 'dashboard';
+              case 'e-commerce':
+              case 'blog':
+                return 'multi-page';
+              case 'landing':
+              case 'portfolio':
+              case 'saas':
+              case 'single-page':
+              default:
+                return 'single-page';
+            }
+          })();
+
+          // Detect colorScheme from Gemini's extracted background color
+          const detectedColorScheme: 'light' | 'dark' | undefined = geminiColors
+            ? isColorDark(geminiColors.background)
+              ? 'dark'
+              : 'light'
+            : undefined;
+
           const mergedDesign = {
             ...design,
             ...(data.updatedDesign || {}),
+            // Sync basePreferences.layout with Gemini's detected layout type
+            basePreferences: {
+              ...design.basePreferences,
+              ...(data.updatedDesign?.basePreferences || {}),
+              // Use Gemini's detected layout and colorScheme if available
+              ...(mappedLayout ? { layout: mappedLayout } : {}),
+              ...(detectedColorScheme ? { colorScheme: detectedColorScheme } : {}),
+            },
             globalStyles: {
               ...design.globalStyles,
               ...(data.updatedDesign?.globalStyles || {}),

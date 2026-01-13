@@ -204,6 +204,32 @@ interface LayoutBuilderWizardProps {
 }
 
 // ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Map LayoutStructure.type to valid UIPreferences.layout types
+ * This is needed because structure.type has additional values (landing, wizard, split)
+ * that aren't valid for UIPreferences.layout
+ */
+function getLayoutFromStructure(
+  structureType: string | undefined
+): 'single-page' | 'multi-page' | 'dashboard' | 'custom' {
+  switch (structureType) {
+    case 'dashboard':
+      return 'dashboard';
+    case 'multi-page':
+      return 'multi-page';
+    case 'landing':
+    case 'wizard':
+    case 'split':
+    case 'single-page':
+    default:
+      return 'single-page';
+  }
+}
+
+// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
@@ -572,13 +598,13 @@ export function LayoutBuilderWizard({
   }, [messages]);
 
   // Build UIPreferences from design for LayoutPreview
+  // Uses helper function to map structure.type to valid UIPreferences.layout
   const previewPreferences: UIPreferences = {
     style: design.basePreferences?.style || 'modern',
     colorScheme: design.basePreferences?.colorScheme || 'dark',
-    layout: design.basePreferences?.layout || 'single-page',
+    layout: design.basePreferences?.layout || getLayoutFromStructure(design.structure?.type),
     primaryColor: design.globalStyles?.colors?.primary || '#3B82F6',
   };
-
   // Handle suggested action clicks
   const handleAction = useCallback(
     (action: string) => {
