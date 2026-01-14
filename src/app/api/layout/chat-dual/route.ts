@@ -14,13 +14,13 @@ import { z } from 'zod';
 import {
   getGeminiLayoutService,
   type VisualAnalysis,
-  type GeminiChatResponse,
+  type GeminiChatResponse as _GeminiChatResponse,
 } from '@/services/GeminiLayoutService';
 import { buildLayoutBuilderPrompt } from '@/prompts/layoutBuilderSystemPrompt';
 import {
   getRoutingForElement,
   getRoutingForRequest,
-  type ModelRouting,
+  type ModelRouting as _ModelRouting,
 } from '@/services/modelRouter';
 import type {
   LayoutDesign,
@@ -28,7 +28,7 @@ import type {
   LayoutChatResponse,
   DesignChange,
   SuggestedAction,
-  LayoutWorkflowState,
+  LayoutWorkflowState as _LayoutWorkflowState,
   ElementType,
 } from '@/types/layoutDesign';
 import {
@@ -48,7 +48,8 @@ const anthropic = new Anthropic({
 // TYPE DEFINITIONS
 // ============================================================================
 
-interface DualModelRequest extends LayoutChatRequest {
+// Request type (documented for reference; validation uses Zod schema)
+interface _DualModelRequest extends LayoutChatRequest {
   modelMode?: 'claude' | 'gemini' | 'dual' | 'auto';
   skipClaudeRefinement?: boolean;
 }
@@ -67,6 +68,10 @@ interface DualModelResponse extends LayoutChatResponse {
       duration: number;
     };
   };
+  // Multi-page response fields
+  isMultiPagePrompt?: boolean;
+  expectedPageCount?: number;
+  multiPageResult?: import('@/types/layoutDesign').MultiPageAnalysisResult;
 }
 
 // ============================================================================
@@ -84,7 +89,59 @@ const DualModelRequestSchema = z.object({
   skipClaudeRefinement: z.boolean().optional().default(false),
   memoriesContext: z.string().optional(),
   workflowState: z.any().optional(),
+  // Multi-page mode fields
+  pageReferences: z.array(z.any()).optional(),
+  currentPageId: z.string().optional(),
+  requestType: z
+    .enum(['single-page', 'multi-page-analysis', 'page-specific', 'add-pages'])
+    .optional(),
+  existingMultiPageDesign: z.any().optional(),
 });
+
+// ============================================================================
+// MULTI-PAGE INTENT DETECTION
+// ============================================================================
+
+/**
+ * Detect if the user wants to add more pages to their multi-page design
+ */
+function detectAddPagesIntent(message: string): { wantsToAddPages: boolean; pageCount?: number } {
+  const lowerMessage = message.toLowerCase();
+
+  // Patterns for adding pages
+  const addPagePatterns = [
+    /i have (\d+) more pages?/i,
+    /add (\d+) more pages?/i,
+    /(\d+) additional pages?/i,
+    /here(?:'s| is| are) (\d+) more pages?/i,
+    /want to add (\d+) pages?/i,
+    /need to add (\d+) pages?/i,
+    /upload (\d+) more/i,
+  ];
+
+  for (const pattern of addPagePatterns) {
+    const match = message.match(pattern);
+    if (match) {
+      return { wantsToAddPages: true, pageCount: parseInt(match[1], 10) };
+    }
+  }
+
+  // General add page keywords without specific count
+  const generalAddPatterns = [
+    /add (more|another) page/i,
+    /have (more|another|additional) pages?/i,
+    /upload (more|another) page/i,
+    /here('s| is| are) (more|another)/i,
+  ];
+
+  for (const pattern of generalAddPatterns) {
+    if (pattern.test(lowerMessage)) {
+      return { wantsToAddPages: true };
+    }
+  }
+
+  return { wantsToAddPages: false };
+}
 
 // ============================================================================
 // MAIN HANDLER
@@ -105,7 +162,42 @@ export async function POST(request: Request) {
       referenceImages,
       modelMode,
       skipClaudeRefinement,
+      pageReferences: _pageReferences,
+      currentPageId: _currentPageId,
+      requestType,
+      existingMultiPageDesign: _existingMultiPageDesign,
     } = validatedRequest;
+
+    // =========================================================================
+    // MULTI-PAGE INTENT DETECTION
+    // =========================================================================
+
+    const addPagesIntent = detectAddPagesIntent(message);
+
+    // If user wants to add pages, return a prompt for upload
+    if (addPagesIntent.wantsToAddPages && !referenceImages?.length) {
+      const pageCountText = addPagesIntent.pageCount
+        ? `${addPagesIntent.pageCount} more pages`
+        : 'more pages';
+
+      return NextResponse.json({
+        message: `Great! I'm ready to add ${pageCountText} to your design. Please upload the screenshots of the pages you'd like to add, and I'll analyze them to maintain consistency with your existing design.`,
+        updatedDesign: currentDesign,
+        suggestedActions: [
+          { label: 'Upload pages', action: 'upload_pages' },
+          { label: 'Capture current page', action: 'capture_preview' },
+        ],
+        modelUsed: 'claude',
+        isMultiPagePrompt: true,
+        expectedPageCount: addPagesIntent.pageCount,
+      });
+    }
+
+    // If this is a multi-page request with new reference images, process them as additional pages
+    // Note: Currently, page additions are handled via the /api/layout/analyze-pages route directly
+    // This flag is prepared for future enhancement where chat-dual could handle inline page additions
+    const _isAddingPages =
+      requestType === 'add-pages' || (addPagesIntent.wantsToAddPages && referenceImages?.length);
 
     // Check for required API keys
     const hasGeminiKey = !!process.env.GOOGLE_API_KEY;
@@ -375,7 +467,7 @@ export async function POST(request: Request) {
       finalColors: mergedDesign.globalStyles?.colors,
     });
 
-    const totalDuration = Date.now() - startTime;
+    const _totalDuration = Date.now() - startTime;
 
     const response: DualModelResponse = {
       message: combinedMessage,
@@ -464,7 +556,7 @@ function buildGeminiSummary(analysis: VisualAnalysis): string {
 function buildCombinedMessage(
   geminiMessage: string | undefined,
   claudeMessage: string | undefined,
-  modelMode: string | undefined
+  _modelMode: string | undefined
 ): string {
   if (geminiMessage && claudeMessage) {
     return `## Visual Analysis (Gemini - Colors Applied)\n\n${geminiMessage}\n\n---\n\n## Structure & Implementation (Claude)\n\n${claudeMessage}`;

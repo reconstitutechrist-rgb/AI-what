@@ -38,6 +38,11 @@ import type {
   LayoutWorkflowState,
   SelectedElementInfo,
   DeviceView,
+  PageReference,
+  MultiPageDesign,
+  DetectedNavigation,
+  InferredRoute,
+  MultiPageAnalysisResult,
 } from '@/types/layoutDesign';
 import type { UIPreferences, AppConcept } from '@/types/appConcept';
 import type { ChatMessage } from '@/types/aiBuilderTypes';
@@ -255,6 +260,42 @@ interface UseLayoutBuilderReturn {
   // Reference-Based Design
   /** Apply extracted styles from a reference image to the design */
   applyReferenceStyles: (styles: ExtractedStyles, options?: { merge?: boolean }) => void;
+
+  // Multi-Page State
+  /** All page references in multi-page mode */
+  pageReferences: PageReference[];
+  /** Currently active page ID */
+  currentPageId: string | null;
+  /** Full multi-page design with navigation and routes */
+  multiPageDesign: MultiPageDesign | null;
+  /** Whether multi-page mode is enabled */
+  isMultiPageMode: boolean;
+  /** Whether pages are being analyzed */
+  isAnalyzingPages: boolean;
+
+  // Multi-Page Actions
+  /** Add a single page reference */
+  addPageReference: (imageData: string, name?: string) => string;
+  /** Add multiple page references at once */
+  addPageReferences: (pages: Omit<PageReference, 'analysis'>[]) => void;
+  /** Remove a page reference */
+  removePageReference: (pageId: string) => void;
+  /** Reorder pages */
+  reorderPages: (sourceIndex: number, destIndex: number) => void;
+  /** Update a page's name */
+  updatePageName: (pageId: string, name: string) => void;
+  /** Set the current active page */
+  setCurrentPage: (pageId: string) => void;
+  /** Analyze all pending pages */
+  analyzeAllPages: () => Promise<void>;
+  /** Detect pages from video file */
+  addPagesFromVideo: (videoFile: File) => Promise<void>;
+  /** Update navigation structure */
+  updateNavigation: (navigation: DetectedNavigation) => void;
+  /** Export React Router configuration */
+  exportReactRouterConfig: () => string;
+  /** Toggle multi-page mode */
+  toggleMultiPageMode: (enabled: boolean) => void;
 
   // Computed
   hasUnsavedChanges: boolean;
@@ -489,6 +530,88 @@ function categorizeError(error: unknown, statusCode?: number): MessageError {
 }
 
 // ============================================================================
+// VIDEO FRAME EXTRACTION HELPER
+// ============================================================================
+
+interface ExtractedFrame {
+  index: number;
+  timestamp: number;
+  imageDataUrl: string;
+  isKeyFrame: boolean;
+}
+
+/**
+ * Extract frames from a video file for page transition analysis
+ */
+async function extractVideoFrames(
+  videoFile: File,
+  options: { maxFrames?: number; interval?: number } = {}
+): Promise<ExtractedFrame[]> {
+  const { maxFrames = 20, interval = 1 } = options;
+
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      reject(new Error('Failed to get canvas context'));
+      return;
+    }
+
+    video.preload = 'metadata';
+    video.muted = true;
+
+    const frames: ExtractedFrame[] = [];
+    let currentTime = 0;
+    let frameIndex = 0;
+
+    video.onloadedmetadata = () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      const duration = video.duration;
+      const frameInterval = Math.max(interval, duration / maxFrames);
+
+      const captureFrame = () => {
+        if (currentTime >= duration || frameIndex >= maxFrames) {
+          URL.revokeObjectURL(video.src);
+          resolve(frames);
+          return;
+        }
+
+        video.currentTime = currentTime;
+      };
+
+      video.onseeked = () => {
+        ctx.drawImage(video, 0, 0);
+        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+        frames.push({
+          index: frameIndex,
+          timestamp: currentTime,
+          imageDataUrl,
+          isKeyFrame: frameIndex % 5 === 0, // Mark every 5th frame as key frame
+        });
+
+        frameIndex++;
+        currentTime += frameInterval;
+        captureFrame();
+      };
+
+      captureFrame();
+    };
+
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src);
+      reject(new Error('Failed to load video'));
+    };
+
+    video.src = URL.createObjectURL(videoFile);
+  });
+}
+
+// ============================================================================
 // HOOK IMPLEMENTATION
 // ============================================================================
 
@@ -538,6 +661,13 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
 
   // Responsive preview state
   const [currentDevice, setCurrentDevice] = useState<DeviceView>('desktop');
+
+  // Multi-page state
+  const [pageReferences, setPageReferences] = useState<PageReference[]>([]);
+  const [currentPageId, setCurrentPageId] = useState<string | null>(null);
+  const [multiPageDesign, setMultiPageDesign] = useState<MultiPageDesign | null>(null);
+  const [isMultiPageMode, setIsMultiPageMode] = useState(false);
+  const [isAnalyzingPages, setIsAnalyzingPages] = useState(false);
 
   // Dual-model state
   const [modelRouting, setModelRouting] = useState<RoutingDecision | null>(null);
@@ -1689,6 +1819,383 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
   );
 
   // ========================================================================
+  // MULTI-PAGE ACTIONS
+  // ========================================================================
+
+  /**
+   * Add a single page reference
+   */
+  const addPageReference = useCallback(
+    (imageData: string, name?: string) => {
+      const pageId = `page_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      const pageName = name || `Page ${pageReferences.length + 1}`;
+      const slug = pageName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+
+      const newPage: PageReference = {
+        id: pageId,
+        name: pageName,
+        slug,
+        referenceImage: imageData,
+        order: pageReferences.length,
+        isMain: pageReferences.length === 0,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      };
+
+      setPageReferences((prev) => [...prev, newPage]);
+      setIsMultiPageMode(true);
+
+      // Set as current page if it's the first one
+      if (pageReferences.length === 0) {
+        setCurrentPageId(pageId);
+      }
+
+      return pageId;
+    },
+    [pageReferences.length]
+  );
+
+  /**
+   * Add multiple page references at once
+   */
+  const addPageReferences = useCallback(
+    (pages: Omit<PageReference, 'analysis'>[]) => {
+      const newPages = pages.map((page, index) => ({
+        ...page,
+        order: pageReferences.length + index,
+        isMain: pageReferences.length === 0 && index === 0,
+      }));
+
+      setPageReferences((prev) => [...prev, ...newPages]);
+      setIsMultiPageMode(true);
+
+      // Set first page as current if none selected
+      if (!currentPageId && newPages.length > 0) {
+        setCurrentPageId(newPages[0].id);
+      }
+    },
+    [pageReferences.length, currentPageId]
+  );
+
+  /**
+   * Remove a page reference
+   */
+  const removePageReference = useCallback(
+    (pageId: string) => {
+      setPageReferences((prev) => {
+        const filtered = prev.filter((p) => p.id !== pageId);
+        // Reorder remaining pages
+        return filtered.map((p, i) => ({ ...p, order: i }));
+      });
+
+      // Update current page if removed
+      if (currentPageId === pageId) {
+        setCurrentPageId((prev) => {
+          const remaining = pageReferences.filter((p) => p.id !== pageId);
+          return remaining.length > 0 ? remaining[0].id : null;
+        });
+      }
+
+      // Exit multi-page mode if no pages left
+      if (pageReferences.length <= 1) {
+        setIsMultiPageMode(false);
+        setMultiPageDesign(null);
+      }
+    },
+    [currentPageId, pageReferences]
+  );
+
+  /**
+   * Reorder pages
+   */
+  const reorderPages = useCallback((sourceIndex: number, destIndex: number) => {
+    setPageReferences((prev) => {
+      const newPages = [...prev];
+      const [moved] = newPages.splice(sourceIndex, 1);
+      newPages.splice(destIndex, 0, moved);
+      // Update order property
+      return newPages.map((p, i) => ({ ...p, order: i }));
+    });
+  }, []);
+
+  /**
+   * Update a page's name
+   */
+  const updatePageName = useCallback((pageId: string, name: string) => {
+    const slug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    setPageReferences((prev) => prev.map((p) => (p.id === pageId ? { ...p, name, slug } : p)));
+  }, []);
+
+  /**
+   * Set the current active page
+   */
+  const setCurrentPage = useCallback((pageId: string) => {
+    setCurrentPageId(pageId);
+  }, []);
+
+  /**
+   * Analyze all pending pages
+   */
+  const analyzeAllPages = useCallback(async () => {
+    const pendingPages = pageReferences.filter((p) => p.status === 'pending');
+    if (pendingPages.length === 0) return;
+
+    setIsAnalyzingPages(true);
+
+    // Mark pages as analyzing
+    setPageReferences((prev) =>
+      prev.map((p) => (p.status === 'pending' ? { ...p, status: 'analyzing' as const } : p))
+    );
+
+    try {
+      const response = await fetch('/api/layout/analyze-pages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pages: pendingPages.map((p) => ({
+            id: p.id,
+            imageBase64: p.referenceImage,
+            name: p.name,
+          })),
+          existingDesign: multiPageDesign,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Analysis failed: ${response.status}`);
+      }
+
+      const result: MultiPageAnalysisResult & { success: boolean } = await response.json();
+
+      if (result.success) {
+        // Update page references with analysis results
+        setPageReferences((prev) =>
+          prev.map((p) => {
+            const analyzed = result.pages.find((rp) => rp.id === p.id);
+            if (analyzed) {
+              return {
+                ...p,
+                analysis: analyzed.analysis,
+                status: 'complete' as const,
+              };
+            }
+            return p;
+          })
+        );
+
+        // Create/update MultiPageDesign
+        const now = new Date().toISOString();
+        const newMultiPageDesign: MultiPageDesign = {
+          pages: pageReferences.map((p) => {
+            const analyzed = result.pages.find((rp) => rp.id === p.id);
+            return analyzed || p;
+          }),
+          sharedDesign: result.sharedDesign,
+          navigation: result.navigation,
+          pageSpecificOverrides: {},
+          inferredRoutes: result.inferredRoutes,
+          createdAt: multiPageDesign?.createdAt || now,
+          updatedAt: now,
+        };
+        setMultiPageDesign(newMultiPageDesign);
+
+        // Apply shared design to current design
+        if (result.sharedDesign) {
+          updateDesign(result.sharedDesign);
+        }
+      }
+    } catch (error) {
+      console.error('[useLayoutBuilder] Failed to analyze pages:', error);
+
+      // Mark pages as error
+      setPageReferences((prev) =>
+        prev.map((p) =>
+          p.status === 'analyzing'
+            ? {
+                ...p,
+                status: 'error' as const,
+                errorMessage: error instanceof Error ? error.message : 'Analysis failed',
+              }
+            : p
+        )
+      );
+    } finally {
+      setIsAnalyzingPages(false);
+    }
+  }, [pageReferences, multiPageDesign, updateDesign]);
+
+  /**
+   * Detect pages from video file using frame analysis
+   */
+  const addPagesFromVideo = useCallback(
+    async (videoFile: File) => {
+      setIsAnalyzingPages(true);
+
+      try {
+        // Extract frames from video
+        const frames = await extractVideoFrames(videoFile);
+
+        // Send to video-pages API for transition detection
+        const response = await fetch('/api/layout/video-pages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            frames,
+            metadata: {
+              duration: frames.length > 0 ? frames[frames.length - 1].timestamp : 0,
+              width: 1920, // Will be updated from actual video
+              height: 1080,
+              fps: 30,
+            },
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Video analysis failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.success && result.pageFrames) {
+          // Add detected pages
+          const newPages: PageReference[] = result.pageFrames.map(
+            (frame: Partial<PageReference>, index: number) => ({
+              id: frame.id || `page_${Date.now()}_${index}`,
+              name: frame.name || result.suggestedNames?.[index] || `Page ${index + 1}`,
+              slug:
+                frame.slug ||
+                (result.suggestedNames?.[index] || `page-${index + 1}`)
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]+/g, '-'),
+              referenceImage: frame.referenceImage || '',
+              order: pageReferences.length + index,
+              isMain: pageReferences.length === 0 && index === 0,
+              status: 'pending' as const,
+              createdAt: new Date().toISOString(),
+            })
+          );
+
+          setPageReferences((prev) => [...prev, ...newPages]);
+          setIsMultiPageMode(true);
+
+          if (!currentPageId && newPages.length > 0) {
+            setCurrentPageId(newPages[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('[useLayoutBuilder] Failed to extract pages from video:', error);
+      } finally {
+        setIsAnalyzingPages(false);
+      }
+    },
+    [pageReferences.length, currentPageId]
+  );
+
+  /**
+   * Update navigation structure
+   */
+  const updateNavigation = useCallback((navigation: DetectedNavigation) => {
+    setMultiPageDesign((prev) => {
+      if (!prev) return prev;
+      return { ...prev, navigation };
+    });
+  }, []);
+
+  /**
+   * Export React Router configuration
+   */
+  const exportReactRouterConfig = useCallback(() => {
+    if (!multiPageDesign) return '';
+
+    const { pages, navigation, inferredRoutes } = multiPageDesign;
+    const lines: string[] = [
+      '// Generated React Router Configuration',
+      "import { createBrowserRouter } from 'react-router-dom';",
+      "import { Link } from 'react-router-dom';",
+      '',
+    ];
+
+    // Generate route imports
+    pages.forEach((page) => {
+      const componentName = page.name.replace(/[^a-zA-Z0-9]/g, '') + 'Page';
+      lines.push(`import { ${componentName} } from './pages/${page.slug}';`);
+    });
+
+    lines.push('');
+    lines.push('export const router = createBrowserRouter([');
+
+    // Generate routes
+    inferredRoutes.forEach((route) => {
+      const page = pages.find((p) => p.id === route.pageId);
+      if (page) {
+        const componentName = page.name.replace(/[^a-zA-Z0-9]/g, '') + 'Page';
+        lines.push(`  {`);
+        lines.push(`    path: '${route.path}',`);
+        lines.push(`    element: <${componentName} />,`);
+        if (page.isMain) {
+          lines.push(`    index: true,`);
+        }
+        lines.push(`  },`);
+      }
+    });
+
+    lines.push(']);');
+    lines.push('');
+
+    // Generate Navigation component
+    if (navigation && navigation.items.length > 0) {
+      lines.push('export function Navigation() {');
+      lines.push('  return (');
+      lines.push(`    <nav className="navigation navigation--${navigation.style}">`);
+
+      navigation.items.forEach((item) => {
+        if (item.targetPageSlug) {
+          const route = inferredRoutes.find((r) => {
+            const p = pages.find((pg) => pg.id === r.pageId);
+            return p?.slug === item.targetPageSlug;
+          });
+          lines.push(
+            `      <Link to="${route?.path || '/' + item.targetPageSlug}">${item.label}</Link>`
+          );
+        } else {
+          lines.push(`      <span>${item.label}</span>`);
+        }
+      });
+
+      lines.push('    </nav>');
+      lines.push('  );');
+      lines.push('}');
+    }
+
+    const configString = lines.join('\n');
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(configString);
+
+    return configString;
+  }, [multiPageDesign]);
+
+  /**
+   * Toggle multi-page mode
+   */
+  const toggleMultiPageMode = useCallback((enabled: boolean) => {
+    setIsMultiPageMode(enabled);
+    if (!enabled) {
+      // Clear multi-page state when disabling
+      setPageReferences([]);
+      setCurrentPageId(null);
+      setMultiPageDesign(null);
+    }
+  }, []);
+
+  // ========================================================================
   // COMPUTED
   // ========================================================================
 
@@ -1767,6 +2274,26 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
 
     // Reference-Based Design
     applyReferenceStyles,
+
+    // Multi-Page State
+    pageReferences,
+    currentPageId,
+    multiPageDesign,
+    isMultiPageMode,
+    isAnalyzingPages,
+
+    // Multi-Page Actions
+    addPageReference,
+    addPageReferences,
+    removePageReference,
+    reorderPages,
+    updatePageName,
+    setCurrentPage,
+    analyzeAllPages,
+    addPagesFromVideo,
+    updateNavigation,
+    exportReactRouterConfig,
+    toggleMultiPageMode,
 
     // Computed
     hasUnsavedChanges,

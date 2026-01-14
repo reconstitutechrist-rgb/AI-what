@@ -8,6 +8,16 @@
  */
 
 import { GoogleGenerativeAI, Part } from '@google/generative-ai';
+import type {
+  PageReference,
+  PageAnalysis,
+  DetectedComponentEnhanced,
+  DetectedNavigation,
+  NavigationItem,
+  InferredRoute,
+  MultiPageAnalysisResult,
+  PageRole,
+} from '@/types/layoutDesign';
 
 // ============================================================================
 // Helper Functions
@@ -708,6 +718,453 @@ Return ONLY the JSON object, no markdown or explanation.`;
     }
   }
 
+  // =========================================================================
+  // MULTI-PAGE ANALYSIS METHODS
+  // =========================================================================
+
+  /**
+   * Analyze a single page with enhanced component detection
+   * Returns precise bounding boxes and hierarchy information
+   */
+  async analyzePageEnhanced(imageBase64: string, pageName?: string): Promise<PageAnalysis> {
+    if (!this.model) {
+      throw new Error('Gemini service not initialized: GOOGLE_API_KEY not configured');
+    }
+
+    const imagePart: Part = {
+      inlineData: {
+        mimeType: getMimeType(imageBase64),
+        data: imageBase64.replace(/^data:image\/\w+;base64,/, ''),
+      },
+    };
+
+    const prompt = `You are an expert UI/UX analyst. Analyze this screenshot for EXACT REPLICATION purposes.
+${pageName ? `This page is named: "${pageName}"` : ''}
+
+Return a JSON object with PRECISE measurements as percentages of viewport (0-100):
+
+{
+  "pageRole": "landing" | "dashboard" | "list" | "detail" | "form" | "auth" | "settings" | "profile" | "checkout" | "search" | "error" | "custom",
+  "layoutType": "single-page" | "dashboard" | "landing" | "e-commerce" | "portfolio" | "blog" | "saas",
+  "colorPalette": {
+    "primary": "#EXACT_HEX",
+    "secondary": "#EXACT_HEX",
+    "accent": "#EXACT_HEX",
+    "background": "#EXACT_HEX",
+    "surface": "#EXACT_HEX",
+    "text": "#EXACT_HEX",
+    "textMuted": "#EXACT_HEX"
+  },
+  "typography": {
+    "headingStyle": "description",
+    "bodyStyle": "description",
+    "headingWeight": "light" | "normal" | "medium" | "semibold" | "bold",
+    "bodyWeight": "light" | "normal" | "medium",
+    "estimatedHeadingFont": "font name",
+    "estimatedBodyFont": "font name"
+  },
+  "spacing": {
+    "density": "compact" | "normal" | "relaxed",
+    "sectionPadding": "sm" | "md" | "lg" | "xl",
+    "componentGap": "sm" | "md" | "lg"
+  },
+  "components": [
+    {
+      "id": "unique_id",
+      "type": "header" | "sidebar" | "hero" | "cards" | "navigation" | "footer" | "form" | "table" | "carousel" | "stats" | "cta" | "breadcrumb" | "pagination" | "tabs" | "search-bar" | "user-menu" | "logo" | "content-section" | "image-gallery" | "chart" | "unknown",
+      "bounds": {
+        "top": 0,     // 0-100 percentage of viewport
+        "left": 0,    // 0-100 percentage of viewport
+        "width": 100, // 0-100 percentage of viewport
+        "height": 8   // 0-100 percentage of viewport
+      },
+      "style": {
+        "variant": "style description",
+        "hasBackground": true/false,
+        "backgroundColor": "#HEX if visible",
+        "isFloating": true/false,
+        "isSticky": true/false,
+        "borderRadius": "none|sm|md|lg|xl|full",
+        "shadow": "none|subtle|medium|strong"
+      },
+      "parentId": "parent_component_id or null",
+      "children": ["child_id_1", "child_id_2"],
+      "zIndex": 1,
+      "navigatesTo": "page_slug if this is a navigation link",
+      "isNavigationItem": true/false,
+      "confidence": 0.0-1.0
+    }
+  ],
+  "effects": {
+    "borderRadius": "none" | "sm" | "md" | "lg" | "xl" | "full",
+    "shadows": "none" | "subtle" | "medium" | "strong",
+    "hasGradients": true/false,
+    "hasBlur": true/false,
+    "hasAnimations": true/false
+  },
+  "vibe": "One sentence describing the aesthetic",
+  "vibeKeywords": ["keyword1", "keyword2"],
+  "confidence": 0.0-1.0
+}
+
+CRITICAL RULES:
+- Extract EXACT hex colors visible in the image
+- Provide PRECISE bounding boxes as viewport percentages
+- Identify parent-child relationships between components
+- Mark navigation items and their destinations if detectable
+- Include ALL visible UI components, not just major sections
+
+Return ONLY valid JSON, no markdown.`;
+
+    try {
+      const result = await this.model.generateContent([prompt, imagePart]);
+      const response = result.response;
+      const text = response.text();
+
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Failed to parse enhanced page analysis response');
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]);
+
+      // Ensure components have IDs
+      const components: DetectedComponentEnhanced[] = (parsed.components || []).map(
+        (c: Partial<DetectedComponentEnhanced>, index: number) => ({
+          id: c.id || `component_${index}`,
+          type: c.type || 'unknown',
+          bounds: c.bounds || { top: 0, left: 0, width: 100, height: 10 },
+          style: c.style || {},
+          parentId: c.parentId,
+          children: c.children,
+          zIndex: c.zIndex,
+          navigatesTo: c.navigatesTo,
+          isNavigationItem: c.isNavigationItem,
+          confidence: c.confidence || 0.5,
+        })
+      );
+
+      return {
+        pageRole: parsed.pageRole || 'custom',
+        layoutType: parsed.layoutType || 'single-page',
+        colorPalette: parsed.colorPalette || {},
+        typography: parsed.typography || {},
+        spacing: parsed.spacing || {},
+        components,
+        effects: parsed.effects || {},
+        vibe: parsed.vibe || '',
+        vibeKeywords: parsed.vibeKeywords || [],
+        confidence: parsed.confidence || 0.7,
+      };
+    } catch (error) {
+      console.error('[GeminiLayoutService] analyzePageEnhanced error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Analyze multiple pages and detect shared design tokens
+   */
+  async analyzeMultiplePages(
+    pages: Array<{ id: string; imageBase64: string; name?: string }>
+  ): Promise<MultiPageAnalysisResult> {
+    if (!this.model) {
+      throw new Error('Gemini service not initialized: GOOGLE_API_KEY not configured');
+    }
+
+    const startTime = Date.now();
+    const analyzedPages: PageReference[] = [];
+
+    // Analyze pages in batches to avoid rate limits (2-3 concurrent)
+    const batchSize = 2;
+    for (let i = 0; i < pages.length; i += batchSize) {
+      const batch = pages.slice(i, i + batchSize);
+      const batchPromises = batch.map(async (page) => {
+        try {
+          const analysis = await this.analyzePageEnhanced(page.imageBase64, page.name);
+          return {
+            id: page.id,
+            name: page.name || `Page ${i + 1}`,
+            slug: this.generateSlug(page.name || `Page ${i + 1}`),
+            referenceImage: page.imageBase64,
+            analysis,
+            order: pages.indexOf(page),
+            isMain: pages.indexOf(page) === 0,
+            status: 'complete' as const,
+            createdAt: new Date().toISOString(),
+          };
+        } catch (error) {
+          console.error(`[GeminiLayoutService] Failed to analyze page ${page.id}:`, error);
+          return {
+            id: page.id,
+            name: page.name || `Page ${i + 1}`,
+            slug: this.generateSlug(page.name || `Page ${i + 1}`),
+            referenceImage: page.imageBase64,
+            order: pages.indexOf(page),
+            isMain: pages.indexOf(page) === 0,
+            status: 'error' as const,
+            errorMessage: error instanceof Error ? error.message : 'Analysis failed',
+            createdAt: new Date().toISOString(),
+          };
+        }
+      });
+
+      const batchResults = await Promise.all(batchPromises);
+      analyzedPages.push(...batchResults);
+
+      // Small delay between batches to avoid rate limits
+      if (i + batchSize < pages.length) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
+
+    // Extract shared design tokens from successfully analyzed pages
+    const successfulPages = analyzedPages.filter((p) => p.analysis);
+    const sharedDesign = this.extractSharedDesign(successfulPages);
+
+    // Detect navigation structure
+    const navigation = await this.detectNavigationFromPages(successfulPages);
+
+    // Infer routes
+    const inferredRoutes = this.inferRoutesFromPages(successfulPages);
+
+    const processingTime = Date.now() - startTime;
+
+    return {
+      pages: analyzedPages,
+      sharedDesign,
+      navigation,
+      inferredRoutes,
+      confidence: successfulPages.length / pages.length,
+      metadata: {
+        totalPages: pages.length,
+        analyzedPages: successfulPages.length,
+        processingTimeMs: processingTime,
+        modelUsed: 'gemini',
+      },
+    };
+  }
+
+  /**
+   * Detect navigation structure by analyzing common elements across pages
+   */
+  async detectNavigationFromPages(pages: PageReference[]): Promise<DetectedNavigation> {
+    // Extract navigation items from components marked as navigation
+    const navItems: NavigationItem[] = [];
+    let navStyle: DetectedNavigation['style'] = 'horizontal';
+    let navPosition: DetectedNavigation['position'] = 'header';
+
+    for (const page of pages) {
+      if (!page.analysis) continue;
+
+      for (const component of page.analysis.components) {
+        if (component.isNavigationItem && component.navigatesTo) {
+          // Check if we already have this nav item
+          const existing = navItems.find((item) => item.targetPageSlug === component.navigatesTo);
+          if (!existing) {
+            navItems.push({
+              label: this.formatSlugAsLabel(component.navigatesTo),
+              targetPageSlug: component.navigatesTo,
+              order: navItems.length,
+              isActive: component.navigatesTo === page.slug,
+            });
+          }
+        }
+
+        // Detect navigation style from component type and position
+        if (component.type === 'sidebar') {
+          navStyle = 'sidebar';
+          navPosition = 'sidebar';
+        } else if (component.type === 'navigation') {
+          if (component.bounds.left < 20 && component.bounds.width < 30) {
+            navStyle = 'sidebar';
+            navPosition = 'sidebar';
+          }
+        }
+      }
+    }
+
+    // If no nav items were detected from components, create from page list
+    if (navItems.length === 0) {
+      for (const page of pages) {
+        navItems.push({
+          label: page.name,
+          targetPageSlug: page.slug,
+          order: page.order,
+          isActive: page.isMain,
+        });
+      }
+    }
+
+    return {
+      items: navItems.sort((a, b) => a.order - b.order),
+      style: navStyle,
+      position: navPosition,
+      confidence: 0.7,
+    };
+  }
+
+  /**
+   * Infer routes from analyzed pages
+   */
+  inferRoutesFromPages(pages: PageReference[]): InferredRoute[] {
+    const routes: InferredRoute[] = [];
+
+    for (const page of pages) {
+      const isIndex = page.isMain || page.slug === 'home' || page.slug === 'index';
+      const pageRole = page.analysis?.pageRole;
+
+      // Determine route path based on page role and name
+      let path = `/${page.slug}`;
+      const params: string[] = [];
+
+      if (isIndex) {
+        path = '/';
+      } else if (pageRole === 'detail') {
+        // Detail pages often have dynamic params
+        path = `/${page.slug}/:id`;
+        params.push(':id');
+      } else if (pageRole === 'profile') {
+        path = '/profile/:userId';
+        params.push(':userId');
+      }
+
+      routes.push({
+        path,
+        pageId: page.id,
+        isIndex,
+        params: params.length > 0 ? params : undefined,
+        pageName: page.name,
+      });
+    }
+
+    return routes;
+  }
+
+  // =========================================================================
+  // PRIVATE HELPERS FOR MULTI-PAGE
+  // =========================================================================
+
+  /**
+   * Extract shared design tokens from multiple pages
+   */
+  private extractSharedDesign(
+    pages: PageReference[]
+  ): Partial<import('@/types/layoutDesign').LayoutDesign> {
+    if (pages.length === 0) return {};
+
+    // Use the first page's colors as the base (most pages share the same palette)
+    const firstAnalysis = pages[0].analysis;
+    if (!firstAnalysis) return {};
+
+    // Find most common values across pages
+    const colorPalettes = pages.filter((p) => p.analysis).map((p) => p.analysis!.colorPalette);
+    const typographies = pages.filter((p) => p.analysis).map((p) => p.analysis!.typography);
+    const spacings = pages.filter((p) => p.analysis).map((p) => p.analysis!.spacing);
+    const effects = pages.filter((p) => p.analysis).map((p) => p.analysis!.effects);
+
+    // Use mode (most common) for each property, defaulting to first page's values
+    return {
+      globalStyles: {
+        colors: {
+          primary:
+            this.findMostCommon(colorPalettes.map((c) => c.primary)) ||
+            firstAnalysis.colorPalette.primary,
+          secondary:
+            this.findMostCommon(colorPalettes.map((c) => c.secondary)) ||
+            firstAnalysis.colorPalette.secondary,
+          accent:
+            this.findMostCommon(colorPalettes.map((c) => c.accent)) ||
+            firstAnalysis.colorPalette.accent,
+          background:
+            this.findMostCommon(colorPalettes.map((c) => c.background)) ||
+            firstAnalysis.colorPalette.background,
+          surface:
+            this.findMostCommon(colorPalettes.map((c) => c.surface)) ||
+            firstAnalysis.colorPalette.surface,
+          text:
+            this.findMostCommon(colorPalettes.map((c) => c.text)) ||
+            firstAnalysis.colorPalette.text,
+          textMuted:
+            this.findMostCommon(colorPalettes.map((c) => c.textMuted)) ||
+            firstAnalysis.colorPalette.textMuted,
+          border: firstAnalysis.colorPalette.textMuted,
+        },
+        typography: {
+          fontFamily: firstAnalysis.typography.estimatedBodyFont || 'Inter',
+          headingFont: firstAnalysis.typography.estimatedHeadingFont,
+          headingWeight: firstAnalysis.typography.headingWeight,
+          bodyWeight: firstAnalysis.typography.bodyWeight,
+          headingSize: 'lg' as const,
+          bodySize: 'base' as const,
+          lineHeight: 'normal' as const,
+          letterSpacing: 'normal' as const,
+        },
+        spacing: {
+          density:
+            this.findMostCommon(spacings.map((s) => s.density)) || firstAnalysis.spacing.density,
+          containerWidth: 'standard' as const,
+          sectionPadding:
+            this.findMostCommon(spacings.map((s) => s.sectionPadding)) ||
+            firstAnalysis.spacing.sectionPadding,
+          componentGap:
+            this.findMostCommon(spacings.map((s) => s.componentGap)) ||
+            firstAnalysis.spacing.componentGap,
+        },
+        effects: {
+          borderRadius:
+            this.findMostCommon(effects.map((e) => e.borderRadius)) ||
+            firstAnalysis.effects.borderRadius,
+          shadows:
+            this.findMostCommon(effects.map((e) => e.shadows)) || firstAnalysis.effects.shadows,
+          animations: effects.some((e) => e.hasAnimations) ? 'smooth' : 'subtle',
+          blur: effects.some((e) => e.hasBlur) ? 'subtle' : 'none',
+          gradients: effects.some((e) => e.hasGradients),
+        },
+      },
+    };
+  }
+
+  /**
+   * Find the most common value in an array
+   */
+  private findMostCommon<T>(arr: T[]): T | undefined {
+    if (arr.length === 0) return undefined;
+    const counts = new Map<T, number>();
+    for (const item of arr) {
+      counts.set(item, (counts.get(item) || 0) + 1);
+    }
+    let maxCount = 0;
+    let mostCommon: T | undefined;
+    for (const [item, count] of counts) {
+      if (count > maxCount) {
+        maxCount = count;
+        mostCommon = item;
+      }
+    }
+    return mostCommon;
+  }
+
+  /**
+   * Generate URL-friendly slug from page name
+   */
+  private generateSlug(name: string): string {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+
+  /**
+   * Format slug back to human-readable label
+   */
+  private formatSlugAsLabel(slug: string): string {
+    return slug
+      .split('-')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
   /**
    * Clear the analysis cache
    */
@@ -755,6 +1212,15 @@ export const geminiLayoutService = {
   checkAvailability: () => getGeminiLayoutService().checkAvailability(),
   clearCache: () => getGeminiLayoutService().clearCache(),
   getCacheStats: () => getGeminiLayoutService().getCacheStats(),
+  // Multi-page analysis methods
+  analyzePageEnhanced: (imageBase64: string, pageName?: string) =>
+    getGeminiLayoutService().analyzePageEnhanced(imageBase64, pageName),
+  analyzeMultiplePages: (pages: Array<{ id: string; imageBase64: string; name?: string }>) =>
+    getGeminiLayoutService().analyzeMultiplePages(pages),
+  detectNavigationFromPages: (pages: PageReference[]) =>
+    getGeminiLayoutService().detectNavigationFromPages(pages),
+  inferRoutesFromPages: (pages: PageReference[]) =>
+    getGeminiLayoutService().inferRoutesFromPages(pages),
 };
 
 export default geminiLayoutService;

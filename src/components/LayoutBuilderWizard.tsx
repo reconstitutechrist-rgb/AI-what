@@ -85,6 +85,9 @@ import {
   DesignSidePanel,
   MediaUploadZone,
 } from '@/components/layout-builder';
+import { MultiPageUploadZone } from '@/components/layout-builder/MultiPageUploadZone';
+import { PageNavigator } from '@/components/layout-builder/PageNavigator';
+import { NavigationStructurePanel } from '@/components/layout-builder/NavigationStructurePanel';
 import { mapStructureTypeToLayout } from '@/utils/layoutTypeMapping';
 // GeminiAnalysisPanel import removed - now embedded in MessageBubble component
 import { useLayoutPanelStore } from '@/stores/useLayoutPanelStore';
@@ -305,6 +308,21 @@ export function LayoutBuilderWizard({
     restoreVersion,
     deleteVersion,
     hasUnsavedChanges,
+    // Multi-page state and actions
+    pageReferences,
+    currentPageId,
+    multiPageDesign,
+    isMultiPageMode,
+    isAnalyzingPages,
+    addPageReferences,
+    removePageReference,
+    reorderPages,
+    updatePageName,
+    setCurrentPage,
+    analyzeAllPages,
+    updateNavigation,
+    exportReactRouterConfig,
+    toggleMultiPageMode,
   } = useLayoutBuilder({
     onAnimationsReceived: handleAnimationsReceived,
     onBackgroundsGenerated: handleBackgroundsGenerated,
@@ -383,6 +401,9 @@ export function LayoutBuilderWizard({
   const [showReferenceMediaPanel, _setShowReferenceMediaPanel] = useState(true);
   const [showDesignSidePanel, setShowDesignSidePanel] = useState(isAdvancedMode);
   // Note: showGeminiAnalysis state removed - Creative Director Analysis is now embedded in chat via MessageBubble
+
+  // Navigation structure panel state (multi-page mode)
+  const [showNavigationPanel, setShowNavigationPanel] = useState(false);
 
   // Data states for advanced features
   const [customAnimation, setCustomAnimation] = useState<CustomAnimation | null>(null);
@@ -1278,6 +1299,52 @@ export function LayoutBuilderWizard({
               Unsaved changes
             </span>
           )}
+          {/* Multi-Page Mode Toggle */}
+          <div className="flex items-center gap-1 ml-4">
+            <button
+              onClick={() => toggleMultiPageMode(false)}
+              className={`px-2 py-1 text-xs rounded-l-md transition-colors ${
+                !isMultiPageMode
+                  ? 'bg-gold-500 text-white'
+                  : 'bg-slate-700 text-slate-400 hover:text-white'
+              }`}
+            >
+              Single
+            </button>
+            <button
+              onClick={() => toggleMultiPageMode(true)}
+              className={`px-2 py-1 text-xs rounded-r-md transition-colors ${
+                isMultiPageMode
+                  ? 'bg-gold-500 text-white'
+                  : 'bg-slate-700 text-slate-400 hover:text-white'
+              }`}
+            >
+              Multi-Page
+            </button>
+          </div>
+          {isMultiPageMode && pageReferences.length > 0 && (
+            <>
+              <span className="text-xs text-slate-400">
+                {pageReferences.length} page{pageReferences.length !== 1 ? 's' : ''}
+              </span>
+              {multiPageDesign?.navigation && (
+                <button
+                  onClick={() => setShowNavigationPanel(true)}
+                  className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white rounded transition-colors flex items-center gap-1"
+                >
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6h16M4 12h16M4 18h7"
+                    />
+                  </svg>
+                  Navigation
+                </button>
+              )}
+            </>
+          )}
         </div>
         <div className="flex items-center gap-3">
           {/* Advanced Mode Tools */}
@@ -1615,23 +1682,38 @@ export function LayoutBuilderWizard({
           {/* Unified Media Upload Zone - Auto-detects image/video with mode selector */}
           {showReferenceMediaPanel && (
             <div className="border-t border-white/10">
-              <MediaUploadZone
-                onImageUpload={(dataUrl) => {
-                  addReferenceImage(dataUrl);
-                  // Auto-enable pixel-perfect mode when image is added
-                  if (analysisMode === 'standard') {
-                    setAnalysisMode('pixel-perfect');
-                  }
-                }}
-                onVideoUpload={(file, mode) => {
-                  // Set analysis mode based on user selection, then process
-                  setAnalysisMode(mode);
-                  processVideoFile(file);
-                }}
-                analysisMode={analysisMode}
-                onAnalysisModeChange={setAnalysisMode}
-                compact={true}
-              />
+              {isMultiPageMode ? (
+                <div className="p-3">
+                  <MultiPageUploadZone
+                    pages={pageReferences}
+                    onPagesAdd={addPageReferences}
+                    onPageRemove={removePageReference}
+                    onPagesReorder={reorderPages}
+                    onPageNameChange={updatePageName}
+                    onAnalyzeAllPages={analyzeAllPages}
+                    isAnalyzing={isAnalyzingPages}
+                    maxPages={10}
+                  />
+                </div>
+              ) : (
+                <MediaUploadZone
+                  onImageUpload={(dataUrl) => {
+                    addReferenceImage(dataUrl);
+                    // Auto-enable pixel-perfect mode when image is added
+                    if (analysisMode === 'standard') {
+                      setAnalysisMode('pixel-perfect');
+                    }
+                  }}
+                  onVideoUpload={(file, mode) => {
+                    // Set analysis mode based on user selection, then process
+                    setAnalysisMode(mode);
+                    processVideoFile(file);
+                  }}
+                  analysisMode={analysisMode}
+                  onAnalysisModeChange={setAnalysisMode}
+                  compact={true}
+                />
+              )}
               {/* Reference Images Preview */}
               {referenceImages.length > 0 && (
                 <div className="px-3 pb-3">
@@ -1696,6 +1778,61 @@ export function LayoutBuilderWizard({
           className="w-1/2 min-h-0 flex flex-col relative"
           style={{ background: 'var(--bg-primary)' }}
         >
+          {/* Page Navigator (Multi-Page Mode) */}
+          {isMultiPageMode && pageReferences.length > 0 && (
+            <div className="border-b border-white/10">
+              <PageNavigator
+                pages={pageReferences}
+                currentPageId={currentPageId}
+                onPageSelect={setCurrentPage}
+                onPageRemove={removePageReference}
+                onAddPage={() => {
+                  // Trigger file upload dialog
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = 'image/*';
+                  input.multiple = true;
+                  input.onchange = async (e) => {
+                    const files = (e.target as HTMLInputElement).files;
+                    if (files) {
+                      const newPages = await Promise.all(
+                        Array.from(files).map(async (file, i) => {
+                          const dataUrl = await new Promise<string>((resolve) => {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => resolve(ev.target?.result as string);
+                            reader.readAsDataURL(file);
+                          });
+                          const baseName = file.name.replace(/\.[^/.]+$/, '');
+                          const pageName =
+                            baseName
+                              .replace(/[-_]/g, ' ')
+                              .replace(/\b\w/g, (l) => l.toUpperCase())
+                              .trim() || `Page ${pageReferences.length + i + 1}`;
+                          return {
+                            id: `page_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+                            name: pageName,
+                            slug: pageName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+                            referenceImage: dataUrl,
+                            order: pageReferences.length + i,
+                            isMain: false,
+                            status: 'pending' as const,
+                            createdAt: new Date().toISOString(),
+                          };
+                        })
+                      );
+                      addPageReferences(newPages);
+                    }
+                  };
+                  input.click();
+                }}
+                onPagesReorder={reorderPages}
+                compact={true}
+                showAddButton={pageReferences.length < 10}
+                allowRemove={true}
+              />
+            </div>
+          )}
+
           {/* Compact Analysis Progress Indicator */}
           {analysisProgress.state.isAnalyzing && (
             <div className="p-2 border-b border-white/10">
@@ -1894,6 +2031,66 @@ export function LayoutBuilderWizard({
         onApply={handleApplyExtractedColors}
         onDismiss={() => setShowExtractedColors(false)}
       />
+
+      {/* Navigation Structure Panel (Multi-Page Mode) */}
+      {showNavigationPanel && isMultiPageMode && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={() => setShowNavigationPanel(false)}
+          />
+          <div
+            className="fixed inset-y-0 right-0 w-[500px] max-w-full shadow-2xl z-50 flex flex-col"
+            style={{ background: 'var(--bg-primary)', borderLeft: '1px solid var(--border-color)' }}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <h2 className="text-lg font-semibold text-white">Navigation Structure</h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const config = exportReactRouterConfig();
+                    if (config) {
+                      success('Router config copied to clipboard');
+                    }
+                  }}
+                  className="px-3 py-1.5 text-sm bg-gold-500 hover:bg-gold-600 text-white rounded-lg transition-colors"
+                >
+                  Export Config
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowNavigationPanel(false)}
+                  className="p-2 text-slate-400 hover:text-white hover:bg-slate-900/50 rounded-lg transition-colors"
+                  aria-label="Close navigation panel"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto">
+              <NavigationStructurePanel
+                navigation={multiPageDesign?.navigation || null}
+                pages={pageReferences}
+                routes={multiPageDesign?.inferredRoutes || []}
+                onNavigationUpdate={updateNavigation}
+                onExportRouterConfig={() => {
+                  const config = exportReactRouterConfig();
+                  if (config) {
+                    success('Router config copied to clipboard');
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Animation Timeline Panel (slide-over) */}
       {showAnimationTimeline && (

@@ -782,3 +782,28 @@ export const ExportIcon: React.FC<IconProps> = (props) => (
     <line x1="12" y1="3" x2="12" y2="15" />
   </Icon>
 );
+
+// Home - house icon
+export const HomeIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    <polyline points="9 22 9 12 15 12 15 22" />
+  </Icon>
+);
+
+// Link - chain link icon
+export const LinkIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+  </Icon>
+);
+
+// Alert - warning icon (alias for AlertTriangleIcon)
+export const AlertIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </Icon>
+);

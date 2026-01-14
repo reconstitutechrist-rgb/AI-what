@@ -341,6 +341,292 @@ export interface ReferenceMedia {
 }
 
 // ============================================================================
+// Multi-Page Reference Types
+// ============================================================================
+
+/**
+ * Page role detected from visual analysis
+ */
+export type PageRole =
+  | 'landing'
+  | 'dashboard'
+  | 'list'
+  | 'detail'
+  | 'form'
+  | 'auth'
+  | 'settings'
+  | 'profile'
+  | 'checkout'
+  | 'search'
+  | 'error'
+  | 'custom';
+
+/**
+ * Analysis result for a single page
+ */
+export interface PageAnalysis {
+  /** Detected page role/type */
+  pageRole: PageRole;
+  /** Layout type detected for this page */
+  layoutType:
+    | 'single-page'
+    | 'dashboard'
+    | 'landing'
+    | 'e-commerce'
+    | 'portfolio'
+    | 'blog'
+    | 'saas';
+  /** Color palette extracted from this page */
+  colorPalette: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+    surface: string;
+    text: string;
+    textMuted: string;
+  };
+  /** Typography settings detected */
+  typography: {
+    headingStyle: string;
+    bodyStyle: string;
+    headingWeight: 'light' | 'normal' | 'medium' | 'semibold' | 'bold';
+    bodyWeight: 'light' | 'normal' | 'medium';
+    estimatedHeadingFont?: string;
+    estimatedBodyFont?: string;
+  };
+  /** Spacing settings detected */
+  spacing: {
+    density: 'compact' | 'normal' | 'relaxed';
+    sectionPadding: 'sm' | 'md' | 'lg' | 'xl';
+    componentGap: 'sm' | 'md' | 'lg';
+  };
+  /** Components detected with enhanced positioning */
+  components: DetectedComponentEnhanced[];
+  /** Visual effects detected */
+  effects: {
+    borderRadius: 'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
+    shadows: 'none' | 'subtle' | 'medium' | 'strong';
+    hasGradients: boolean;
+    hasBlur: boolean;
+    hasAnimations: boolean;
+  };
+  /** Overall design vibe */
+  vibe: string;
+  /** Keywords describing the aesthetic */
+  vibeKeywords: string[];
+  /** Confidence score 0-1 */
+  confidence: number;
+}
+
+/**
+ * Enhanced component detection with precise positioning for exact replication
+ */
+export interface DetectedComponentEnhanced {
+  /** Unique identifier for this component instance */
+  id: string;
+  /** Component type */
+  type:
+    | 'header'
+    | 'sidebar'
+    | 'hero'
+    | 'cards'
+    | 'navigation'
+    | 'footer'
+    | 'form'
+    | 'table'
+    | 'carousel'
+    | 'timeline'
+    | 'stepper'
+    | 'stats'
+    | 'testimonials'
+    | 'pricing'
+    | 'features'
+    | 'cta'
+    | 'breadcrumb'
+    | 'pagination'
+    | 'tabs'
+    | 'modal-trigger'
+    | 'search-bar'
+    | 'user-menu'
+    | 'logo'
+    | 'content-section'
+    | 'image-gallery'
+    | 'video-player'
+    | 'map'
+    | 'chart'
+    | 'unknown';
+  /** Precise bounding box as percentage of viewport (0-100) */
+  bounds: {
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  };
+  /** Style details */
+  style: {
+    variant?: string;
+    hasBackground?: boolean;
+    backgroundColor?: string;
+    isFloating?: boolean;
+    isSticky?: boolean;
+    borderRadius?: string;
+    shadow?: string;
+  };
+  /** Parent component ID for hierarchy */
+  parentId?: string;
+  /** Child component IDs */
+  children?: string[];
+  /** Z-index layer */
+  zIndex?: number;
+  /** If this is a navigation item, which page does it link to */
+  navigatesTo?: string;
+  /** Is this element part of the navigation system */
+  isNavigationItem?: boolean;
+  /** Confidence score 0-1 */
+  confidence: number;
+}
+
+/**
+ * Navigation item extracted from page analysis
+ */
+export interface NavigationItem {
+  /** Display label */
+  label: string;
+  /** Target page slug if internal navigation */
+  targetPageSlug?: string;
+  /** Icon identifier if detected */
+  icon?: string;
+  /** Display order */
+  order: number;
+  /** Was this item detected as active/current in the reference */
+  isActive?: boolean;
+  /** Nested navigation items */
+  children?: NavigationItem[];
+}
+
+/**
+ * Navigation structure detected across pages
+ */
+export interface DetectedNavigation {
+  /** Navigation items */
+  items: NavigationItem[];
+  /** Navigation style */
+  style: 'horizontal' | 'vertical' | 'sidebar' | 'hamburger' | 'tabs' | 'mega-menu';
+  /** Position in layout */
+  position: 'header' | 'sidebar' | 'footer' | 'floating';
+  /** Whether navigation is sticky */
+  isSticky?: boolean;
+  /** Confidence score 0-1 */
+  confidence: number;
+}
+
+/**
+ * Inferred route from page analysis
+ */
+export interface InferredRoute {
+  /** Route path (e.g., "/products", "/products/:id") */
+  path: string;
+  /** Associated page ID */
+  pageId: string;
+  /** Is this the index/home route */
+  isIndex?: boolean;
+  /** Dynamic route parameters */
+  params?: string[];
+  /** Page name for display */
+  pageName: string;
+}
+
+/**
+ * Reference for a single page in multi-page mode
+ */
+export interface PageReference {
+  /** Unique identifier */
+  id: string;
+  /** Display name (e.g., "Home", "Dashboard", "Product Detail") */
+  name: string;
+  /** URL-friendly slug (e.g., "home", "dashboard", "product-detail") */
+  slug: string;
+  /** Base64 encoded reference image */
+  referenceImage: string;
+  /** Thumbnail for display (smaller base64) */
+  thumbnail?: string;
+  /** Analysis result from AI */
+  analysis?: PageAnalysis;
+  /** Display order in navigation */
+  order: number;
+  /** Is this the main/index page */
+  isMain?: boolean;
+  /** Analysis status */
+  status: 'pending' | 'analyzing' | 'complete' | 'error';
+  /** Error message if status is error */
+  errorMessage?: string;
+  /** When the page reference was created */
+  createdAt: string;
+}
+
+/**
+ * Page transition detected from video analysis (for multi-page mode)
+ */
+export interface VideoPageTransition {
+  /** Start timestamp in seconds */
+  startTime: number;
+  /** End timestamp in seconds */
+  endTime: number;
+  /** Transition type detected */
+  transitionType: 'navigation' | 'scroll' | 'modal' | 'drawer' | 'tab-switch' | 'unknown';
+  /** Confidence that this is a page transition */
+  confidence: number;
+  /** Frame index where transition starts */
+  startFrameIndex: number;
+  /** Frame index where transition ends */
+  endFrameIndex: number;
+}
+
+/**
+ * Multi-page design container
+ */
+export interface MultiPageDesign {
+  /** All page references */
+  pages: PageReference[];
+  /** Shared design tokens across all pages (colors, typography, effects) */
+  sharedDesign: Partial<LayoutDesign>;
+  /** Detected navigation structure */
+  navigation: DetectedNavigation;
+  /** Per-page design overrides */
+  pageSpecificOverrides: Record<string, Partial<LayoutDesign>>;
+  /** Inferred routes */
+  inferredRoutes: InferredRoute[];
+  /** When this multi-page design was created */
+  createdAt: string;
+  /** When this was last updated */
+  updatedAt: string;
+}
+
+/**
+ * Result from multi-page analysis API
+ */
+export interface MultiPageAnalysisResult {
+  /** Analyzed pages with their individual analysis */
+  pages: PageReference[];
+  /** Shared design detected across pages */
+  sharedDesign: Partial<LayoutDesign>;
+  /** Navigation structure detected */
+  navigation: DetectedNavigation;
+  /** Inferred routes */
+  inferredRoutes: InferredRoute[];
+  /** Overall confidence score */
+  confidence: number;
+  /** Processing metadata */
+  metadata: {
+    totalPages: number;
+    analyzedPages: number;
+    processingTimeMs: number;
+    modelUsed: 'gemini' | 'claude' | 'dual';
+  };
+}
+
+// ============================================================================
 // Conversation Context Types
 // ============================================================================
 
@@ -446,6 +732,12 @@ export interface LayoutDesign {
 
   // Design Context (auto-extracted from conversation)
   designContext?: DesignContext;
+
+  // Multi-Page Design (optional, for multi-page mode)
+  multiPage?: MultiPageDesign;
+
+  // Current page being edited (for multi-page mode)
+  currentPageId?: string;
 }
 
 // ============================================================================
@@ -947,6 +1239,16 @@ export interface LayoutChatRequest {
   workflowState?: LayoutWorkflowState;
   /** Current device view for responsive context */
   currentDevice?: DeviceView;
+
+  // Multi-page mode fields
+  /** Page references for multi-page analysis */
+  pageReferences?: PageReference[];
+  /** Current page ID being edited */
+  currentPageId?: string;
+  /** Request type for routing */
+  requestType?: 'single-page' | 'multi-page-analysis' | 'page-specific' | 'add-pages';
+  /** Existing multi-page design for incremental updates */
+  existingMultiPageDesign?: MultiPageDesign;
 }
 
 export interface DesignChange {
