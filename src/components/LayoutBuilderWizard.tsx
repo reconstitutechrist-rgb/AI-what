@@ -611,6 +611,22 @@ export function LayoutBuilderWizard({
     layout: design.basePreferences?.layout || getLayoutFromStructure(design.structure?.type),
     primaryColor: design.globalStyles?.colors?.primary || '#3B82F6',
   };
+
+  // DEBUG: Log design changes to verify Gemini analysis is being applied
+  useEffect(() => {
+    console.log('[LayoutBuilderWizard] Design updated:', {
+      colors: design.globalStyles?.colors,
+      structure: design.structure,
+      layout: previewPreferences.layout,
+      colorScheme: previewPreferences.colorScheme,
+    });
+  }, [
+    design.globalStyles?.colors,
+    design.structure,
+    previewPreferences.layout,
+    previewPreferences.colorScheme,
+  ]);
+
   // Handle suggested action clicks
   const handleAction = useCallback(
     (action: string) => {
@@ -1867,6 +1883,7 @@ export function LayoutBuilderWizard({
                       sidebarDesign: design.components?.sidebar,
                       cardDesign: design.components?.cards,
                       navDesign: design.components?.navigation,
+                      structure: design.structure,
                     }}
                     showGridOverlay={showGridOverlay}
                     onGridOverlayToggle={setShowGridOverlay}
@@ -1891,6 +1908,7 @@ export function LayoutBuilderWizard({
                     sidebarDesign: design.components?.sidebar,
                     cardDesign: design.components?.cards,
                     navDesign: design.components?.navigation,
+                    structure: design.structure,
                   }}
                   showGridOverlay={showGridOverlay}
                   onGridOverlayToggle={setShowGridOverlay}

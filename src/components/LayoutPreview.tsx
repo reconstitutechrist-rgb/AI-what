@@ -9,6 +9,7 @@ import type {
   NavigationDesign,
   EffectsSettings,
   ColorSettings,
+  LayoutStructure,
 } from '../types/layoutDesign';
 import { generateMockContent } from '../utils/mockContentGenerator';
 import { DragDropCanvas, useSectionOrder, type LayoutSection } from './layout/DragDropCanvas';
@@ -116,6 +117,7 @@ interface ComponentDesignProps {
   navDesign?: Partial<NavigationDesign>;
   effectsSettings?: Partial<EffectsSettings>;
   colorSettings?: Partial<ColorSettings>;
+  structure?: Partial<LayoutStructure>;
 }
 
 /**
@@ -1314,6 +1316,8 @@ interface LayoutComponentProps {
   navDesign?: Partial<NavigationDesign>;
   effectsSettings?: Partial<EffectsSettings>;
   colorSettings?: Partial<ColorSettings>;
+  // Layout structure from Gemini detection
+  structure?: Partial<LayoutStructure>;
   // Responsive
   viewMode?: ViewMode;
   // Generated images
@@ -1337,11 +1341,18 @@ function DashboardLayout({
   navDesign,
   effectsSettings,
   colorSettings,
+  structure,
   viewMode = 'desktop',
   generatedImages,
 }: LayoutComponentProps) {
   const isMobile = viewMode === 'mobile';
   const isTablet = viewMode === 'tablet';
+
+  // Determine which components to render based on structure detection
+  // Default to true (show component) if structure doesn't specify
+  const showHeader = structure?.hasHeader !== false;
+  const showSidebar = structure?.hasSidebar !== false;
+  const showFooter = structure?.hasFooter !== false;
 
   // Inline style for main background - overrides Tailwind bg class when colorSettings is set
   const containerStyle = colorSettings?.background
@@ -1349,24 +1360,29 @@ function DashboardLayout({
     : undefined;
 
   return (
-    <div className={`flex flex-col h-full ${colors.bg}`} style={containerStyle}>
-      <Header
-        appName={appName}
-        navItems={content.navItems}
-        colors={colors}
-        style={style}
-        primaryColor={primaryColor}
-        onElementSelect={onElementSelect}
-        selectedElement={selectedElement}
-        headerDesign={headerDesign}
-        navDesign={navDesign}
-        effectsSettings={effectsSettings}
-        isMobile={isMobile}
-        colorSettings={colorSettings}
-      />
+    <div
+      className={`flex flex-col h-full ${!colorSettings?.background ? colors.bg : ''}`}
+      style={containerStyle}
+    >
+      {showHeader && (
+        <Header
+          appName={appName}
+          navItems={content.navItems}
+          colors={colors}
+          style={style}
+          primaryColor={primaryColor}
+          onElementSelect={onElementSelect}
+          selectedElement={selectedElement}
+          headerDesign={headerDesign}
+          navDesign={navDesign}
+          effectsSettings={effectsSettings}
+          isMobile={isMobile}
+          colorSettings={colorSettings}
+        />
+      )}
       <div className="flex flex-1 overflow-hidden">
-        {/* Hide sidebar on mobile, show collapsed on tablet */}
-        {!isMobile && (
+        {/* Hide sidebar on mobile, show collapsed on tablet, or hide if structure says no sidebar */}
+        {!isMobile && showSidebar && (
           <Sidebar
             navItems={content.navItems}
             colors={colors}
@@ -1415,13 +1431,15 @@ function DashboardLayout({
           />
         </main>
       </div>
-      <Footer
-        appName={appName}
-        colors={colors}
-        onElementSelect={onElementSelect}
-        selectedElement={selectedElement}
-        colorSettings={colorSettings}
-      />
+      {showFooter && (
+        <Footer
+          appName={appName}
+          colors={colors}
+          onElementSelect={onElementSelect}
+          selectedElement={selectedElement}
+          colorSettings={colorSettings}
+        />
+      )}
     </div>
   );
 }
@@ -1442,10 +1460,15 @@ function MultiPageLayout({
   navDesign,
   effectsSettings,
   colorSettings,
+  structure,
   viewMode = 'desktop',
   generatedImages,
 }: LayoutComponentProps) {
   const isMobile = viewMode === 'mobile';
+
+  // Determine which components to render based on structure detection
+  const showHeader = structure?.hasHeader !== false;
+  const showFooter = structure?.hasFooter !== false;
 
   // Inline style for main background - overrides Tailwind bg class when colorSettings is set
   const containerStyle = colorSettings?.background
@@ -1453,21 +1476,26 @@ function MultiPageLayout({
     : undefined;
 
   return (
-    <div className={`flex flex-col h-full ${colors.bg}`} style={containerStyle}>
-      <Header
-        appName={appName}
-        navItems={content.navItems}
-        colors={colors}
-        style={style}
-        primaryColor={primaryColor}
-        onElementSelect={onElementSelect}
-        selectedElement={selectedElement}
-        headerDesign={headerDesign}
-        navDesign={navDesign}
-        effectsSettings={effectsSettings}
-        isMobile={isMobile}
-        colorSettings={colorSettings}
-      />
+    <div
+      className={`flex flex-col h-full ${!colorSettings?.background ? colors.bg : ''}`}
+      style={containerStyle}
+    >
+      {showHeader && (
+        <Header
+          appName={appName}
+          navItems={content.navItems}
+          colors={colors}
+          style={style}
+          primaryColor={primaryColor}
+          onElementSelect={onElementSelect}
+          selectedElement={selectedElement}
+          headerDesign={headerDesign}
+          navDesign={navDesign}
+          effectsSettings={effectsSettings}
+          isMobile={isMobile}
+          colorSettings={colorSettings}
+        />
+      )}
       <main className={`flex-1 min-h-0 overflow-y-auto ${isMobile ? 'px-2' : ''}`}>
         <Hero
           title={content.hero.title}
@@ -1504,13 +1532,15 @@ function MultiPageLayout({
           colorSettings={colorSettings}
         />
       </main>
-      <Footer
-        appName={appName}
-        colors={colors}
-        onElementSelect={onElementSelect}
-        selectedElement={selectedElement}
-        colorSettings={colorSettings}
-      />
+      {showFooter && (
+        <Footer
+          appName={appName}
+          colors={colors}
+          onElementSelect={onElementSelect}
+          selectedElement={selectedElement}
+          colorSettings={colorSettings}
+        />
+      )}
     </div>
   );
 }
@@ -1527,14 +1557,22 @@ function SinglePageLayout({
   onElementSelect,
   selectedElement,
   headerDesign,
+  sidebarDesign,
   cardDesign,
   navDesign,
   effectsSettings,
   colorSettings,
+  structure,
   viewMode = 'desktop',
   generatedImages,
 }: LayoutComponentProps) {
   const isMobile = viewMode === 'mobile';
+  const isTablet = viewMode === 'tablet';
+
+  // Determine which components to render based on structure detection
+  const showHeader = structure?.hasHeader !== false;
+  const showSidebar = structure?.hasSidebar === true; // Only show if explicitly detected
+  const showFooter = structure?.hasFooter !== false;
 
   // Inline style for main background - overrides Tailwind bg class when colorSettings is set
   const containerStyle = colorSettings?.background
@@ -1542,64 +1580,89 @@ function SinglePageLayout({
     : undefined;
 
   return (
-    <div className={`flex flex-col h-full ${colors.bg}`} style={containerStyle}>
-      <Header
-        appName={appName}
-        navItems={content.navItems}
-        colors={colors}
-        style={style}
-        primaryColor={primaryColor}
-        onElementSelect={onElementSelect}
-        selectedElement={selectedElement}
-        headerDesign={headerDesign}
-        navDesign={navDesign}
-        effectsSettings={effectsSettings}
-        isMobile={isMobile}
-        colorSettings={colorSettings}
-      />
-      <main className={`flex-1 min-h-0 overflow-y-auto ${isMobile ? 'px-2' : ''}`}>
-        <Hero
-          title={content.hero.title}
-          subtitle={content.hero.subtitle}
-          cta={content.hero.cta}
+    <div
+      className={`flex flex-col h-full ${!colorSettings?.background ? colors.bg : ''}`}
+      style={containerStyle}
+    >
+      {showHeader && (
+        <Header
+          appName={appName}
+          navItems={content.navItems}
           colors={colors}
           style={style}
           primaryColor={primaryColor}
           onElementSelect={onElementSelect}
           selectedElement={selectedElement}
+          headerDesign={headerDesign}
+          navDesign={navDesign}
           effectsSettings={effectsSettings}
-          backgroundImage={generatedImages?.hero}
+          isMobile={isMobile}
           colorSettings={colorSettings}
         />
-        <CardGrid
-          cards={content.cards}
+      )}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Show sidebar in single-page mode if Gemini detected one in the reference image */}
+        {!isMobile && showSidebar && (
+          <Sidebar
+            navItems={content.navItems}
+            colors={colors}
+            style={style}
+            primaryColor={primaryColor}
+            onElementSelect={onElementSelect}
+            selectedElement={selectedElement}
+            sidebarDesign={{
+              ...sidebarDesign,
+              defaultCollapsed: isTablet ? true : sidebarDesign?.defaultCollapsed,
+            }}
+            colorSettings={colorSettings}
+          />
+        )}
+        <main className={`flex-1 min-h-0 overflow-y-auto ${isMobile ? 'px-2' : ''}`}>
+          <Hero
+            title={content.hero.title}
+            subtitle={content.hero.subtitle}
+            cta={content.hero.cta}
+            colors={colors}
+            style={style}
+            primaryColor={primaryColor}
+            onElementSelect={onElementSelect}
+            selectedElement={selectedElement}
+            effectsSettings={effectsSettings}
+            backgroundImage={generatedImages?.hero}
+            colorSettings={colorSettings}
+          />
+          <CardGrid
+            cards={content.cards}
+            colors={colors}
+            style={style}
+            primaryColor={primaryColor}
+            onElementSelect={onElementSelect}
+            selectedElement={selectedElement}
+            cardDesign={cardDesign}
+            effectsSettings={effectsSettings}
+            cardImages={generatedImages?.cards}
+            colorSettings={colorSettings}
+          />
+          <ListItems
+            items={content.listItems}
+            colors={colors}
+            style={style}
+            onElementSelect={onElementSelect}
+            selectedElement={selectedElement}
+            effectsSettings={effectsSettings}
+            colorSettings={colorSettings}
+          />
+        </main>
+      </div>
+      {showFooter && (
+        <Footer
+          appName={appName}
           colors={colors}
-          style={style}
-          primaryColor={primaryColor}
           onElementSelect={onElementSelect}
           selectedElement={selectedElement}
-          cardDesign={cardDesign}
-          effectsSettings={effectsSettings}
-          cardImages={generatedImages?.cards}
           colorSettings={colorSettings}
         />
-        <ListItems
-          items={content.listItems}
-          colors={colors}
-          style={style}
-          onElementSelect={onElementSelect}
-          selectedElement={selectedElement}
-          effectsSettings={effectsSettings}
-          colorSettings={colorSettings}
-        />
-      </main>
-      <Footer
-        appName={appName}
-        colors={colors}
-        onElementSelect={onElementSelect}
-        selectedElement={selectedElement}
-        colorSettings={colorSettings}
-      />
+      )}
     </div>
   );
 }
@@ -1906,6 +1969,8 @@ export function LayoutPreview({
       navDesign: componentDesign?.navDesign,
       effectsSettings: componentDesign?.effectsSettings,
       colorSettings: componentDesign?.colorSettings,
+      // Layout structure from Gemini detection (hasHeader, hasSidebar, hasFooter)
+      structure: componentDesign?.structure,
       // Responsive
       viewMode,
       // Generated images

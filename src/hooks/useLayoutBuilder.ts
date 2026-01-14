@@ -1007,85 +1007,103 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
               : 'light'
             : undefined;
 
-          const mergedDesign = {
-            ...design,
-            ...(data.updatedDesign || {}),
-            // Sync basePreferences.layout with Gemini's detected layout type
-            basePreferences: {
-              ...design.basePreferences,
-              ...(data.updatedDesign?.basePreferences || {}),
-              // Use Gemini's detected layout and colorScheme if available
-              ...(mappedLayout ? { layout: mappedLayout } : {}),
-              ...(detectedColorScheme ? { colorScheme: detectedColorScheme } : {}),
-            },
-            globalStyles: {
-              ...design.globalStyles,
-              ...(data.updatedDesign?.globalStyles || {}),
-              typography: {
-                ...baseStyles.typography,
-                ...design.globalStyles?.typography,
-                ...(data.updatedDesign?.globalStyles?.typography || {}),
-              },
-              // When Gemini colors exist, use them as the COMPLETE color set (no spreading old values)
-              // This prevents old colors from persisting through spread operations
-              colors: geminiColors
-                ? {
-                    primary: geminiColors.primary,
-                    secondary: geminiColors.secondary,
-                    accent: geminiColors.accent,
-                    background: geminiColors.background,
-                    surface: geminiColors.surface,
-                    text: geminiColors.text,
-                    textMuted: geminiColors.textMuted,
-                    border: geminiColors.border,
-                  }
-                : {
-                    // Only spread when no Gemini colors
-                    ...baseStyles.colors,
-                    ...design.globalStyles?.colors,
-                    ...(data.updatedDesign?.globalStyles?.colors || {}),
-                  },
-              spacing: {
-                ...baseStyles.spacing,
-                ...design.globalStyles?.spacing,
-                ...(data.updatedDesign?.globalStyles?.spacing || {}),
-              },
-              effects: {
-                ...baseStyles.effects,
-                ...design.globalStyles?.effects,
-                ...(data.updatedDesign?.globalStyles?.effects || {}),
-              },
-            },
-            components: {
-              ...design.components,
-              ...(data.updatedDesign?.components || {}),
-            },
-            structure: {
-              ...design.structure,
-              ...(data.updatedDesign?.structure || {}),
-              // If Gemini detected layout type, apply it to structure.type
-              ...(mappedStructureType ? { type: mappedStructureType } : {}),
-              // If Gemini detected components from reference image, apply them
-              ...(data.geminiAnalysis?.components
-                ? {
-                    hasHeader: data.geminiAnalysis.components.some((c) => c.type === 'header'),
-                    hasSidebar: data.geminiAnalysis.components.some((c) => c.type === 'sidebar'),
-                    hasFooter: data.geminiAnalysis.components.some((c) => c.type === 'footer'),
-                  }
-                : {}),
-            },
-          } as Partial<LayoutDesign>;
-          setDesign(mergedDesign);
-
-          // Update history for undo/redo
-          setDesignHistory((history) => {
-            const newHistory = history.slice(0, historyIndex + 1);
-            newHistory.push(mergedDesign);
-            if (newHistory.length > MAX_HISTORY_SIZE) {
-              newHistory.shift();
-            }
-            return newHistory;
+          // DEBUG: Log Gemini design application
+          console.log('[useLayoutBuilder] Applying Gemini design:', {
+            hasGeminiColors: !!geminiColors,
+            extractedBackground: geminiColors?.background,
+            extractedPrimary: geminiColors?.primary,
+            detectedLayout: mappedLayout,
+            detectedStructure: mappedStructureType,
+            hasHeader: data.geminiAnalysis?.components?.some((c) => c.type === 'header'),
+            hasSidebar: data.geminiAnalysis?.components?.some((c) => c.type === 'sidebar'),
+            hasFooter: data.geminiAnalysis?.components?.some((c) => c.type === 'footer'),
           });
+
+          // Use functional state update to avoid stale closure issue
+          // This ensures we merge with the LATEST design state, not a stale reference
+          setDesign((prevDesign) => {
+            const mergedDesign = {
+              ...prevDesign,
+              ...(data.updatedDesign || {}),
+              // Sync basePreferences.layout with Gemini's detected layout type
+              basePreferences: {
+                ...prevDesign.basePreferences,
+                ...(data.updatedDesign?.basePreferences || {}),
+                // Use Gemini's detected layout and colorScheme if available
+                ...(mappedLayout ? { layout: mappedLayout } : {}),
+                ...(detectedColorScheme ? { colorScheme: detectedColorScheme } : {}),
+              },
+              globalStyles: {
+                ...prevDesign.globalStyles,
+                ...(data.updatedDesign?.globalStyles || {}),
+                typography: {
+                  ...baseStyles.typography,
+                  ...prevDesign.globalStyles?.typography,
+                  ...(data.updatedDesign?.globalStyles?.typography || {}),
+                },
+                // When Gemini colors exist, use them as the COMPLETE color set (no spreading old values)
+                // This prevents old colors from persisting through spread operations
+                colors: geminiColors
+                  ? {
+                      primary: geminiColors.primary,
+                      secondary: geminiColors.secondary,
+                      accent: geminiColors.accent,
+                      background: geminiColors.background,
+                      surface: geminiColors.surface,
+                      text: geminiColors.text,
+                      textMuted: geminiColors.textMuted,
+                      border: geminiColors.border,
+                    }
+                  : {
+                      // Only spread when no Gemini colors
+                      ...baseStyles.colors,
+                      ...prevDesign.globalStyles?.colors,
+                      ...(data.updatedDesign?.globalStyles?.colors || {}),
+                    },
+                spacing: {
+                  ...baseStyles.spacing,
+                  ...prevDesign.globalStyles?.spacing,
+                  ...(data.updatedDesign?.globalStyles?.spacing || {}),
+                },
+                effects: {
+                  ...baseStyles.effects,
+                  ...prevDesign.globalStyles?.effects,
+                  ...(data.updatedDesign?.globalStyles?.effects || {}),
+                },
+              },
+              components: {
+                ...prevDesign.components,
+                ...(data.updatedDesign?.components || {}),
+              },
+              structure: {
+                ...prevDesign.structure,
+                ...(data.updatedDesign?.structure || {}),
+                // If Gemini detected layout type, apply it to structure.type
+                ...(mappedStructureType ? { type: mappedStructureType } : {}),
+                // If Gemini detected components from reference image, apply them
+                ...(data.geminiAnalysis?.components
+                  ? {
+                      hasHeader: data.geminiAnalysis.components.some((c) => c.type === 'header'),
+                      hasSidebar: data.geminiAnalysis.components.some((c) => c.type === 'sidebar'),
+                      hasFooter: data.geminiAnalysis.components.some((c) => c.type === 'footer'),
+                    }
+                  : {}),
+              },
+            } as Partial<LayoutDesign>;
+
+            // Update history inside the callback to ensure we capture the correct state
+            setDesignHistory((history) => {
+              const newHistory = history.slice(0, historyIndex + 1);
+              newHistory.push(mergedDesign);
+              if (newHistory.length > MAX_HISTORY_SIZE) {
+                newHistory.shift();
+              }
+              return newHistory;
+            });
+
+            return mergedDesign;
+          });
+
           setHistoryIndex((prev) => Math.min(prev + 1, MAX_HISTORY_SIZE - 1));
           setChangeCount((prev) => prev + 1);
         }
