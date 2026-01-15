@@ -1952,8 +1952,74 @@ export function LayoutPreview({
     setGeneratedImages({ cards: [] });
   }, []);
 
+  // Check if design is empty (no styles configured yet)
+  const isDesignEmpty = useMemo(() => {
+    // Design is empty if there are no color settings and no effects settings
+    const hasColors =
+      componentDesign?.colorSettings && Object.keys(componentDesign.colorSettings).length > 0;
+    const hasEffects =
+      componentDesign?.effectsSettings && Object.keys(componentDesign.effectsSettings).length > 0;
+    const hasStructure =
+      componentDesign?.structure && Object.keys(componentDesign.structure).length > 0;
+    const hasHeader =
+      componentDesign?.headerDesign && Object.keys(componentDesign.headerDesign).length > 0;
+
+    return !hasColors && !hasEffects && !hasStructure && !hasHeader;
+  }, [componentDesign]);
+
   // Render the appropriate layout
   const renderLayout = () => {
+    // Show empty state placeholder if design hasn't been configured yet
+    if (isDesignEmpty) {
+      return (
+        <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+          <div className="w-24 h-24 mb-6 rounded-2xl border-2 border-dashed border-slate-600 flex items-center justify-center">
+            <svg
+              className="w-12 h-12 text-slate-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-slate-300 mb-2">Design Your Layout</h3>
+          <p className="text-sm text-slate-500 max-w-xs mb-4">
+            Upload a reference image or describe your design to get started
+          </p>
+          <div className="flex flex-col gap-2 text-xs text-slate-600">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                />
+              </svg>
+              <span>Upload a screenshot or mockup</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
+              </svg>
+              <span>Or describe what you want to build</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     const layoutProps: LayoutComponentProps = {
       content: mockContent,
       colors,

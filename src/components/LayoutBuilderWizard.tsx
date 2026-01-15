@@ -30,10 +30,9 @@ import type {
 import { defaultGlobalStyles } from '@/types/layoutDesign';
 import type { UIPreferences } from '@/types/appConcept';
 import {
-  type DesignTemplate,
   mapArchitectureToLayout,
   generateArchitecturePrompt,
-} from '@/data/designTemplates';
+} from '@/data/architectureTemplateMapping';
 import { VersionHistoryPanel } from '@/components/VersionHistoryPanel';
 import { ComponentLibraryPanel } from '@/components/ComponentLibraryPanel';
 import { ArchitectureTemplatePicker } from '@/components/ArchitectureTemplatePicker';
@@ -78,7 +77,6 @@ import {
   MessageBubble,
   SuggestedActionsBar,
   RecentChangesIndicator,
-  TemplatePicker,
   ChatInput,
   TemplatesMenu,
   ToolsMenu,
@@ -338,7 +336,6 @@ export function LayoutBuilderWizard({
     showCloseConfirm,
     showApplyConfirm,
     showExtractedColors,
-    showTemplatePicker,
     showVersionHistory,
     showComparisonView,
     showGridOverlay,
@@ -353,7 +350,6 @@ export function LayoutBuilderWizard({
     showPerformanceReport,
     isAdvancedMode,
     setPanel,
-    initTemplatePicker,
     toggleAdvancedMode,
   } = useLayoutPanelStore();
 
@@ -361,7 +357,6 @@ export function LayoutBuilderWizard({
   const setShowCloseConfirm = (v: boolean) => setPanel('closeConfirm', v);
   const setShowApplyConfirm = (v: boolean) => setPanel('applyConfirm', v);
   const setShowExtractedColors = (v: boolean) => setPanel('extractedColors', v);
-  const setShowTemplatePicker = (v: boolean) => setPanel('templatePicker', v);
   const setShowVersionHistory = (v: boolean) => setPanel('versionHistory', v);
   const setShowExportMenu = (v: boolean) => setPanel('exportMenu', v);
   const setShowComparisonView = (v: boolean) => setPanel('comparisonView', v);
@@ -447,11 +442,6 @@ export function LayoutBuilderWizard({
       setVisibleMessageCount(MESSAGES_PAGE_SIZE);
     }
   }, [messages.length]);
-
-  // Initialize template picker on first open (when only greeting message)
-  useEffect(() => {
-    initTemplatePicker(messages.length <= 1);
-  }, [messages.length, initTemplatePicker]);
 
   // Sync DesignSidePanel visibility with advanced mode
   useEffect(() => {
@@ -860,16 +850,6 @@ export function LayoutBuilderWizard({
     setShowExtractedColors(false);
     success('Applied extracted colors from reference image');
   }, [extractedColors, updateDesign, design.globalStyles, success]);
-
-  // Handle template selection
-  const handleTemplateSelect = useCallback(
-    (template: DesignTemplate) => {
-      updateDesign(template.design as Partial<LayoutDesign>);
-      setShowTemplatePicker(false);
-      success(`Applied "${template.name}" template`);
-    },
-    [updateDesign, success]
-  );
 
   // Handle architecture template selection (from App Concept blueprints)
   const handleArchitectureTemplateSelect = useCallback(
@@ -1368,7 +1348,6 @@ export function LayoutBuilderWizard({
             <>
               {/* Templates Dropdown Menu */}
               <TemplatesMenu
-                onOpenTemplates={() => setShowTemplatePicker(true)}
                 onOpenBlueprints={() => setShowArchitectureTemplates(true)}
                 onOpenHistory={() => setShowVersionHistory(true)}
                 historyCount={versionHistory.length}
@@ -1593,13 +1572,6 @@ export function LayoutBuilderWizard({
           className="w-1/2 min-h-0 flex flex-col border-r relative"
           style={{ borderColor: 'var(--border-color)' }}
         >
-          {/* Template Picker Overlay */}
-          <TemplatePicker
-            isOpen={showTemplatePicker}
-            onSelect={handleTemplateSelect}
-            onClose={() => setShowTemplatePicker(false)}
-          />
-
           {/* Architecture Template Picker Overlay */}
           <ArchitectureTemplatePicker
             isOpen={showArchitectureTemplates}

@@ -1425,6 +1425,26 @@ export const defaultLayoutDesign: LayoutDesign = {
   },
 };
 
+/**
+ * Empty layout design for starting with a blank canvas.
+ * No pre-filled styles or components - user must describe or upload reference.
+ * Exported as Partial<LayoutDesign> since optional fields are undefined.
+ */
+export const emptyLayoutDesign: Partial<LayoutDesign> = {
+  id: '',
+  name: 'New Design',
+  version: 1,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  referenceMedia: [],
+  conversationContext: {
+    messageCount: 0,
+    keyDecisions: [],
+    userPreferences: [],
+    lastUpdated: new Date().toISOString(),
+  },
+};
+
 // ============================================================================
 // Helper Functions
 // ============================================================================

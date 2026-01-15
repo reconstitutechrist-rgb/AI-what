@@ -10,7 +10,6 @@ export type PanelName =
   | 'closeConfirm'
   | 'applyConfirm'
   | 'extractedColors'
-  | 'templatePicker'
   | 'versionHistory'
   | 'exportMenu'
   | 'comparisonView'
@@ -33,7 +32,6 @@ interface LayoutPanelState {
   showCloseConfirm: boolean;
   showApplyConfirm: boolean;
   showExtractedColors: boolean;
-  showTemplatePicker: boolean;
   showVersionHistory: boolean;
   showExportMenu: boolean;
   showComparisonView: boolean;
@@ -60,7 +58,6 @@ interface LayoutPanelState {
   openPanel: (panel: PanelName) => void;
   closePanel: (panel: PanelName) => void;
   closeAllPanels: () => void;
-  initTemplatePicker: (shouldShow: boolean) => void;
   toggleAdvancedMode: () => void;
 }
 
@@ -82,7 +79,6 @@ const panelKeyMap: Record<
   closeConfirm: 'showCloseConfirm',
   applyConfirm: 'showApplyConfirm',
   extractedColors: 'showExtractedColors',
-  templatePicker: 'showTemplatePicker',
   versionHistory: 'showVersionHistory',
   exportMenu: 'showExportMenu',
   comparisonView: 'showComparisonView',
@@ -116,7 +112,6 @@ const initialState = {
   showCloseConfirm: false,
   showApplyConfirm: false,
   showExtractedColors: false,
-  showTemplatePicker: false,
   showVersionHistory: false,
   showExportMenu: false,
   showComparisonView: false,
@@ -149,8 +144,6 @@ export const useLayoutPanelStore = create<LayoutPanelState>((set) => ({
 
   closeAllPanels: () => set(initialState),
 
-  initTemplatePicker: (shouldShow) => set({ showTemplatePicker: shouldShow }),
-
   toggleAdvancedMode: () =>
     set((state) => {
       const newValue = !state.isAdvancedMode;
@@ -167,7 +160,6 @@ export const useLayoutPanelStore = create<LayoutPanelState>((set) => ({
 export const useCloseConfirm = () => useLayoutPanelStore((s) => s.showCloseConfirm);
 export const useApplyConfirm = () => useLayoutPanelStore((s) => s.showApplyConfirm);
 export const useExtractedColors = () => useLayoutPanelStore((s) => s.showExtractedColors);
-export const useTemplatePicker = () => useLayoutPanelStore((s) => s.showTemplatePicker);
 export const useVersionHistory = () => useLayoutPanelStore((s) => s.showVersionHistory);
 export const useExportMenu = () => useLayoutPanelStore((s) => s.showExportMenu);
 export const useComparisonView = () => useLayoutPanelStore((s) => s.showComparisonView);
@@ -196,6 +188,5 @@ export const usePanelActions = () =>
       openPanel: s.openPanel,
       closePanel: s.closePanel,
       closeAllPanels: s.closeAllPanels,
-      initTemplatePicker: s.initTemplatePicker,
     }))
   );

@@ -10,7 +10,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { captureLayoutPreview, containsVisualKeywords } from '@/utils/screenshotCapture';
 import { extractColorsFromImage } from '@/utils/colorExtraction';
 import { LAYOUT_BUILDER_GREETING } from '@/prompts/layoutBuilderSystemPrompt';
-import { defaultLayoutDesign } from '@/types/layoutDesign';
+import { defaultLayoutDesign, emptyLayoutDesign } from '@/types/layoutDesign';
 import { useSmartContext } from './useSmartContext';
 import {
   determineModelRouting,
@@ -645,7 +645,7 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
     },
   ]);
   const [design, setDesign] = useState<Partial<LayoutDesign>>(
-    currentLayoutDesign || { ...defaultLayoutDesign }
+    currentLayoutDesign || { ...emptyLayoutDesign }
   );
   const [isLoading, setIsLoading] = useState(false);
   const [selectedElement, setSelectedElement] = useState<SelectedElementInfo | null>(null);
