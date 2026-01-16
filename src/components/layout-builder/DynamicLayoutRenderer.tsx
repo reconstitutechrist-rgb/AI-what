@@ -8,6 +8,7 @@ import type {
 } from '@/types/layoutDesign';
 import { generateMockContent } from '@/utils/mockContentGenerator';
 import { BackgroundEffects } from './BackgroundEffects';
+import { GenericComponentRenderer } from './GenericComponentRenderer';
 
 // ============================================================================
 // Types
@@ -846,36 +847,31 @@ function DynamicTestimonials({
   );
 }
 
+/**
+ * Generic renderer for unknown or unsupported component types
+ * Uses AI-detected styles to render appropriately
+ */
 function UnknownComponentPlaceholder({
   component,
   colorSettings,
+  effectsSettings,
+  primaryColor,
   onElementSelect,
   selectedElement,
+  viewMode,
 }: ComponentRendererProps) {
-  const handleSelect = (id: string) => {
-    onElementSelect?.(selectedElement === id ? null : id);
-  };
-
-  const mutedTextStyle: React.CSSProperties = {
-    color: colorSettings?.textMuted || '#94a3b8',
-  };
-
+  // Use GenericComponentRenderer for all unknown types
+  // This applies AI-detected styles instead of showing a placeholder
   return (
-    <Selectable
-      id={component.id}
-      isSelected={selectedElement === component.id}
-      onClick={handleSelect}
-      className="px-4 py-6"
-    >
-      <div
-        className="border-2 border-dashed border-slate-600 rounded-lg p-8 flex items-center justify-center"
-        style={{ minHeight: '80px' }}
-      >
-        <span className="text-sm" style={mutedTextStyle}>
-          {component.type} component
-        </span>
-      </div>
-    </Selectable>
+    <GenericComponentRenderer
+      component={component}
+      colorSettings={colorSettings}
+      effectsSettings={effectsSettings}
+      primaryColor={primaryColor}
+      onElementSelect={onElementSelect}
+      selectedElement={selectedElement}
+      viewMode={viewMode}
+    />
   );
 }
 
@@ -910,6 +906,30 @@ function renderComponent(
       return <DynamicPricing key={component.id} {...commonProps} />;
     case 'testimonials':
       return <DynamicTestimonials key={component.id} {...commonProps} />;
+
+    // NEW: Handle additional component types with GenericComponentRenderer
+    case 'breadcrumb':
+    case 'pagination':
+    case 'tabs':
+    case 'search-bar':
+    case 'user-menu':
+    case 'logo':
+    case 'content-section':
+    case 'image-gallery':
+    case 'chart':
+    case 'button':
+    case 'input':
+    case 'list':
+    case 'menu':
+    case 'modal':
+    case 'dropdown':
+    case 'badge':
+    case 'avatar':
+    case 'divider':
+    case 'progress':
+      return <GenericComponentRenderer key={component.id} component={component} {...props} />;
+
+    // Unknown components also use GenericComponentRenderer (with AI-detected styles)
     default:
       return <UnknownComponentPlaceholder key={component.id} {...commonProps} />;
   }

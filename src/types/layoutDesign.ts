@@ -540,6 +540,16 @@ export interface DetectedComponentEnhanced {
     | 'video-player'
     | 'map'
     | 'chart'
+    | 'button'
+    | 'input'
+    | 'list'
+    | 'menu'
+    | 'modal'
+    | 'dropdown'
+    | 'badge'
+    | 'avatar'
+    | 'divider'
+    | 'progress'
     | 'unknown';
   /** Precise bounding box as percentage of viewport (0-100) */
   bounds: {
@@ -548,15 +558,33 @@ export interface DetectedComponentEnhanced {
     width: number;
     height: number;
   };
-  /** Style details */
+  /** Style details - enhanced with more properties from AI analysis */
   style: {
     variant?: string;
     hasBackground?: boolean;
     backgroundColor?: string;
+    textColor?: string;
+    borderColor?: string;
+    borderWidth?: string;
     isFloating?: boolean;
     isSticky?: boolean;
     borderRadius?: string;
     shadow?: string;
+    padding?: string;
+    fontSize?: string;
+    fontWeight?: string;
+    textAlign?: string;
+    display?: string;
+    alignment?: string;
+    gap?: string;
+  };
+  /** Content information extracted from the component */
+  content?: {
+    text?: string;
+    hasIcon?: boolean;
+    hasImage?: boolean;
+    itemCount?: number;
+    placeholder?: string;
   };
   /** Parent component ID for hierarchy */
   parentId?: string;
@@ -568,6 +596,8 @@ export interface DetectedComponentEnhanced {
   navigatesTo?: string;
   /** Is this element part of the navigation system */
   isNavigationItem?: boolean;
+  /** Is this element interactive (button, link, input) */
+  isInteractive?: boolean;
   /** Confidence score 0-1 */
   confidence: number;
 }

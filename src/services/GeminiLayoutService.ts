@@ -797,17 +797,20 @@ Return a JSON object with PRECISE measurements as percentages of viewport (0-100
     "headingWeight": "light" | "normal" | "medium" | "semibold" | "bold",
     "bodyWeight": "light" | "normal" | "medium",
     "estimatedHeadingFont": "font name",
-    "estimatedBodyFont": "font name"
+    "estimatedBodyFont": "font name",
+    "fontSize": { "heading": "24px", "body": "16px", "small": "14px" },
+    "lineHeight": { "heading": "1.2", "body": "1.6" }
   },
   "spacing": {
     "density": "compact" | "normal" | "relaxed",
     "sectionPadding": "sm" | "md" | "lg" | "xl",
-    "componentGap": "sm" | "md" | "lg"
+    "componentGap": "sm" | "md" | "lg",
+    "margins": { "top": "16px", "bottom": "16px", "left": "24px", "right": "24px" }
   },
   "components": [
     {
       "id": "unique_id",
-      "type": "header" | "sidebar" | "hero" | "cards" | "navigation" | "footer" | "form" | "table" | "carousel" | "stats" | "cta" | "breadcrumb" | "pagination" | "tabs" | "search-bar" | "user-menu" | "logo" | "content-section" | "image-gallery" | "chart" | "unknown",
+      "type": "header" | "sidebar" | "hero" | "cards" | "navigation" | "footer" | "form" | "table" | "carousel" | "stats" | "cta" | "breadcrumb" | "pagination" | "tabs" | "search-bar" | "user-menu" | "logo" | "content-section" | "image-gallery" | "chart" | "button" | "input" | "list" | "menu" | "modal" | "dropdown" | "badge" | "avatar" | "divider" | "progress" | "unknown",
       "bounds": {
         "top": 0,     // 0-100 percentage of viewport
         "left": 0,    // 0-100 percentage of viewport
@@ -818,16 +821,34 @@ Return a JSON object with PRECISE measurements as percentages of viewport (0-100
         "variant": "style description",
         "hasBackground": true/false,
         "backgroundColor": "#HEX if visible",
+        "textColor": "#HEX if visible",
+        "borderColor": "#HEX if visible",
+        "borderWidth": "1px|2px|4px",
         "isFloating": true/false,
         "isSticky": true/false,
         "borderRadius": "none|sm|md|lg|xl|full",
-        "shadow": "none|subtle|medium|strong"
+        "shadow": "none|subtle|medium|strong",
+        "padding": "sm|md|lg",
+        "fontSize": "xs|sm|base|lg|xl",
+        "fontWeight": "light|normal|medium|semibold|bold",
+        "textAlign": "left|center|right",
+        "display": "block|flex|grid|inline",
+        "alignment": "start|center|end|between|around",
+        "gap": "sm|md|lg"
+      },
+      "content": {
+        "text": "Sample text if visible",
+        "hasIcon": true/false,
+        "hasImage": true/false,
+        "itemCount": 0,
+        "placeholder": "placeholder text if input"
       },
       "parentId": "parent_component_id or null",
       "children": ["child_id_1", "child_id_2"],
       "zIndex": 1,
       "navigatesTo": "page_slug if this is a navigation link",
       "isNavigationItem": true/false,
+      "isInteractive": true/false,
       "confidence": 0.0-1.0
     }
   ],
@@ -848,12 +869,22 @@ Return a JSON object with PRECISE measurements as percentages of viewport (0-100
   "confidence": 0.0-1.0
 }
 
-CRITICAL RULES:
-- Extract EXACT hex colors visible in the image
-- Provide PRECISE bounding boxes as viewport percentages
-- Identify parent-child relationships between components
-- Mark navigation items and their destinations if detectable
-- Include ALL visible UI components, not just major sections
+CRITICAL RULES FOR EXACT REPLICATION:
+1. Extract EXACT hex colors visible in the image (not approximations)
+2. Provide PRECISE bounding boxes as viewport percentages (measure carefully)
+3. Identify parent-child relationships between components (nested structure)
+4. Mark navigation items and their destinations if detectable
+5. Include ALL visible UI components, not just major sections
+6. For each component, extract:
+   - Exact background color, text color, border color
+   - Font size and weight as they appear
+   - Padding/spacing values
+   - Border radius, shadows
+   - Alignment and layout properties
+7. Capture sample text content from components when visible
+8. Detect interactive elements (buttons, links, inputs)
+9. Identify component variants (primary button vs secondary, filled vs outlined)
+10. Note any special states (hover styles, active states, disabled states)
 
 Return ONLY valid JSON, no markdown.`;
 
@@ -869,18 +900,30 @@ Return ONLY valid JSON, no markdown.`;
 
       const parsed = JSON.parse(jsonMatch[0]);
 
-      // Ensure components have IDs
+      // Ensure components have IDs and complete style information
       const components: DetectedComponentEnhanced[] = (parsed.components || []).map(
         (c: Partial<DetectedComponentEnhanced>, index: number) => ({
           id: c.id || `component_${index}`,
           type: c.type || 'unknown',
           bounds: c.bounds || { top: 0, left: 0, width: 100, height: 10 },
-          style: c.style || {},
+          style: {
+            ...c.style,
+            // Ensure essential style properties have defaults
+            hasBackground: c.style?.hasBackground ?? false,
+            borderRadius: c.style?.borderRadius || 'md',
+            shadow: c.style?.shadow || 'none',
+            padding: c.style?.padding || 'md',
+            fontSize: c.style?.fontSize || 'base',
+            fontWeight: c.style?.fontWeight || 'normal',
+            textAlign: c.style?.textAlign || 'left',
+          },
+          content: c.content || {},
           parentId: c.parentId,
           children: c.children,
-          zIndex: c.zIndex,
+          zIndex: c.zIndex || 1,
           navigatesTo: c.navigatesTo,
           isNavigationItem: c.isNavigationItem,
+          isInteractive: c.isInteractive,
           confidence: c.confidence || 0.5,
         })
       );
