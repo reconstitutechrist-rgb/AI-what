@@ -75,10 +75,16 @@ const GeminiRequestSchema = z.object({
  */
 async function maybeGenerateCustomBackground(
   design: Partial<LayoutDesign>,
-  referenceImage: string | undefined
+  referenceImage: string | undefined,
+  geminiAnalysis?: VisualAnalysis | PageAnalysis
 ): Promise<Partial<LayoutDesign>> {
   // Check if custom background generation is needed
   const backgroundEffect = design.globalStyles?.effects?.backgroundEffect;
+  console.log('[Gemini-Only] Background effect check:', {
+    hasBackgroundEffect: !!backgroundEffect,
+    type: backgroundEffect?.type,
+    isCustomImage: backgroundEffect?.type === 'custom-image',
+  });
   if (!backgroundEffect || backgroundEffect.type !== 'custom-image') {
     return design;
   }
@@ -106,8 +112,9 @@ async function maybeGenerateCustomBackground(
       return design;
     }
 
-    const vibe = 'modern and professional';
-    const vibeKeywords = ['web application', 'professional', 'subtle'];
+    // Use Gemini's detected vibe if available, otherwise use sensible defaults
+    const vibe = geminiAnalysis?.vibe || 'modern and professional';
+    const vibeKeywords = geminiAnalysis?.vibeKeywords || ['web application', 'professional', 'subtle'];
 
     const result = await geminiImageService.generateBackgroundFromReference({
       referenceImage,
@@ -373,7 +380,7 @@ What would you like to create?`;
     // Generate custom background image if detected type is 'custom-image'
     // This uses the reference image to generate an AI background matching the style
     const referenceImage = referenceImages?.[0];
-    finalDesign = await maybeGenerateCustomBackground(finalDesign, referenceImage);
+    finalDesign = await maybeGenerateCustomBackground(finalDesign, referenceImage, geminiAnalysis);
 
     // Debug logging
     console.log('[Gemini-Only] Response:', {
@@ -594,6 +601,11 @@ function convertGeminiToDesignUpdates(analysis: VisualAnalysis | PageAnalysis): 
                   analysis.colorPalette.primary,
                   analysis.colorPalette.secondary,
                 ],
+                // Pass through opacity if detected (type-safe check)
+                ...(('opacity' in analysis.effects.backgroundEffect &&
+                  typeof analysis.effects.backgroundEffect.opacity === 'number')
+                  ? { opacity: analysis.effects.backgroundEffect.opacity }
+                  : {}),
               }
             : undefined,
       },
