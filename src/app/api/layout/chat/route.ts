@@ -317,38 +317,63 @@ export async function POST(request: Request) {
 What would you like to create?`;
     }
 
-    // Merge with current design
-    const mergedDesign = mergeDesigns(currentDesign as Partial<LayoutDesign>, updatedDesign);
+    // CRITICAL FIX: For reference image analysis, use Gemini's result DIRECTLY (no merge)
+    // For chat-based updates, merge with current design
+    let finalDesign: Partial<LayoutDesign>;
 
-    // CRITICAL: Force Gemini's colors and structure if analysis exists
-    if (geminiAnalysis) {
-      const geminiDesignUpdates = convertGeminiToDesignUpdates(geminiAnalysis);
+    if (hasReferenceImages && autoApplied) {
+      // Reference image mode: Use Gemini's extracted design as single source of truth
+      // NO merging with currentDesign - this prevents preset contamination
+      console.log('[Gemini-Only] REPLACE MODE: Using Gemini analysis as single source of truth');
+      finalDesign = updatedDesign;
 
-      // Force Gemini's colors (bypass any merge issues)
-      const geminiColors = geminiDesignUpdates.updates.globalStyles?.colors;
-      if (geminiColors && mergedDesign.globalStyles) {
-        mergedDesign.globalStyles.colors = geminiColors;
-      }
-
-      // Force Gemini's structure
-      const geminiStructure = geminiDesignUpdates.updates.structure;
-      if (geminiStructure) {
-        mergedDesign.structure = {
-          ...mergedDesign.structure,
-          ...geminiStructure,
+      // Sync basePreferences.layout with structure.type
+      if (finalDesign.structure?.type) {
+        const detectedLayout = mapStructureTypeToLayout(finalDesign.structure.type);
+        // Ensure basePreferences has all required fields
+        finalDesign.basePreferences = {
+          style: finalDesign.basePreferences?.style || 'modern',
+          colorScheme: finalDesign.basePreferences?.colorScheme || 'dark',
+          layout: finalDesign.basePreferences?.layout || detectedLayout,
         };
+      }
+    } else {
+      // Chat mode: Merge updates with current design for incremental changes
+      console.log('[Gemini-Only] MERGE MODE: Incremental chat update');
+      const mergedDesign = mergeDesigns(currentDesign as Partial<LayoutDesign>, updatedDesign);
 
-        // Sync basePreferences.layout with structure.type
-        if (geminiStructure.type && mergedDesign.basePreferences) {
-          mergedDesign.basePreferences.layout = mapStructureTypeToLayout(geminiStructure.type);
+      // If we have Gemini analysis, ensure its values take priority
+      if (geminiAnalysis) {
+        const geminiDesignUpdates = convertGeminiToDesignUpdates(geminiAnalysis);
+
+        // Force Gemini's colors (bypass any merge issues)
+        const geminiColors = geminiDesignUpdates.updates.globalStyles?.colors;
+        if (geminiColors && mergedDesign.globalStyles) {
+          mergedDesign.globalStyles.colors = geminiColors;
+        }
+
+        // Force Gemini's structure
+        const geminiStructure = geminiDesignUpdates.updates.structure;
+        if (geminiStructure) {
+          mergedDesign.structure = {
+            ...mergedDesign.structure,
+            ...geminiStructure,
+          };
+
+          // Sync basePreferences.layout with structure.type
+          if (geminiStructure.type && mergedDesign.basePreferences) {
+            mergedDesign.basePreferences.layout = mapStructureTypeToLayout(geminiStructure.type);
+          }
         }
       }
+
+      finalDesign = mergedDesign;
     }
 
     // Generate custom background image if detected type is 'custom-image'
     // This uses the reference image to generate an AI background matching the style
     const referenceImage = referenceImages?.[0];
-    const finalDesign = await maybeGenerateCustomBackground(mergedDesign, referenceImage);
+    finalDesign = await maybeGenerateCustomBackground(finalDesign, referenceImage);
 
     // Debug logging
     console.log('[Gemini-Only] Response:', {
@@ -518,6 +543,8 @@ function convertGeminiToDesignUpdates(analysis: VisualAnalysis | PageAnalysis): 
     }
   }
 
+  // CRITICAL FIX: Only include values that Gemini actually detected
+  // NO hardcoded fallbacks - let the renderer use its own defaults if needed
   const updates: Partial<LayoutDesign> = {
     globalStyles: {
       colors: {
@@ -531,25 +558,29 @@ function convertGeminiToDesignUpdates(analysis: VisualAnalysis | PageAnalysis): 
         border: analysis.colorPalette.textMuted,
       },
       typography: {
-        fontFamily: analysis.typography.estimatedBodyFont || 'Inter',
+        // Use Gemini's detected fonts - only fall back to system font if not detected
+        fontFamily: analysis.typography.estimatedBodyFont || 'system-ui, sans-serif',
         headingFont: analysis.typography.estimatedHeadingFont,
         headingWeight: analysis.typography.headingWeight,
         bodyWeight: analysis.typography.bodyWeight,
-        headingSize: 'lg' as const,
-        bodySize: 'base' as const,
-        lineHeight: 'normal' as const,
-        letterSpacing: 'normal' as const,
+        // Infer sizing from spacing density instead of hardcoding
+        headingSize: analysis.spacing.density === 'compact' ? 'base' : analysis.spacing.density === 'relaxed' ? 'xl' : 'lg',
+        bodySize: analysis.spacing.density === 'compact' ? 'sm' : 'base',
+        lineHeight: analysis.spacing.density === 'compact' ? 'tight' : analysis.spacing.density === 'relaxed' ? 'relaxed' : 'normal',
+        letterSpacing: 'normal' as const, // Required field
       },
       spacing: {
         density: analysis.spacing.density,
-        containerWidth: 'standard' as const,
+        // Infer container width from layout type instead of hardcoding
+        containerWidth: analysis.layoutType === 'dashboard' ? 'full' : analysis.layoutType === 'landing' ? 'wide' : 'standard',
         sectionPadding: analysis.spacing.sectionPadding,
         componentGap: analysis.spacing.componentGap,
       },
       effects: {
         borderRadius: analysis.effects.borderRadius,
         shadows: analysis.effects.shadows,
-        animations: analysis.effects.hasAnimations ? 'smooth' : 'subtle',
+        // Infer animation intensity from detected animations
+        animations: analysis.effects.hasAnimations ? 'smooth' : 'none',
         blur: analysis.effects.hasBlur ? 'subtle' : 'none',
         gradients: analysis.effects.hasGradients,
         // Include detected background effects (particles, aurora, waves, etc.)
@@ -573,9 +604,12 @@ function convertGeminiToDesignUpdates(analysis: VisualAnalysis | PageAnalysis): 
       hasSidebar,
       hasFooter,
       sidebarPosition,
-      headerType: 'sticky' as const,
-      contentLayout: 'centered' as const,
-      mainContentWidth: 'standard' as const,
+      // Infer header type from detected header component (default to 'static' if no header)
+      headerType: hasHeader ? 'sticky' : 'static',
+      // Infer content layout from layout type (valid values: centered, full-width, asymmetric)
+      contentLayout: analysis.layoutType === 'dashboard' ? 'full-width' : hasSidebar ? 'asymmetric' : 'centered',
+      // Infer width from layout type
+      mainContentWidth: analysis.layoutType === 'dashboard' ? 'full' : analysis.layoutType === 'landing' ? 'wide' : 'standard',
       detectedComponents,
     },
   };

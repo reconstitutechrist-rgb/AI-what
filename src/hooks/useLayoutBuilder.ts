@@ -833,22 +833,27 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
         const currentDesignHash = hashDesign(design);
         const designChanged = currentDesignHash !== lastSentDesignHashRef.current;
 
+        // CRITICAL FIX: Don't send currentDesign when analyzing reference images
+        // This prevents previous design from contaminating Gemini's fresh extraction
+        const hasReferenceImages = referenceImages.length > 0;
+        const shouldSendCurrentDesign = !hasReferenceImages && designChanged;
+
         const request: LayoutChatRequest = {
           message: text,
           conversationHistory: messages,
-          // Only send full design if it changed, otherwise signal it's unchanged
-          currentDesign: designChanged ? design : undefined,
-          designUnchanged: !designChanged, // Signal to API that design hasn't changed
+          // Only send design for incremental updates, NOT for reference image analysis
+          currentDesign: shouldSendCurrentDesign ? design : undefined,
+          designUnchanged: !designChanged && !hasReferenceImages,
           selectedElement: selectedElement || undefined,
           previewScreenshot: screenshot || undefined,
-          referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
+          referenceImages: hasReferenceImages ? referenceImages : undefined,
           memoriesContext: memoriesContext || undefined, // Include cross-session memories
           workflowState: workflowState, // Include workflow state for multi-step workflows
           currentDevice: currentDevice, // Include current device for responsive context
         };
 
         // Update hash after building request
-        if (designChanged) {
+        if (designChanged && !hasReferenceImages) {
           lastSentDesignHashRef.current = currentDesignHash;
         }
 
@@ -917,45 +922,73 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
         const hasDesignUpdates = data.updatedDesign && Object.keys(data.updatedDesign).length > 0;
 
         if (hasDesignUpdates) {
-          // PHASE 3: BULLETPROOF DATA PRESERVATION
           // Use functional state update to avoid stale closure issues
           setDesign((prevDesign) => {
-            // STEP 1: Extract components from ALL possible sources
+            // CRITICAL FIX: For reference image auto-apply, REPLACE instead of MERGE
+            // This ensures Gemini's extracted design is the single source of truth
+            const isReferenceImageAnalysis = data.autoApplied || (data.geminiAnalysis && referenceImages.length > 0);
+
+            if (isReferenceImageAnalysis) {
+              console.log('[useLayoutBuilder] 🎯 REPLACE MODE: Reference image analysis - using Gemini as single source of truth');
+              console.log('[useLayoutBuilder] Colors from Gemini:', data.updatedDesign?.globalStyles?.colors);
+
+              // Start fresh with only Gemini's extracted values
+              // Preserve only metadata fields, not design values
+              const freshDesign: Partial<LayoutDesign> = {
+                // Metadata from previous (keep IDs, timestamps)
+                id: prevDesign.id || '',
+                name: prevDesign.name || 'New Design',
+                version: (prevDesign.version || 0) + 1,
+                createdAt: prevDesign.createdAt || new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                referenceMedia: prevDesign.referenceMedia || [],
+                conversationContext: prevDesign.conversationContext,
+
+                // Design values ONLY from Gemini (no merge with previous)
+                basePreferences: data.updatedDesign?.basePreferences,
+                globalStyles: data.updatedDesign?.globalStyles,
+                components: data.updatedDesign?.components,
+                structure: data.updatedDesign?.structure,
+                responsive: data.updatedDesign?.responsive,
+              };
+
+              // Update history
+              setDesignHistory((history) => {
+                const newHistory = history.slice(0, historyIndex + 1);
+                newHistory.push(freshDesign);
+                if (newHistory.length > MAX_HISTORY_SIZE) {
+                  newHistory.shift();
+                }
+                return newHistory;
+              });
+
+              return freshDesign;
+            }
+
+            // For non-reference-image updates (chat-based incremental changes), use merge
+            console.log('[useLayoutBuilder] 📝 MERGE MODE: Incremental chat update');
+
+            // Extract components from ALL possible sources
             const detectedComponents =
               data.updatedDesign?.structure?.detectedComponents ||
               prevDesign.structure?.detectedComponents;
 
-            // STEP 2: PHASE 3 DEBUG - Validate components with detailed logging
+            // Debug logging for component preservation
             console.log('[useLayoutBuilder] 🔍 Component extraction debug:', {
               fromUpdatedDesign: data.updatedDesign?.structure?.detectedComponents?.length ?? 0,
               fromPrevDesign: prevDesign.structure?.detectedComponents?.length ?? 0,
               finalCount: detectedComponents?.length ?? 0,
               hasGeminiComponents: data.geminiAnalysis?.components?.length ?? 0,
-              dataKeys: Object.keys(data.updatedDesign || {}),
-              structureKeys: Object.keys(data.updatedDesign?.structure || {}),
             });
 
             if (detectedComponents && detectedComponents.length > 0) {
               console.log('[✅ Components preserved]', {
                 count: detectedComponents.length,
                 types: detectedComponents.map((c) => c.type).join(', '),
-                sample: detectedComponents[0],
               });
-            } else if (
-              data.geminiAnalysis?.components &&
-              data.geminiAnalysis.components.length > 0
-            ) {
-              console.error(
-                '[⚠️ DATA LOSS] Components detected by Gemini but not in updatedDesign',
-                {
-                  geminiComponentCount: data.geminiAnalysis.components.length,
-                  updatedDesignHasStructure: !!data.updatedDesign?.structure,
-                  updatedDesignHasComponents: !!data.updatedDesign?.structure?.detectedComponents,
-                }
-              );
             }
 
-            // STEP 3: Merge with FORCED component preservation
+            // Merge with previous design for incremental updates
             const mergedDesign = {
               ...prevDesign,
               ...(data.updatedDesign || {}),
@@ -988,7 +1021,7 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
               structure: {
                 ...prevDesign.structure,
                 ...(data.updatedDesign?.structure || {}),
-                // FORCE: Components are sacred, never overwrite
+                // Preserve components from whatever source has them
                 detectedComponents: detectedComponents || prevDesign.structure?.detectedComponents,
               },
             } as Partial<LayoutDesign>;
