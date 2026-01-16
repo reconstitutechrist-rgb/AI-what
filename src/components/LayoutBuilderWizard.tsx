@@ -670,7 +670,12 @@ export function LayoutBuilderWizard({
   // Handle effects settings change from DesignControlPanel
   const handleEffectsChange = useCallback(
     (effects: Partial<EffectsSettings>) => {
-      const currentStyles = design.globalStyles ?? defaultGlobalStyles;
+      const currentStyles = design.globalStyles ?? {
+        colors: {},
+        typography: {},
+        spacing: {},
+        effects: {},
+      };
       updateDesign({
         globalStyles: {
           ...currentStyles,
@@ -687,7 +692,12 @@ export function LayoutBuilderWizard({
   // Handle color settings change from DesignControlPanel
   const handleColorSettingsChange = useCallback(
     (colors: Partial<ColorSettings>) => {
-      const currentStyles = design.globalStyles ?? defaultGlobalStyles;
+      const currentStyles = design.globalStyles ?? {
+        colors: {},
+        typography: {},
+        spacing: {},
+        effects: {},
+      };
       updateDesign({
         globalStyles: {
           ...currentStyles,
@@ -704,7 +714,12 @@ export function LayoutBuilderWizard({
   // Handle primary color change from DesignControlPanel
   const handlePrimaryColorChange = useCallback(
     (color: string) => {
-      const currentStyles = design.globalStyles ?? defaultGlobalStyles;
+      const currentStyles = design.globalStyles ?? {
+        colors: {},
+        typography: {},
+        spacing: {},
+        effects: {},
+      };
       updateDesign({
         globalStyles: {
           ...currentStyles,
@@ -721,7 +736,12 @@ export function LayoutBuilderWizard({
   // Handle typography settings change from DesignControlPanel
   const handleTypographyChange = useCallback(
     (typography: Partial<TypographySettings>) => {
-      const currentStyles = design.globalStyles ?? defaultGlobalStyles;
+      const currentStyles = design.globalStyles ?? {
+        colors: {},
+        typography: {},
+        spacing: {},
+        effects: {},
+      };
       updateDesign({
         globalStyles: {
           ...currentStyles,
@@ -738,7 +758,12 @@ export function LayoutBuilderWizard({
   // Handle spacing settings change from DesignControlPanel
   const handleSpacingChange = useCallback(
     (spacing: Partial<SpacingSettings>) => {
-      const currentStyles = design.globalStyles ?? defaultGlobalStyles;
+      const currentStyles = design.globalStyles ?? {
+        colors: {},
+        typography: {},
+        spacing: {},
+        effects: {},
+      };
       updateDesign({
         globalStyles: {
           ...currentStyles,
@@ -755,7 +780,12 @@ export function LayoutBuilderWizard({
   // Handle accessibility auto-fix
   const handleAccessibilityFix = useCallback(
     (fixes: Partial<ColorSettings>) => {
-      const currentStyles = design.globalStyles ?? defaultGlobalStyles;
+      const currentStyles = design.globalStyles ?? {
+        colors: {},
+        typography: {},
+        spacing: {},
+        effects: {},
+      };
       updateDesign({
         globalStyles: {
           ...currentStyles,

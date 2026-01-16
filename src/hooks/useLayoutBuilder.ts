@@ -917,93 +917,103 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
         const hasDesignUpdates = data.updatedDesign && Object.keys(data.updatedDesign).length > 0;
 
         if (hasDesignUpdates) {
-          // PHASE 3: BULLETPROOF DATA PRESERVATION
-          // Use functional state update to avoid stale closure issues
+          // CRITICAL FIX: Replace instead of merge for reference image analysis
+          // When user uploads a reference image, we want EXACT replication, not contamination from previous design
           setDesign((prevDesign) => {
+            const isReferenceImageAnalysis = data.autoApplied || data.geminiAnalysis;
+
             // STEP 1: Extract components from ALL possible sources
             const detectedComponents =
               data.updatedDesign?.structure?.detectedComponents ||
               prevDesign.structure?.detectedComponents;
 
-            // STEP 2: PHASE 3 DEBUG - Validate components with detailed logging
-            console.log('[useLayoutBuilder] 🔍 Component extraction debug:', {
+            // STEP 2: Debug logging
+            console.log('[useLayoutBuilder] 🎨 Design update strategy:', {
+              isReferenceImage: isReferenceImageAnalysis,
+              strategy: isReferenceImageAnalysis ? 'REPLACE (fresh start)' : 'MERGE (incremental)',
               fromUpdatedDesign: data.updatedDesign?.structure?.detectedComponents?.length ?? 0,
               fromPrevDesign: prevDesign.structure?.detectedComponents?.length ?? 0,
-              finalCount: detectedComponents?.length ?? 0,
-              hasGeminiComponents: data.geminiAnalysis?.components?.length ?? 0,
-              dataKeys: Object.keys(data.updatedDesign || {}),
-              structureKeys: Object.keys(data.updatedDesign?.structure || {}),
+              hasGeminiColors: !!data.updatedDesign?.globalStyles?.colors,
+              geminiPrimary: data.updatedDesign?.globalStyles?.colors?.primary,
             });
 
-            if (detectedComponents && detectedComponents.length > 0) {
-              console.log('[✅ Components preserved]', {
-                count: detectedComponents.length,
-                types: detectedComponents.map((c) => c.type).join(', '),
-                sample: detectedComponents[0],
-              });
-            } else if (
-              data.geminiAnalysis?.components &&
-              data.geminiAnalysis.components.length > 0
-            ) {
-              console.error(
-                '[⚠️ DATA LOSS] Components detected by Gemini but not in updatedDesign',
-                {
-                  geminiComponentCount: data.geminiAnalysis.components.length,
-                  updatedDesignHasStructure: !!data.updatedDesign?.structure,
-                  updatedDesignHasComponents: !!data.updatedDesign?.structure?.detectedComponents,
-                }
-              );
-            }
+            let finalDesign: Partial<LayoutDesign>;
 
-            // STEP 3: Merge with FORCED component preservation
-            const mergedDesign = {
-              ...prevDesign,
-              ...(data.updatedDesign || {}),
-              basePreferences: {
-                ...prevDesign.basePreferences,
-                ...(data.updatedDesign?.basePreferences || {}),
-              },
-              globalStyles: {
-                ...prevDesign.globalStyles,
-                ...(data.updatedDesign?.globalStyles || {}),
-                // Force Gemini's colors if they exist (bypass any merge issues)
-                colors: data.updatedDesign?.globalStyles?.colors || prevDesign.globalStyles?.colors,
-                typography: {
-                  ...prevDesign.globalStyles?.typography,
-                  ...(data.updatedDesign?.globalStyles?.typography || {}),
+            if (isReferenceImageAnalysis) {
+              // REPLACE STRATEGY: Start fresh with ONLY Gemini's detected values
+              // This ensures reference image colors are the SINGLE source of truth
+              finalDesign = {
+                ...emptyLayoutDesign,
+                ...(data.updatedDesign || {}),
+                // Preserve any ID/metadata from previous design
+                id: prevDesign.id,
+                createdAt: prevDesign.createdAt,
+                // Force detectedComponents (already includes Gemini's data)
+                structure: {
+                  ...(data.updatedDesign?.structure || {}),
+                  detectedComponents,
                 },
-                spacing: {
-                  ...prevDesign.globalStyles?.spacing,
-                  ...(data.updatedDesign?.globalStyles?.spacing || {}),
+              } as Partial<LayoutDesign>;
+
+              console.log('[✅ REPLACE] Fresh design from reference image:', {
+                colors: finalDesign.globalStyles?.colors,
+                componentCount: finalDesign.structure?.detectedComponents?.length ?? 0,
+              });
+            } else {
+              // MERGE STRATEGY: Incremental updates from chat (preserve previous values)
+              finalDesign = {
+                ...prevDesign,
+                ...(data.updatedDesign || {}),
+                basePreferences: {
+                  ...prevDesign.basePreferences,
+                  ...(data.updatedDesign?.basePreferences || {}),
                 },
-                effects: {
-                  ...prevDesign.globalStyles?.effects,
-                  ...(data.updatedDesign?.globalStyles?.effects || {}),
+                globalStyles: {
+                  ...prevDesign.globalStyles,
+                  ...(data.updatedDesign?.globalStyles || {}),
+                  colors:
+                    data.updatedDesign?.globalStyles?.colors || prevDesign.globalStyles?.colors,
+                  typography: {
+                    ...prevDesign.globalStyles?.typography,
+                    ...(data.updatedDesign?.globalStyles?.typography || {}),
+                  },
+                  spacing: {
+                    ...prevDesign.globalStyles?.spacing,
+                    ...(data.updatedDesign?.globalStyles?.spacing || {}),
+                  },
+                  effects: {
+                    ...prevDesign.globalStyles?.effects,
+                    ...(data.updatedDesign?.globalStyles?.effects || {}),
+                  },
                 },
-              },
-              components: {
-                ...prevDesign.components,
-                ...(data.updatedDesign?.components || {}),
-              },
-              structure: {
-                ...prevDesign.structure,
-                ...(data.updatedDesign?.structure || {}),
-                // FORCE: Components are sacred, never overwrite
-                detectedComponents: detectedComponents || prevDesign.structure?.detectedComponents,
-              },
-            } as Partial<LayoutDesign>;
+                components: {
+                  ...prevDesign.components,
+                  ...(data.updatedDesign?.components || {}),
+                },
+                structure: {
+                  ...prevDesign.structure,
+                  ...(data.updatedDesign?.structure || {}),
+                  detectedComponents:
+                    detectedComponents || prevDesign.structure?.detectedComponents,
+                },
+              } as Partial<LayoutDesign>;
+
+              console.log('[✅ MERGE] Incremental update:', {
+                preservedColors: finalDesign.globalStyles?.colors,
+              });
+            }
 
             // Update history inside the callback to ensure we capture the correct state
             setDesignHistory((history) => {
               const newHistory = history.slice(0, historyIndex + 1);
-              newHistory.push(mergedDesign);
+              newHistory.push(finalDesign);
               if (newHistory.length > MAX_HISTORY_SIZE) {
                 newHistory.shift();
               }
               return newHistory;
             });
 
-            return mergedDesign;
+            return finalDesign;
           });
 
           setHistoryIndex((prev) => Math.min(prev + 1, MAX_HISTORY_SIZE - 1));

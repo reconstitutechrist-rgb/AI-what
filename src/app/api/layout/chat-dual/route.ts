@@ -74,6 +74,8 @@ interface DualModelResponse extends LayoutChatResponse {
   isMultiPagePrompt?: boolean;
   expectedPageCount?: number;
   multiPageResult?: import('@/types/layoutDesign').MultiPageAnalysisResult;
+  // Reference image analysis flag
+  autoApplied?: boolean;
 }
 
 // ============================================================================
@@ -520,6 +522,9 @@ export async function POST(request: Request) {
           duration: claudeDuration,
         },
       },
+      // CRITICAL: Signal to hook that this is a reference image analysis
+      // Hook will REPLACE instead of MERGE when this flag is present
+      autoApplied: hasReferenceImages && !!geminiAnalysis,
     };
 
     return NextResponse.json(response);
@@ -775,9 +780,12 @@ function convertGeminiToDesignUpdates(analysis: VisualAnalysis | PageAnalysis): 
     }
   }
 
+  // CRITICAL FIX: Only include values that Gemini actually detected
+  // Provide minimal fallbacks ONLY for TypeScript-required fields that don't affect color extraction
   const updates: Partial<LayoutDesign> = {
     globalStyles: {
       colors: {
+        // PURE GEMINI COLORS - NO CONTAMINATION
         primary: analysis.colorPalette.primary,
         secondary: analysis.colorPalette.secondary,
         accent: analysis.colorPalette.accent,
@@ -788,10 +796,12 @@ function convertGeminiToDesignUpdates(analysis: VisualAnalysis | PageAnalysis): 
         border: analysis.colorPalette.textMuted, // Use textMuted as border fallback
       },
       typography: {
-        fontFamily: analysis.typography.estimatedBodyFont || 'Inter',
+        // FIX 1: fontFamily is required by TypeScript, provide fallback from Gemini or system default
+        fontFamily: analysis.typography.estimatedBodyFont || 'system-ui, sans-serif',
         headingFont: analysis.typography.estimatedHeadingFont,
         headingWeight: analysis.typography.headingWeight,
         bodyWeight: analysis.typography.bodyWeight,
+        // FIX 2: Provide defaults for required typography properties (don't affect colors)
         headingSize: 'lg' as const,
         bodySize: 'base' as const,
         lineHeight: 'normal' as const,
@@ -799,6 +809,7 @@ function convertGeminiToDesignUpdates(analysis: VisualAnalysis | PageAnalysis): 
       },
       spacing: {
         density: analysis.spacing.density,
+        // FIX 3: Provide default for required containerWidth (structural, doesn't affect colors)
         containerWidth: 'standard' as const,
         sectionPadding: analysis.spacing.sectionPadding,
         componentGap: analysis.spacing.componentGap,
@@ -809,7 +820,7 @@ function convertGeminiToDesignUpdates(analysis: VisualAnalysis | PageAnalysis): 
         animations: analysis.effects.hasAnimations ? 'smooth' : 'subtle',
         blur: analysis.effects.hasBlur ? 'subtle' : 'none',
         gradients: analysis.effects.hasGradients,
-        // CRITICAL FIX: Include Gemini's detected background effect
+        // CRITICAL: Include Gemini's detected background effect
         // This enables BackgroundEffects component to render detected patterns/animations
         backgroundEffect:
           'backgroundEffect' in analysis.effects && analysis.effects.backgroundEffect
@@ -829,6 +840,7 @@ function convertGeminiToDesignUpdates(analysis: VisualAnalysis | PageAnalysis): 
       hasSidebar,
       hasFooter,
       sidebarPosition,
+      // FIX 4: Provide defaults for required structure properties (structural, don't affect colors)
       headerType: 'sticky' as const,
       contentLayout: 'centered' as const,
       mainContentWidth: 'standard' as const,
