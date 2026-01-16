@@ -259,7 +259,12 @@ class GeminiLayoutService {
     if (apiKey) {
       this.client = new GoogleGenerativeAI(apiKey);
       // Gemini 3 Flash is optimal for vision/multimodal tasks (3x faster, better visual understanding)
-      const modelPriority = ['gemini-3-flash', 'gemini-2.5-flash', 'gemini-2.5-pro'];
+      // Note: All current models require the -preview suffix
+      const modelPriority = [
+        'gemini-3-flash-preview',
+        'gemini-2.5-flash-preview',
+        'gemini-2.5-pro-preview',
+      ];
       const modelToUse = modelPriority[0];
       this.model = this.client.getGenerativeModel({ model: modelToUse });
       this.isAvailable = true;
