@@ -110,9 +110,9 @@ class GeminiImageService {
     const prompt = this.buildBackgroundPrompt(colorPalette, vibe, vibeKeywords, styleInstructions);
 
     try {
-      // Use Gemini 3 Pro Image for highest quality
-      // Fallback to 2.5 Flash Image if not available
-      const modelName = 'gemini-2.0-flash-exp'; // Current model with image generation support
+      // Use Gemini 3 Pro Image (Nano Banana Pro) for highest quality
+      // Professional asset production with advanced reasoning ("Thinking")
+      const modelName = 'gemini-3-pro-image-preview';
       const model = this.client.getGenerativeModel({
         model: modelName,
         generationConfig: {
@@ -273,7 +273,7 @@ Based on the reference image I'm providing, create a similar style of background
       throw new Error('Gemini API not configured');
     }
 
-    const model = this.client.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = this.client.getGenerativeModel({ model: 'gemini-3-pro-image-preview' });
 
     const imagePart = {
       inlineData: {

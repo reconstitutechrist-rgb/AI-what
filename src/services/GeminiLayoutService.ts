@@ -613,7 +613,8 @@ Return ONLY valid JSON, no markdown.`;
       }
 
       return {
-        message: text.replace(/```json\n?[\s\S]*?\n?```/g, '').trim(),
+        // Strip ALL code blocks (json, tsx, jsx, etc.) from the message - users only need the summary
+        message: text.replace(/```(?:\w+)?\n?[\s\S]*?\n?```/g, '').trim(),
         analysis,
         designUpdates,
         suggestedActions: this.extractSuggestedActions(text),

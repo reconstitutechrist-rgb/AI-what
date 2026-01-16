@@ -307,30 +307,35 @@ function DynamicHeader({
   const blurClass = getBlurClass(effectsSettings?.blur);
   const gradientStyle = getGradientStyle(effectsSettings?.gradients, primaryColor);
 
+  // Priority: component.style (per-component from Gemini) > colorSettings (global) - NO hardcoded fallbacks
   const headerStyle: React.CSSProperties = {
-    backgroundColor: colorSettings?.background || colorSettings?.surface || '#1e293b',
+    backgroundColor:
+      component.style?.backgroundColor || colorSettings?.background || colorSettings?.surface,
     ...gradientStyle,
   };
 
   const textStyle: React.CSSProperties = {
-    color: colorSettings?.text || '#f8fafc',
+    color: component.style?.textColor || colorSettings?.text,
   };
 
   const mutedTextStyle: React.CSSProperties = {
-    color: colorSettings?.textMuted || '#94a3b8',
+    color: colorSettings?.textMuted,
   };
+
+  // Border color from colorSettings
+  const borderStyle = colorSettings?.border ? { borderColor: colorSettings.border } : {};
 
   return (
     <Selectable
       id={component.id}
       isSelected={selectedElement === component.id}
       onClick={handleSelect}
-      className={`border-b border-slate-700 px-4 py-3 ${animBase} ${blurClass}`}
-      style={headerStyle}
+      className={`border-b px-4 py-3 ${animBase} ${blurClass}`}
+      style={{ ...headerStyle, ...borderStyle }}
     >
       <div className="flex items-center justify-between">
         <div className="font-medium" style={textStyle}>
-          {appName || 'App Name'}
+          {component.content?.text || appName || 'App Name'}
         </div>
         {!isMobile && (
           <nav className="flex items-center gap-4">
@@ -348,7 +353,7 @@ function DynamicHeader({
         <button
           type="button"
           className="px-3 py-1.5 text-sm text-white rounded-lg"
-          style={{ backgroundColor: colorSettings?.primary || primaryColor || '#22c55e' }}
+          style={{ backgroundColor: colorSettings?.primary || primaryColor }}
         >
           Sign In
         </button>
@@ -370,12 +375,13 @@ function DynamicHero({
     onElementSelect?.(selectedElement === id ? null : id);
   };
 
+  // Priority: component.style (per-component from Gemini) > colorSettings (global) - NO hardcoded fallbacks
   const textStyle: React.CSSProperties = {
-    color: colorSettings?.text || '#f8fafc',
+    color: component.style?.textColor || colorSettings?.text,
   };
 
   const mutedTextStyle: React.CSSProperties = {
-    color: colorSettings?.textMuted || '#94a3b8',
+    color: colorSettings?.textMuted,
   };
 
   // Get effect classes
@@ -384,16 +390,24 @@ function DynamicHero({
   const animHover = getAnimationClass(effectsSettings?.animations, 'hover');
   const gradientStyle = getGradientStyle(effectsSettings?.gradients, primaryColor);
 
+  // Hero background style - use component-detected background if available
+  const heroStyle: React.CSSProperties = {
+    ...(component.style?.backgroundColor
+      ? { backgroundColor: component.style.backgroundColor }
+      : {}),
+    ...gradientStyle,
+  };
+
   return (
     <Selectable
       id={component.id}
       isSelected={selectedElement === component.id}
       onClick={handleSelect}
       className={`py-12 px-6 text-center ${animBase}`}
-      style={gradientStyle}
+      style={heroStyle}
     >
       <h1 className="text-2xl font-medium mb-3" style={textStyle}>
-        {content.hero.title}
+        {component.content?.text || content.hero.title}
       </h1>
       <p className="mb-6 max-w-md mx-auto text-sm" style={mutedTextStyle}>
         {content.hero.subtitle}
@@ -401,7 +415,7 @@ function DynamicHero({
       <button
         type="button"
         className={`px-6 py-2.5 text-white ${radiusClass} ${animHover}`}
-        style={{ backgroundColor: colorSettings?.primary || primaryColor || '#22c55e' }}
+        style={{ backgroundColor: colorSettings?.primary || primaryColor }}
       >
         {content.hero.cta}
       </button>
@@ -421,25 +435,30 @@ function DynamicSidebar({
     onElementSelect?.(selectedElement === id ? null : id);
   };
 
+  // Priority: component.style (per-component from Gemini) > colorSettings (global) - NO hardcoded fallbacks
   const sidebarStyle: React.CSSProperties = {
-    backgroundColor: colorSettings?.surface || colorSettings?.secondary || '#1e293b',
+    backgroundColor:
+      component.style?.backgroundColor || colorSettings?.surface || colorSettings?.secondary,
   };
 
   const textStyle: React.CSSProperties = {
-    color: colorSettings?.text || '#f8fafc',
+    color: component.style?.textColor || colorSettings?.text,
   };
 
   const mutedTextStyle: React.CSSProperties = {
-    color: colorSettings?.textMuted || '#94a3b8',
+    color: colorSettings?.textMuted,
   };
+
+  // Border color from colorSettings
+  const borderStyle = colorSettings?.border ? { borderColor: colorSettings.border } : {};
 
   return (
     <Selectable
       id={component.id}
       isSelected={selectedElement === component.id}
       onClick={handleSelect}
-      className="w-48 border-r border-slate-700 p-4 flex-shrink-0"
-      style={sidebarStyle}
+      className="w-48 border-r p-4 flex-shrink-0"
+      style={{ ...sidebarStyle, ...borderStyle }}
     >
       <div className="space-y-2">
         <div className="font-medium mb-4" style={textStyle}>
@@ -452,8 +471,8 @@ function DynamicSidebar({
             style={
               index === 0
                 ? {
-                    backgroundColor: colorSettings?.primary || primaryColor || '#22c55e',
-                    color: '#fff',
+                    backgroundColor: colorSettings?.primary || primaryColor,
+                    color: colorSettings?.background || colorSettings?.surface,
                   }
                 : mutedTextStyle
             }
@@ -479,16 +498,17 @@ function DynamicCardGrid({
     onElementSelect?.(selectedElement === id ? null : id);
   };
 
+  // Priority: component.style (per-component from Gemini) > colorSettings (global) - NO hardcoded fallbacks
   const cardStyle: React.CSSProperties = {
-    backgroundColor: colorSettings?.surface || '#1e293b',
+    backgroundColor: component.style?.backgroundColor || colorSettings?.surface,
   };
 
   const textStyle: React.CSSProperties = {
-    color: colorSettings?.text || '#f8fafc',
+    color: component.style?.textColor || colorSettings?.text,
   };
 
   const mutedTextStyle: React.CSSProperties = {
-    color: colorSettings?.textMuted || '#94a3b8',
+    color: colorSettings?.textMuted,
   };
 
   // Get effect classes
@@ -496,6 +516,9 @@ function DynamicCardGrid({
   const shadowClass = getShadowClass(effectsSettings?.shadows);
   const animBase = getAnimationClass(effectsSettings?.animations, 'base');
   const animHover = getAnimationClass(effectsSettings?.animations, 'hover');
+
+  // Border color from colorSettings
+  const borderStyle = colorSettings?.border ? { borderColor: colorSettings.border } : {};
 
   return (
     <Selectable
@@ -508,8 +531,8 @@ function DynamicCardGrid({
         {content.cards.slice(0, 4).map((card) => (
           <div
             key={`card-${card.title}`}
-            className={`border border-slate-700 overflow-hidden ${radiusClass} ${shadowClass} ${animBase} ${animHover}`}
-            style={cardStyle}
+            className={`border overflow-hidden ${radiusClass} ${shadowClass} ${animBase} ${animHover}`}
+            style={{ ...cardStyle, ...borderStyle }}
           >
             <div className="p-4">
               <div className="flex items-start justify-between mb-2">
@@ -518,7 +541,7 @@ function DynamicCardGrid({
                 </h3>
                 <span
                   className="text-xs px-2 py-0.5 rounded-full text-white"
-                  style={{ backgroundColor: colorSettings?.primary || primaryColor || '#22c55e' }}
+                  style={{ backgroundColor: colorSettings?.primary || primaryColor }}
                 >
                   {card.tag}
                 </span>
@@ -546,20 +569,24 @@ function DynamicStats({
     onElementSelect?.(selectedElement === id ? null : id);
   };
 
+  // Priority: component.style (per-component from Gemini) > colorSettings (global) - NO hardcoded fallbacks
   const cardStyle: React.CSSProperties = {
-    backgroundColor: colorSettings?.surface || '#1e293b',
+    backgroundColor: component.style?.backgroundColor || colorSettings?.surface,
   };
 
   const textStyle: React.CSSProperties = {
-    color: colorSettings?.text || '#f8fafc',
+    color: component.style?.textColor || colorSettings?.text,
   };
 
   const mutedTextStyle: React.CSSProperties = {
-    color: colorSettings?.textMuted || '#94a3b8',
+    color: colorSettings?.textMuted,
   };
 
   const radiusClass = getBorderRadiusClass(effectsSettings?.borderRadius);
   const shadowClass = getShadowClass(effectsSettings?.shadows);
+
+  // Border color from colorSettings
+  const borderStyle = colorSettings?.border ? { borderColor: colorSettings.border } : {};
 
   return (
     <Selectable
@@ -572,8 +599,8 @@ function DynamicStats({
         {content.stats.slice(0, 4).map((stat) => (
           <div
             key={`stat-${stat.label}`}
-            className={`border border-slate-700 p-4 text-center ${radiusClass} ${shadowClass}`}
-            style={cardStyle}
+            className={`border p-4 text-center ${radiusClass} ${shadowClass}`}
+            style={{ ...cardStyle, ...borderStyle }}
           >
             <div className="text-xl font-medium" style={textStyle}>
               {stat.value}
@@ -599,13 +626,18 @@ function DynamicFooter({
     onElementSelect?.(selectedElement === id ? null : id);
   };
 
+  // Priority: component.style (per-component from Gemini) > colorSettings (global) - NO hardcoded fallbacks
   const footerStyle: React.CSSProperties = {
-    backgroundColor: colorSettings?.surface || colorSettings?.background || '#1e293b',
+    backgroundColor:
+      component.style?.backgroundColor || colorSettings?.surface || colorSettings?.background,
   };
 
   const mutedTextStyle: React.CSSProperties = {
-    color: colorSettings?.textMuted || '#94a3b8',
+    color: component.style?.textColor || colorSettings?.textMuted,
   };
+
+  // Border color from colorSettings
+  const borderStyle = colorSettings?.border ? { borderColor: colorSettings.border } : {};
 
   const currentYear = new Date().getFullYear();
 
@@ -614,12 +646,13 @@ function DynamicFooter({
       id={component.id}
       isSelected={selectedElement === component.id}
       onClick={handleSelect}
-      className="border-t border-slate-700 px-4 py-4"
-      style={footerStyle}
+      className="border-t px-4 py-4"
+      style={{ ...footerStyle, ...borderStyle }}
     >
       <div className="flex items-center justify-between">
         <div className="text-xs" style={mutedTextStyle}>
-          © {currentYear} {appName || 'My App'}. All rights reserved.
+          {component.content?.text ||
+            `© ${currentYear} ${appName || 'My App'}. All rights reserved.`}
         </div>
         <div className="flex items-center gap-4">
           <button type="button" className="text-xs hover:opacity-80" style={mutedTextStyle}>
@@ -646,12 +679,13 @@ function DynamicCTA({
     onElementSelect?.(selectedElement === id ? null : id);
   };
 
+  // Priority: component.style (per-component from Gemini) > colorSettings (global) - NO hardcoded fallbacks
   const textStyle: React.CSSProperties = {
-    color: colorSettings?.text || '#f8fafc',
+    color: component.style?.textColor || colorSettings?.text,
   };
 
   const mutedTextStyle: React.CSSProperties = {
-    color: colorSettings?.textMuted || '#94a3b8',
+    color: colorSettings?.textMuted,
   };
 
   const radiusClass = getBorderRadiusClass(effectsSettings?.borderRadius);
@@ -664,7 +698,7 @@ function DynamicCTA({
       className="px-4 py-8 text-center"
     >
       <h2 className="text-xl font-medium mb-2" style={textStyle}>
-        Ready to Get Started?
+        {component.content?.text || 'Ready to Get Started?'}
       </h2>
       <p className="text-sm mb-4 max-w-md mx-auto" style={mutedTextStyle}>
         Join thousands of users already using our platform.
@@ -672,7 +706,7 @@ function DynamicCTA({
       <button
         type="button"
         className={`px-6 py-2.5 text-white ${radiusClass}`}
-        style={{ backgroundColor: colorSettings?.primary || primaryColor || '#22c55e' }}
+        style={{ backgroundColor: colorSettings?.primary || primaryColor }}
       >
         Get Started Free
       </button>
@@ -691,19 +725,23 @@ function DynamicFeatures({
     onElementSelect?.(selectedElement === id ? null : id);
   };
 
+  // Priority: component.style (per-component from Gemini) > colorSettings (global) - NO hardcoded fallbacks
   const cardStyle: React.CSSProperties = {
-    backgroundColor: colorSettings?.surface || '#1e293b',
+    backgroundColor: component.style?.backgroundColor || colorSettings?.surface,
   };
 
   const textStyle: React.CSSProperties = {
-    color: colorSettings?.text || '#f8fafc',
+    color: component.style?.textColor || colorSettings?.text,
   };
 
   const mutedTextStyle: React.CSSProperties = {
-    color: colorSettings?.textMuted || '#94a3b8',
+    color: colorSettings?.textMuted,
   };
 
   const radiusClass = getBorderRadiusClass(effectsSettings?.borderRadius);
+
+  // Border color from colorSettings
+  const borderStyle = colorSettings?.border ? { borderColor: colorSettings.border } : {};
 
   const features = [
     {
@@ -725,14 +763,14 @@ function DynamicFeatures({
       className="px-4 py-8"
     >
       <h2 className="text-xl font-medium mb-6 text-center" style={textStyle}>
-        Features
+        {component.content?.text || 'Features'}
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {features.map((feature) => (
           <div
             key={feature.title}
-            className={`border border-slate-700 p-4 ${radiusClass}`}
-            style={cardStyle}
+            className={`border p-4 ${radiusClass}`}
+            style={{ ...cardStyle, ...borderStyle }}
           >
             <h3 className="font-medium text-sm mb-2" style={textStyle}>
               {feature.title}
@@ -759,19 +797,23 @@ function DynamicPricing({
     onElementSelect?.(selectedElement === id ? null : id);
   };
 
+  // Priority: component.style (per-component from Gemini) > colorSettings (global) - NO hardcoded fallbacks
   const cardStyle: React.CSSProperties = {
-    backgroundColor: colorSettings?.surface || '#1e293b',
+    backgroundColor: component.style?.backgroundColor || colorSettings?.surface,
   };
 
   const textStyle: React.CSSProperties = {
-    color: colorSettings?.text || '#f8fafc',
+    color: component.style?.textColor || colorSettings?.text,
   };
 
   const mutedTextStyle: React.CSSProperties = {
-    color: colorSettings?.textMuted || '#94a3b8',
+    color: colorSettings?.textMuted,
   };
 
   const radiusClass = getBorderRadiusClass(effectsSettings?.borderRadius);
+
+  // Border color from colorSettings
+  const borderColor = colorSettings?.border;
 
   const plans = [
     { name: 'Starter', price: '$9', features: ['5 projects', 'Basic support'] },
@@ -792,14 +834,17 @@ function DynamicPricing({
       className="px-4 py-8"
     >
       <h2 className="text-xl font-medium mb-6 text-center" style={textStyle}>
-        Pricing
+        {component.content?.text || 'Pricing'}
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {plans.map((plan) => (
           <div
             key={plan.name}
-            className={`border p-4 ${radiusClass} ${plan.popular ? 'border-green-500' : 'border-slate-700'}`}
-            style={cardStyle}
+            className={`border p-4 ${radiusClass}`}
+            style={{
+              ...cardStyle,
+              borderColor: plan.popular ? colorSettings?.primary || primaryColor : borderColor,
+            }}
           >
             <h3 className="font-medium text-sm mb-1" style={textStyle}>
               {plan.name}
@@ -820,10 +865,12 @@ function DynamicPricing({
               className={`w-full py-2 text-sm ${radiusClass}`}
               style={{
                 backgroundColor: plan.popular
-                  ? colorSettings?.primary || primaryColor || '#22c55e'
+                  ? colorSettings?.primary || primaryColor
                   : 'transparent',
-                color: plan.popular ? '#fff' : colorSettings?.text || '#f8fafc',
-                border: plan.popular ? 'none' : '1px solid #475569',
+                color: plan.popular
+                  ? colorSettings?.background || colorSettings?.surface
+                  : colorSettings?.text,
+                border: plan.popular ? 'none' : `1px solid ${borderColor || 'currentColor'}`,
               }}
             >
               Choose Plan
@@ -846,19 +893,23 @@ function DynamicTestimonials({
     onElementSelect?.(selectedElement === id ? null : id);
   };
 
+  // Priority: component.style (per-component from Gemini) > colorSettings (global) - NO hardcoded fallbacks
   const cardStyle: React.CSSProperties = {
-    backgroundColor: colorSettings?.surface || '#1e293b',
+    backgroundColor: component.style?.backgroundColor || colorSettings?.surface,
   };
 
   const textStyle: React.CSSProperties = {
-    color: colorSettings?.text || '#f8fafc',
+    color: component.style?.textColor || colorSettings?.text,
   };
 
   const mutedTextStyle: React.CSSProperties = {
-    color: colorSettings?.textMuted || '#94a3b8',
+    color: colorSettings?.textMuted,
   };
 
   const radiusClass = getBorderRadiusClass(effectsSettings?.borderRadius);
+
+  // Border color from colorSettings
+  const borderStyle = colorSettings?.border ? { borderColor: colorSettings.border } : {};
 
   const testimonials = [
     { quote: 'Amazing product! It has transformed our workflow.', author: 'Jane D.' },
@@ -873,14 +924,14 @@ function DynamicTestimonials({
       className="px-4 py-8"
     >
       <h2 className="text-xl font-medium mb-6 text-center" style={textStyle}>
-        What People Say
+        {component.content?.text || 'What People Say'}
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {testimonials.map((t) => (
           <div
             key={t.author}
-            className={`border border-slate-700 p-4 ${radiusClass}`}
-            style={cardStyle}
+            className={`border p-4 ${radiusClass}`}
+            style={{ ...cardStyle, ...borderStyle }}
           >
             <p className="text-sm mb-3 italic" style={mutedTextStyle}>
               &ldquo;{t.quote}&rdquo;
@@ -1042,10 +1093,10 @@ export function DynamicLayoutRenderer({
     viewMode,
   };
 
-  // Container background style
+  // Container background style - NO hardcoded fallback, let Gemini-detected colors come through
   const containerStyle: React.CSSProperties = colorSettings?.background
     ? { backgroundColor: colorSettings.background }
-    : { backgroundColor: '#0f172a' }; // slate-900 fallback
+    : {};
 
   // Check if we should use bounds-based positioning
   // Use bounds layout when components have non-trivial positioning (not all at top-left)

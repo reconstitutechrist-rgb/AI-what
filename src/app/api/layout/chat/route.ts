@@ -98,12 +98,13 @@ async function maybeGenerateCustomBackground(
   try {
     console.log('[Gemini-Only] Generating custom background image...');
 
-    // Build the generation request from the design colors
-    const colorPalette = design.globalStyles?.colors || {
-      primary: '#3b82f6',
-      secondary: '#8b5cf6',
-      background: '#0f172a',
-    };
+    // Build the generation request from the design colors - NO hardcoded fallbacks
+    // Only generate if Gemini detected actual colors
+    const colorPalette = design.globalStyles?.colors;
+    if (!colorPalette?.primary && !colorPalette?.secondary && !colorPalette?.background) {
+      console.log('[Gemini-Only] No colors detected by Gemini, skipping background generation');
+      return design;
+    }
 
     const vibe = 'modern and professional';
     const vibeKeywords = ['web application', 'professional', 'subtle'];
@@ -111,9 +112,9 @@ async function maybeGenerateCustomBackground(
     const result = await geminiImageService.generateBackgroundFromReference({
       referenceImage,
       colorPalette: {
-        primary: colorPalette.primary || '#3b82f6',
-        secondary: colorPalette.secondary || '#8b5cf6',
-        background: colorPalette.background || '#0f172a',
+        primary: colorPalette.primary || colorPalette.secondary || colorPalette.background || '',
+        secondary: colorPalette.secondary || colorPalette.primary || '',
+        background: colorPalette.background || colorPalette.surface || '',
       },
       vibe,
       vibeKeywords,

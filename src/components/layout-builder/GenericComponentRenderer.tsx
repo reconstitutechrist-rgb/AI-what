@@ -289,7 +289,7 @@ export function GenericComponentRenderer({
 
   // Handle different component types with appropriate rendering
   const renderContent = () => {
-    // Button components
+    // Button components - NO hardcoded fallbacks
     if (component.type === 'button') {
       return (
         <button
@@ -297,9 +297,8 @@ export function GenericComponentRenderer({
           className={`px-4 py-2 ${styleClasses} font-medium`}
           style={{
             ...inlineStyle,
-            backgroundColor:
-              inlineStyle.backgroundColor || colorSettings?.primary || primaryColor || '#22c55e',
-            color: inlineStyle.color || '#ffffff',
+            backgroundColor: inlineStyle.backgroundColor || colorSettings?.primary || primaryColor,
+            color: inlineStyle.color,
           }}
         >
           {icon && <span className="mr-2">{icon}</span>}
@@ -308,11 +307,15 @@ export function GenericComponentRenderer({
       );
     }
 
-    // Input components
+    // Input components - NO hardcoded fallbacks
     if (component.type === 'input' || component.type === 'search-bar') {
       return (
         <div className={`${styleClasses} flex-1`} style={inlineStyle}>
-          {icon && <span className="mr-2 text-gray-500">{icon}</span>}
+          {icon && (
+            <span className="mr-2" style={{ color: colorSettings?.textMuted }}>
+              {icon}
+            </span>
+          )}
           <input
             type="text"
             placeholder={component.content?.placeholder || placeholderText}
@@ -324,13 +327,17 @@ export function GenericComponentRenderer({
       );
     }
 
-    // List components
+    // List components - NO hardcoded fallbacks
     if (component.type === 'list') {
       const itemCount = component.content?.itemCount || 3;
       return (
         <div className={styleClasses} style={inlineStyle}>
           {Array.from({ length: Math.min(itemCount, 5) }).map((_, i) => (
-            <div key={i} className="py-2 border-b border-gray-700 last:border-0">
+            <div
+              key={i}
+              className="py-2 border-b last:border-0"
+              style={{ borderColor: colorSettings?.border }}
+            >
               {`• Item ${i + 1}`}
             </div>
           ))}
@@ -351,16 +358,15 @@ export function GenericComponentRenderer({
       );
     }
 
-    // Badge components
+    // Badge components - NO hardcoded fallbacks
     if (component.type === 'badge') {
       return (
         <span
           className={`inline-flex items-center ${styleClasses} text-xs font-medium`}
           style={{
             ...inlineStyle,
-            backgroundColor:
-              inlineStyle.backgroundColor || colorSettings?.primary || primaryColor || '#22c55e',
-            color: inlineStyle.color || '#ffffff',
+            backgroundColor: inlineStyle.backgroundColor || colorSettings?.primary || primaryColor,
+            color: inlineStyle.color,
           }}
         >
           {placeholderText}
@@ -368,16 +374,15 @@ export function GenericComponentRenderer({
       );
     }
 
-    // Avatar components
+    // Avatar components - NO hardcoded fallbacks
     if (component.type === 'avatar') {
       return (
         <div
           className={`${styleClasses} flex items-center justify-center w-10 h-10 rounded-full font-medium`}
           style={{
             ...inlineStyle,
-            backgroundColor:
-              inlineStyle.backgroundColor || colorSettings?.primary || primaryColor || '#22c55e',
-            color: inlineStyle.color || '#ffffff',
+            backgroundColor: inlineStyle.backgroundColor || colorSettings?.primary || primaryColor,
+            color: inlineStyle.color,
           }}
         >
           {icon || placeholderText.charAt(0)}
@@ -385,7 +390,7 @@ export function GenericComponentRenderer({
       );
     }
 
-    // Progress components
+    // Progress components - NO hardcoded fallbacks
     if (component.type === 'progress') {
       return (
         <div className={styleClasses} style={inlineStyle}>
@@ -393,30 +398,26 @@ export function GenericComponentRenderer({
             className="h-2 rounded-full"
             style={{
               width: '75%',
-              backgroundColor: colorSettings?.primary || primaryColor || '#22c55e',
+              backgroundColor: colorSettings?.primary || primaryColor,
             }}
           />
         </div>
       );
     }
 
-    // Tabs components
+    // Tabs components - NO hardcoded fallbacks
     if (component.type === 'tabs') {
       return (
         <div className={styleClasses} style={inlineStyle}>
-          <div className="flex gap-4 border-b border-gray-700">
+          <div className="flex gap-4 border-b" style={{ borderColor: colorSettings?.border }}>
             {['Tab 1', 'Tab 2', 'Tab 3'].map((tab, i) => (
               <button
                 key={tab}
                 type="button"
                 className={`pb-2 px-4 ${i === 0 ? 'border-b-2' : ''}`}
                 style={{
-                  borderColor:
-                    i === 0 ? colorSettings?.primary || primaryColor || '#22c55e' : 'transparent',
-                  color:
-                    i === 0
-                      ? colorSettings?.primary || primaryColor || '#22c55e'
-                      : inlineStyle.color,
+                  borderColor: i === 0 ? colorSettings?.primary || primaryColor : 'transparent',
+                  color: i === 0 ? colorSettings?.primary || primaryColor : inlineStyle.color,
                 }}
               >
                 {tab}
@@ -427,7 +428,7 @@ export function GenericComponentRenderer({
       );
     }
 
-    // Breadcrumb components
+    // Breadcrumb components - NO hardcoded fallbacks
     if (component.type === 'breadcrumb') {
       return (
         <nav className={styleClasses} style={inlineStyle}>
@@ -435,35 +436,36 @@ export function GenericComponentRenderer({
           <span className="mx-2">/</span>
           <span>Category</span>
           <span className="mx-2">/</span>
-          <span style={{ color: colorSettings?.primary || primaryColor || '#22c55e' }}>
-            Current
-          </span>
+          <span style={{ color: colorSettings?.primary || primaryColor }}>Current</span>
         </nav>
       );
     }
 
-    // Pagination components
+    // Pagination components - NO hardcoded fallbacks
     if (component.type === 'pagination') {
       return (
         <div className={`${styleClasses} flex items-center gap-2`} style={inlineStyle}>
-          <button type="button" className="px-3 py-1 rounded hover:bg-gray-700">
+          <button type="button" className="px-3 py-1 rounded hover:opacity-80">
             ←
           </button>
           {[1, 2, 3].map((page) => (
             <button
               key={page}
               type="button"
-              className={`px-3 py-1 rounded ${page === 1 ? 'bg-green-600 text-white' : 'hover:bg-gray-700'}`}
+              className="px-3 py-1 rounded"
               style={
                 page === 1
-                  ? { backgroundColor: colorSettings?.primary || primaryColor || '#22c55e' }
+                  ? {
+                      backgroundColor: colorSettings?.primary || primaryColor,
+                      color: colorSettings?.background || colorSettings?.surface,
+                    }
                   : {}
               }
             >
               {page}
             </button>
           ))}
-          <button type="button" className="px-3 py-1 rounded hover:bg-gray-700">
+          <button type="button" className="px-3 py-1 rounded hover:opacity-80">
             →
           </button>
         </div>
@@ -483,13 +485,13 @@ export function GenericComponentRenderer({
       );
     }
 
-    // Divider components
+    // Divider components - NO hardcoded fallbacks
     if (component.type === 'divider') {
       return (
         <hr
           className="border-t"
           style={{
-            borderColor: inlineStyle.borderColor || colorSettings?.border || '#475569',
+            borderColor: inlineStyle.borderColor || colorSettings?.border,
           }}
         />
       );
