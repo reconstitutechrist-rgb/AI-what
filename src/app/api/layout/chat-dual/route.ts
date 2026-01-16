@@ -310,7 +310,7 @@ export async function POST(request: Request) {
       const claudeStart = Date.now();
 
       try {
-        // Build context with Gemini analysis
+        // Build context with Gemini analysis (summary only, not raw JSON)
         const systemPrompt = buildLayoutBuilderPrompt(
           currentDesign as Partial<LayoutDesign>,
           validatedRequest.selectedElement || null,
@@ -318,7 +318,7 @@ export async function POST(request: Request) {
           referenceImages?.length || 0
         );
         const geminiContext = geminiAnalysis
-          ? `\n\n## Creative Director's Visual Analysis (from Gemini)\n${JSON.stringify(geminiAnalysis, null, 2)}\n\nIMPORTANT: Gemini has extracted the accurate colors from the reference image. Do NOT describe or suggest specific colors in your response - defer to Gemini's colorPalette above. Focus only on layout structure and implementation details.`
+          ? `\n\n## Creative Director's Visual Analysis (from Gemini)\n${buildGeminiSummary(geminiAnalysis)}\n\nIMPORTANT: Gemini has analyzed the reference image and extracted colors, layout structure, and components. This analysis has been automatically applied to the design. Focus your response on explaining the implementation details and any additional suggestions - do NOT repeat the color values or component list.`
           : '';
 
         // Build messages array
@@ -807,6 +807,17 @@ function convertGeminiToDesignUpdates(analysis: VisualAnalysis | PageAnalysis): 
         animations: analysis.effects.hasAnimations ? 'smooth' : 'subtle',
         blur: analysis.effects.hasBlur ? 'subtle' : 'none',
         gradients: analysis.effects.hasGradients,
+        // CRITICAL FIX: Include Gemini's detected background effect
+        // This enables BackgroundEffects component to render detected patterns/animations
+        backgroundEffect:
+          'backgroundEffect' in analysis.effects && analysis.effects.backgroundEffect
+            ? {
+                type: analysis.effects.backgroundEffect.type,
+                enabled: analysis.effects.backgroundEffect.type !== 'none',
+                intensity: analysis.effects.backgroundEffect.intensity,
+                colors: analysis.effects.backgroundEffect.colors,
+              }
+            : undefined,
       },
     },
     // Structure from Gemini's layoutType and detected components

@@ -782,6 +782,7 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
    * Send a message to the layout builder AI
    */
   const sendMessage = useCallback(
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     async (text: string, includeCapture = false) => {
       if (!text.trim() && !includeCapture) return;
 

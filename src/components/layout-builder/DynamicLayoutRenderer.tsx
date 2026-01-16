@@ -350,13 +350,7 @@ function DynamicHeader({
             ))}
           </nav>
         )}
-        <button
-          type="button"
-          className="px-3 py-1.5 text-sm text-white rounded-lg"
-          style={{ backgroundColor: colorSettings?.primary || primaryColor }}
-        >
-          Sign In
-        </button>
+        {/* No hardcoded button - only render if Gemini detects a button component as child */}
       </div>
     </Selectable>
   );
