@@ -351,7 +351,7 @@ class GeminiLayoutService {
     "hasBlur": true/false,
     "hasAnimations": true/false,
     "backgroundEffect": {
-      "type": "particles" | "floating-shapes" | "gradient-animation" | "parallax-dots" | "mesh-gradient" | "aurora" | "waves" | "none",
+      "type": "particles" | "floating-shapes" | "gradient-animation" | "parallax-dots" | "mesh-gradient" | "aurora" | "waves" | "custom-image" | "none",
       "intensity": "subtle" | "medium" | "strong",
       "colors": ["#hex1", "#hex2"]
     }
@@ -727,7 +727,7 @@ Return a JSON object with these categories (all optional, only include what's cl
     "hasGradients": true/false,
     "hasBlur": true/false,
     "backgroundEffect": {
-      "type": "particles|floating-shapes|gradient-animation|parallax-dots|mesh-gradient|aurora|waves|none",
+      "type": "particles|floating-shapes|gradient-animation|parallax-dots|mesh-gradient|aurora|waves|custom-image|none",
       "intensity": "subtle|medium|strong",
       "colors": ["#hex1", "#hex2"]
     }
@@ -896,7 +896,7 @@ Return a JSON object with PRECISE measurements as percentages of viewport (0-100
     "hasBlur": true/false,
     "hasAnimations": true/false,
     "backgroundEffect": {
-      "type": "particles" | "floating-shapes" | "gradient-animation" | "parallax-dots" | "mesh-gradient" | "aurora" | "waves" | "none",
+      "type": "particles" | "floating-shapes" | "gradient-animation" | "parallax-dots" | "mesh-gradient" | "aurora" | "waves" | "custom-image" | "none",
       "intensity": "subtle" | "medium" | "strong",
       "colors": ["#hex1", "#hex2"]
     }
@@ -905,6 +905,21 @@ Return a JSON object with PRECISE measurements as percentages of viewport (0-100
   "vibeKeywords": ["keyword1", "keyword2"],
   "confidence": 0.0-1.0
 }
+
+BACKGROUND EFFECT DETECTION RULES:
+- Look for VISUAL CUES that suggest animated/dynamic backgrounds:
+  * Scattered dots/circles/shapes floating around = "particles"
+  * Soft, blurred floating geometric shapes = "floating-shapes"
+  * Flowing color gradients or gradient overlays = "gradient-animation"
+  * Dot patterns or grids in background = "parallax-dots"
+  * Multiple overlapping blurred color blobs = "mesh-gradient"
+  * Wavy gradient bands (aurora borealis style) = "aurora"
+  * Curved lines resembling water waves = "waves"
+  * Custom artistic background (illustrations, patterns, artwork, abstract art, photographic backgrounds) = "custom-image"
+- Use "custom-image" when the background has unique artistic elements that cannot be replicated with CSS effects
+- Extract the EXACT colors used in the background effect (not just primary colors)
+- Set intensity based on visual prominence: subtle (barely visible), medium (noticeable), strong (dominant)
+- If no background effect is detected (plain solid color only), set type to "none"
 
 CRITICAL COLOR EXTRACTION RULES:
 - Extract the EXACT hex colors you see in the image, not typical UI defaults

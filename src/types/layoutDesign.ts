@@ -134,8 +134,8 @@ export interface EffectsSettings {
   gradients: boolean;
   // Advanced Effects (AI-controllable)
   advancedEffects?: AdvancedEffectsConfig;
-  // Background animations (particles, floating shapes, etc.)
-  backgroundEffect?: BackgroundEffectConfig;
+  // Background animations (particles, floating shapes, etc.) or custom AI-generated images
+  backgroundEffect?: AnyBackgroundEffectConfig;
 }
 
 // ============================================================================
@@ -207,6 +207,7 @@ export type BackgroundEffectType =
   | 'mesh-gradient'
   | 'aurora'
   | 'waves'
+  | 'custom-image'
   | 'none';
 
 export interface BackgroundEffectConfig {
@@ -275,6 +276,35 @@ export interface WavesConfig extends BackgroundEffectConfig {
   /** Wave amplitude */
   amplitude?: 'small' | 'medium' | 'large';
 }
+
+export interface CustomImageConfig extends Omit<BackgroundEffectConfig, 'intensity'> {
+  type: 'custom-image';
+  /** URL to the generated or uploaded background image */
+  imageUrl: string;
+  /** Background size CSS property */
+  size?: 'cover' | 'contain' | 'auto';
+  /** Background position CSS property */
+  position?: 'center' | 'top' | 'bottom' | 'left' | 'right';
+  /** Whether the background scrolls with content or stays fixed */
+  attachment?: 'scroll' | 'fixed';
+  /** Blend mode for combining with content */
+  blend?: 'normal' | 'overlay' | 'multiply' | 'screen' | 'soft-light';
+  /** Optional intensity override (not used for custom images, kept for type compatibility) */
+  intensity?: 'subtle' | 'medium' | 'strong';
+}
+
+/**
+ * Union type for all background effect configurations
+ * Used in EffectsSettings to allow any specific background effect type
+ */
+export type AnyBackgroundEffectConfig =
+  | BackgroundEffectConfig
+  | ParticlesConfig
+  | FloatingShapesConfig
+  | GradientAnimationConfig
+  | AuroraConfig
+  | WavesConfig
+  | CustomImageConfig;
 
 // Component State Types (AI-Controllable)
 export type ComponentStateType = 'hover' | 'active' | 'focus' | 'disabled' | 'loading';

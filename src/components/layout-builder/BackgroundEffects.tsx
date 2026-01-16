@@ -8,10 +8,12 @@ import type {
   GradientAnimationConfig,
   AuroraConfig,
   WavesConfig,
+  CustomImageConfig,
+  AnyBackgroundEffectConfig,
 } from '@/types/layoutDesign';
 
 interface BackgroundEffectsProps {
-  config: BackgroundEffectConfig;
+  config: AnyBackgroundEffectConfig;
   className?: string;
 }
 
@@ -628,6 +630,37 @@ function WavesEffect({ config }: { config: WavesConfig }) {
 }
 
 // ============================================================================
+// Custom Image Effect
+// ============================================================================
+
+function CustomImageEffect({ config }: { config: CustomImageConfig }) {
+  const opacity = config.opacity ?? 1;
+  const size = config.size || 'cover';
+  const position = config.position || 'center';
+  const attachment = config.attachment || 'scroll';
+  const blend = config.blend || 'normal';
+
+  if (!config.imageUrl) {
+    return null;
+  }
+
+  return (
+    <div
+      className="absolute inset-0"
+      style={{
+        backgroundImage: `url(${config.imageUrl})`,
+        backgroundSize: size,
+        backgroundPosition: position,
+        backgroundAttachment: attachment,
+        backgroundRepeat: 'no-repeat',
+        opacity,
+        mixBlendMode: blend,
+      }}
+    />
+  );
+}
+
+// ============================================================================
 // Main Component
 // ============================================================================
 
@@ -652,6 +685,8 @@ export function BackgroundEffects({ config, className = '' }: BackgroundEffectsP
         return <AuroraEffect config={config as AuroraConfig} />;
       case 'waves':
         return <WavesEffect config={config as WavesConfig} />;
+      case 'custom-image':
+        return <CustomImageEffect config={config as CustomImageConfig} />;
       default:
         return null;
     }

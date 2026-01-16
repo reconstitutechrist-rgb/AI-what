@@ -11,6 +11,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getGeminiLayoutService, type VisualAnalysis } from '@/services/GeminiLayoutService';
+import { geminiImageService } from '@/services/GeminiImageService';
 import type {
   LayoutDesign,
   LayoutChatRequest,
@@ -19,12 +20,19 @@ import type {
   SuggestedAction,
   PageAnalysis,
   DetectedComponentEnhanced,
+  CustomImageConfig,
 } from '@/types/layoutDesign';
 import {
   mapGeminiLayoutToStructureType,
   mapStructureTypeToLayout,
 } from '@/utils/layoutTypeMapping';
 import { GEMINI_LAYOUT_BUILDER_SYSTEM_PROMPT } from '@/prompts/geminiLayoutBuilderPrompt';
+
+// Re-export for type documentation (validates request matches expected shape)
+export type { LayoutChatRequest };
+
+// System prompt available for reference/debugging
+const _systemPrompt = GEMINI_LAYOUT_BUILDER_SYSTEM_PROMPT;
 
 // Vercel serverless function config
 export const maxDuration = 60;
@@ -56,6 +64,93 @@ const GeminiRequestSchema = z.object({
   workflowState: z.any().optional(),
   currentDevice: z.enum(['mobile', 'tablet', 'desktop']).optional(),
 });
+
+// ============================================================================
+// CUSTOM BACKGROUND GENERATION
+// ============================================================================
+
+/**
+ * Generate a custom background image if the detected background type is 'custom-image'
+ * Uses GeminiImageService to generate a background matching the reference screenshot
+ */
+async function maybeGenerateCustomBackground(
+  design: Partial<LayoutDesign>,
+  referenceImage: string | undefined
+): Promise<Partial<LayoutDesign>> {
+  // Check if custom background generation is needed
+  const backgroundEffect = design.globalStyles?.effects?.backgroundEffect;
+  if (!backgroundEffect || backgroundEffect.type !== 'custom-image') {
+    return design;
+  }
+
+  // Need a reference image to generate from
+  if (!referenceImage) {
+    console.log('[Gemini-Only] Custom background detected but no reference image available');
+    return design;
+  }
+
+  // Check if service is available
+  if (!geminiImageService.checkAvailability()) {
+    console.log('[Gemini-Only] GeminiImageService not available for background generation');
+    return design;
+  }
+
+  try {
+    console.log('[Gemini-Only] Generating custom background image...');
+
+    // Build the generation request from the design colors
+    const colorPalette = design.globalStyles?.colors || {
+      primary: '#3b82f6',
+      secondary: '#8b5cf6',
+      background: '#0f172a',
+    };
+
+    const vibe = 'modern and professional';
+    const vibeKeywords = ['web application', 'professional', 'subtle'];
+
+    const result = await geminiImageService.generateBackgroundFromReference({
+      referenceImage,
+      colorPalette: {
+        primary: colorPalette.primary || '#3b82f6',
+        secondary: colorPalette.secondary || '#8b5cf6',
+        background: colorPalette.background || '#0f172a',
+      },
+      vibe,
+      vibeKeywords,
+    });
+
+    console.log('[Gemini-Only] Custom background generated:', result.imageUrl.substring(0, 100));
+
+    // Update the design with the generated image URL
+    // Keep existing globalStyles and effects, only update backgroundEffect
+    const existingGlobalStyles = design.globalStyles;
+    const existingEffects = existingGlobalStyles?.effects;
+    if (!existingGlobalStyles || !existingEffects) {
+      // No globalStyles/effects to update, return design as-is
+      return design;
+    }
+
+    const customImageConfig: CustomImageConfig = {
+      type: 'custom-image',
+      enabled: backgroundEffect.enabled,
+      imageUrl: result.imageUrl,
+      opacity: backgroundEffect.opacity,
+      colors: backgroundEffect.colors,
+    };
+
+    return {
+      ...design,
+      globalStyles: {
+        ...existingGlobalStyles,
+        effects: { ...existingEffects, backgroundEffect: customImageConfig },
+      },
+    };
+  } catch (error) {
+    console.error('[Gemini-Only] Failed to generate custom background:', error);
+    // Fall back to no custom image - let the effect render without it
+    return design;
+  }
+}
 
 // ============================================================================
 // MAIN HANDLER
@@ -249,20 +344,27 @@ What would you like to create?`;
       }
     }
 
+    // Generate custom background image if detected type is 'custom-image'
+    // This uses the reference image to generate an AI background matching the style
+    const referenceImage = referenceImages?.[0];
+    const finalDesign = await maybeGenerateCustomBackground(mergedDesign, referenceImage);
+
     // Debug logging
     console.log('[Gemini-Only] Response:', {
       hasGeminiAnalysis: !!geminiAnalysis,
       componentCount,
       autoApplied,
-      finalColors: mergedDesign.globalStyles?.colors?.primary,
-      finalStructure: mergedDesign.structure?.type,
+      finalColors: finalDesign.globalStyles?.colors?.primary,
+      finalStructure: finalDesign.structure?.type,
+      hasCustomBackground:
+        finalDesign.globalStyles?.effects?.backgroundEffect?.type === 'custom-image',
     });
 
     const duration = Date.now() - startTime;
 
     const response: GeminiOnlyResponse = {
       message: geminiMessage,
-      updatedDesign: mergedDesign,
+      updatedDesign: finalDesign,
       suggestedActions,
       designChanges,
       tokensUsed: { input: 0, output: 0 }, // Gemini doesn't expose token counts
@@ -449,6 +551,19 @@ function convertGeminiToDesignUpdates(analysis: VisualAnalysis | PageAnalysis): 
         animations: analysis.effects.hasAnimations ? 'smooth' : 'subtle',
         blur: analysis.effects.hasBlur ? 'subtle' : 'none',
         gradients: analysis.effects.hasGradients,
+        // Include detected background effects (particles, aurora, waves, etc.)
+        backgroundEffect:
+          'backgroundEffect' in analysis.effects && analysis.effects.backgroundEffect
+            ? {
+                type: analysis.effects.backgroundEffect.type,
+                enabled: analysis.effects.backgroundEffect.type !== 'none',
+                intensity: analysis.effects.backgroundEffect.intensity || 'medium',
+                colors: analysis.effects.backgroundEffect.colors || [
+                  analysis.colorPalette.primary,
+                  analysis.colorPalette.secondary,
+                ],
+              }
+            : undefined,
       },
     },
     structure: {

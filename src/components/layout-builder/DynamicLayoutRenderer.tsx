@@ -189,6 +189,26 @@ function getGradientStyle(
   };
 }
 
+/**
+ * Get CSS styles for positioning based on component bounds
+ * Bounds are percentages of viewport (0-100)
+ */
+function getBoundsStyle(bounds?: {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}): React.CSSProperties {
+  if (!bounds) return {};
+  return {
+    position: 'absolute',
+    top: `${bounds.top}%`,
+    left: `${bounds.left}%`,
+    width: `${bounds.width}%`,
+    height: bounds.height > 0 ? `${bounds.height}%` : 'auto',
+  };
+}
+
 // ============================================================================
 // Selectable Wrapper
 // ============================================================================
@@ -228,6 +248,34 @@ function Selectable({ id, children, isSelected, onClick, className = '', style }
       } ${className}`}
       style={style}
     >
+      {children}
+    </div>
+  );
+}
+
+// ============================================================================
+// Bounds-Aware Wrapper
+// ============================================================================
+
+interface BoundsWrapperProps {
+  component: DetectedComponentEnhanced;
+  children: React.ReactNode;
+}
+
+/**
+ * Wraps a component with absolute positioning based on its detected bounds
+ * If no bounds are detected, renders children in normal document flow
+ */
+function BoundsWrapper({ component, children }: BoundsWrapperProps) {
+  const style = getBoundsStyle(component.bounds);
+
+  // If no meaningful bounds, render in normal flow
+  if (!component.bounds || Object.keys(style).length === 0) {
+    return <>{children}</>;
+  }
+
+  return (
+    <div style={style} data-component-id={component.id} className="overflow-hidden">
       {children}
     </div>
   );
@@ -998,6 +1046,31 @@ export function DynamicLayoutRenderer({
   const containerStyle: React.CSSProperties = colorSettings?.background
     ? { backgroundColor: colorSettings.background }
     : { backgroundColor: '#0f172a' }; // slate-900 fallback
+
+  // Check if we should use bounds-based positioning
+  // Use bounds layout when components have non-trivial positioning (not all at top-left)
+  const useBoundsLayout = useMemo(() => {
+    return sortedComponents.some((c) => c.bounds && (c.bounds.top > 0 || c.bounds.left > 0));
+  }, [sortedComponents]);
+
+  // Render with bounds-based absolute positioning
+  if (useBoundsLayout) {
+    return (
+      <div className="relative w-full min-h-screen" style={containerStyle}>
+        {/* Background Effects Layer */}
+        {effectsSettings?.backgroundEffect?.enabled && (
+          <BackgroundEffects config={effectsSettings.backgroundEffect} />
+        )}
+        <div className="relative z-10 w-full h-full min-h-screen">
+          {sortedComponents.map((comp) => (
+            <BoundsWrapper key={comp.id} component={comp}>
+              {renderComponent(comp, commonProps)}
+            </BoundsWrapper>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   // Render with sidebar layout
   if (layoutStructure.hasSidebar && !isMobile) {
