@@ -488,6 +488,15 @@ export async function POST(request: Request) {
         bounds: c.bounds,
         hasContent: !!c.content,
       })),
+
+      // CRITICAL: Background effect debug
+      geminiBackgroundEffect:
+        geminiAnalysis?.effects && 'backgroundEffect' in geminiAnalysis.effects
+          ? geminiAnalysis.effects.backgroundEffect
+          : undefined,
+      finalBackgroundEffect: mergedDesign.globalStyles?.effects?.backgroundEffect,
+      backgroundEnabled: mergedDesign.globalStyles?.effects?.backgroundEffect?.enabled,
+      backgroundType: mergedDesign.globalStyles?.effects?.backgroundEffect?.type,
     });
 
     const _totalDuration = Date.now() - startTime;
@@ -562,13 +571,6 @@ function buildGeminiSummary(analysis: VisualAnalysis | PageAnalysis): string {
         `- Secondary: ${analysis.colorPalette.secondary}\n` +
         `- Background: ${analysis.colorPalette.background}`
     );
-  }
-
-  if (analysis.components?.length > 0) {
-    const componentTypes = analysis.components.map((c) => c.type).filter((t) => t !== 'unknown');
-    if (componentTypes.length > 0) {
-      parts.push(`\nDetected components: ${componentTypes.join(', ')}`);
-    }
   }
 
   return parts.join('\n\n');
