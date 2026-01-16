@@ -254,7 +254,8 @@ class GeminiLayoutService {
   }
 
   private initialize(): void {
-    const apiKey = process.env.GOOGLE_API_KEY;
+    // Support both GOOGLE_API_KEY and GEMINI_API_KEY for flexibility
+    const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
 
     if (apiKey) {
       this.client = new GoogleGenerativeAI(apiKey);

@@ -70,11 +70,14 @@ export async function POST(request: Request) {
 
     const { message, currentDesign, previewScreenshot, referenceImages } = validatedRequest;
 
-    // Check for Gemini API key
-    const hasGeminiKey = !!process.env.GOOGLE_API_KEY;
+    // Check for Gemini API key (support both names)
+    const hasGeminiKey = !!(process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY);
 
     if (!hasGeminiKey) {
-      return NextResponse.json({ error: 'GOOGLE_API_KEY not configured' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'GOOGLE_API_KEY or GEMINI_API_KEY not configured' },
+        { status: 500 }
+      );
     }
 
     // Collect images - prioritize reference images for color extraction
