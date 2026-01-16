@@ -258,13 +258,9 @@ class GeminiLayoutService {
 
     if (apiKey) {
       this.client = new GoogleGenerativeAI(apiKey);
-      // Gemini 3 Flash is optimal for vision/multimodal tasks (3x faster, better visual understanding)
-      // Note: All current models require the -preview suffix
-      const modelPriority = [
-        'gemini-3-flash-preview',
-        'gemini-2.5-flash-preview',
-        'gemini-2.5-pro-preview',
-      ];
+      // Gemini 3 Flash for best vision/multimodal performance
+      // Note: Gemini 3 models require -preview suffix
+      const modelPriority = ['gemini-3-flash-preview', 'gemini-2.5-flash'];
       const modelToUse = modelPriority[0];
       this.model = this.client.getGenerativeModel({ model: modelToUse });
       this.isAvailable = true;
@@ -396,7 +392,13 @@ Return ONLY valid JSON, no markdown formatting or explanation.`;
 
       return analysis;
     } catch (error) {
-      console.error('Gemini visual analysis failed:', error);
+      console.error('[GeminiLayoutService] analyzeScreenshot FAILED');
+      console.error('[GeminiLayoutService] Model:', this.model ? 'initialized' : 'null');
+      console.error('[GeminiLayoutService] Error:', error);
+      if (error instanceof Error) {
+        console.error('[GeminiLayoutService] Error message:', error.message);
+        console.error('[GeminiLayoutService] Error stack:', error.stack);
+      }
       throw error;
     }
   }
@@ -617,7 +619,11 @@ Return ONLY valid JSON, no markdown.`;
         modelUsed: 'gemini',
       };
     } catch (error) {
-      console.error('Gemini chat failed:', error);
+      console.error('[GeminiLayoutService] chat FAILED');
+      console.error('[GeminiLayoutService] Error:', error);
+      if (error instanceof Error) {
+        console.error('[GeminiLayoutService] Error message:', error.message);
+      }
       throw error;
     }
   }
@@ -979,7 +985,11 @@ Return ONLY valid JSON, no markdown.`;
         confidence: parsed.confidence || 0.7,
       };
     } catch (error) {
-      console.error('[GeminiLayoutService] analyzePageEnhanced error:', error);
+      console.error('[GeminiLayoutService] analyzePageEnhanced FAILED');
+      console.error('[GeminiLayoutService] Error:', error);
+      if (error instanceof Error) {
+        console.error('[GeminiLayoutService] Error message:', error.message);
+      }
       throw error;
     }
   }

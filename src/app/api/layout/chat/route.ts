@@ -250,7 +250,14 @@ What would you like to create?`;
 
     return NextResponse.json(response);
   } catch (error) {
+    console.error('[Gemini-Only] ========== API ERROR ==========');
+    console.error('[Gemini-Only] Error type:', error?.constructor?.name);
     console.error('[Gemini-Only] Error:', error);
+    if (error instanceof Error) {
+      console.error('[Gemini-Only] Message:', error.message);
+      console.error('[Gemini-Only] Stack:', error.stack);
+    }
+    console.error('[Gemini-Only] ===============================');
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -259,10 +266,13 @@ What would you like to create?`;
       );
     }
 
+    // Return actual error message for debugging
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       {
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Gemini API error',
+        message: errorMessage,
+        details: errorMessage,
       },
       { status: 500 }
     );
