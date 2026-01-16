@@ -10,6 +10,7 @@ import type {
   EffectsSettings,
   ColorSettings,
   LayoutStructure,
+  DetectedComponentEnhanced,
 } from '../types/layoutDesign';
 import { generateMockContent } from '../utils/mockContentGenerator';
 import { DragDropCanvas, useSectionOrder, type LayoutSection } from './layout/DragDropCanvas';
@@ -17,6 +18,7 @@ import { imageAssets, getFallbackImage } from '../utils/imageAssets';
 import { imageCache } from '../utils/imageCache';
 import { ViewOptionsMenu } from './layout-builder/ViewOptionsMenu';
 import { ColorPickerMenu } from './layout-builder/ColorPickerMenu';
+import { DynamicLayoutRenderer } from './layout-builder/DynamicLayoutRenderer';
 
 // ============================================================================
 // Image Generation Types
@@ -118,6 +120,8 @@ interface ComponentDesignProps {
   effectsSettings?: Partial<EffectsSettings>;
   colorSettings?: Partial<ColorSettings>;
   structure?: Partial<LayoutStructure>;
+  /** Full detected components array from Gemini for dynamic layout rendering */
+  detectedComponents?: DetectedComponentEnhanced[];
 }
 
 /**
@@ -2020,6 +2024,26 @@ export function LayoutPreview({
       );
     }
 
+    // Check for dynamic mode: use DynamicLayoutRenderer when detected components exist
+    const detectedComponents =
+      componentDesign?.detectedComponents || componentDesign?.structure?.detectedComponents;
+    if (detectedComponents && detectedComponents.length > 0) {
+      return (
+        <DynamicLayoutRenderer
+          components={detectedComponents}
+          colorSettings={componentDesign?.colorSettings}
+          effectsSettings={componentDesign?.effectsSettings}
+          content={mockContent}
+          primaryColor={primaryColor}
+          appName={concept?.name || 'My App'}
+          onElementSelect={isAnimationDemo ? undefined : onElementSelect}
+          selectedElement={effectiveSelectedElement}
+          viewMode={viewMode}
+        />
+      );
+    }
+
+    // Fallback to fixed templates when no detected components
     const layoutProps: LayoutComponentProps = {
       content: mockContent,
       colors,

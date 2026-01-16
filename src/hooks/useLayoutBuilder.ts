@@ -1086,6 +1086,8 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
                       hasHeader: data.geminiAnalysis.components.some((c) => c.type === 'header'),
                       hasSidebar: data.geminiAnalysis.components.some((c) => c.type === 'sidebar'),
                       hasFooter: data.geminiAnalysis.components.some((c) => c.type === 'footer'),
+                      // Pass full component array for dynamic layout rendering
+                      detectedComponents: data.geminiAnalysis.components,
                     }
                   : {}),
               },
@@ -1828,6 +1830,14 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
             gradients: styles.effects.hasGradients,
           }),
           ...(mapBlur(styles.effects?.hasBlur) && { blur: mapBlur(styles.effects?.hasBlur) }),
+          ...(styles.effects?.backgroundEffect && {
+            backgroundEffect: {
+              type: styles.effects.backgroundEffect.type,
+              enabled: styles.effects.backgroundEffect.type !== 'none',
+              intensity: styles.effects.backgroundEffect.intensity || 'medium',
+              colors: styles.effects.backgroundEffect.colors,
+            },
+          }),
         },
       };
 
@@ -2095,7 +2105,7 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
               referenceImage: frame.referenceImage || '',
               order: pageReferences.length + index,
               isMain: pageReferences.length === 0 && index === 0,
-              status: 'pending' as const,
+              status: 'analyzing' as const, // Start as analyzing since we'll analyze immediately
               createdAt: new Date().toISOString(),
             })
           );
@@ -2106,14 +2116,101 @@ export function useLayoutBuilder(options: UseLayoutBuilderOptions = {}): UseLayo
           if (!currentPageId && newPages.length > 0) {
             setCurrentPageId(newPages[0].id);
           }
+
+          // Immediately analyze the detected pages for layout structure
+          // This ensures video pages get the same component detection as image uploads
+          const analyzeResponse = await fetch('/api/layout/analyze-pages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              pages: newPages.map((p) => ({
+                id: p.id,
+                imageBase64: p.referenceImage,
+                name: p.name,
+              })),
+              existingDesign: multiPageDesign,
+            }),
+          });
+
+          if (analyzeResponse.ok) {
+            const analyzeResult: MultiPageAnalysisResult & { success: boolean } =
+              await analyzeResponse.json();
+
+            if (analyzeResult.success) {
+              // Update page references with analysis results
+              setPageReferences((prev) =>
+                prev.map((p) => {
+                  const analyzed = analyzeResult.pages.find((rp) => rp.id === p.id);
+                  if (analyzed) {
+                    return {
+                      ...p,
+                      analysis: analyzed.analysis,
+                      status: 'complete' as const,
+                    };
+                  }
+                  return p;
+                })
+              );
+
+              // Create/update MultiPageDesign with analysis results
+              const now = new Date().toISOString();
+              setMultiPageDesign((prev) => ({
+                pages: [...(prev?.pages || []), ...analyzeResult.pages],
+                sharedDesign: analyzeResult.sharedDesign,
+                navigation: analyzeResult.navigation,
+                pageSpecificOverrides: prev?.pageSpecificOverrides || {},
+                inferredRoutes: analyzeResult.inferredRoutes,
+                createdAt: prev?.createdAt || now,
+                updatedAt: now,
+              }));
+
+              // Apply shared design and structure with detected components
+              if (analyzeResult.sharedDesign) {
+                updateDesign(analyzeResult.sharedDesign);
+              }
+
+              // Also update design.structure.detectedComponents from the first page
+              // This ensures DynamicLayoutRenderer can render the layout
+              const firstPageAnalysis = analyzeResult.pages[0]?.analysis;
+              if (firstPageAnalysis?.components) {
+                setDesign((prev) => ({
+                  ...prev,
+                  structure: {
+                    ...prev.structure,
+                    type: prev.structure?.type || 'single-page',
+                    sidebarPosition: prev.structure?.sidebarPosition || 'left',
+                    headerType: prev.structure?.headerType || 'sticky',
+                    contentLayout: prev.structure?.contentLayout || 'centered',
+                    mainContentWidth: prev.structure?.mainContentWidth || 'standard',
+                    hasHeader: firstPageAnalysis.components.some((c) => c.type === 'header'),
+                    hasSidebar: firstPageAnalysis.components.some((c) => c.type === 'sidebar'),
+                    hasFooter: firstPageAnalysis.components.some((c) => c.type === 'footer'),
+                    detectedComponents: firstPageAnalysis.components,
+                  },
+                }));
+              }
+            }
+          }
         }
       } catch (error) {
         console.error('[useLayoutBuilder] Failed to extract pages from video:', error);
+        // Mark any analyzing pages as error
+        setPageReferences((prev) =>
+          prev.map((p) =>
+            p.status === 'analyzing'
+              ? {
+                  ...p,
+                  status: 'error' as const,
+                  errorMessage: error instanceof Error ? error.message : 'Analysis failed',
+                }
+              : p
+          )
+        );
       } finally {
         setIsAnalyzingPages(false);
       }
     },
-    [pageReferences.length, currentPageId]
+    [pageReferences.length, currentPageId, multiPageDesign, updateDesign]
   );
 
   /**

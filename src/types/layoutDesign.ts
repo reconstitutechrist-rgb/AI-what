@@ -134,6 +134,8 @@ export interface EffectsSettings {
   gradients: boolean;
   // Advanced Effects (AI-controllable)
   advancedEffects?: AdvancedEffectsConfig;
+  // Background animations (particles, floating shapes, etc.)
+  backgroundEffect?: BackgroundEffectConfig;
 }
 
 // ============================================================================
@@ -191,6 +193,87 @@ export interface CustomShadowConfig {
     inset?: boolean;
   }>;
   targetElement?: string;
+}
+
+// ============================================================================
+// Background Animation Types (AI-Controllable)
+// ============================================================================
+
+export type BackgroundEffectType =
+  | 'particles'
+  | 'floating-shapes'
+  | 'gradient-animation'
+  | 'parallax-dots'
+  | 'mesh-gradient'
+  | 'aurora'
+  | 'waves'
+  | 'none';
+
+export interface BackgroundEffectConfig {
+  type: BackgroundEffectType;
+  enabled: boolean;
+  /** Intensity of the effect (affects particle count, speed, etc.) */
+  intensity: 'subtle' | 'medium' | 'strong';
+  /** Colors used by the effect */
+  colors?: string[];
+  /** Animation speed multiplier (1.0 = normal) */
+  speed?: number;
+  /** Opacity of the effect layer (0-1) */
+  opacity?: number;
+  /** Whether the effect responds to mouse movement */
+  interactive?: boolean;
+}
+
+export interface ParticlesConfig extends BackgroundEffectConfig {
+  type: 'particles';
+  /** Number of particles (auto-calculated from intensity if not set) */
+  count?: number;
+  /** Particle shape */
+  shape: 'circle' | 'square' | 'triangle' | 'star';
+  /** Min and max particle size in pixels */
+  sizeRange: [number, number];
+  /** Whether particles should connect with lines */
+  connectLines?: boolean;
+  /** Max distance for line connections */
+  lineDistance?: number;
+}
+
+export interface FloatingShapesConfig extends BackgroundEffectConfig {
+  type: 'floating-shapes';
+  /** Shapes to float */
+  shapes: Array<'circle' | 'square' | 'triangle' | 'blob'>;
+  /** Number of shapes */
+  count?: number;
+  /** Whether shapes should blur */
+  blur?: boolean;
+}
+
+export interface GradientAnimationConfig extends BackgroundEffectConfig {
+  type: 'gradient-animation';
+  /** Gradient colors (min 2) */
+  colors: string[];
+  /** Animation type */
+  animationType: 'shift' | 'rotate' | 'pulse' | 'wave';
+  /** Gradient angle for shift/rotate */
+  angle?: number;
+}
+
+export interface AuroraConfig extends BackgroundEffectConfig {
+  type: 'aurora';
+  /** Aurora wave colors */
+  colors: string[];
+  /** Number of aurora waves */
+  waves?: number;
+}
+
+export interface WavesConfig extends BackgroundEffectConfig {
+  type: 'waves';
+  /** Wave colors */
+  colors: string[];
+  /** Number of wave layers */
+  layers?: number;
+  /** Wave amplitude */
+  amplitude?: 'small' | 'medium' | 'large';
 }
 
 // Component State Types (AI-Controllable)
@@ -316,6 +399,8 @@ export interface LayoutStructure {
   headerType: 'fixed' | 'sticky' | 'static';
   contentLayout: 'centered' | 'full-width' | 'asymmetric';
   mainContentWidth: 'narrow' | 'standard' | 'wide' | 'full';
+  /** Full detected components array from Gemini analysis for dynamic layout rendering */
+  detectedComponents?: DetectedComponentEnhanced[];
 }
 
 export interface ResponsiveSettings {

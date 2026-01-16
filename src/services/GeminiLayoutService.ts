@@ -86,6 +86,19 @@ export interface VisualAnalysis {
     hasGradients: boolean;
     hasBlur: boolean;
     hasAnimations: boolean;
+    backgroundEffect?: {
+      type:
+        | 'particles'
+        | 'floating-shapes'
+        | 'gradient-animation'
+        | 'parallax-dots'
+        | 'mesh-gradient'
+        | 'aurora'
+        | 'waves'
+        | 'none';
+      intensity: 'subtle' | 'medium' | 'strong';
+      colors?: string[];
+    };
   };
   vibe: string;
   vibeKeywords: string[];
@@ -178,6 +191,19 @@ export interface ExtractedStyles {
     shadows?: 'none' | 'subtle' | 'medium' | 'strong';
     hasGradients?: boolean;
     hasBlur?: boolean;
+    backgroundEffect?: {
+      type:
+        | 'particles'
+        | 'floating-shapes'
+        | 'gradient-animation'
+        | 'parallax-dots'
+        | 'mesh-gradient'
+        | 'aurora'
+        | 'waves'
+        | 'none';
+      intensity: 'subtle' | 'medium' | 'strong';
+      colors?: string[];
+    };
   };
   vibe: string;
   recommendations: string[];
@@ -316,7 +342,12 @@ class GeminiLayoutService {
     "shadows": "none" | "subtle" | "medium" | "strong",
     "hasGradients": true/false,
     "hasBlur": true/false,
-    "hasAnimations": true/false
+    "hasAnimations": true/false,
+    "backgroundEffect": {
+      "type": "particles" | "floating-shapes" | "gradient-animation" | "parallax-dots" | "mesh-gradient" | "aurora" | "waves" | "none",
+      "intensity": "subtle" | "medium" | "strong",
+      "colors": ["#hex1", "#hex2"]
+    }
   },
   "vibe": "One sentence describing the overall aesthetic/vibe",
   "vibeKeywords": ["keyword1", "keyword2", "keyword3"],
@@ -682,7 +713,12 @@ Return a JSON object with these categories (all optional, only include what's cl
     "borderRadius": "none|sm|md|lg|xl|full",
     "shadows": "none|subtle|medium|strong",
     "hasGradients": true/false,
-    "hasBlur": true/false
+    "hasBlur": true/false,
+    "backgroundEffect": {
+      "type": "particles|floating-shapes|gradient-animation|parallax-dots|mesh-gradient|aurora|waves|none",
+      "intensity": "subtle|medium|strong",
+      "colors": ["#hex1", "#hex2"]
+    }
   },
   "vibe": "one sentence describing the overall design vibe",
   "recommendations": ["array of specific style recommendations"]
@@ -800,7 +836,12 @@ Return a JSON object with PRECISE measurements as percentages of viewport (0-100
     "shadows": "none" | "subtle" | "medium" | "strong",
     "hasGradients": true/false,
     "hasBlur": true/false,
-    "hasAnimations": true/false
+    "hasAnimations": true/false,
+    "backgroundEffect": {
+      "type": "particles" | "floating-shapes" | "gradient-animation" | "parallax-dots" | "mesh-gradient" | "aurora" | "waves" | "none",
+      "intensity": "subtle" | "medium" | "strong",
+      "colors": ["#hex1", "#hex2"]
+    }
   },
   "vibe": "One sentence describing the aesthetic",
   "vibeKeywords": ["keyword1", "keyword2"],
@@ -1120,9 +1161,45 @@ Return ONLY valid JSON, no markdown.`;
           animations: effects.some((e) => e.hasAnimations) ? 'smooth' : 'subtle',
           blur: effects.some((e) => e.hasBlur) ? 'subtle' : 'none',
           gradients: effects.some((e) => e.hasGradients),
+          backgroundEffect: this.mergeBackgroundEffects(effects),
         },
       },
     };
+  }
+
+  /**
+   * Merge background effects from multiple page analyses
+   * Prioritizes the first detected non-none background effect
+   * Returns BackgroundEffectConfig compatible object for EffectsSettings
+   */
+  private mergeBackgroundEffects(effects: Array<VisualAnalysis['effects']>):
+    | {
+        type:
+          | 'particles'
+          | 'floating-shapes'
+          | 'gradient-animation'
+          | 'parallax-dots'
+          | 'mesh-gradient'
+          | 'aurora'
+          | 'waves'
+          | 'none';
+        enabled: boolean;
+        intensity: 'subtle' | 'medium' | 'strong';
+        colors?: string[];
+      }
+    | undefined {
+    // Find the first page with a background effect
+    for (const effect of effects) {
+      if (effect.backgroundEffect && effect.backgroundEffect.type !== 'none') {
+        return {
+          type: effect.backgroundEffect.type,
+          enabled: true,
+          intensity: effect.backgroundEffect.intensity,
+          colors: effect.backgroundEffect.colors,
+        };
+      }
+    }
+    return undefined;
   }
 
   /**

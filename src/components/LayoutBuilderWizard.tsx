@@ -1856,6 +1856,7 @@ export function LayoutBuilderWizard({
                       cardDesign: design.components?.cards,
                       navDesign: design.components?.navigation,
                       structure: design.structure,
+                      detectedComponents: design.structure?.detectedComponents,
                     }}
                     showGridOverlay={showGridOverlay}
                     onGridOverlayToggle={setShowGridOverlay}
@@ -1881,6 +1882,7 @@ export function LayoutBuilderWizard({
                     cardDesign: design.components?.cards,
                     navDesign: design.components?.navigation,
                     structure: design.structure,
+                    detectedComponents: design.structure?.detectedComponents,
                   }}
                   showGridOverlay={showGridOverlay}
                   onGridOverlayToggle={setShowGridOverlay}
