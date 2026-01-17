@@ -47,6 +47,7 @@
     "inngest": "^3.48.1",
     "js-tiktoken": "^1.0.21",
     "jszip": "^3.10.1",
+    "lucide-react": "^0.562.0",
     "nanoid": "^5.1.6",
     "next": "^15.5.9",
     "openai": "^6.5.0",

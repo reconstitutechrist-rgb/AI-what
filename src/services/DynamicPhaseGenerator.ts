@@ -22,6 +22,7 @@ import type {
   PhaseConceptContext,
 } from '@/types/dynamicPhases';
 import type { ArchitectureSpec, BackendPhaseSpec } from '@/types/architectureSpec';
+import { LayoutManifest } from '@/types/schema';
 
 import {
   COMPLEX_FEATURE_PATTERNS as complexPatterns,
@@ -273,7 +274,12 @@ export class DynamicPhaseGenerator {
 
       // Step 2: Add implicit features from technical requirements
       const implicitFeatures = this.getImplicitFeatures(concept.technical);
-      const allClassifications = [...classifications, ...implicitFeatures];
+      let allClassifications = [...classifications, ...implicitFeatures];
+
+      // Step 2.5: Add features from layoutManifest if present
+      if (concept.layoutManifest) {
+        allClassifications.push(...this.extractFeaturesFromLayout(concept.layoutManifest));
+      }
 
       // Step 3: Group features by domain
       const featuresByDomain = this.groupByDomain(allClassifications);
@@ -698,6 +704,54 @@ export class DynamicPhaseGenerator {
     }
 
     return implicit;
+  }
+
+  /**
+   * Extract features from LayoutManifest
+   * Maps semantic tags from Layout to Backend Features
+   */
+  private extractFeaturesFromLayout(manifest: LayoutManifest): FeatureClassification[] {
+    const features: FeatureClassification[] = [];
+
+    // Maps semantic tags from Layout to Backend Features
+    if (manifest.detectedFeatures.includes('Authentication')) {
+      features.push({
+        originalFeature: {
+          id: 'layout-auth',
+          name: 'Authentication System',
+          description: 'Detected from Layout Design',
+          priority: 'high'
+        },
+        domain: 'auth',
+        complexity: 'complex',
+        estimatedTokens: 4000,
+        requiresOwnPhase: true,
+        suggestedPhaseName: 'Authentication Setup',
+        dependencies: [],
+        keywords: ['auth', 'login']
+      });
+    }
+
+    // Add logic for 'FileUpload', 'Stripe', etc.
+    if (manifest.detectedFeatures.includes('FileUpload')) {
+      features.push({
+        originalFeature: {
+          id: 'layout-file-upload',
+          name: 'File Upload System',
+          description: 'Detected from Layout Design',
+          priority: 'medium'
+        },
+        domain: 'storage',
+        complexity: 'complex',
+        estimatedTokens: 3500,
+        requiresOwnPhase: true,
+        suggestedPhaseName: 'File Storage',
+        dependencies: [],
+        keywords: ['upload', 'storage', 'file']
+      });
+    }
+
+    return features;
   }
 
   /**

@@ -25,6 +25,7 @@ import type { AppConcept } from '@/types/appConcept';
 import type { LayoutDesign } from '@/types/layoutDesign';
 import type { DynamicPhasePlan } from '@/types/dynamicPhases';
 import type { ChatMessage } from '@/types/aiBuilderTypes';
+import { LayoutManifest } from '@/types/schema';
 import {
   ProjectDocumentation,
   ProjectDocumentationRow,
@@ -382,7 +383,7 @@ export class ProjectDocumentationService {
    */
   async captureLayoutSnapshot(
     docId: string,
-    layout: LayoutDesign,
+    layout: LayoutDesign | LayoutManifest,
     options?: {
       previewImageUrl?: string;
       designNotes?: string;
@@ -394,10 +395,11 @@ export class ProjectDocumentationService {
         id: crypto.randomUUID(),
         capturedAt: new Date().toISOString(),
         source: 'layout-builder',
-        design: layout,
+        design: 'root' in layout ? undefined as any : (layout as LayoutDesign),
         previewImageUrl: options?.previewImageUrl,
         designNotes: options?.designNotes,
         referenceImages: options?.referenceImages,
+        layoutManifest: 'root' in layout ? (layout as LayoutManifest) : undefined,
       };
 
       const result = await this.update(docId, { layoutSnapshot: snapshot });
