@@ -77,8 +77,9 @@ export interface LayoutSnapshot {
   capturedAt: string;
   source: 'layout-builder' | 'import' | 'ai-generated';
 
-  // Design data
-  design: LayoutDesign;
+  // Design data (legacy LayoutDesign or new LayoutManifest)
+  design?: LayoutDesign;
+  layoutManifest?: any; // LayoutManifest from schema.ts (avoiding circular dep)
 
   // Visual preview
   previewImageUrl?: string; // Supabase storage URL

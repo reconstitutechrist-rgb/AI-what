@@ -4,6 +4,7 @@
 
 import type { LayoutDesign } from './layoutDesign';
 import type { ArchitectureSpec } from './architectureSpec';
+import { LayoutManifest } from '@/types/schema';
 
 export interface AppConcept {
   // Basic Information
@@ -33,6 +34,9 @@ export interface AppConcept {
 
   // Backend Architecture (from BackendArchitectureAgent)
   architectureSpec?: ArchitectureSpec;
+
+  // Layout Manifest (from Gemini 3 Layout Builder)
+  layoutManifest?: LayoutManifest;
 
   // Metadata
   createdAt: string;

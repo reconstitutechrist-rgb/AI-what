@@ -20,8 +20,10 @@ import type {
   FeatureSpecification,
   WorkflowSpecification,
   PhaseConceptContext,
+  ImportInfo,
 } from '@/types/dynamicPhases';
 import type { ArchitectureSpec, BackendPhaseSpec } from '@/types/architectureSpec';
+import { LayoutManifest } from '@/types/schema';
 
 import {
   COMPLEX_FEATURE_PATTERNS as complexPatterns,
@@ -273,7 +275,12 @@ export class DynamicPhaseGenerator {
 
       // Step 2: Add implicit features from technical requirements
       const implicitFeatures = this.getImplicitFeatures(concept.technical);
-      const allClassifications = [...classifications, ...implicitFeatures];
+      let allClassifications = [...classifications, ...implicitFeatures];
+
+      // Step 2.5: Add features from layoutManifest if present
+      if (concept.layoutManifest) {
+        allClassifications.push(...this.extractFeaturesFromLayout(concept.layoutManifest));
+      }
 
       // Step 3: Group features by domain
       const featuresByDomain = this.groupByDomain(allClassifications);
@@ -698,6 +705,54 @@ export class DynamicPhaseGenerator {
     }
 
     return implicit;
+  }
+
+  /**
+   * Extract features from LayoutManifest
+   * Maps semantic tags from Layout to Backend Features
+   */
+  private extractFeaturesFromLayout(manifest: LayoutManifest): FeatureClassification[] {
+    const features: FeatureClassification[] = [];
+
+    // Maps semantic tags from Layout to Backend Features
+    if (manifest.detectedFeatures.includes('Authentication')) {
+      features.push({
+        originalFeature: {
+          id: 'layout-auth',
+          name: 'Authentication System',
+          description: 'Detected from Layout Design',
+          priority: 'high'
+        },
+        domain: 'auth',
+        complexity: 'complex',
+        estimatedTokens: 4000,
+        requiresOwnPhase: true,
+        suggestedPhaseName: 'Authentication Setup',
+        dependencies: [],
+        keywords: ['auth', 'login']
+      });
+    }
+
+    // Add logic for 'FileUpload', 'Stripe', etc.
+    if (manifest.detectedFeatures.includes('FileUpload')) {
+      features.push({
+        originalFeature: {
+          id: 'layout-file-upload',
+          name: 'File Upload System',
+          description: 'Detected from Layout Design',
+          priority: 'medium'
+        },
+        domain: 'storage',
+        complexity: 'complex',
+        estimatedTokens: 3500,
+        requiresOwnPhase: true,
+        suggestedPhaseName: 'File Storage',
+        dependencies: [],
+        keywords: ['upload', 'storage', 'file']
+      });
+    }
+
+    return features;
   }
 
   /**
@@ -2001,6 +2056,7 @@ export class DynamicPhaseGenerator {
       exports: string[];
       dependencies: string[];
       summary: string;
+      imports: ImportInfo[];
     }>;
     apiContracts: Array<{
       endpoint: string;
@@ -2017,6 +2073,7 @@ export class DynamicPhaseGenerator {
       exports: string[];
       dependencies: string[];
       summary: string;
+      imports: ImportInfo[];
     }> = [];
     const apiContracts: Array<{
       endpoint: string;
@@ -2037,6 +2094,9 @@ export class DynamicPhaseGenerator {
       // Extract imports/dependencies
       const dependencies = this.extractImports(file.content);
 
+      // Extract rich imports for validation (P2)
+      const imports = this.extractImportsRich(file.content);
+
       // Generate summary
       const summary = this.generateFileSummary(file);
 
@@ -2046,6 +2106,7 @@ export class DynamicPhaseGenerator {
         exports,
         dependencies,
         summary,
+        imports,
       });
 
       // Extract API contracts if it's an API route
@@ -2161,6 +2222,45 @@ export class DynamicPhaseGenerator {
     }
 
     return [...new Set(dependencies)].slice(0, 15);
+  }
+
+  /**
+   * Extract rich import information including relative imports
+   * Used for import/export validation (P2)
+   */
+  private extractImportsRich(content: string): ImportInfo[] {
+    const imports: ImportInfo[] = [];
+
+    // Named imports: import { X, Y } from 'path'
+    const namedImportRegex = /import\s+\{([^}]+)\}\s+from\s+['"]([^'"]+)['"]/g;
+    let namedMatch: RegExpExecArray | null;
+    while ((namedMatch = namedImportRegex.exec(content)) !== null) {
+      const symbols = namedMatch[1]
+        .split(',')
+        .map((s) => s.trim().split(/\s+as\s+/)[0].trim())
+        .filter((s) => s.length > 0);
+      imports.push({
+        symbols,
+        from: namedMatch[2],
+        isRelative: namedMatch[2].startsWith('.'),
+      });
+    }
+
+    // Default imports: import X from 'path'
+    const defaultImportRegex = /import\s+(\w+)\s+from\s+['"]([^'"]+)['"]/g;
+    let defaultMatch: RegExpExecArray | null;
+    while ((defaultMatch = defaultImportRegex.exec(content)) !== null) {
+      // Skip if already captured by named import regex
+      if (!imports.some((i) => i.from === defaultMatch![2])) {
+        imports.push({
+          symbols: [`default:${defaultMatch[1]}`],
+          from: defaultMatch[2],
+          isRelative: defaultMatch[2].startsWith('.'),
+        });
+      }
+    }
+
+    return imports;
   }
 
   /**
