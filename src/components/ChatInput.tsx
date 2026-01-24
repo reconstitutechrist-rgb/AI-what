@@ -10,15 +10,15 @@ interface ChatInputProps {
   hasSelection: boolean;
   /** Whether images are currently attached */
   hasImages?: boolean;
-  /** Callback when a file is selected for upload */
-  onFileSelect?: (file: File | null) => void;
-  /** Currently selected file for upload */
-  selectedFile?: File | null;
+  /** Callback when files are selected for upload */
+  onFileSelect?: (files: File[]) => void;
+  /** Currently selected files for upload */
+  selectedFiles?: File[];
 }
 
 /**
  * Chat input component for Layout Builder
- * Migrated from layout-builder/ directory
+ * Supports multi-file upload with indexed references (Image 1, Image 2, etc.)
  */
 export function ChatInput({
   onSend,
@@ -28,7 +28,7 @@ export function ChatInput({
   hasSelection,
   hasImages,
   onFileSelect,
-  selectedFile,
+  selectedFiles = [],
 }: ChatInputProps) {
   const [input, setInput] = useState('');
   const [includeCapture, setIncludeCapture] = useState(false);
@@ -36,15 +36,35 @@ export function ChatInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    onFileSelect?.(file);
-    // Reset input so same file can be selected again
+    if (e.target.files && e.target.files.length > 0) {
+      // Append new files to existing ones
+      const newFiles = Array.from(e.target.files);
+      const combined = [...selectedFiles, ...newFiles];
+      onFileSelect?.(combined);
+    }
+    // Reset input so the same file can be selected again if needed
     e.target.value = '';
+  };
+
+  const removeFile = (indexToRemove: number) => {
+    const newFiles = selectedFiles.filter((_, index) => index !== indexToRemove);
+    onFileSelect?.(newFiles);
+  };
+
+  // Get the image index for display (videos don't count toward image numbering)
+  const getImageIndex = (fileIndex: number): number => {
+    let imageCount = 0;
+    for (let i = 0; i <= fileIndex; i++) {
+      if (selectedFiles[i]?.type.startsWith('image/')) {
+        imageCount++;
+      }
+    }
+    return imageCount;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (input.trim() || includeCapture || selectedFile) {
+    if (input.trim() || includeCapture || selectedFiles.length > 0) {
       onSend(input, includeCapture);
       setInput('');
       setIncludeCapture(false);
@@ -64,64 +84,81 @@ export function ChatInput({
       className="border-t p-4"
       style={{ borderColor: 'var(--border-color)' }}
     >
-      {/* Hidden file input */}
+      {/* Hidden file input with multiple attribute */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*,video/*"
+        multiple
         onChange={handleFileChange}
         className="hidden"
       />
 
+      {/* File Chips: Indexed for AI Reference */}
+      {selectedFiles.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {selectedFiles.map((file, index) => {
+            const isVideo = file.type.startsWith('video/');
+            const label = isVideo ? 'Video' : `Image ${getImageIndex(index)}`;
+
+            return (
+              <div
+                key={index}
+                className="flex items-center gap-2 px-2 py-1 rounded text-xs"
+                style={{
+                  background: isVideo ? 'rgba(59, 130, 246, 0.2)' : 'rgba(234, 179, 8, 0.2)',
+                  border: isVideo ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(234, 179, 8, 0.3)',
+                  color: isVideo ? 'rgb(147, 197, 253)' : 'rgb(253, 224, 71)',
+                }}
+              >
+                <span className="max-w-[150px] truncate">
+                  {label}: {file.name}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeFile(index)}
+                  className="hover:opacity-70 font-bold"
+                >
+                  ×
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Action buttons row */}
       <div className="flex items-center gap-2 mb-3">
-        {/* Upload Reference button */}
+        {/* Add Reference button */}
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={isLoading}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${isLoading ? 'opacity-75 cursor-not-allowed' : ''}`}
-          style={
-            selectedFile
-              ? { background: 'var(--gold-primary)', color: 'white' }
-              : { background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }
-          }
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${isLoading ? 'opacity-75 cursor-not-allowed' : 'hover:opacity-80'}`}
+          style={{
+            background: selectedFiles.length > 0 ? 'var(--gold-primary, #eab308)' : 'var(--bg-secondary)',
+            color: selectedFiles.length > 0 ? 'white' : 'var(--text-secondary)',
+          }}
         >
-          {selectedFile ? (
-            <>
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-              <span className="max-w-[120px] truncate">{selectedFile.name}</span>
-            </>
-          ) : (
-            <>
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              Upload Reference
-            </>
-          )}
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+          {selectedFiles.length > 0 ? `Add More (${selectedFiles.length})` : 'Add Reference'}
         </button>
 
-        {selectedFile && (
+        {selectedFiles.length > 0 && (
           <button
             type="button"
-            onClick={() => onFileSelect?.(null)}
+            onClick={() => onFileSelect?.([])}
             className="text-xs hover:opacity-80"
             style={{ color: 'var(--text-muted)' }}
           >
-            Remove
+            Clear All
           </button>
         )}
 
@@ -212,9 +249,13 @@ export function ChatInput({
         )}
 
         {/* Image routing hint */}
-        {(hasImages || includeCapture || selectedFile) && !isLoading && (
+        {(hasImages || includeCapture || selectedFiles.length > 0) && !isLoading && !hasSelection && (
           <div className="ml-auto flex items-center gap-1">
-            <span className="text-xs" style={{ color: 'var(--gold-primary)' }}>Visual analysis enabled</span>
+            <span className="text-xs" style={{ color: 'var(--gold-primary)' }}>
+              {selectedFiles.length > 1
+                ? `${selectedFiles.length} references - use "Image 1", "Image 2" in your prompt`
+                : 'Visual analysis enabled'}
+            </span>
           </div>
         )}
       </div>
@@ -226,7 +267,11 @@ export function ChatInput({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Describe what you'd like to change..."
+          placeholder={
+            selectedFiles.length > 1
+              ? "Example: 'Use layout from Image 1, but colors from Image 2'"
+              : "Describe what you'd like to build..."
+          }
           className="flex-1 border rounded-xl px-4 py-3 resize-none focus:outline-none focus:border-garden-500 transition-colors"
           style={{
             background: 'var(--bg-secondary)',
@@ -238,7 +283,7 @@ export function ChatInput({
         />
         <button
           type="submit"
-          disabled={isLoading || (!input.trim() && !includeCapture && !selectedFile)}
+          disabled={isLoading || (!input.trim() && !includeCapture && selectedFiles.length === 0)}
           className="px-6 py-3 bg-garden-600 hover:bg-garden-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors"
         >
           {isLoading ? '...' : 'Send'}
