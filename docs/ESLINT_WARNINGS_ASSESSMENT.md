@@ -45,6 +45,8 @@ The following items are ambiguous (future implementation vs dead code) - skip fo
 
 ### Phase 2: Clear Dead Code Removal (25 items)
 
+**Verification strategy:** Before removing each item, run `grep -r "symbolName" src/` to confirm zero usage (including dynamic imports, reflection, or config files).
+
 #### Unused Type Imports
 
 | File                                            | Line | Variable                |
@@ -120,6 +122,8 @@ Add proper types to replace `any`:
 ### Phase 5: Console Migration (96 items)
 
 Migrate all console statements to `@/utils/logger` service with appropriate levels.
+
+**Pre-migration check:** Verify `@/utils/logger.ts` preserves context across async boundaries (AsyncLocalStorage for requestId threading). If not, logs will be useless for debugging distributed flows.
 
 #### API Routes (use `logger.info()` for status, `logger.error()` for errors)
 
@@ -198,6 +202,8 @@ Migrate all console statements to `@/utils/logger` service with appropriate leve
 
 #### Convert `<img>` to `<Image>` Component (8 items)
 
+**Constraint:** Each `<Image>` must include `width` + `height` props OR `fill` prop to prevent Cumulative Layout Shift (CLS).
+
 | File                                                      | Line          |
 | --------------------------------------------------------- | ------------- |
 | `components/ChatPanel.tsx`                                | 400           |
@@ -219,6 +225,22 @@ Migrate all console statements to `@/utils/logger` service with appropriate leve
 | `services/v0Service.ts`                 | 473  |
 | `utils/keyframeUtils.ts`                | 609  |
 | `utils/layerUtils.ts`                   | 393  |
+
+---
+
+### Phase 7: ESLint Config Tightening (Optional)
+
+After all fixes are complete, optionally tighten rules to prevent regression:
+
+```js
+// .eslintrc.js changes
+rules: {
+  'no-console': 'error',  // Was: ['warn', { allow: ['warn', 'error'] }]
+  '@typescript-eslint/no-explicit-any': 'error',  // Was: 'warn'
+}
+```
+
+**Note:** Only do this AFTER Phases 1-6 are complete, otherwise the build will fail.
 
 ---
 
