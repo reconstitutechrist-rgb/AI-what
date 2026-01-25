@@ -373,6 +373,18 @@ OUTPUT: Complete JSON LayoutManifest with ALL required fields populated. No omis
       );
     }
 
+    // DEBUG: Log complete manifest structure
+    console.log('[generate-manifest] FINAL MANIFEST:', {
+      id: sanitizedManifest.id,
+      rootType: sanitizedManifest.root?.type,
+      rootId: sanitizedManifest.root?.id,
+      rootChildrenCount: sanitizedManifest.root?.children?.length ?? 0,
+      rootClasses: sanitizedManifest.root?.styles?.tailwindClasses,
+      firstChildType: sanitizedManifest.root?.children?.[0]?.type,
+      firstChildTag: sanitizedManifest.root?.children?.[0]?.semanticTag,
+      colors: sanitizedManifest.designSystem?.colors,
+    });
+
     return NextResponse.json({ manifest: sanitizedManifest });
   } catch (error) {
     console.error('Architect generate-manifest error:', error);

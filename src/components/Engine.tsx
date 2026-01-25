@@ -162,6 +162,25 @@ export const Engine: React.FC<EngineProps> = ({
       return true;
     }) ?? [];
 
+  // DEBUG: Show placeholder for empty containers (helps identify blank renders)
+  const hasContent = childNodes.length > 0 || node.attributes?.text;
+  if (!hasContent && process.env.NODE_ENV === 'development') {
+    return (
+      <MotionTag
+        className={`${node.styles?.tailwindClasses ?? ''} border-2 border-dashed border-blue-400`}
+        style={{ ...selectionStyle, minHeight: '50px', padding: '8px' }}
+        onClick={(e: any) => {
+          e.stopPropagation();
+          onSelect?.(node.id);
+        }}
+      >
+        <span className="text-xs text-blue-500 bg-blue-50 px-2 py-1 rounded">
+          Empty: {node.semanticTag || node.type} ({node.id})
+        </span>
+      </MotionTag>
+    );
+  }
+
   return (
     <MotionTag
       className={node.styles?.tailwindClasses ?? ''}
