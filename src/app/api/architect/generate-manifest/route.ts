@@ -16,6 +16,7 @@ import { GoogleAIFileManager, FileState } from '@google/generative-ai/server';
 import type { AppConcept } from '@/types/appConcept';
 import type { LayoutManifest } from '@/types/schema';
 import { sanitizeManifest } from '@/utils/manifestSanitizer';
+import type { ColorPalette } from '@/utils/colorExtraction';
 
 // Vercel serverless function config
 export const maxDuration = 120; // 2 minutes for video processing
@@ -28,6 +29,7 @@ interface GenerateManifestRequest {
   videoBase64?: string;
   videoMimeType?: string;
   videoFileName?: string;
+  extractedColors?: ColorPalette;
 }
 
 export async function POST(request: Request) {
@@ -36,13 +38,24 @@ export async function POST(request: Request) {
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'Google AI API key not configured. Set GOOGLE_AI_API_KEY or GEMINI_API_KEY in environment.' },
+        {
+          error:
+            'Google AI API key not configured. Set GOOGLE_AI_API_KEY or GEMINI_API_KEY in environment.',
+        },
         { status: 500 }
       );
     }
 
     const body: GenerateManifestRequest = await request.json();
-    const { concept, userPrompt, images, videoBase64, videoMimeType, videoFileName } = body;
+    const {
+      concept,
+      userPrompt,
+      images,
+      videoBase64,
+      videoMimeType,
+      videoFileName,
+      extractedColors,
+    } = body;
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const fileManager = new GoogleAIFileManager(apiKey);
@@ -60,14 +73,35 @@ export async function POST(request: Request) {
 
     // Build system prompt with multi-image awareness
     const hasMultipleImages = images && images.length > 1;
-    const imageContextLine = images && images.length > 0
-      ? `\nREFERENCE IMAGES: ${images.length} image(s) provided, indexed as Image 1${images.length > 1 ? `, Image 2${images.length > 2 ? ', etc.' : ''}` : ''}.
+    const imageContextLine =
+      images && images.length > 0
+        ? `\nREFERENCE IMAGES: ${images.length} image(s) provided, indexed as Image 1${images.length > 1 ? `, Image 2${images.length > 2 ? ', etc.' : ''}` : ''}.
 The user may request selective elements from different images. Follow their instructions precisely.`
+        : '';
+
+    // Build color injection context - THIS IS THE CRITICAL FIX FOR GREY COLORS
+    const colorInjectionLine = extractedColors
+      ? `
+DETECTED COLOR PALETTE (GROUND TRUTH - HIGH PRIORITY):
+The following colors were algorithmically extracted from the source image using k-means clustering.
+You MUST use these values in the designSystem.colors object unless explicitly instructed otherwise.
+- Primary: ${extractedColors.primary}
+- Secondary: ${extractedColors.secondary}
+- Accent: ${extractedColors.accent}
+- Background: ${extractedColors.background}
+- Surface: ${extractedColors.surface}
+- Text: ${extractedColors.text}
+- Text Muted: ${extractedColors.textMuted}
+- Border: ${extractedColors.border}
+
+CRITICAL: DO NOT use generic greys (#6B7280, #9CA3AF, #F9FAFB, #374151, #E5E7EB) if these specific colors are provided.
+These extracted colors are mathematically accurate and should be treated as the source of truth.`
       : '';
 
     const systemPrompt = `
 ROLE: Expert Frontend Architect specializing in UI replication and composition.
 ${contextLine}${imageContextLine}
+${colorInjectionLine}
 
 TASK: Generate a complete LayoutManifest based on the user's specific instructions.
 
@@ -77,7 +111,9 @@ USER INTENT HANDLING - Follow the user's instructions precisely:
 - MERGE: If user provides multiple images and says "hero from image 1, footer from image 2", combine them accurately.
 - STYLE TRANSFER: If user says "structure from A, colors from B", apply the style transfer.
 
-${hasMultipleImages ? `
+${
+  hasMultipleImages
+    ? `
 MULTI-IMAGE EXTRACTION RULES:
 1. If user says "replicate Image 1" → Extract ALL elements, colors, and structure from Image 1
 2. If user says "buttons from Image 1, colors from Image 2" →
@@ -92,18 +128,24 @@ MULTI-IMAGE EXTRACTION RULES:
    - Component structure (buttons, cards, headers, etc.)
    - Spacing and proportions
    - Typography (font styles, sizes)
-` : ''}
+`
+    : ''
+}
 
 ALWAYS follow the user's explicit instructions. If they say "make it exactly like this", prioritize fidelity over simplification.
 
-${images && images.length > 0 ? `
+${
+  images && images.length > 0
+    ? `
 IMAGE ANALYSIS - EXACT REPLICATION REQUIRED:
 1. Extract the EXACT color palette from the image(s) (hex values for primary, secondary, background, surface, text)
 2. Identify EVERY visible UI component (headers, buttons, cards, forms, navigation, etc.)
 3. Capture the precise spacing, padding, and layout structure
 4. Note typography: font families, sizes, weights visible in the image
 5. The output LayoutManifest MUST faithfully replicate the design - every element, every color, every spacing value
-` : ''}
+`
+    : ''
+}
 
 TEMPORAL INFERENCE RULES (Video Only):
 - INFER STATE: If a spinner appears, set 'state.isLoading = true'.
@@ -238,8 +280,11 @@ If no specific instructions, default to using Image 1 as the primary reference.
     }
 
     // Sanitize manifest: Strip children from void elements (image, input)
-    const { manifest: sanitizedManifest, totalRemovedChildren, affectedNodes } =
-      sanitizeManifest(manifest);
+    const {
+      manifest: sanitizedManifest,
+      totalRemovedChildren,
+      affectedNodes,
+    } = sanitizeManifest(manifest);
 
     if (totalRemovedChildren > 0) {
       console.log(
@@ -265,7 +310,8 @@ export async function GET() {
   return NextResponse.json({
     name: 'Architect API - Generate Layout Manifest',
     version: '2.0',
-    description: 'Generate LayoutManifest from app concept using Gemini AI with multi-image and video analysis',
+    description:
+      'Generate LayoutManifest from app concept using Gemini AI with multi-image and video analysis',
     endpoints: {
       generate: 'POST /api/architect/generate-manifest',
     },

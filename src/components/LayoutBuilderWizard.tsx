@@ -11,6 +11,7 @@ import { LayoutManifest, UISpecNode } from '@/types/schema';
 import { AppConcept } from '@/types/appConcept';
 import { useGeminiLayoutState, categorizeError } from '@/hooks/useGeminiLayoutState';
 import { LayoutMessage } from '@/types/layoutDesign';
+import { extractColorsFromFile, type ColorPalette } from '@/utils/colorExtraction';
 
 // --- UI COMPONENTS ---
 import { ChatInput } from '@/components/ChatInput';
@@ -21,11 +22,7 @@ interface LayoutBuilderWizardProps {
   appConcept?: AppConcept | null; // Optional - can generate layouts from just an image
 }
 
-export function LayoutBuilderWizard({
-  isOpen,
-  onClose,
-  appConcept,
-}: LayoutBuilderWizardProps) {
+export function LayoutBuilderWizard({ isOpen, onClose, appConcept }: LayoutBuilderWizardProps) {
   // --- STATE: THE TRUTH ---
   const [manifest, setManifest] = useState<LayoutManifest | null>(null);
   const [messages, setMessages] = useState<LayoutMessage[]>([]);
@@ -88,8 +85,10 @@ export function LayoutBuilderWizard({
         if (canUndo) handleUndo();
       }
       // Ctrl+Y or Cmd+Shift+Z (Mac)
-      if (((e.ctrlKey || e.metaKey) && e.key === 'y') ||
-          ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z')) {
+      if (
+        ((e.ctrlKey || e.metaKey) && e.key === 'y') ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z')
+      ) {
         e.preventDefault();
         if (canRedo) handleRedo();
       }
@@ -124,18 +123,19 @@ export function LayoutBuilderWizard({
   // --- FILE UPLOAD HANDLER (Now supports array) ---
   const handleFileSelect = useCallback((files: File[]) => {
     // Limit to 4 images + 1 video
-    const images = files.filter(f => f.type.startsWith('image/')).slice(0, 4);
-    const video = files.find(f => f.type.startsWith('video/'));
+    const images = files.filter((f) => f.type.startsWith('image/')).slice(0, 4);
+    const video = files.find((f) => f.type.startsWith('video/'));
     setUploadedFiles(video ? [...images, video] : images);
   }, []);
 
   // --- INITIALIZATION (The "Architect" Phase) ---
   const handleInitialGeneration = async (prompt: string, mediaFiles?: File[]) => {
     setIsGenerating(true);
-    setLoadingStage('Architecting Structure...');
+    setLoadingStage('Analyzing Visuals...');
 
     // If user uploaded files but no text, provide a default replication prompt
-    const effectivePrompt = prompt.trim() ||
+    const effectivePrompt =
+      prompt.trim() ||
       (mediaFiles && mediaFiles.length > 0
         ? 'Create an exact replica of this layout. Match all colors, components, spacing, and styling precisely.'
         : '');
@@ -148,8 +148,31 @@ export function LayoutBuilderWizard({
     }
 
     try {
+      // 0. PRE-PROCESSING: Extract Colors Client-Side
+      // This gives the AI "Ground Truth" data so it doesn't have to guess from pixels
+      let detectedPalette: ColorPalette | undefined;
+      if (mediaFiles && mediaFiles.length > 0) {
+        const imageFile = mediaFiles.find((f) => f.type.startsWith('image/'));
+        if (imageFile) {
+          try {
+            setLoadingStage('Extracting Palette...');
+            const result = await extractColorsFromFile(imageFile);
+            detectedPalette = result.palette;
+            console.log('Client-side extracted palette:', detectedPalette);
+          } catch (e) {
+            console.warn('Failed to extract colors client-side:', e);
+          }
+        }
+      }
+
       // 1. Architect creates the Structure (Deep Think)
-      const newManifest = await architect.generateLayoutManifest(appConcept, effectivePrompt, mediaFiles);
+      setLoadingStage('Architecting Structure...');
+      const newManifest = await architect.generateLayoutManifest(
+        appConcept,
+        effectivePrompt,
+        mediaFiles,
+        detectedPalette
+      );
 
       setLoadingStage('Applying Base Vibe...');
 
@@ -246,9 +269,16 @@ export function LayoutBuilderWizard({
           <div className="absolute top-0 left-0 right-0 z-50 bg-amber-600 text-white px-4 py-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
               </svg>
-              <span className="text-sm font-medium">Draft found! Your previous work was auto-saved.</span>
+              <span className="text-sm font-medium">
+                Draft found! Your previous work was auto-saved.
+              </span>
             </div>
             <div className="flex gap-2">
               <button
@@ -283,7 +313,9 @@ export function LayoutBuilderWizard({
               <div className="text-slate-400 text-center mt-20">
                 <p className="mb-2">Describe your layout or upload reference images.</p>
                 <p className="text-xs opacity-50">Upload multiple images and say:</p>
-                <p className="text-xs opacity-50 italic">"Use layout from Image 1, colors from Image 2"</p>
+                <p className="text-xs opacity-50 italic">
+                  &ldquo;Use layout from Image 1, colors from Image 2&rdquo;
+                </p>
               </div>
             )}
             {/* History could go here */}
@@ -322,7 +354,9 @@ export function LayoutBuilderWizard({
         </div>
 
         {/* --- RIGHT: THE CANVAS (ENGINE) --- */}
-        <div className={`w-2/3 bg-black relative flex flex-col ${hasDraftToRecover ? 'mt-12' : ''}`}>
+        <div
+          className={`w-2/3 bg-black relative flex flex-col ${hasDraftToRecover ? 'mt-12' : ''}`}
+        >
           {/* Toolbar */}
           <div className="h-12 border-b border-white/10 flex items-center px-4 justify-between bg-slate-900">
             <div className="flex gap-2 items-center">
@@ -339,7 +373,12 @@ export function LayoutBuilderWizard({
                 title="Undo (Ctrl+Z)"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+                  />
                 </svg>
               </button>
               <button
@@ -349,7 +388,12 @@ export function LayoutBuilderWizard({
                 title="Redo (Ctrl+Y)"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 0 00-8 8v2m18-10l-6 6m6-6l-6-6" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 10h-10a8 8 0 00-8 8v2m18-10l-6 6m6-6l-6-6"
+                  />
                 </svg>
               </button>
 

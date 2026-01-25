@@ -1,5 +1,6 @@
-import { AppConcept } from "@/types/appConcept";
-import { LayoutManifest } from "@/types/schema";
+import { AppConcept } from '@/types/appConcept';
+import { LayoutManifest } from '@/types/schema';
+import type { ColorPalette } from '@/utils/colorExtraction';
 
 /**
  * ArchitectService - Client-side service for generating layout manifests
@@ -25,13 +26,14 @@ export class ArchitectService {
    * @param concept - Optional app concept for context
    * @param userPrompt - User's text prompt
    * @param mediaFiles - Array of image/video files (up to 4 images + 1 video)
+   * @param extractedColors - Optional client-side extracted color palette (Deterministic Truth)
    */
   async generateLayoutManifest(
     concept: AppConcept | null | undefined,
     userPrompt: string,
-    mediaFiles?: File[]
+    mediaFiles?: File[],
+    extractedColors?: ColorPalette
   ): Promise<LayoutManifest> {
-
     // Prepare request body
     const requestBody: {
       concept?: AppConcept;
@@ -40,6 +42,7 @@ export class ArchitectService {
       videoBase64?: string;
       videoMimeType?: string;
       videoFileName?: string;
+      extractedColors?: ColorPalette;
     } = {
       userPrompt,
     };
@@ -49,12 +52,19 @@ export class ArchitectService {
       requestBody.concept = concept;
     }
 
+    // Include extracted colors if provided (deterministic ground truth)
+    if (extractedColors) {
+      requestBody.extractedColors = extractedColors;
+    }
+
     // Convert media files to base64
     if (mediaFiles && mediaFiles.length > 0) {
       const images: Array<{ base64: string; mimeType: string; name: string }> = [];
 
       for (const file of mediaFiles) {
-        console.log(`Preparing ${file.type.startsWith('image/') ? 'image' : 'video'} for upload: ${file.name}`);
+        console.log(
+          `Preparing ${file.type.startsWith('image/') ? 'image' : 'video'} for upload: ${file.name}`
+        );
         const buffer = await file.arrayBuffer();
         const base64 = btoa(
           new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '')

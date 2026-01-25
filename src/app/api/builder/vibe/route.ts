@@ -38,7 +38,10 @@ export async function POST(request: Request) {
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'Google AI API key not configured. Set GOOGLE_AI_API_KEY or GEMINI_API_KEY in environment.' },
+        {
+          error:
+            'Google AI API key not configured. Set GOOGLE_AI_API_KEY or GEMINI_API_KEY in environment.',
+        },
         { status: 500 }
       );
     }
@@ -83,7 +86,10 @@ export async function POST(request: Request) {
 
     if (action === 'refineElement') {
       if (!node || !metaphor) {
-        return NextResponse.json({ error: 'Node and metaphor required for refineElement' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Node and metaphor required for refineElement' },
+          { status: 400 }
+        );
       }
 
       const refinePrompt = `
@@ -178,28 +184,53 @@ async function generatePhysicalMetaphor(model: any, userPrompt: string): Promise
   return parsed.metaphor || fallbackMetaphor;
 }
 
-async function synthesizeStyles(model: any, manifest: LayoutManifest, metaphor: string): Promise<LayoutManifest> {
+async function synthesizeStyles(
+  model: any,
+  manifest: LayoutManifest,
+  metaphor: string
+): Promise<LayoutManifest> {
+  // Extract colors to inject into prompt context for color fidelity
+  const colors = manifest.designSystem?.colors || {};
+  const colorContext = Object.entries(colors)
+    .filter(([, value]) => value) // Filter out empty values
+    .map(([key, value]) => `- ${key}: ${value}`)
+    .join('\n');
+
   const prompt = `
 ROLE: "Flash UI" - Tailwind CSS styling engine.
-TASK: Apply styles to the provided LayoutManifest based on the physical metaphor.
+TASK: Apply styles to the provided LayoutManifest based on the physical metaphor AND the provided Design System colors.
 
-CRITICAL: Return the COMPLETE manifest with ALL fields preserved. Do NOT omit any fields.
+CRITICAL PRIORITY - COLOR FIDELITY:
+You MUST use the specific colors defined in the manifest's Design System.
+Do NOT use generic Tailwind colors (like 'bg-blue-500', 'bg-gray-500') if a custom color is defined.
+Use Tailwind arbitrary values to match exact hex codes from the design system:
+- For primary color (${colors.primary || 'N/A'}) -> use 'bg-[${colors.primary}]' or 'text-[${colors.primary}]'
+- For secondary color (${colors.secondary || 'N/A'}) -> use 'bg-[${colors.secondary}]'
+- For background (${colors.background || 'N/A'}) -> use 'bg-[${colors.background}]'
+- For surface (${colors.surface || 'N/A'}) -> use 'bg-[${colors.surface}]'
+- For text (${colors.text || 'N/A'}) -> use 'text-[${colors.text}]'
+- For border (${colors.border || 'N/A'}) -> use 'border-[${colors.border}]'
+
+DESIGN SYSTEM COLORS (USE THESE):
+${colorContext || 'No colors defined'}
 
 METAPHOR: "${metaphor}"
 
-STYLE MAPPING:
-- Glass/Liquid -> backdrop-blur-xl, bg-opacity-*, bg-white/10, border-white/20
-- Steel/Metal -> bg-gradient-to-br from-gray-100 to-gray-300, border-gray-400, shadow-md
-- Neon/Light -> shadow-[0_0_15px_rgba(...)], ring-2 ring-cyan-400, text-cyan-400
-- Obsidian/Volcanic -> bg-black, border-0, rounded-none, text-white
-- Paper/Matte -> bg-white, shadow-sm, border border-gray-200, rounded-lg
+STYLE MAPPING (Apply textures/effects, NOT color overrides):
+- Glass/Liquid -> backdrop-blur-xl, bg-opacity-*, border-white/20
+- Steel/Metal -> bg-gradient-to-br, shadow-md
+- Neon/Light -> shadow-[0_0_15px_rgba(...)], ring-2
+- Obsidian/Volcanic -> border-0, rounded-none
+- Paper/Matte -> shadow-sm, rounded-lg
 
 INSTRUCTIONS:
-1. Modify ONLY the styles.tailwindClasses values to match the metaphor
-2. Preserve ALL other fields exactly: id, type, semanticTag, attributes, children structure
-3. Return the COMPLETE manifest JSON - do NOT omit any fields
-4. Every node MUST still have: id, type, semanticTag, styles (with tailwindClasses), attributes
-5. Preserve the entire tree structure including all nested children
+1. Apply the Metaphor's texture/physics (blur, shadow, border-radius) using Tailwind
+2. Apply the Design System's COLORS to backgrounds, text, and borders using arbitrary values
+3. Modify ONLY the styles.tailwindClasses values
+4. Preserve ALL other fields exactly: id, type, semanticTag, attributes, children structure
+5. Return the COMPLETE manifest JSON - do NOT omit any fields
+6. Every node MUST still have: id, type, semanticTag, styles (with tailwindClasses), attributes
+7. Preserve the entire tree structure including all nested children
 
 REQUIRED OUTPUT STRUCTURE:
 {
@@ -214,7 +245,10 @@ REQUIRED OUTPUT STRUCTURE:
 Return ONLY the complete styled JSON manifest.
   `;
 
-  const result = await model.generateContent([{ text: prompt }, { text: JSON.stringify(manifest) }]);
+  const result = await model.generateContent([
+    { text: prompt },
+    { text: JSON.stringify(manifest) },
+  ]);
   return safeJsonParse(result.response.text(), manifest);
 }
 
@@ -240,7 +274,9 @@ async function validateAndFix(
       definitions: cleanDefs,
       designSystem: {
         ...parsed.designSystem,
-        colors: Object.fromEntries(Object.entries(parsed.designSystem?.colors ?? {}).map(([k, v]) => [k, String(v)])),
+        colors: Object.fromEntries(
+          Object.entries(parsed.designSystem?.colors ?? {}).map(([k, v]) => [k, String(v)])
+        ),
         fonts: parsed.designSystem?.fonts ?? { heading: 'sans-serif', body: 'sans-serif' },
       },
     };
@@ -290,7 +326,9 @@ function lintTailwindClasses(node: UISpecNode): UISpecNode {
   return {
     ...node,
     styles: { ...node.styles, tailwindClasses: cleanClasses },
-    children: isVoidElement ? undefined : node.children?.filter(Boolean).map((c) => lintTailwindClasses(c)),
+    children: isVoidElement
+      ? undefined
+      : node.children?.filter(Boolean).map((c) => lintTailwindClasses(c)),
   };
 }
 
@@ -323,14 +361,20 @@ function generateSafeModeManifest(originalManifest?: LayoutManifest): LayoutMani
       id: 'root',
       type: 'container',
       semanticTag: 'safe-mode-container',
-      styles: { tailwindClasses: 'min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-8' },
+      styles: {
+        tailwindClasses:
+          'min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-8',
+      },
       attributes: {},
       children: [
         {
           id: 'error-card',
           type: 'container',
           semanticTag: 'error-card',
-          styles: { tailwindClasses: 'bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 max-w-md text-center' },
+          styles: {
+            tailwindClasses:
+              'bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 max-w-md text-center',
+          },
           attributes: {},
           children: [
             {
@@ -344,7 +388,9 @@ function generateSafeModeManifest(originalManifest?: LayoutManifest): LayoutMani
               id: 'error-title',
               type: 'text',
               semanticTag: 'error-title',
-              styles: { tailwindClasses: 'text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2' },
+              styles: {
+                tailwindClasses: 'text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2',
+              },
               attributes: { text: 'Layout Generation Issue' },
             },
             {
