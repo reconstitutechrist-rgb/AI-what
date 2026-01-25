@@ -194,8 +194,24 @@ BUTTON_DETECTION_PROTOCOL:
 - Any element that looks clickable (Pills, Rectangles with text) IS A BUTTON.
 - Use type: "button" for these. DO NOT simplify to text.
 
-BACKGROUND VISUAL RULE:
-- The Root Container MUST have the class "bg-background" to apply the extracted color.
+BACKGROUND & COLOR PROTOCOL (CRITICAL FOR VISUAL FIDELITY):
+ROOT BACKGROUND:
+- The Root Container MUST have "bg-background" class
+- This ensures the extracted background color is applied
+
+SECTION BACKGROUNDS (SCAN IMAGE CAREFULLY):
+- If the image shows a DARK header/hero → use "bg-primary" or "bg-secondary"
+- If a section has a COLORED background → use "bg-primary", "bg-secondary", or "bg-accent"
+- If a section has a LIGHT/WHITE background → use "bg-background" or "bg-surface"
+- If a card/panel is ELEVATED → use "bg-surface"
+- If the image has GRADIENT backgrounds → combine classes like "bg-gradient-to-b from-primary to-secondary"
+
+TEXT CONTRAST:
+- On dark backgrounds (bg-primary, bg-secondary) → use "text-white" or "text-background"
+- On light backgrounds (bg-background, bg-surface) → use "text-text"
+- For subtle text → use "text-text-muted" or "text-white/70"
+
+NEVER leave sections without explicit background classes - analyze the image and apply colors!
 
 ${multiImageRules}
 
@@ -226,6 +242,16 @@ ICON PROTOCOL (CRITICAL):
 - Set attributes.src to a valid Lucide icon name: "Menu", "Search", "User", "Heart", "Star", "ChevronDown", "ChevronRight", "X", "Check", "Plus", "Minus", "Settings", "Home", "Mail", "Phone", "MapPin", "Github", "Twitter", "Facebook", "Instagram", "ArrowRight", "ArrowLeft", "ExternalLink"
 - Example: { "type": "icon", "attributes": { "src": "Menu" }, "styles": { "tailwindClasses": "w-6 h-6" } }
 - If unsure which icon, use "HelpCircle"
+
+NAVIGATION SPACING PROTOCOL (CRITICAL):
+- Navigation containers MUST use spacing classes to separate items properly
+- ALWAYS add "gap-4" or "gap-6" to flex containers holding nav items
+- For horizontal navigation: use "flex items-center gap-4" or "flex items-center gap-6"
+- For nav link groups: use "flex items-center space-x-4" or "space-x-6"
+- Header containers should use "justify-between" to spread logo/nav apart
+- NEVER place nav items directly adjacent without gap/spacing classes
+- Example nav container: { "styles": { "tailwindClasses": "flex items-center justify-between px-6 py-4" } }
+- Example nav links group: { "styles": { "tailwindClasses": "flex items-center gap-6" } }
 
 VOID ELEMENTS (image, input, icon) MUST NOT have children arrays.
 
