@@ -222,6 +222,11 @@ UISpecNode REQUIRED FIELDS (every node MUST have ALL of these):
 
 VOID ELEMENTS (image, input) MUST NOT have children arrays.
 
+IMAGE URL RULE:
+- For image nodes, use placeholder URLs like "https://placehold.co/400x300/e2e8f0/64748b?text=Image"
+- NEVER use local filenames or the uploaded image filename as src
+- Estimate appropriate dimensions based on the image's role in the layout
+
 OUTPUT: Complete JSON LayoutManifest with ALL required fields populated. No omissions.
 `;
 
@@ -336,6 +341,51 @@ OUTPUT: Complete JSON LayoutManifest with ALL required fields populated. No omis
         border: extractedColors.border,
         accent: extractedColors.accent,
       };
+    }
+
+    // POST-PROCESSING: Sanitize image URLs in manifest
+    // Gemini often outputs the uploaded filename as src, which doesn't exist on server
+    function sanitizeImageUrls(node: any): any {
+      if (!node) return node;
+
+      // If this is an image node, check and fix the src attribute
+      if (node.type === 'image' && node.attributes) {
+        const src = node.attributes.src;
+        // Check if src is a local filename (not a valid URL)
+        if (src && typeof src === 'string') {
+          const isValidUrl =
+            src.startsWith('http://') ||
+            src.startsWith('https://') ||
+            src.startsWith('data:') ||
+            src.startsWith('/');
+
+          if (!isValidUrl) {
+            console.log(
+              `[generate-manifest] Replacing invalid image src "${src}" with placeholder`
+            );
+            // Use a descriptive placeholder that shows intended dimensions
+            const width = node.attributes.width || 400;
+            const height = node.attributes.height || 300;
+            node.attributes.src = `https://placehold.co/${width}x${height}/e2e8f0/64748b?text=Image`;
+            // Also set alt if missing
+            if (!node.attributes.alt) {
+              node.attributes.alt = 'Placeholder image';
+            }
+          }
+        }
+      }
+
+      // Recursively process children
+      if (node.children && Array.isArray(node.children)) {
+        node.children = node.children.map(sanitizeImageUrls);
+      }
+
+      return node;
+    }
+
+    // Apply image URL sanitization
+    if (manifest.root) {
+      manifest.root = sanitizeImageUrls(manifest.root);
     }
 
     // POST-PROCESSING: FORCE ROOT BACKGROUND & LAYOUT
