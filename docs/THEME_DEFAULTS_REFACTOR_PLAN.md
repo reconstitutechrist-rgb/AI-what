@@ -2,11 +2,13 @@
 
 ## Current Status
 
-| Phase   | Description                                      | Status                         |
-| ------- | ------------------------------------------------ | ------------------------------ |
-| Phase 1 | Foundation - Create `themeDefaults.ts`           | ✅ COMPLETE                    |
-| Phase 2 | Logic Alignment - Update 8 service/utility files | ✅ COMPLETE                    |
-| Phase 3 | UI Alignment - Replace raw Tailwind colors       | ❌ 373 occurrences in 74 files |
+| Phase   | Description                                      | Status      |
+| ------- | ------------------------------------------------ | ----------- |
+| Phase 1 | Foundation - Create `themeDefaults.ts`           | ✅ COMPLETE |
+| Phase 2 | Logic Alignment - Update 8 service/utility files | ✅ COMPLETE |
+| Phase 3 | UI Alignment - Replace raw Tailwind colors       | ✅ COMPLETE |
+
+**All phases complete.** The Garden theme is now consistently applied across the codebase.
 
 ---
 
@@ -106,34 +108,11 @@ Also updated 2 key UI components:
 - `AnalysisProgressIndicator.tsx` → semantic Tailwind colors
 - `QualityPanel.tsx` → semantic Tailwind colors
 
----
+### Phase 3: UI Alignment ✅
 
-## Remaining Work: Phase 3 - UI Alignment
+**Replaced 360+ occurrences of raw Tailwind colors across 72 component files.**
 
-### Problem
-
-373 occurrences of raw Tailwind colors across 74 component files bypass the Garden theme:
-
-```tsx
-// BEFORE - Raw Tailwind (generic red)
-<span className="text-red-400 bg-red-500/20">Error</span>
-
-// AFTER - Semantic Garden theme (blossom pink)
-<span className="text-error-400 bg-error-500/20">Error</span>
-```
-
-### Priority Files (Top 6 Offenders - ~80 occurrences)
-
-| File                            | Count | Impact                        |
-| ------------------------------- | ----- | ----------------------------- |
-| `review/EnhancedDiffViewer.tsx` | 16    | Critical - diff readability   |
-| `CodeQualityReport.tsx`         | 15    | High visibility status report |
-| `DiffPreview.tsx`               | 14    | Core diff feature             |
-| `modals/DeploymentModal.tsx`    | 13    | User-facing deployment        |
-| `review/ReviewSummary.tsx`      | 12    | Review workflow               |
-| `build/ValidationDashboard.tsx` | 10    | Build feedback                |
-
-### Replacement Rules
+#### Replacement Rules Applied
 
 | Raw Color  | Semantic Replacement | Garden Theme Color     |
 | ---------- | -------------------- | ---------------------- |
@@ -141,19 +120,128 @@ Also updated 2 key UI components:
 | `green-*`  | `success-*`          | Garden green (#2ECC71) |
 | `yellow-*` | `warning-*`          | Gold (#C9A227)         |
 
-### Search Pattern
+#### Files Updated (72 total)
 
-Find remaining raw status colors:
+**Build & Validation:**
 
-```bash
-grep -r "text-red-\|bg-red-\|text-green-\|bg-green-\|text-yellow-\|bg-yellow-" src/components/
-```
+- `build/PhaseControlPanel.tsx`
+- `build/PhaseDetailView.tsx`
+- `build/PhaseProgressIndicator.tsx`
+- `build/ReviewStatusIndicator.tsx`
+- `build/ValidationDashboard.tsx`
+
+**Review System:**
+
+- `review/EnhancedDiffViewer.tsx`
+- `review/ReviewSummary.tsx`
+- `review/CommentThread.tsx`
+- `review/HunkApprovalCard.tsx`
+- `review/ImpactAnalysisPanel.tsx`
+- `review/ReviewSidebar.tsx`
+- `review/RollbackHistory.tsx`
+
+**Modals:**
+
+- `modals/DeploymentModal.tsx`
+- `modals/ApprovalModal.tsx`
+- `modals/CreateBranchModal.tsx`
+- `modals/ExportModal.tsx`
+- `modals/LibraryModal.tsx`
+- `modals/ShareModal.tsx`
+- `modals/VersionHistoryModal.tsx`
+
+**Concept Panel:**
+
+- `concept-panel/AppConceptPanel.tsx`
+- `concept-panel/EditableField.tsx`
+- `concept-panel/FeatureCard.tsx`
+- `concept-panel/sections/FeaturesSection.tsx`
+- `concept-panel/sections/PhasePlanSection.tsx`
+- `concept-panel/sections/RolesSection.tsx`
+- `concept-panel/sections/TechnicalSection.tsx`
+- `concept-panel/sections/WorkflowsSection.tsx`
+
+**Conversation Wizard:**
+
+- `conversation-wizard/ArchitectureReviewPanel.tsx`
+- `conversation-wizard/ConceptSummaryPanel.tsx`
+- `conversation-wizard/WizardHeader.tsx`
+
+**Preview:**
+
+- `preview/BrowserPreview.tsx`
+- `preview/ConsolePanel.tsx`
+- `preview/DeviceToolbar.tsx`
+- `preview/RailwayPreview.tsx`
+
+**Storage:**
+
+- `storage/FileActions.tsx`
+- `storage/FileCard.tsx`
+- `storage/FileFilters.tsx`
+- `storage/FileUploader.tsx`
+- `storage/StorageStats.tsx`
+
+**Dev Tools:**
+
+- `dev/DebugPanel.tsx`
+- `dev/ElementInspector/InspectorPanel.tsx`
+- `dev/ElementInspector/PromptGeneratorModal.tsx`
+- `dev/ElementInspector/SelectedElementCard.tsx`
+- `dev/MockAIBanner.tsx`
+
+**Documentation:**
+
+- `documentation/ProjectDocumentationPanel.tsx`
+- `documentation/tabs/ConceptTab.tsx`
+- `documentation/tabs/PlanTab.tsx`
+- `documentation/tabs/ProgressTab.tsx`
+
+**Core Components:**
+
+- `CodeQualityReport.tsx`
+- `DiffPreview.tsx`
+- `Engine.tsx`
+- `ErrorBoundary.tsx`
+- `FullAppPreview.tsx`
+- `KeyframeEditor.tsx`
+- `LayerPanel.tsx`
+- `NaturalConversationWizard.tsx`
+- `PerformanceReport.tsx`
+- `PreviewContainer.tsx`
+- `ReferenceMediaPanel.tsx`
+- `SettingsPage.tsx`
+- `SideDrawer.tsx`
+- `StreamingProgress.tsx`
+- `TemplatePreview.tsx`
+- `TemplateSelector.tsx`
+- `Toast.tsx`
+- `ValidationMessage.tsx`
+- `ArchitectureTemplatePicker.tsx`
+- `BranchSelector.tsx`
+- `marketing/ComparisonTable.tsx`
+- `ui/HeaderDropdown.tsx`
+- `ui/Toast.tsx`
+
+#### Intentionally Preserved (Decorative Colors)
+
+The following files retain raw Tailwind colors for decorative (non-status) purposes:
+
+| File                      | Color Usage                                   | Reason                     |
+| ------------------------- | --------------------------------------------- | -------------------------- |
+| `AnimationTimeline.tsx`   | `bg-red-500`, `bg-red-600`                    | Playhead visibility        |
+| `CodePreview.tsx`         | `bg-red-500`, `bg-yellow-500`, `bg-green-500` | macOS window dots          |
+| `EasingCurveEditor.tsx`   | `bg-red-600`                                  | Playing state indicator    |
+| `PlanTab.tsx`             | `bg-green-500/20`, `bg-yellow-500/20`         | Domain badges (not status) |
+| `DeploymentModal.tsx`     | `text-green-400`                              | Terminal syntax            |
+| `LibraryModal.tsx`        | `text-yellow-400`                             | Favorites star             |
+| `SelectedElementCard.tsx` | `text-yellow-400`                             | Code syntax highlighting   |
 
 ---
 
-## Verification Checklist
+## Verification
 
-### Automated Checks
+### Automated Checks ✅
 
 - [x] `npm run build` - passes
 - [x] `npm run typecheck` - passes
@@ -161,35 +249,34 @@ grep -r "text-red-\|bg-red-\|text-green-\|bg-green-\|text-yellow-\|bg-yellow-" s
 
 ### Search Verification
 
-After Phase 1 & 2, hardcoded hex colors only in constants file:
+Hardcoded hex colors only in constants file:
 
 ```bash
 grep -r "#6B7280\|#FFFFFF\|#374151\|#E5E7EB" src/ --include="*.ts" --include="*.tsx"
-# Should only return themeDefaults.ts
+# Returns only themeDefaults.ts ✅
 ```
 
-After Phase 3 completion:
+Status colors now use semantic classes (remaining are decorative):
 
 ```bash
 grep -r "text-red-\|bg-red-\|text-green-\|bg-green-\|text-yellow-\|bg-yellow-" src/components/
-# Should return 0 results
+# Returns ~13 decorative occurrences (playheads, window dots, terminal syntax) ✅
 ```
 
 ---
 
-## Out of Scope
-
-- **CSS variables in globals.css** - already centralized correctly
-- **Inline styles using CSS variables** - correct pattern
-- **Non-status Tailwind colors** - decorative uses of slate/gray are fine
-- **Auth page box-shadows** - separate concern, lower priority
-
----
-
-## Benefits
+## Benefits Achieved
 
 1. **Single source of truth** - All color constants in one file
 2. **Type safety** - TypeScript catches invalid color references
 3. **No duplicates** - ZIndexEditor and layerUtils share same constants
-4. **Theme consistency** - UI uses Garden theme semantic colors
+4. **Theme consistency** - UI uses Garden theme semantic colors throughout
 5. **Easy updates** - Change once, applies everywhere
+6. **Accessibility** - Consistent semantic meaning for status colors
+
+---
+
+## Commits
+
+- `9700459` - refactor(theme): centralize hardcoded colors into themeDefaults.ts (Phase 1 & 2)
+- `64c0c86` - refactor(theme): replace raw Tailwind colors with Garden semantic colors (Phase 3)
