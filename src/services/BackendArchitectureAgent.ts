@@ -212,9 +212,21 @@ ${dataModels.map((m) => `- **${m.name}**: ${m.fields?.map((f) => f.name).join(',
 }
 
 ### Architecture Constraints
-- Database: ${options.databasePreference} with Prisma ORM
-- API Style: REST with Next.js API Routes
-- Auth: NextAuth.js (if auth needed)
+${
+  appConcept.technical.preferredDatabase
+    ? `- Database: ${appConcept.technical.preferredDatabase} (user preference)`
+    : `- Database: ${options.databasePreference} with Prisma ORM`
+}
+${
+  appConcept.technical.preferredApiStyle
+    ? `- API Style: ${appConcept.technical.preferredApiStyle} (user preference)`
+    : '- API Style: REST with Next.js API Routes'
+}
+${
+  appConcept.technical.preferredAuth
+    ? `- Auth: ${appConcept.technical.preferredAuth} (user preference)`
+    : '- Auth: NextAuth.js (if auth needed)'
+}
 - Design for scale: 100k+ users
 
 ## Required Output Structure

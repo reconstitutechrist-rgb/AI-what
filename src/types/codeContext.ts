@@ -251,6 +251,7 @@ export interface CodeContextState {
   // Phase tracking
   phasesSeen: number[];
   filesByPhase: Map<number, string[]>;
+  pinnedFiles: Set<string>; // Fix 11: Track pinned files
 }
 
 // ============================================================================

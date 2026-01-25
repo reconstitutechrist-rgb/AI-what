@@ -85,8 +85,17 @@ export async function runTypeCheck(
     // TypeScript may not be available in all environments
     console.warn('TypeScript compilation not available:', err);
     return {
-      success: true,
-      errors: [],
+      success: false, // Fix 15: Fail closed
+      errors: [
+        {
+          file: 'system',
+          line: 0,
+          column: 0,
+          message: `TypeScript compilation unavailable: ${err}`,
+          code: 500,
+          severity: 'error',
+        },
+      ],
       warnings: [],
     };
   }

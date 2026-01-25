@@ -398,14 +398,15 @@ describe('formatLayoutManifestForPrompt', () => {
     expect(formatted).toContain('Inter'); // Font family
   });
 
-  test('includes detected features', () => {
+  test('includes CSS variables setup', () => {
     const manifest = createMockLayoutManifest();
 
     const formatted = formatLayoutManifestForPrompt(manifest);
 
-    expect(formatted).toContain('dashboard');
-    expect(formatted).toContain('sidebar');
-    expect(formatted).toContain('header');
+    // Function outputs design system, not layout structure
+    expect(formatted).toContain('--color-primary');
+    expect(formatted).toContain('--color-background');
+    expect(formatted).toContain('globals.css');
   });
 });
 

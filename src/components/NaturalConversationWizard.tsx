@@ -14,7 +14,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import type { AppConcept, Feature, TechnicalRequirements, UIPreferences } from '@/types/appConcept';
 import type { DynamicPhasePlan } from '@/types/dynamicPhases';
 import type { LayoutManifest } from '@/types/schema';
@@ -183,7 +183,13 @@ What would you like to build?`,
     !!wizardState.technical.needsAuth ||
     !!wizardState.technical.needsDatabase ||
     !!wizardState.technical.needsRealtime ||
+    !!wizardState.technical.needsRealtime ||
     !!wizardState.technical.needsFileUpload;
+
+  // Fix 3: Architecture Gate Logic
+  const isPlanningComplete = useMemo(() => {
+    return !!(wizardState.name && wizardState.features?.length > 0 && wizardState.description);
+  }, [wizardState]);
 
   // Memoized callback to prevent infinite loops in hooks
   // (inline arrow functions create new references on each render, causing useCallback deps to change)
@@ -675,6 +681,39 @@ What would you like to build?`,
 
           <div ref={chatEndRef} />
         </div>
+
+        {/* Fix 3: Architecture Gate - Prominent Call to Action */}
+        {isPlanningComplete && needsBackend && !architectureSpec && (
+          <div className="px-6 pb-4">
+            <div className="bg-gradient-to-r from-blue-600/20 to-indigo-600/20 border border-blue-500/30 rounded-xl p-4 flex items-center justify-between shadow-lg backdrop-blur-sm">
+              <div>
+                <h3 className="text-lg font-semibold text-blue-100 flex items-center gap-2">
+                  <span className="text-xl">✨</span> App Concept Ready!
+                </h3>
+                <p className="text-blue-200/80 text-sm mt-1">
+                  We have enough details to analyze your backend architecture.
+                </p>
+              </div>
+              <button
+                onClick={() => handleAction('generate_architecture')}
+                disabled={isGeneratingArchitecture}
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg shadow-lg flex items-center gap-2 transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100"
+              >
+                {isGeneratingArchitecture ? (
+                  <>
+                    <LoaderIcon size={18} className="animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    Analyze Architecture
+                    <span className="text-lg">→</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Suggested Actions */}
         <SuggestedActionsBar

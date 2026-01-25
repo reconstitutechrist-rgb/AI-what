@@ -357,34 +357,64 @@ interface TokenBudget {
   timeout: number;
 }
 
+// Fix 8: Backend domains that require higher token budgets
+const BACKEND_DOMAINS = [
+  'database',
+  'auth',
+  'devops',
+  'monitoring',
+  'testing',
+  'backend-validator',
+];
+
 const TOKEN_BUDGETS = {
   // Phase 1 needs more tokens (building foundation)
-  // max_tokens must be > thinking_budget to leave room for response
+  // OPTIMIZED for Performance (Fix 8)
   foundation: {
-    max_tokens: 48000, // 24000 thinking + 24000 response
-    thinking_budget: 24000,
-    timeout: 360000, // 6 minutes
+    max_tokens: 40000, // Reduced from 48k to improve TTFT
+    thinking_budget: 20000,
+    timeout: 300000, // 5 minutes
+  },
+  // Fix 8: Backend phases get larger budget for complex infrastructure
+  backend: {
+    max_tokens: 40000,
+    thinking_budget: 20000,
+    timeout: 360000, // 6 minutes for backend complexity
   },
   // Later phases need less (additive changes)
   additive: {
-    max_tokens: 32000, // 16000 thinking + 16000 response
-    thinking_budget: 16000,
-    timeout: 300000, // 5 minutes
+    max_tokens: 24000, // Reduced from 32k
+    thinking_budget: 12000,
+    timeout: 240000, // 4 minutes
   },
   // Small modifications
   small: {
-    max_tokens: 24000, // 12000 thinking + 12000 response
-    thinking_budget: 12000,
-    timeout: 180000, // 3 minutes
+    max_tokens: 16000, // Reduced from 24k
+    thinking_budget: 8000,
+    timeout: 120000, // 2 minutes
   },
 };
 
 /**
- * Get appropriate token budget based on phase number and complexity
+ * Get appropriate token budget based on phase number, complexity, and domain
+ * Fix 8: Backend phases get larger budgets for complex infrastructure code
+ *
+ * @param phaseNumber - The phase number (1 = foundation)
+ * @param complexity - Optional complexity assessment
+ * @param domain - Optional phase domain for backend detection
  */
-export function getTokenBudget(phaseNumber: number, complexity?: PhaseComplexity): TokenBudget {
+export function getTokenBudget(
+  phaseNumber: number,
+  complexity?: PhaseComplexity,
+  domain?: string
+): TokenBudget {
   if (phaseNumber === 1) {
     return TOKEN_BUDGETS.foundation;
+  }
+
+  // Fix 8: Backend phases get higher budget
+  if (domain && BACKEND_DOMAINS.includes(domain)) {
+    return TOKEN_BUDGETS.backend;
   }
 
   if (complexity) {
@@ -633,7 +663,7 @@ export async function generateFullApp(
       file.path.endsWith('.jsx') ||
       file.path.endsWith('.js')
     ) {
-      const validation = await validateGeneratedCode(file.content, file.path);
+      const validation = await validateGeneratedCode(file.content, file.path, 'strict');
 
       if (!validation.valid) {
         totalErrors += validation.errors.length;

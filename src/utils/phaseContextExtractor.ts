@@ -64,6 +64,9 @@ const PHASE_TOPICS: Record<FeatureDomain, SegmentTopic[]> = {
   'ui-role': ['user_roles', 'ui_design'],
   testing: ['technical_specs', 'general'],
   polish: ['ui_design', 'general'],
+  'backend-validator': ['technical_specs', 'general'],
+  devops: ['technical_specs', 'integration'],
+  monitoring: ['technical_specs', 'feature_discussion'],
 };
 
 /**
@@ -88,6 +91,9 @@ const PHASE_QUERIES: Record<FeatureDomain, string> = {
   'ui-role': 'role-specific views dashboards access control permissions',
   testing: 'testing tests fixtures mocks unit tests integration tests',
   polish: 'polish animations transitions loading states error handling UX',
+  'backend-validator': 'validation architecture verification integrity checks schema compliance',
+  devops: 'deployment hosting infrastructure ci/cd pipeline environment variables docker vercel',
+  monitoring: 'monitoring observability logging error tracking analytics performance metrics',
 };
 
 // ============================================================================
@@ -293,6 +299,9 @@ function filterTechSpecsForPhase(
     'ui-role': ['auth'],
     testing: [],
     polish: [],
+    'backend-validator': ['database', 'api'],
+    devops: ['integration'],
+    monitoring: ['api', 'integration'],
   };
 
   const relevantCategories = categoryMap[phaseType] || [];
@@ -322,6 +331,9 @@ function getPhaseKeywords(phaseType: FeatureDomain): string[] {
     'ui-role': ['dashboard', 'view', 'role', 'access', 'permission'],
     testing: ['test', 'mock', 'fixture', 'assertion'],
     polish: ['animation', 'transition', 'loading', 'error', 'empty state'],
+    'backend-validator': ['validate', 'verify', 'architecture', 'schema', 'integrity'],
+    devops: ['deploy', 'hosting', 'infrastructure', 'ci/cd', 'docker'],
+    monitoring: ['monitor', 'log', 'error', 'metric', 'performance'],
   };
 
   return keywordMap[phaseType] || [];

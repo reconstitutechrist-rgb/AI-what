@@ -85,6 +85,42 @@ export async function getOptionalSession() {
   return await getServerSession();
 }
 
+export async function requireAuthAPI() {
+  const session = await getServerSession();
+  if (!session?.user) {
+    throw new Error('Unauthorized');
+  }
+  return session;
+}
+
+===FILE:PROTECTED_API_ROUTE_EXAMPLE===
+// IMPORTANT: Apply this pattern to ALL generated API routes when auth is enabled
+
+import { requireAuthAPI } from '@/lib/auth';
+import { NextResponse } from 'next/server';
+
+export async function GET(request: Request) {
+  try {
+    const session = await requireAuthAPI(); // ← ALWAYS include this
+    const userId = session.user.id;
+
+    // ... your route logic here ...
+
+    return NextResponse.json({ data: 'Protected data' });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
+
+### CRITICAL INSTRUCTION FOR AI:
+When \`needsAuth: true\`, EVERY generated API route (except /api/auth/*) MUST:
+1. Import requireAuthAPI from '@/lib/auth'
+2. Call await requireAuthAPI() at the start of the handler
+3. Handle the Unauthorized error with 401 response
+
 ===FILE:components/AuthProvider.tsx===
 'use client';
 import { SessionProvider } from 'next-auth/react';

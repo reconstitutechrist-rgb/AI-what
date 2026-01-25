@@ -93,6 +93,23 @@ export interface TechnicalRequirements {
   // Internationalization
   needsI18n?: boolean; // Multi-language support
   i18nLanguages?: string[]; // e.g., ['en', 'es', 'fr', 'de']
+
+  // Backend Scalability & Infrastructure (added via Fix 1)
+  scale?: 'small' | 'medium' | 'large' | 'enterprise';
+  expectedUsers?: string; // "100", "10k", "1M+"
+  hostingPreference?: 'vercel' | 'aws' | 'gcp' | 'self-hosted';
+  complianceNeeds?: string[]; // ['GDPR', 'HIPAA', 'SOC2']
+  integrationsNeeded?: string[]; // ['Stripe', 'SendGrid', 'Twilio']
+  performanceRequirements?: {
+    latencySLA?: string; // "< 200ms"
+    uptimeSLA?: string; // "99.9%"
+  };
+
+  // Tech Stack Preferences (Fix 2)
+  preferredDatabase?: 'sqlite' | 'postgresql' | 'mysql' | 'mongodb';
+  preferredAuth?: 'nextauth' | 'clerk' | 'auth0' | 'supabase';
+  preferredApiStyle?: 'rest' | 'graphql' | 'trpc';
+  preferredOrm?: 'prisma' | 'drizzle' | 'typeorm';
 }
 
 export interface DataModel {

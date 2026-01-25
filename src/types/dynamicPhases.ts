@@ -42,6 +42,9 @@ export type FeatureDomain =
   | 'admin' // Admin panels, moderation tools
   | 'ui-role' // Role-specific dashboards/views
   | 'testing' // Test setup, fixtures, mocks
+  | 'backend-validator' // Fix 5: Backend validation phases (schema/api check)
+  | 'devops' // Infrastructure, deployment, CI/CD
+  | 'monitoring' // Observability, logging, error tracking
   | 'polish'; // Animations, UX refinements, documentation
 
 /**

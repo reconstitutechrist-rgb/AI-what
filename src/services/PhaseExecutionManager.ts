@@ -124,7 +124,7 @@ export function formatLayoutManifestForPrompt(manifest: LayoutManifest): string 
   const colors = manifest.designSystem?.colors || {};
   const fonts = manifest.designSystem?.fonts || { heading: 'Inter', body: 'Inter' };
 
-  let prompt = `## CRITICAL: Design Fidelity Requirements
+  const prompt = `## CRITICAL: Design Fidelity Requirements
 
 You MUST implement the design specifications EXACTLY as specified below.
 Do NOT deviate from these values. Do NOT substitute colors, spacing, or effects.
@@ -1701,7 +1701,20 @@ export class PhaseExecutionManager {
       return result;
     } catch (err) {
       console.error('Type checking failed:', err);
-      return { success: true, errors: [], warnings: [] }; // Fail open
+      return {
+        success: false, // Fix 15: Fail closed
+        errors: [
+          {
+            file: 'system',
+            line: 0,
+            column: 0,
+            message: `Type checking failed: ${err}`,
+            code: 500,
+            severity: 'error',
+          },
+        ],
+        warnings: [],
+      };
     }
   }
 
@@ -1719,9 +1732,8 @@ export class PhaseExecutionManager {
    */
   async checkTypeCompatibility(phaseNumber: number): Promise<TypeCompatibilityResult> {
     try {
-      const { extractTypeDefinitions, checkTypeCompatibility } = await import(
-        '@/utils/typeCompatibilityChecker'
-      );
+      const { extractTypeDefinitions, checkTypeCompatibility } =
+        await import('@/utils/typeCompatibilityChecker');
 
       // Extract types from new files in this phase
       const newFiles = this.rawGeneratedFiles.filter(
@@ -1750,7 +1762,20 @@ export class PhaseExecutionManager {
       return result;
     } catch (err) {
       console.error('Type compatibility check failed:', err);
-      return { compatible: true, breakingChanges: [] };
+      return {
+        compatible: false,
+        breakingChanges: [
+          {
+            typeName: 'System Error',
+            file: 'unknown',
+            changeType: 'TYPE_DELETED',
+            details: `Type compatibility check failed: ${err}`,
+            previousPhase: 0,
+            currentPhase: phaseNumber,
+            severity: 'critical',
+          },
+        ],
+      };
     }
   }
 
@@ -1787,7 +1812,7 @@ export class PhaseExecutionManager {
         passed: 0,
         failed: 0,
         results: [],
-        allPassed: true, // Fail open
+        allPassed: false, // Fix 15: Fail closed
       };
     }
   }
@@ -1817,7 +1842,8 @@ export class PhaseExecutionManager {
       // Find matching API file
       const expectedPath = `/api${contract.endpoint}`;
       const apiFile = apiFiles.find(
-        (f) => f.path.includes(expectedPath) || f.path.includes(contract.endpoint.replace(/\//g, '/'))
+        (f) =>
+          f.path.includes(expectedPath) || f.path.includes(contract.endpoint.replace(/\//g, '/'))
       );
 
       if (!apiFile) {
@@ -1870,6 +1896,80 @@ export class PhaseExecutionManager {
     };
   }
 
+  // ========== P16: ARCHITECTURE VERIFICATION (Fix 16) ==========
+
+  /**
+   * Verify that the generated code matches the architecture specification
+   */
+  async verifyArchitectureImplementation(): Promise<{ verified: boolean; issues: string[] }> {
+    if (!this.plan.architectureSpec) {
+      return { verified: true, issues: [] };
+    }
+
+    const issues: string[] = [];
+    const spec = this.plan.architectureSpec;
+
+    // 1. Verify API routes exist
+    if (spec.api?.routes) {
+      for (const route of spec.api.routes) {
+        // Strip leading slashes for matching
+        const normalizedPath = route.path.replace(/^\//, '');
+        const routeFile = this.rawGeneratedFiles.find(
+          (f) =>
+            f.path.includes(`api/${normalizedPath}`) || f.path.includes(`app/api/${normalizedPath}`)
+        );
+
+        if (!routeFile) {
+          issues.push(`Missing API route: ${route.method} ${route.path}`);
+        } else {
+          // Check for HTTP method export
+          const methodUpper = route.method.toUpperCase();
+          if (
+            !routeFile.content.includes(`export async function ${methodUpper}`) &&
+            !routeFile.content.includes(`export function ${methodUpper}`)
+          ) {
+            issues.push(`API route ${route.path} missing ${methodUpper} handler`);
+          }
+        }
+      }
+    }
+
+    // 2. Verify Prisma schema matches
+    if (spec.database?.tables) {
+      const schemaFile = this.rawGeneratedFiles.find((f) => f.path.endsWith('schema.prisma'));
+      if (schemaFile) {
+        for (const table of spec.database.tables) {
+          if (!schemaFile.content.includes(`model ${table.name}`)) {
+            issues.push(`Missing database model: ${table.name}`);
+          }
+        }
+      } else if (spec.database.tables.length > 0) {
+        issues.push('Missing schema.prisma file despite database tables being defined');
+      }
+    }
+
+    // 3. Verify auth is applied (if required)
+    if (spec.auth?.strategy) {
+      const apiFiles = this.rawGeneratedFiles.filter(
+        (f) => f.path.includes('/api/') && !f.path.includes('auth') && !f.path.includes('public')
+      );
+      for (const file of apiFiles) {
+        if (
+          !file.content.includes('requireAuth') &&
+          !file.content.includes('getServerSession') &&
+          !file.content.includes('auth()')
+        ) {
+          issues.push(`API route ${file.path} may be missing authentication`);
+        }
+      }
+    }
+
+    return {
+      verified: issues.length === 0,
+      issues,
+    };
+  }
+
   // ========== P9: REGRESSION TESTING ==========
 
   /**
@@ -1918,7 +2018,7 @@ export class PhaseExecutionManager {
         phaseNumber: currentPhase,
         previousPhasesChecked: [],
         failures: [],
-        allPassed: true, // Fail open
+        allPassed: false, // Fix 15: Fail closed
       };
     }
   }

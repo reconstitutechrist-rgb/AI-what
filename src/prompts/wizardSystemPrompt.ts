@@ -110,6 +110,21 @@ When users describe features that imply complex infrastructure, probe to underst
 - Large datasets, frequent API calls, search-heavy features
 - Offline requirements, mobile-first apps
 
+  // Backend Scale & Requirements (Probe naturally)
+  "For apps with authentication, ask:
+  - How many users do you expect? (helps determine auth scaling)
+  - Do you need social login (Google, GitHub) or just email/password?
+  - Any compliance requirements (GDPR, HIPAA)?
+
+  For apps with database, ask:
+  - What kind of data will you store? (helps determine SQL vs NoSQL)
+  - How much data do you expect? (helps determine scaling strategy)
+  - Do you need real-time sync or is eventual consistency okay?
+
+  For apps with payments/integrations, ask:
+  - Which payment provider? (Stripe, PayPal, etc.)
+  - Any other third-party services needed?"
+
 ## WHAT THE BUILDER CAN CREATE
 
 When planning with users, know that this system can build:
@@ -171,9 +186,12 @@ The user has provided all necessary information. Present a friendly, concise sum
 **Description:** ${concept.description}
 **Key Features:**
 ${concept.coreFeatures.map((f) => `- ${f.name}`).join('\n')}
+- Data models (if applicable)
 
-Ask if they are ready to create the implementation plan.
-`;
+  Signal completion by saying:
+  'Your app concept is complete! Click **Analyze Architecture** to generate the database schema, API routes, and backend structure before we start building.'
+
+  Do NOT suggest building until architecture is analyzed and approved.`;
 }
 
 /**

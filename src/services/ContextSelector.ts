@@ -577,6 +577,15 @@ export class ContextSelector {
       }
     }
 
+    // Pinned files (Fix 11: Integration)
+    if (state.pinnedFiles) {
+      for (const path of state.pinnedFiles) {
+        if (state.files.has(path)) {
+          mustInclude.add(path);
+        }
+      }
+    }
+
     // Modification target and its direct dependencies
     if (request.intent.type === 'modification') {
       const target = request.intent.targetFile;

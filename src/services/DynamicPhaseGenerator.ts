@@ -147,6 +147,35 @@ const PHASE_KEYWORDS: Record<FeatureDomain, string[]> = {
     'locale',
     'languages',
   ],
+  'backend-validator': [
+    'validation',
+    'schema check',
+    'api check',
+    'integrity',
+    'backend verification',
+  ],
+  devops: [
+    'deployment',
+    'hosting',
+    'infrastructure',
+    'ci/cd',
+    'pipeline',
+    'docker',
+    'vercel',
+    'aws',
+    'cloud',
+    'environment variables',
+  ],
+  monitoring: [
+    'monitoring',
+    'observability',
+    'logging',
+    'error tracking',
+    'analytics',
+    'metrics',
+    'performance',
+    'sentry',
+  ],
 };
 
 /**
@@ -274,7 +303,7 @@ export class DynamicPhaseGenerator {
 
       // Step 2: Add implicit features from technical requirements
       const implicitFeatures = this.getImplicitFeatures(concept.technical);
-      let allClassifications = [...classifications, ...implicitFeatures];
+      const allClassifications = [...classifications, ...implicitFeatures];
 
       // Step 2.5: Add features from layoutManifest if present
       if (concept.layoutManifest) {
@@ -434,12 +463,33 @@ export class DynamicPhaseGenerator {
     existingPhases: DynamicPhase[],
     insertAfter: number
   ): number[] {
-    return dependencies
-      .map((depName) => {
-        const found = existingPhases.find((p) => p.name.toLowerCase() === depName.toLowerCase());
-        return found ? found.number : 1; // Default to setup phase
-      })
-      .filter((num) => num <= insertAfter + 1); // Only depend on phases before this one
+    const resolved: number[] = [];
+    const missing: string[] = [];
+
+    for (const depName of dependencies) {
+      const found = existingPhases.find((p) => p.name.toLowerCase() === depName.toLowerCase());
+      if (found) {
+        if (found.number <= insertAfter + 1) {
+          resolved.push(found.number);
+        } else {
+          // Dependency exists but runs AFTER current phase - this is a scheduling error
+          console.warn(
+            `Dependency ${depName} (phase ${found.number}) scheduled after current phase (inserting at ${insertAfter + 1})`
+          );
+          // We still track it, but maybe as a future dependency?
+          // For now, strict strict dependency means strict order.
+        }
+      } else {
+        missing.push(depName);
+      }
+    }
+
+    if (missing.length > 0) {
+      // Log missing dependencies but don't crash - just warn for now as some might be implicit
+      console.warn(`Missing backend dependencies: ${missing.join(', ')}`);
+    }
+
+    return resolved;
   }
 
   // ============================================================================
@@ -643,6 +693,26 @@ export class DynamicPhaseGenerator {
       });
     }
 
+    // Fix 5: Backend Validation Phase (Coordinated)
+    // Always add if there is a backend, to ensure schema/API alignment
+    if (tech.needsDatabase || tech.needsAPI || tech.needsAuth) {
+      implicit.push({
+        originalFeature: {
+          id: 'implicit-backend-validation',
+          name: 'Backend Validation',
+          description: 'Validation of database schema, API routes, and auth integration',
+          priority: 'high',
+        },
+        domain: 'backend-validator',
+        complexity: 'moderate',
+        estimatedTokens: 2000,
+        requiresOwnPhase: true,
+        suggestedPhaseName: 'Backend Validation',
+        dependencies: ['Database Setup', 'Authentication System', 'API Integration'],
+        keywords: ['validation', 'integrity', 'schema check'],
+      });
+    }
+
     // Caching Layer (for performance optimization)
     if (tech.needsCaching) {
       implicit.push({
@@ -703,6 +773,44 @@ export class DynamicPhaseGenerator {
       });
     }
 
+    // Fix 1 & 5: Scale-based DevOps and Monitoring phases
+    // Add infrastructure phases for large/enterprise scale apps
+    if (tech.scale === 'large' || tech.scale === 'enterprise') {
+      implicit.push({
+        originalFeature: {
+          id: 'implicit-devops',
+          name: 'DevOps & Deployment',
+          description:
+            'Docker configuration, CI/CD pipeline, environment setup, and deployment automation',
+          priority: 'medium',
+        },
+        domain: 'devops',
+        complexity: 'complex',
+        estimatedTokens: 4000,
+        requiresOwnPhase: true,
+        suggestedPhaseName: 'DevOps & Infrastructure',
+        dependencies: tech.needsDatabase ? ['Database Setup'] : [],
+        keywords: ['docker', 'ci/cd', 'deployment', 'infrastructure', 'vercel', 'aws'],
+      });
+
+      implicit.push({
+        originalFeature: {
+          id: 'implicit-monitoring',
+          name: 'Monitoring & Observability',
+          description:
+            'Error tracking, logging infrastructure, performance monitoring, and alerting setup',
+          priority: 'medium',
+        },
+        domain: 'monitoring',
+        complexity: 'moderate',
+        estimatedTokens: 3000,
+        requiresOwnPhase: true,
+        suggestedPhaseName: 'Monitoring & Observability',
+        dependencies: [],
+        keywords: ['monitoring', 'logging', 'sentry', 'observability', 'metrics', 'performance'],
+      });
+    }
+
     return implicit;
   }
 
@@ -720,7 +828,7 @@ export class DynamicPhaseGenerator {
           id: 'layout-auth',
           name: 'Authentication System',
           description: 'Detected from Layout Design',
-          priority: 'high'
+          priority: 'high',
         },
         domain: 'auth',
         complexity: 'complex',
@@ -728,7 +836,7 @@ export class DynamicPhaseGenerator {
         requiresOwnPhase: true,
         suggestedPhaseName: 'Authentication Setup',
         dependencies: [],
-        keywords: ['auth', 'login']
+        keywords: ['auth', 'login'],
       });
     }
 
@@ -739,7 +847,7 @@ export class DynamicPhaseGenerator {
           id: 'layout-file-upload',
           name: 'File Upload System',
           description: 'Detected from Layout Design',
-          priority: 'medium'
+          priority: 'medium',
         },
         domain: 'storage',
         complexity: 'complex',
@@ -747,7 +855,7 @@ export class DynamicPhaseGenerator {
         requiresOwnPhase: true,
         suggestedPhaseName: 'File Storage',
         dependencies: [],
-        keywords: ['upload', 'storage', 'file']
+        keywords: ['upload', 'storage', 'file'],
       });
     }
 
@@ -982,6 +1090,9 @@ export class DynamicPhaseGenerator {
       'analytics',
       'admin',
       'ui-role',
+      'backend-validator',
+      'devops',
+      'monitoring',
       'offline',
     ];
 
@@ -1117,6 +1228,9 @@ export class DynamicPhaseGenerator {
       admin: 'Admin',
       'ui-role': 'Role Views',
       testing: 'Testing',
+      'backend-validator': 'Backend Validation',
+      devops: 'DevOps & Infrastructure',
+      monitoring: 'Monitoring & Observability',
       polish: 'Polish',
     };
 
@@ -1217,7 +1331,10 @@ export class DynamicPhaseGenerator {
     concept: AppConcept,
     layoutManifest: LayoutManifest
   ): DynamicPhase {
-    const designSystem = layoutManifest.designSystem || { colors: {}, fonts: { heading: 'Inter', body: 'Inter' } };
+    const designSystem = layoutManifest.designSystem || {
+      colors: {},
+      fonts: { heading: 'Inter', body: 'Inter' },
+    };
     const colors = designSystem.colors || {};
     const fonts = designSystem.fonts || { heading: 'Inter', body: 'Inter' };
 
@@ -1228,13 +1345,17 @@ export class DynamicPhaseGenerator {
     }
     if (Object.keys(colors).length > 0) {
       const primaryColor = colors.primary || colors.background || '#6B7280';
-      designDetails.push(`Colors: primary ${primaryColor}, ${Object.keys(colors).length} color tokens`);
+      designDetails.push(
+        `Colors: primary ${primaryColor}, ${Object.keys(colors).length} color tokens`
+      );
     }
 
     // Extract detected features from manifest
     const detectedFeatures = layoutManifest.detectedFeatures || [];
-    const componentsList = detectedFeatures.filter(f =>
-      ['header', 'footer', 'sidebar', 'hero', 'cards', 'navigation', 'form'].some(c => f.toLowerCase().includes(c))
+    const componentsList = detectedFeatures.filter((f) =>
+      ['header', 'footer', 'sidebar', 'hero', 'cards', 'navigation', 'form'].some((c) =>
+        f.toLowerCase().includes(c)
+      )
     );
 
     const primaryColor = colors.primary || '#6B7280';
@@ -1251,7 +1372,9 @@ export class DynamicPhaseGenerator {
         `CRITICAL: Create globals.css with CSS variables: --color-primary: ${primaryColor}; --color-background: ${backgroundColor}; --color-text: ${textColor}; --color-border: ${borderColor};`,
         `Tailwind theme extension in tailwind.config.ts with primary: "${primaryColor}", background: "${backgroundColor}"`,
         `Typography: heading font "${fonts.heading}", body font "${fonts.body}"`,
-        `Color palette: ${Object.entries(colors).map(([k, v]) => `${k}: ${v}`).join(', ')}`,
+        `Color palette: ${Object.entries(colors)
+          .map(([k, v]) => `${k}: ${v}`)
+          .join(', ')}`,
         ...componentsList.map((c) => `${c} component matching design specs`),
         'Responsive layout with mobile-first approach',
         'Layout structure based on UISpecNode tree',
@@ -1475,6 +1598,21 @@ export class DynamicPhaseGenerator {
         criteria.push('WebSocket connection establishes');
         criteria.push('Real-time updates are received');
         criteria.push('Reconnection works on disconnect');
+        break;
+      case 'backend-validator':
+        criteria.push('Database schema matches requirements');
+        criteria.push('API routes exist and export correct methods');
+        criteria.push('Auth checks are implemented where required');
+        break;
+      case 'devops':
+        criteria.push('Build pipeline succeeds');
+        criteria.push('Environment variables are configured');
+        criteria.push('Deployment configuration is valid');
+        break;
+      case 'monitoring':
+        criteria.push('Error logging is initialized');
+        criteria.push('Performance metrics are tracked');
+        criteria.push('Health check endpoint returns 200');
         break;
       default:
         // Feature-based criteria
@@ -2223,7 +2361,12 @@ export class DynamicPhaseGenerator {
     while ((namedMatch = namedImportRegex.exec(content)) !== null) {
       const symbols = namedMatch[1]
         .split(',')
-        .map((s) => s.trim().split(/\s+as\s+/)[0].trim())
+        .map((s) =>
+          s
+            .trim()
+            .split(/\s+as\s+/)[0]
+            .trim()
+        )
         .filter((s) => s.length > 0);
       imports.push({
         symbols,

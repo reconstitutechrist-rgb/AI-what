@@ -26,6 +26,8 @@ export interface ValidationError {
   code?: string;
 }
 
+export type ValidationLevel = 'strict' | 'loose' | 'syntax-only';
+
 export interface ValidationResult {
   valid: boolean;
   errors: ValidationError[];
@@ -373,7 +375,8 @@ export function hasUnclosedStrings(code: string): ValidationError[] {
  */
 export async function validateGeneratedCode(
   code: string,
-  filePath: string = 'src/App.tsx'
+  filePath: string = 'src/App.tsx',
+  level: ValidationLevel = 'strict'
 ): Promise<ValidationResult> {
   const allErrors: ValidationError[] = [];
 
@@ -417,9 +420,33 @@ export async function validateGeneratedCode(
       }
     }
 
+    // If syntax-only, return early
+    if (level === 'syntax-only') {
+      return {
+        valid: allErrors.length === 0,
+        errors: allErrors,
+      };
+    }
+
     // Still run semantic validators for additional checks
     // These catch logical issues that AST doesn't flag
     allErrors.push(...hasNestedFunctionDeclarations(code));
+
+    // Loose validation stops here (skips strict type usage checks in JS/JSX)
+    if (level === 'loose') {
+      return {
+        valid: allErrors.filter((e) => e.severity === 'error').length === 0,
+        errors: allErrors,
+      };
+    }
+
+    // Strict validation continues...
+    if (level === 'strict') {
+      // Legacy validators for specific patterns not fully covered by basic AST checks
+      allErrors.push(...hasBalancedJSXTags(code));
+      allErrors.push(...hasTypeScriptInJSX(code, filePath));
+      allErrors.push(...hasUnclosedStrings(code));
+    }
   } catch (error) {
     // Fallback if Tree-sitter fails
     console.error('AST validation failed, falling back to regex validation:', error);
@@ -554,4 +581,76 @@ export function autoFixCode(code: string, errors: ValidationError[]): string {
   }
 
   return fixedCode;
+}
+
+/**
+ * Fix 9: Validate backend structural integrity
+ * Checks validation of Prisma schema, API routes, and Auth config
+ */
+export interface BackendValidationError {
+  type: 'PRISMA_SCHEMA' | 'API_ROUTE' | 'AUTH_CONFIG' | 'ENV_VAR';
+  message: string;
+  severity: 'critical' | 'warning';
+}
+
+export function validateBackendIntegrity(
+  files: Map<string, string>,
+  requirements: { needsAuth: boolean; needsDatabase: boolean }
+): BackendValidationError[] {
+  const errors: BackendValidationError[] = [];
+
+  // 1. Prisma Schema Validation
+  if (requirements.needsDatabase) {
+    const prismaSchema = Array.from(files.entries()).find(([path]) =>
+      path.endsWith('schema.prisma')
+    );
+    if (!prismaSchema) {
+      errors.push({
+        type: 'PRISMA_SCHEMA',
+        message: 'Missing prisma/schema.prisma file',
+        severity: 'critical',
+      });
+    } else {
+      const content = prismaSchema[1];
+      if (!content.includes('generator client')) {
+        errors.push({
+          type: 'PRISMA_SCHEMA',
+          message: 'Prisma schema missing generator client',
+          severity: 'critical',
+        });
+      }
+      if (!content.includes('datasource db')) {
+        errors.push({
+          type: 'PRISMA_SCHEMA',
+          message: 'Prisma schema missing datasource configuration',
+          severity: 'critical',
+        });
+      }
+    }
+  }
+
+  // 2. Auth Configuration Validation
+  if (requirements.needsAuth) {
+    const authOptions = Array.from(files.keys()).some(
+      (path) => path.includes('auth.ts') || path.includes('route.ts')
+    );
+    if (!authOptions) {
+      errors.push({
+        type: 'AUTH_CONFIG',
+        message: 'Missing NextAuth configuration (auth.ts or route.ts)',
+        severity: 'critical',
+      });
+    }
+
+    const envFile = files.get('.env') || files.get('.env.local');
+    if (!envFile || !envFile.includes('NEXTAUTH_SECRET')) {
+      errors.push({
+        type: 'ENV_VAR',
+        message: 'Missing NEXTAUTH_SECRET in environment variables',
+        severity: 'critical',
+      });
+    }
+  }
+
+  return errors;
 }

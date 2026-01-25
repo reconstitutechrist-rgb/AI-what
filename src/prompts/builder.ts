@@ -8,7 +8,7 @@ import { DELIMITER_FORMAT } from './common/response-format';
 import { AST_OPERATIONS_COMPRESSED } from './modify/ast-operations-compressed';
 import { MODIFICATION_EXAMPLES } from './modify/examples-compressed';
 import { FRONTEND_RULES_COMPRESSED } from './full-app/frontend-rules-compressed';
-import { FULLSTACK_RULES_COMPRESSED } from './full-app/fullstack-rules-compressed';
+import { getFullstackRules, type AppType } from './full-app/fullstack-rules-compressed';
 import { FULLAPP_EXAMPLES_COMPRESSED } from './full-app/examples-compressed';
 // TODO: Migrate buildDesignTokenPrompt to LayoutManifest
 // import { buildDesignTokenPrompt } from './designTokenPrompt';
@@ -54,6 +54,25 @@ const ACCURACY_GUIDELINES = `
 - Only import from files you can see in the provided context
 - If a file path is mentioned but content not shown, do NOT assume its exports
 - Flag any assumptions you are making about missing context in code comments
+- Flag any assumptions you are making about missing context in code comments
+`.trim();
+
+/**
+ * Fix 10: Test Generation Guidelines
+ */
+export const TEST_GENERATION_GUIDELINES = `
+## TEST GENERATION (Phase-Aware)
+
+**When the current phase includes 'testing' or 'validation':**
+- Generate unit tests for utility functions using Jest
+- Generate component tests using React Testing Library
+- Validate core business logic with isolated test cases
+- Use the file naming convention: \`__tests__/[filename].test.tsx\`
+
+**Integration Testing:**
+- Verify API routes with mock requests
+- Test critical user flows (e.g., Auth + Database + API)
+- Ensure mocked data structures match actual Prisma schema
 `.trim();
 
 /**
@@ -142,6 +161,12 @@ MODIFICATION MODE:
     backendContext = getBackendTemplates(techStack);
   }
 
+  // Fix 4: Determine app type for conditional rules
+  const appType: AppType =
+    techStack?.needsAuth || techStack?.needsDatabase || techStack?.needsAPI
+      ? 'FULL_STACK'
+      : 'FRONTEND_ONLY';
+
   return `${baseInstructions}
 ${imageContext}
 ${modificationContext ? '\n' + modificationContext + '\n' : ''}
@@ -161,7 +186,11 @@ ${ACCURACY_GUIDELINES}
 
 ${COMPONENT_SYNTAX_RULES}
 
+${COMPONENT_SYNTAX_RULES}
+
 ${DELIMITER_FORMAT}
+
+${TEST_GENERATION_GUIDELINES}
 
 APPLICATION TYPE DETECTION:
 - FRONTEND_ONLY: UI components, calculators, games, dashboards (preview sandbox)
@@ -171,7 +200,7 @@ ${VERSION_INSTRUCTIONS}
 
 ${FRONTEND_RULES_COMPRESSED}
 
-${FULLSTACK_RULES_COMPRESSED}
+${getFullstackRules(appType)}
 
 ${FULLAPP_EXAMPLES_COMPRESSED}
 
