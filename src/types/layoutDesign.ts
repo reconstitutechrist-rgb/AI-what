@@ -3,6 +3,8 @@
  * Complete design specification for the Layout Builder feature
  */
 
+import { NEUTRAL_PALETTE } from '@/constants/themeDefaults';
+
 // VisualAnalysis was from deleted GeminiLayoutService
 // Using a generic record type for backward compatibility
 type VisualAnalysis = Record<string, unknown>;
@@ -1460,14 +1462,14 @@ export const defaultGlobalStyles: GlobalStyles = {
     letterSpacing: 'normal',
   },
   colors: {
-    primary: '#6B7280', // Neutral gray - AI will generate actual colors
-    secondary: '#9CA3AF',
-    accent: '#6B7280',
-    background: '#F9FAFB', // Light neutral background
-    surface: '#FFFFFF',
-    text: '#374151',
-    textMuted: '#6B7280',
-    border: '#E5E7EB',
+    primary: NEUTRAL_PALETTE.gray500, // Neutral gray - AI will generate actual colors
+    secondary: NEUTRAL_PALETTE.gray400,
+    accent: NEUTRAL_PALETTE.gray500,
+    background: NEUTRAL_PALETTE.gray50, // Light neutral background
+    surface: NEUTRAL_PALETTE.white,
+    text: NEUTRAL_PALETTE.gray700,
+    textMuted: NEUTRAL_PALETTE.gray500,
+    border: NEUTRAL_PALETTE.gray200,
   },
   spacing: {
     density: 'normal',

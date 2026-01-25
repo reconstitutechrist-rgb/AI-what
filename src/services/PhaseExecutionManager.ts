@@ -111,6 +111,7 @@ import {
   footerColumnsMap,
   generateGlobalsCSSContent,
 } from '@/utils/designTokenMappings';
+import { NEUTRAL_PALETTE, STATUS_COLORS } from '@/constants/themeDefaults';
 
 // ============================================================================
 // LAYOUT MANIFEST FORMATTING
@@ -144,17 +145,17 @@ Do NOT deviate from these values. Do NOT substitute colors, spacing, or effects.
 - Body Font: ${fonts.body || 'Inter, system-ui, sans-serif'}
 
 ### Color Palette (USE EXACT HEX VALUES)
-- Primary: ${colors.primary || '#6B7280'} -> var(--color-primary)
-- Secondary: ${colors.secondary || '#9CA3AF'} -> var(--color-secondary)
-- Accent: ${colors.accent || '#6B7280'} -> var(--color-accent)
-- Background: ${colors.background || '#F9FAFB'} -> var(--color-background)
-- Surface: ${colors.surface || '#FFFFFF'} -> var(--color-surface)
-- Text: ${colors.text || '#374151'} -> var(--color-text)
-- Text Muted: ${colors.textMuted || '#6B7280'} -> var(--color-text-muted)
-- Border: ${colors.border || '#E5E7EB'} -> var(--color-border)
-- Success: ${colors.success || '#10B981'}
-- Warning: ${colors.warning || '#F59E0B'}
-- Error: ${colors.error || '#EF4444'}
+- Primary: ${colors.primary || NEUTRAL_PALETTE.gray500} -> var(--color-primary)
+- Secondary: ${colors.secondary || NEUTRAL_PALETTE.gray400} -> var(--color-secondary)
+- Accent: ${colors.accent || NEUTRAL_PALETTE.gray500} -> var(--color-accent)
+- Background: ${colors.background || NEUTRAL_PALETTE.gray50} -> var(--color-background)
+- Surface: ${colors.surface || NEUTRAL_PALETTE.white} -> var(--color-surface)
+- Text: ${colors.text || NEUTRAL_PALETTE.gray700} -> var(--color-text)
+- Text Muted: ${colors.textMuted || NEUTRAL_PALETTE.gray500} -> var(--color-text-muted)
+- Border: ${colors.border || NEUTRAL_PALETTE.gray200} -> var(--color-border)
+- Success: ${colors.success || STATUS_COLORS.success}
+- Warning: ${colors.warning || STATUS_COLORS.warning}
+- Error: ${colors.error || STATUS_COLORS.error}
 
 ---
 
@@ -162,14 +163,14 @@ Do NOT deviate from these values. Do NOT substitute colors, spacing, or effects.
 
 \`\`\`css
 :root {
-  --color-primary: ${colors.primary || '#6B7280'};
-  --color-secondary: ${colors.secondary || '#9CA3AF'};
-  --color-accent: ${colors.accent || '#6B7280'};
-  --color-background: ${colors.background || '#F9FAFB'};
-  --color-surface: ${colors.surface || '#FFFFFF'};
-  --color-text: ${colors.text || '#374151'};
-  --color-text-muted: ${colors.textMuted || '#6B7280'};
-  --color-border: ${colors.border || '#E5E7EB'};
+  --color-primary: ${colors.primary || NEUTRAL_PALETTE.gray500};
+  --color-secondary: ${colors.secondary || NEUTRAL_PALETTE.gray400};
+  --color-accent: ${colors.accent || NEUTRAL_PALETTE.gray500};
+  --color-background: ${colors.background || NEUTRAL_PALETTE.gray50};
+  --color-surface: ${colors.surface || NEUTRAL_PALETTE.white};
+  --color-text: ${colors.text || NEUTRAL_PALETTE.gray700};
+  --color-text-muted: ${colors.textMuted || NEUTRAL_PALETTE.gray500};
+  --color-border: ${colors.border || NEUTRAL_PALETTE.gray200};
   --font-heading: ${fonts.heading || 'Inter, system-ui, sans-serif'};
   --font-body: ${fonts.body || 'Inter, system-ui, sans-serif'};
 }

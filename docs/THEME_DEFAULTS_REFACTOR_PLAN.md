@@ -7,8 +7,9 @@
 | Phase 1 | Foundation - Create `themeDefaults.ts`           | ✅ COMPLETE |
 | Phase 2 | Logic Alignment - Update 8 service/utility files | ✅ COMPLETE |
 | Phase 3 | UI Alignment - Replace raw Tailwind colors       | ✅ COMPLETE |
+| Phase 4 | Service Layer - Replace hardcoded hex fallbacks  | ✅ COMPLETE |
 
-**All phases complete.** The Garden theme is now consistently applied across the codebase.
+**All phases complete.** The Garden theme is now consistently applied across the codebase, and generator fallbacks now use `themeDefaults.ts` constants.
 
 ---
 
@@ -237,6 +238,40 @@ The following files retain raw Tailwind colors for decorative (non-status) purpo
 | `LibraryModal.tsx`        | `text-yellow-400`                             | Favorites star             |
 | `SelectedElementCard.tsx` | `text-yellow-400`                             | Code syntax highlighting   |
 
+### Phase 4: Service Layer Alignment ✅
+
+**Replaced hardcoded hex fallbacks with `themeDefaults.ts` imports in 4 files.**
+
+This phase addressed Gemini's finding that generator fallbacks still used hardcoded hex values instead of the centralized constants.
+
+#### Files Updated
+
+| File                       | Changes                                           |
+| -------------------------- | ------------------------------------------------- |
+| `PhaseExecutionManager.ts` | 13 fallbacks → `NEUTRAL_PALETTE`, `STATUS_COLORS` |
+| `layoutDesign.ts`          | 7 fallbacks in `defaultGlobalStyles`              |
+| `designTokenPrompt.ts`     | 6 fallbacks → `NEUTRAL_PALETTE`                   |
+| `builder.ts`               | 3 fallbacks → `NEUTRAL_PALETTE`                   |
+
+#### Example Change
+
+```typescript
+// BEFORE - hardcoded hex
+colors.primary || '#6B7280';
+
+// AFTER - using constants
+colors.primary || NEUTRAL_PALETTE.gray500;
+```
+
+#### Intentionally Preserved
+
+| File                           | Color Usage                | Reason                        |
+| ------------------------------ | -------------------------- | ----------------------------- |
+| `settings.ts`                  | `#1a1a2e`, `#2ECC71`       | AI App Builder UI settings    |
+| `geminiLayoutBuilderPrompt.ts` | Example JSON in prompt     | Instructional examples for AI |
+| `dalleService.ts`              | Descriptive text in prompt | AI prompt instructions        |
+| Test files                     | Various                    | Test fixtures (isolated)      |
+
 ---
 
 ## Verification
@@ -245,15 +280,21 @@ The following files retain raw Tailwind colors for decorative (non-status) purpo
 
 - [x] `npm run build` - passes
 - [x] `npm run typecheck` - passes
-- [x] `npm run lint` - passes
+- [x] `npm run lint` - passes (warnings only, no errors)
 
 ### Search Verification
 
-Hardcoded hex colors only in constants file:
+Generator fallbacks now use constants (Phase 4):
 
 ```bash
-grep -r "#6B7280\|#FFFFFF\|#374151\|#E5E7EB" src/ --include="*.ts" --include="*.tsx"
-# Returns only themeDefaults.ts ✅
+grep -rE "#[0-9A-Fa-f]{6}" src/services/ src/types/ src/prompts/ --include="*.ts"
+# Returns:
+# - themeDefaults.ts (constants file) ✅
+# - settings.ts (UI settings, intentional)
+# - layoutDesign.ts (comment only)
+# - geminiLayoutBuilderPrompt.ts (AI prompt examples)
+# - dalleService.ts (AI prompt descriptions)
+# - Test files (fixtures)
 ```
 
 Status colors now use semantic classes (remaining are decorative):

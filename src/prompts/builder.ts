@@ -26,6 +26,7 @@ import { VERSION_INSTRUCTIONS } from '@/config/versions';
 import type { LayoutManifest } from '@/types/schema';
 import type { TechnicalRequirements } from '@/types/appConcept';
 import type { ArchitectureSpec } from '@/types/architectureSpec';
+import { NEUTRAL_PALETTE } from '@/constants/themeDefaults';
 
 /**
  * Accuracy guidelines included in all builder prompts
@@ -141,9 +142,9 @@ MODIFICATION MODE:
     ? `
 ⚠️ DESIGN SYSTEM ENFORCEMENT:
 - Use the design system colors from the layout manifest
-- Primary: ${layoutManifest.designSystem?.colors?.primary || '#6B7280'}
-- Background: ${layoutManifest.designSystem?.colors?.background || '#F9FAFB'}
-- Text: ${layoutManifest.designSystem?.colors?.text || '#374151'}
+- Primary: ${layoutManifest.designSystem?.colors?.primary || NEUTRAL_PALETTE.gray500}
+- Background: ${layoutManifest.designSystem?.colors?.background || NEUTRAL_PALETTE.gray50}
+- Text: ${layoutManifest.designSystem?.colors?.text || NEUTRAL_PALETTE.gray700}
 - Heading Font: ${layoutManifest.designSystem?.fonts?.heading || 'Inter'}
 - Body Font: ${layoutManifest.designSystem?.fonts?.body || 'Inter'}
 - Use var(--color-*), var(--border-radius), var(--shadow) in ALL components
