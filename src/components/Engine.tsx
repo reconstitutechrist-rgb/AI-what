@@ -12,6 +12,13 @@ const motionComponents: Record<string, React.ComponentType<any>> = {
   button: motion.button,
   input: motion.input,
   img: motion.img,
+  header: motion.header,
+  footer: motion.footer,
+  nav: motion.nav,
+  section: motion.section,
+  article: motion.article,
+  aside: motion.aside,
+  main: motion.main,
 };
 
 // Placeholder for missing images
@@ -23,6 +30,26 @@ function filterDOMAttributes(attrs: Record<string, unknown> | undefined): Record
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { iconName, componentId, text, ...domSafe } = attrs;
   return domSafe;
+}
+
+/**
+ * Parse customCSS string to React CSSProperties object.
+ * Converts CSS like "background-image: url(...); background-size: cover;" to { backgroundImage: ..., backgroundSize: ... }
+ */
+function parseCustomCSS(cssString: string): React.CSSProperties {
+  const style: Record<string, string> = {};
+  cssString.split(';').forEach((rule) => {
+    const colonIndex = rule.indexOf(':');
+    if (colonIndex === -1) return;
+    const prop = rule.slice(0, colonIndex).trim();
+    const val = rule.slice(colonIndex + 1).trim();
+    if (prop && val) {
+      // Convert kebab-case to camelCase: "background-image" -> "backgroundImage"
+      const key = prop.replace(/-./g, (x) => x[1].toUpperCase());
+      style[key] = val;
+    }
+  });
+  return style as React.CSSProperties;
 }
 
 interface EngineProps {
@@ -112,8 +139,11 @@ export const Engine: React.FC<EngineProps> = ({
   // Per-node decision: if layout.mode is 'absolute' with bounds, use absolute positioning
   const useAbsolute = node.layout?.mode === 'absolute' && node.layout?.bounds;
 
-  // Build computed style with optional absolute positioning
-  const computedStyle: React.CSSProperties = {};
+  // Build computed style with optional absolute positioning and customCSS
+  const computedStyle: React.CSSProperties = {
+    // Apply customCSS if present (for backgrounds, gradients, etc.)
+    ...(node.styles?.customCSS ? parseCustomCSS(node.styles.customCSS) : {}),
+  };
 
   // Selection outline
   if (editable && isSelected) {
@@ -137,11 +167,20 @@ export const Engine: React.FC<EngineProps> = ({
   const selectionStyle = computedStyle;
 
   // Icon handling (after layout logic so we can use useAbsolute, computedStyle)
-  if (node.type === 'icon' && node.attributes?.src) {
-    const iconName = node.attributes.src;
+  // Always render icons even if src is missing (fallback to HelpCircle)
+  if (node.type === 'icon') {
+    const iconName = node.attributes?.src;
+
+    // Log warning for missing icon src in development
+    if (!iconName && process.env.NODE_ENV === 'development') {
+      console.warn(`[Engine] Icon node "${node.id}" missing attributes.src - using HelpCircle`);
+    }
+
     // Handle case-insensitive matching: "menu" -> "Menu"
-    const pascalName = iconName.charAt(0).toUpperCase() + iconName.slice(1);
-    const IconCmp = (Icons as any)[iconName] || (Icons as any)[pascalName] || Icons.HelpCircle;
+    const pascalName = iconName ? iconName.charAt(0).toUpperCase() + iconName.slice(1) : '';
+    const IconCmp = iconName
+      ? (Icons as any)[iconName] || (Icons as any)[pascalName] || Icons.HelpCircle
+      : Icons.HelpCircle;
 
     // If node has absolute positioning, wrap icon in a positioned div
     if (useAbsolute) {

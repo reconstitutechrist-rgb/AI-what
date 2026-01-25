@@ -5,7 +5,12 @@ import type { UISpecNode, LayoutManifest, ComponentType } from '@/types/schema';
  * In Engine.tsx: 'image' -> 'img', 'input' -> 'input'
  * Void elements cannot have children per HTML spec.
  */
-export const VOID_ELEMENT_TYPES: readonly ComponentType[] = ['image', 'input'] as const;
+export const VOID_ELEMENT_TYPES: readonly ComponentType[] = [
+  'image',
+  'input',
+  'icon',
+  'video',
+] as const;
 
 /**
  * Full list of HTML void tags for reference.

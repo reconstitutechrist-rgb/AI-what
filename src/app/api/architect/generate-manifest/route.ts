@@ -130,24 +130,25 @@ The user wants the EXACT "Look and Feel" of this video.
    - Example: { "initial": { "opacity": 0, "y": 20 }, "animate": { "opacity": 1, "y": 0 } }
 `;
     } else {
+      // THIS IS THE FIX FOR "EXACT REPLICA" - HARDCOPY MODE
       strategyInstruction = `
-STRATEGY: **STATIC IMAGE DETECTED -> PRIORITIZE VISUAL FIDELITY**
+STRATEGY: **STATIC IMAGE HARDCOPY (Exact Replica)**
 The user wants an EXACT REPLICA of this specific screen.
 
-1. **VISUAL PRECISION**:
-   - You MUST provide precise 'layout.bounds' for every structural element.
-   - Use 'layout.mode: "absolute"' for elements that overlap or break the grid.
-   - Use 'layout.mode: "flow"' for content that flows naturally (text, lists).
+1. **LAYOUT (HARDCOPY MODE)**:
+   - Use 'layout.mode: "absolute"' for 100% of the nodes.
+   - Every button, text, icon, and card gets a bounding box: { x, y, width, height, unit: "%" }.
+   - DO NOT approximate. Map EVERY visible element to a coordinate.
 
-2. **SPATIAL PROTOCOL (Top-to-Bottom)**:
-   - HEADER (0-15%): Logo, Nav.
-   - HERO (15-50%): Headline, CTA.
-   - CONTENT (50-90%): Features, Grid.
-   - FOOTER (90-100%): Links.
+2. **FIDELITY RULES**:
+   - If there is an icon visible, use type: "icon" with correct attributes.src.
+   - If there is a background image/gradient, use customCSS on the container.
+   - Match colors, spacing, and typography EXACTLY.
 
 3. **BOUNDS CALCULATION**:
    - X/Y/Width/Height must be PERCENTAGES (0-100) relative to viewport.
    - Calculate bounds by VISUALLY ANALYZING the image zones.
+   - SPATIAL PROTOCOL: HEADER (0-15%), HERO (15-50%), CONTENT (50-90%), FOOTER (90-100%).
 `;
     }
 
@@ -222,9 +223,14 @@ BUTTON_DETECTION_PROTOCOL:
 - Any element that looks clickable (Pills, Rectangles with text) IS A BUTTON.
 - Use type: "button" for these. DO NOT simplify to text.
 
-ICON PROTOCOL:
-- Use type: "icon" with attributes.src set to Lucide icon name.
-- Valid names: "Menu", "Search", "User", "Heart", "Star", "ChevronDown", "X", "Check", "Plus", "Settings", "Home", "Mail", "Github", "ArrowRight"
+**ICON PROTOCOL (ZERO TOLERANCE):**
+- **ICONS ARE VOID ELEMENTS.** They CANNOT have children or text content.
+- **NEVER** use { "type": "text", "attributes": { "text": "icon" } }. This is lazy and FORBIDDEN.
+- **NEVER** use attributes.text on icon nodes. Icons have NO text content.
+- **ALWAYS** use { "type": "icon", "attributes": { "src": "IconName" } }.
+- Detect the icon shape: Hamburger/3-lines -> "Menu", Magnifier -> "Search", Chevron -> "ChevronDown", Person -> "User", X -> "X".
+- Valid Lucide names: "Menu", "Search", "User", "Heart", "Star", "ChevronDown", "ChevronUp", "ChevronLeft", "ChevronRight", "X", "Check", "Plus", "Minus", "Settings", "Home", "Mail", "Github", "ArrowRight", "ArrowLeft", "AlertTriangle", "Bell", "Calendar", "Camera", "Clock", "Download", "Edit", "Eye", "EyeOff", "Filter", "Folder", "Image", "Info", "Link", "Lock", "MapPin", "MoreHorizontal", "MoreVertical", "Phone", "Play", "Pause", "Send", "Share", "ShoppingCart", "Trash", "Upload", "Circle"
+- If unsure of the icon, use "Circle".
 - Example: { "type": "icon", "attributes": { "src": "Menu" }, "styles": { "tailwindClasses": "w-6 h-6" } }
 
 NAVIGATION SPACING PROTOCOL:
@@ -236,10 +242,15 @@ TEXT SPACING PROTOCOL:
 - Headlines: "text-4xl font-bold leading-tight mb-4".
 - Paragraphs: "text-lg leading-relaxed mb-4".
 
-BACKGROUND PROTOCOL:
+**BACKGROUND PROTOCOL:**
 - Root MUST have "bg-background min-h-screen w-full".
 - Each section needs an explicit bg- class (bg-background, bg-surface, bg-primary).
 - Dark backgrounds pair with "text-white".
+- **FOR COMPLEX BACKGROUNDS (gradient, pattern, photo):**
+  - The ROOT or section container MUST have a customCSS style.
+  - Set 'styles.customCSS': "background-image: url('https://placehold.co/1920x1080/333/666?text=Background'); background-size: cover;"
+  - For gradients: 'styles.customCSS': "background: linear-gradient(135deg, #hex1, #hex2);"
+  - Tag it as 'semanticTag': 'custom-background-layer'.
 
 **HYBRID LAYOUT PROTOCOL:**
 1. **Flow Truth (Tailwind)**: Standard classes (flex, grid, gap).
@@ -281,7 +292,7 @@ UISpecNode REQUIRED FIELDS:
 - children?: UISpecNode[] (only for non-void elements)
 - layout?: { mode, bounds, zIndex }
 
-VOID ELEMENTS (image, input, icon) MUST NOT have children arrays.
+VOID ELEMENTS (image, input, icon, video) MUST NOT have children arrays or text attributes.
 
 IMAGE URL RULE:
 - Use placeholder URLs like "https://placehold.co/400x300/e2e8f0/64748b?text=Image"
