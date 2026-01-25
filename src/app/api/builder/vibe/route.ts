@@ -69,8 +69,13 @@ export async function POST(request: Request) {
         // Pass user's original prompt so styles respect their intent
         const styledManifest = await synthesizeStyles(model, manifest, generatedMetaphor, prompt);
 
+        // PHASE 2.5: RESTORE LAYOUT BOUNDS (Hybrid Architecture)
+        // AI styling may strip layout.bounds - restore them from original manifest
+        // This preserves "Visual Truth" for pixel-perfect Strict Mode rendering
+        const boundsRestoredManifest = restoreLayoutBounds(manifest, styledManifest);
+
         // Sanitize void elements before validation
-        const { manifest: sanitizedManifest } = sanitizeManifest(styledManifest);
+        const { manifest: sanitizedManifest } = sanitizeManifest(boundsRestoredManifest);
 
         // Self-Healing Pass - pass original manifest to preserve design system on fallback
         const validatedManifest = await validateAndFix(model, sanitizedManifest, manifest);
@@ -101,7 +106,12 @@ export async function POST(request: Request) {
         CONTEXT: The overall design metaphor is: "${metaphor}".
         TASK: Refine this specific component based on: "${prompt}".
 
-        CRITICAL RULE: Interpret adjectives as PHYSICAL properties.
+        CRITICAL RULES:
+        1. Update 'styles.tailwindClasses' to match the request.
+        2. PRESERVE 'layout' object EXACTLY if present (Do not remove x/y bounds).
+        3. PRESERVE 'id' and 'type' exactly as provided.
+
+        PHYSICAL PROPERTY MAPPING:
         - "Heavier" -> Increase shadow opacity, add stronger shadows, thicken border.
         - "Lighter" -> Reduce opacity (bg-surface/80), increase backdrop-blur.
         - "More obsidian" -> Sharper edges (rounded-none), darker overlays.
@@ -115,7 +125,7 @@ export async function POST(request: Request) {
         ❌ DO NOT use bg-[#hex] or generic colors like bg-slate-900
 
         INPUT NODE: ${JSON.stringify(node)}
-        OUTPUT: The same node with updated 'styles.tailwindClasses'.
+        OUTPUT: The same node with updated 'styles.tailwindClasses'. Preserve all other fields.
       `;
 
       const result = await model.generateContent(refinePrompt);
@@ -145,6 +155,75 @@ export async function POST(request: Request) {
 }
 
 // --- INTERNAL HELPERS ---
+
+/**
+ * Simple tree traversal helper for UISpecNode trees.
+ * Calls the callback on the node, then recursively on all children.
+ */
+function traverse(node: UISpecNode, callback: (n: UISpecNode) => void): void {
+  callback(node);
+  node.children?.forEach((c) => traverse(c, callback));
+}
+
+/**
+ * Restore layout bounds from original manifest after AI styling.
+ * This preserves "Visual Truth" (absolute positioning) while allowing
+ * AI to modify "Flow Truth" (Tailwind classes).
+ *
+ * Critical for Hybrid Precision-Flow Architecture:
+ * - AI styling may strip or modify layout.bounds
+ * - This function ensures pixel-perfect mode still works after vibe changes
+ */
+function restoreLayoutBounds(
+  original: LayoutManifest,
+  newManifest: LayoutManifest
+): LayoutManifest {
+  // Build a map of node ID -> layout from original manifest
+  const layoutMap = new Map<string, UISpecNode['layout']>();
+
+  // Map layouts from original root and definitions
+  traverse(original.root, (n) => {
+    if (n.layout) layoutMap.set(n.id, n.layout);
+  });
+  Object.values(original.definitions || {}).forEach((def) => {
+    if (def)
+      traverse(def, (n) => {
+        if (n.layout) layoutMap.set(n.id, n.layout);
+      });
+  });
+
+  // Deep clone the new manifest root and apply layouts
+  const mergedRoot = JSON.parse(JSON.stringify(newManifest.root)) as UISpecNode;
+  traverse(mergedRoot, (n) => {
+    if (layoutMap.has(n.id)) {
+      n.layout = layoutMap.get(n.id);
+    }
+  });
+
+  // Deep clone and apply layouts to definitions
+  const mergedDefinitions: Record<string, UISpecNode> = {};
+  Object.entries(newManifest.definitions || {}).forEach(([key, def]) => {
+    if (def) {
+      const clonedDef = JSON.parse(JSON.stringify(def)) as UISpecNode;
+      traverse(clonedDef, (n) => {
+        if (layoutMap.has(n.id)) {
+          n.layout = layoutMap.get(n.id);
+        }
+      });
+      mergedDefinitions[key] = clonedDef;
+    }
+  });
+
+  console.log(
+    `[restoreLayoutBounds] Restored ${layoutMap.size} layout bounds from original manifest`
+  );
+
+  return {
+    ...newManifest,
+    root: mergedRoot,
+    definitions: mergedDefinitions,
+  };
+}
 
 /**
  * Derive a basic metaphor from user's prompt when AI generation fails.
