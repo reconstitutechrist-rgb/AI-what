@@ -46,6 +46,21 @@ export interface UISpecNode {
     trigger?: 'hover' | 'click' | 'load';
   };
 
+  // HYBRID LAYOUT LAYER (For Pixel-Perfect Mode)
+  // Stores absolute coordinates for "Strict Mode" rendering
+  layout?: {
+    mode: 'flow' | 'absolute'; // 'flow' = Tailwind, 'absolute' = exact coordinates
+    bounds?: {
+      x: number; // percentage (0-100) relative to viewport
+      y: number; // percentage (0-100) relative to viewport
+      width: number; // percentage (0-100) relative to viewport
+      height: number; // percentage (0-100) relative to viewport
+      unit: '%' | 'px'; // usually '%' for responsiveness
+    };
+    zIndex?: number;
+    rotation?: number;
+  };
+
   children?: UISpecNode[];
 }
 
@@ -89,6 +104,22 @@ export const UISpecNodeSchema: z.ZodType<any> = z.lazy(() =>
         isLoading: z.boolean().optional(),
         isHidden: z.boolean().optional(),
         trigger: z.enum(['hover', 'click', 'load']).optional(),
+      })
+      .optional(),
+    layout: z
+      .object({
+        mode: z.enum(['flow', 'absolute']),
+        bounds: z
+          .object({
+            x: z.number(),
+            y: z.number(),
+            width: z.number(),
+            height: z.number(),
+            unit: z.enum(['%', 'px']),
+          })
+          .optional(),
+        zIndex: z.number().optional(),
+        rotation: z.number().optional(),
       })
       .optional(),
     children: z.array(UISpecNodeSchema).optional(),

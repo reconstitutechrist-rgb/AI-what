@@ -277,6 +277,41 @@ TEXT_SPACING_PROTOCOL (CRITICAL):
 - Example headline: { "type": "text", "styles": { "tailwindClasses": "text-4xl font-bold leading-tight mb-4" } }
 - Example paragraph: { "type": "text", "styles": { "tailwindClasses": "text-lg leading-relaxed mb-4" } }
 
+HYBRID LAYOUT PROTOCOL (CRITICAL - FOR DUAL-MODE RENDERING):
+You must generate TWO truths for every element:
+1. **Flow Truth (Tailwind)**: Responsive classes (flex, grid, gap) - always required
+2. **Visual Truth (Bounds)**: Exact percentage coordinates - for pixel-perfect mode
+
+For EVERY container, image, button, or major section, populate the "layout" field:
+"layout": {
+  "mode": "absolute",
+  "bounds": { "x": 10, "y": 20, "width": 80, "height": 30, "unit": "%" },
+  "zIndex": 10
+}
+
+BOUNDS CALCULATION RULES:
+- X/Y/Width/Height must be PERCENTAGES (0-100) relative to the viewport
+- X = left edge position as percentage of viewport width
+- Y = top edge position as percentage of viewport height
+- Width = element width as percentage of viewport width
+- Height = element height as percentage of viewport height
+- Calculate bounds by VISUALLY ANALYZING the image zones
+- EVEN IF you write flex/grid classes, providing bounds is MANDATORY
+
+LAYOUT EXAMPLES:
+- Full-width header at top: { "x": 0, "y": 0, "width": 100, "height": 10, "unit": "%" }
+- Hero section below header: { "x": 0, "y": 10, "width": 100, "height": 40, "unit": "%" }
+- Centered content card: { "x": 20, "y": 25, "width": 60, "height": 50, "unit": "%" }
+- Footer at bottom: { "x": 0, "y": 90, "width": 100, "height": 10, "unit": "%" }
+
+Z-INDEX LAYERING:
+- Background elements: zIndex: 0
+- Content sections: zIndex: 10
+- Navigation/Header: zIndex: 20
+- Modals/Overlays: zIndex: 50
+
+CRITICAL: The layout field enables "Strict Mode" (pixel-perfect) rendering. Without bounds, elements will only work in "Responsive Mode" (Tailwind flow).
+
 VOID ELEMENTS (image, input, icon) MUST NOT have children arrays.
 
 IMAGE URL RULE:
