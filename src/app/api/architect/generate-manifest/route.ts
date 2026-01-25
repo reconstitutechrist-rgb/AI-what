@@ -104,25 +104,24 @@ CRITICAL RULES:
 ❌ DO NOT use generic Tailwind colors like bg-slate-900, text-gray-600`
       : '';
 
-    // Component density requirements for detailed layouts
+    // Component detection protocol for accurate layout replication
     const componentTargets = `
-COMPONENT DENSITY REQUIREMENTS:
-- Simple landing page: minimum 15-20 components
-- Dashboard/app screen: minimum 25-35 components
-- Complex multi-section page: minimum 40-50 components
+BUTTON_DETECTION_PROTOCOL (CRITICAL):
+- SCAN the image for any rectangular element that looks interactive (CTAs, Login, Sign Up, Navigation Links).
+- YOU MUST create a node of type "button" for each of these.
+- DO NOT simplify buttons into "text" or "container" nodes.
+- If in doubt, make it a button.
 
-EXHAUSTIVE COMPONENT CHECKLIST - Check image for ALL of these:
-□ Navigation: Logo, nav links, hamburger menu, user avatar, notifications
-□ Hero: Headline, subheadline, CTA buttons, background elements
-□ Cards: Title, description, image, badges, actions, metadata
-□ Forms: Labels, inputs, textareas, selects, checkboxes, radio buttons
-□ Lists: Items, icons, descriptions, actions, separators
-□ Footer: Links, social icons, copyright, newsletter signup
-□ Stats: Numbers, labels, trends, icons
-□ Testimonials: Quote, avatar, name, title
+BACKGROUND VISUAL - MANDATORY:
+The ROOT container MUST include "bg-background" in its tailwindClasses.
+This is REQUIRED to apply the extracted background color.
 
-For EVERY visible element in the image, create a corresponding node.
-Missing components = failed replication.`;
+COMPONENT DENSITY TARGETS:
+- Landing Page: 15-20 distinct components
+- Dashboard: 25-35 distinct components
+- Complex App: 40+ distinct components
+
+For EVERY visible element in the image, create a corresponding node.`;
 
     const systemPrompt = `
 ROLE: Expert Frontend Architect specializing in UI replication and composition.
@@ -332,6 +331,19 @@ If no specific instructions, default to using Image 1 as the primary reference.
         border: extractedColors.border,
         accent: extractedColors.accent,
       };
+    }
+
+    // POST-PROCESSING: ENSURE ROOT BACKGROUND
+    // If Gemini forgot to add bg-background to root, add it now
+    if (manifest.root) {
+      const currentClasses = manifest.root.styles?.tailwindClasses || '';
+      if (!currentClasses.includes('bg-background')) {
+        console.log('POST-FIX: Adding bg-background to root container');
+        manifest.root.styles = {
+          ...manifest.root.styles,
+          tailwindClasses: `min-h-screen bg-background ${currentClasses}`,
+        };
+      }
     }
 
     // Sanitize manifest: Strip children from void elements (image, input)
