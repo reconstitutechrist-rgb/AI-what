@@ -364,6 +364,39 @@ export function hasUnclosedStrings(code: string): ValidationError[] {
 }
 
 /**
+ * Checks for malformed nested template literals (common AI error)
+ *
+ * INVALID: className={`... ${`...`} ...`}  (extra backtick inside interpolation)
+ * VALID: className={`... ${...} ...`}
+ */
+export function hasMalformedTemplateLiterals(code: string): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const lines = code.split('\n');
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineNum = i + 1;
+
+    // Pattern: ${ followed immediately by `
+    // This is almost always a mistake in AI generation where it tries to nest interpolation erroneously
+    const match = line.match(/\$\{\s*`/);
+
+    if (match) {
+      errors.push({
+        type: 'SYNTAX_ERROR',
+        message: 'Malformed template literal: extra backtick inside interpolation',
+        line: lineNum,
+        severity: 'error',
+        fix: 'Remove the extra backtick inside ${...}',
+        code: line.trim(),
+      });
+    }
+  }
+
+  return errors;
+}
+
+/**
  * Main validation function - AST-based comprehensive validation
  *
  * Uses Tree-sitter to catch ALL syntax errors including:
@@ -446,6 +479,7 @@ export async function validateGeneratedCode(
       allErrors.push(...hasBalancedJSXTags(code));
       allErrors.push(...hasTypeScriptInJSX(code, filePath));
       allErrors.push(...hasUnclosedStrings(code));
+      allErrors.push(...hasMalformedTemplateLiterals(code));
     }
   } catch (error) {
     // Fallback if Tree-sitter fails
@@ -456,6 +490,7 @@ export async function validateGeneratedCode(
     allErrors.push(...hasBalancedJSXTags(code));
     allErrors.push(...hasTypeScriptInJSX(code, filePath));
     allErrors.push(...hasUnclosedStrings(code));
+    allErrors.push(...hasMalformedTemplateLiterals(code));
   }
 
   return {
@@ -520,6 +555,7 @@ export function validateGeneratedCodeSync(
     allErrors.push(...hasBalancedJSXTags(code));
     allErrors.push(...hasTypeScriptInJSX(code, filePath));
     allErrors.push(...hasUnclosedStrings(code));
+    allErrors.push(...hasMalformedTemplateLiterals(code));
   }
 
   return {
