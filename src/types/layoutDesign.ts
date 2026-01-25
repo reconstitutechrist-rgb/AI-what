@@ -2439,7 +2439,6 @@ export interface SpecSheetExport {
   json: string;
   css: string;
   tailwindConfig: string;
-  figmaTokens: string;
 }
 
 // ============================================================================
@@ -2648,7 +2647,6 @@ export interface GeneratedDesignSystem {
   components: Record<string, ComponentSpec>;
   exports: {
     styleDictionary?: string;
-    figmaTokens?: string;
     tailwindConfig?: string;
     cssVariables?: string;
     scssVariables?: string;

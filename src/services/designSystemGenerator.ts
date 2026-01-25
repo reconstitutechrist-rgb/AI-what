@@ -2,7 +2,7 @@
  * Design System Generator
  *
  * Extracts design tokens from a LayoutDesign and exports them in various formats.
- * Supports Style Dictionary, Figma Tokens, Tailwind config, CSS variables, and more.
+ * Supports Style Dictionary, Tailwind config, CSS variables, and more.
  */
 
 import type { LayoutDesign } from '@/types/layoutDesign';
@@ -13,7 +13,6 @@ import type { LayoutDesign } from '@/types/layoutDesign';
 
 export type ExportFormat =
   | 'style-dictionary'
-  | 'figma-tokens'
   | 'tailwind-config'
   | 'css-variables'
   | 'scss-variables'
@@ -53,7 +52,6 @@ export interface GeneratedDesignSystem {
   components: Record<string, ComponentSpec>;
   exports: {
     styleDictionary?: string;
-    figmaTokens?: string;
     tailwindConfig?: string;
     cssVariables?: string;
     scssVariables?: string;
@@ -548,63 +546,6 @@ function generateStyleDictionary(
   );
 }
 
-/**
- * Generate Figma Tokens export
- */
-function generateFigmaTokens(tokens: GeneratedDesignSystem['tokens']): string {
-  const figmaTokens: Record<string, Record<string, unknown>> = {
-    global: {
-      colors: {},
-      typography: {},
-      spacing: {},
-      borderRadius: {},
-      shadows: {},
-    },
-  };
-
-  // Colors
-  for (const [key, token] of Object.entries(tokens.colors)) {
-    (figmaTokens.global.colors as Record<string, unknown>)[key] = {
-      value: token.value,
-      type: 'color',
-    };
-  }
-
-  // Typography
-  for (const [key, token] of Object.entries(tokens.typography)) {
-    (figmaTokens.global.typography as Record<string, unknown>)[key] = {
-      value: token.value,
-      type: token.type,
-    };
-  }
-
-  // Spacing
-  for (const [key, token] of Object.entries(tokens.spacing)) {
-    (figmaTokens.global.spacing as Record<string, unknown>)[key] = {
-      value: token.value,
-      type: 'spacing',
-    };
-  }
-
-  // Border Radius
-  for (const [key, token] of Object.entries(tokens.borderRadius)) {
-    (figmaTokens.global.borderRadius as Record<string, unknown>)[key] = {
-      value: token.value,
-      type: 'borderRadius',
-    };
-  }
-
-  // Shadows
-  for (const [key, token] of Object.entries(tokens.shadows)) {
-    (figmaTokens.global.shadows as Record<string, unknown>)[key] = {
-      value: token.value,
-      type: 'boxShadow',
-    };
-  }
-
-  return JSON.stringify(figmaTokens, null, 2);
-}
-
 // ============================================================================
 // DOCUMENTATION GENERATION
 // ============================================================================
@@ -736,10 +677,6 @@ export function generateDesignSystem(
     exports.styleDictionary = generateStyleDictionary(tokens, metadata);
   }
 
-  if (outputFormats.includes('figma-tokens')) {
-    exports.figmaTokens = generateFigmaTokens(tokens);
-  }
-
   if (outputFormats.includes('json')) {
     exports.json = JSON.stringify({ metadata, tokens }, null, 2);
   }
@@ -760,12 +697,5 @@ export function generateDesignSystem(
  * Get available export formats
  */
 export function getAvailableFormats(): ExportFormat[] {
-  return [
-    'style-dictionary',
-    'figma-tokens',
-    'tailwind-config',
-    'css-variables',
-    'scss-variables',
-    'json',
-  ];
+  return ['style-dictionary', 'tailwind-config', 'css-variables', 'scss-variables', 'json'];
 }

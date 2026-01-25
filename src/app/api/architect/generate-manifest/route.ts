@@ -11,9 +11,10 @@ import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { GoogleAIFileManager, FileState } from '@google/generative-ai/server';
 import type { AppConcept } from '@/types/appConcept';
-import type { LayoutManifest } from '@/types/schema';
+import type { LayoutManifest, UISpecNode } from '@/types/schema';
 import { sanitizeManifest } from '@/utils/manifestSanitizer';
 import type { ColorPalette } from '@/utils/colorExtraction';
+import { geminiImageService } from '@/services/GeminiImageService';
 
 export const maxDuration = 120;
 export const dynamic = 'force-dynamic';
@@ -26,6 +27,21 @@ interface GenerateManifestRequest {
   videoMimeType?: string;
   videoFileName?: string;
   extractedColors?: ColorPalette;
+}
+
+/**
+ * Recursively find a node tagged for background generation.
+ * Looks for nodes with semanticTag: 'custom-background-layer'.
+ */
+function findBackgroundNode(node: UISpecNode): UISpecNode | null {
+  if (node.semanticTag === 'custom-background-layer') return node;
+  if (node.children) {
+    for (const child of node.children) {
+      const found = findBackgroundNode(child);
+      if (found) return found;
+    }
+  }
+  return null;
 }
 
 export async function POST(request: Request) {
@@ -62,7 +78,7 @@ export async function POST(request: Request) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const fileManager = new GoogleAIFileManager(apiKey);
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-3-flash-preview',
       generationConfig: { responseMimeType: 'application/json' },
     });
 
@@ -386,6 +402,38 @@ OUTPUT: Complete JSON LayoutManifest with ALL required fields.
 
     if (manifest.root) {
       manifest.root = sanitizeImageUrls(manifest.root);
+    }
+
+    // --- AUTOMATIC BACKGROUND GENERATION (The Wiring) ---
+    const backgroundNode = manifest.root ? findBackgroundNode(manifest.root) : null;
+    const hasReferenceImage = images && images.length > 0;
+
+    if (backgroundNode && hasReferenceImage) {
+      console.log('[Architect] Custom background layer detected. Triggering Artist...');
+      try {
+        const generationResult = await geminiImageService.generateBackgroundFromReference({
+          referenceImage: images[0].base64,
+          colorPalette: extractedColors || {
+            primary: '#000000',
+            secondary: '#333333',
+            accent: '#666666',
+            background: '#ffffff',
+            surface: '#f5f5f5',
+            text: '#333333',
+            textMuted: '#888888',
+          },
+          vibe: userPrompt || 'Professional UI background',
+          vibeKeywords: ['ui', 'background', 'website', 'abstract'],
+          resolution: '1K',
+        });
+
+        if (generationResult.imageUrl) {
+          console.log('[Architect] Background generated:', generationResult.imageUrl);
+          backgroundNode.styles.customCSS = `background-image: url('${generationResult.imageUrl}'); background-size: cover; background-position: center;`;
+        }
+      } catch (error) {
+        console.error('[Architect] Background generation failed:', error);
+      }
     }
 
     // Force root background & layout

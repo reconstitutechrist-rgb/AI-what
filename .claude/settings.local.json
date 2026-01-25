@@ -72,7 +72,7 @@
       "Bash(xargs -I {} bash -c 'echo \"\"=== {} ===\"\"; grep -l \"\"claude\\\\|anthropic\\\\|buildFullAppPrompt\\\\|buildModifyPrompt\\\\|generateFullApp\"\" \"\"{}\"\" || echo \"\"No match\"\"')",
       "Bash(xargs:*)",
       "Bash(npx jest:*)",
-      "Bash(for file in accessibilityAuditService colormindService competitorAnalyzer designReplicator designSystemGenerator figmaTransformer fontIdentificationService iconifyService lottieService ProjectDocumentationService RollbackService StorageAnalytics v0Service WebContainerService)",
+      "Bash(for file in accessibilityAuditService colormindService competitorAnalyzer designReplicator designSystemGenerator fontIdentificationService iconifyService lottieService ProjectDocumentationService RollbackService StorageAnalytics v0Service WebContainerService)",
       "Bash(do echo \"=== $file ===\")",
       "Bash(paste:*)",
       "Bash(bc:*)",

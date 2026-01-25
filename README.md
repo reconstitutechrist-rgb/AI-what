@@ -13,10 +13,12 @@
 ## Features
 
 ### Dual-Mode AI System
+
 - **PLAN Mode**: Discuss and design your app without generating code - brainstorm features, refine requirements, create implementation plans
 - **ACT Mode**: Generate and modify working applications with real-time code generation and context-aware changes
 
 ### AI-Powered Generation
+
 - **Claude Sonnet 4.5** with extended thinking for intelligent code generation
 - **Streaming responses** with real-time file progress tracking
 - **Full-stack support** for both frontend-only and full-stack applications
@@ -24,6 +26,7 @@
 - **Automatic code validation** with syntax checking and auto-fixing
 
 ### Dynamic Phase Building
+
 - **AI-powered scope detection** analyzes requirements and generates 2-25+ optimal phases
 - **Dependency detection** between phases with sequential execution
 - **Context accumulation** across phases for coherent multi-phase builds
@@ -31,47 +34,55 @@
 - **Test criteria generation** per phase
 
 ### App Concept Wizard
+
 - 6-step guided creation: Template → Basic Info → Features → Design → Technical → Review
 - Feature library with pre-defined templates
 - Auto-save with draft persistence
 - Rich concept preservation through the entire generation pipeline
 
 ### Layout Builder
+
 - Visual layout design with AI feedback
 - **Vision capabilities** - Claude can see and critique your designs via screenshots
 - Design token management and export
-- Export formats: CSS Variables, Tailwind Config, Figma Tokens, React components
+- Export formats: CSS Variables, Tailwind Config, Style Dictionary, React components
 - Version history for design changes
 
 ### DALL-E 3 Image Generation
+
 - Hero images, card thumbnails, and background patterns
 - Design context-aware prompts
 - Batch processing with rate limiting
 - Caching for repeated generations
 
 ### Surgical Code Modifications
+
 - **AST-based editing** using Tree-sitter for precise changes
 - Diff-based modification tracking with approval workflow
 - Impact analysis with risk assessment and breaking change detection
 - Context-aware editing that preserves existing functionality
 
 ### Version Control & Rollback
+
 - Automatic version snapshots on every change
 - One-click rollback to any previous state
 - Fork versions without losing originals
 - Side-by-side diff comparison
 
 ### Real-Time Preview
+
 - **Sandpack integration** for interactive code playground
 - Live code execution with instant feedback
 - Error boundaries with graceful fallbacks
 
 ### Cloud Storage
+
 - Supabase file storage integration
 - Storage analytics and quota tracking
 - Bulk operations and file categorization
 
 ### Authentication
+
 - Supabase auth with session management
 - Protected routes via middleware
 - User isolation - each user's apps are private
@@ -81,6 +92,7 @@
 ## Tech Stack
 
 ### Frontend
+
 - **Next.js 15** - App Router with streaming SSR
 - **React 19** - Latest features including Server Components
 - **TypeScript** - Full type safety
@@ -88,15 +100,18 @@
 - **Zustand** - Lightweight state management
 
 ### Backend & Database
+
 - **Next.js API Routes** - Serverless endpoints with SSE streaming
 - **Supabase** - PostgreSQL, Auth, File Storage, Real-time
 
 ### AI Integration
+
 - **Anthropic Claude** - Sonnet 4.5 with extended thinking
 - **OpenAI DALL-E 3** - Image generation
 - **js-tiktoken** - Token counting and budget management
 
 ### Developer Tools
+
 - **Tree-sitter** - AST parsing for surgical code edits
 - **Sandpack** - Live code preview
 - **Puppeteer** - Screenshot generation
@@ -109,6 +124,7 @@
 ## Quick Start
 
 ### Prerequisites
+
 - Node.js 18+
 - Anthropic API key
 - Supabase account
@@ -160,6 +176,7 @@ Open [http://localhost:3000](http://localhost:3000)
 ### Deploy to Railway
 
 1. **Push to GitHub**
+
    ```bash
    git push origin main
    ```
@@ -184,6 +201,7 @@ Open [http://localhost:3000](http://localhost:3000)
    - Settings → Authentication → URL Configuration
 
 ### Railway Features
+
 - Automatic deployments on push
 - Built-in SSL certificates
 - Web Application Firewall protection
@@ -194,18 +212,21 @@ Open [http://localhost:3000](http://localhost:3000)
 ## Usage
 
 ### Quick Build
+
 1. Click "New App"
 2. Describe what you want to build
 3. Switch to ACT Mode
 4. Type "build it"
 
 ### Guided Wizard
+
 1. Click "Wizard" button
 2. Follow the 6-step guided flow
 3. Review your app concept
 4. Build in phases
 
 ### Modify Existing Apps
+
 1. Load an app from "My Apps"
 2. Switch to ACT Mode
 3. Describe your changes
@@ -214,10 +235,10 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ### PLAN vs ACT Mode
 
-| Mode | Purpose |
-|------|---------|
+| Mode     | Purpose                                          |
+| -------- | ------------------------------------------------ |
 | **PLAN** | Discussion, brainstorming, architecture planning |
-| **ACT** | Code generation, modifications, building |
+| **ACT**  | Code generation, modifications, building         |
 
 ---
 
@@ -285,18 +306,18 @@ npm run test:watch
 
 ## API Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
-| `/api/ai-builder` | Single component generation |
+| Endpoint                          | Description                  |
+| --------------------------------- | ---------------------------- |
+| `/api/ai-builder`                 | Single component generation  |
 | `/api/ai-builder/full-app-stream` | Full app generation with SSE |
-| `/api/ai-builder/modify` | Surgical code modifications |
-| `/api/ai-builder/apply-diff` | Apply diff changes |
-| `/api/wizard/generate-phases` | Dynamic phase planning |
-| `/api/wizard/chat` | Planning conversations |
-| `/api/layout/chat` | Layout builder with vision |
-| `/api/builder/chat` | ACT mode expert chat |
-| `/api/images/generate` | DALL-E 3 image generation |
-| `/api/embeddings` | Text embeddings |
+| `/api/ai-builder/modify`          | Surgical code modifications  |
+| `/api/ai-builder/apply-diff`      | Apply diff changes           |
+| `/api/wizard/generate-phases`     | Dynamic phase planning       |
+| `/api/wizard/chat`                | Planning conversations       |
+| `/api/layout/chat`                | Layout builder with vision   |
+| `/api/builder/chat`               | ACT mode expert chat         |
+| `/api/images/generate`            | DALL-E 3 image generation    |
+| `/api/embeddings`                 | Text embeddings              |
 
 ---
 
@@ -304,14 +325,14 @@ npm run test:watch
 
 ### Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | Yes | Claude API key |
-| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key |
-| `OPENAI_API_KEY` | No | For DALL-E image generation |
-| `NEXT_PUBLIC_APP_URL` | No | App URL (defaults to localhost) |
+| Variable                        | Required | Description                     |
+| ------------------------------- | -------- | ------------------------------- |
+| `ANTHROPIC_API_KEY`             | Yes      | Claude API key                  |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Yes      | Supabase project URL            |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes      | Supabase anon key               |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Yes      | Supabase service role key       |
+| `OPENAI_API_KEY`                | No       | For DALL-E image generation     |
+| `NEXT_PUBLIC_APP_URL`           | No       | App URL (defaults to localhost) |
 
 ### Debug Mode
 
