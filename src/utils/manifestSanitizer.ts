@@ -85,9 +85,19 @@ export function sanitizeNode(node: UISpecNode): SanitizeResult {
     });
   }
 
+  // For void elements, also strip text attribute (icons should never have text)
+  // This prevents AI-generated { type: "icon", attributes: { text: "icon" } } from rendering as text
+  let sanitizedAttributes = node.attributes;
+  if (isVoid && node.attributes) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { text, ...rest } = node.attributes;
+    sanitizedAttributes = rest;
+  }
+
   return {
     node: {
       ...node,
+      attributes: sanitizedAttributes,
       children: isVoid ? undefined : sanitizedChildren,
     },
     removedChildrenCount,

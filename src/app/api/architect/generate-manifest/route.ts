@@ -136,9 +136,10 @@ STRATEGY: **STATIC IMAGE HARDCOPY (Exact Replica)**
 The user wants an EXACT REPLICA of this specific screen.
 
 1. **LAYOUT (HARDCOPY MODE)**:
-   - Use 'layout.mode: "absolute"' for 100% of the nodes.
+   - **ROOT NODE EXCEPTION**: The root container MUST use 'layout.mode: "flow"' with "relative" class.
+   - **ALL CHILDREN**: Use 'layout.mode: "absolute"' with bounds.
    - Every button, text, icon, and card gets a bounding box: { x, y, width, height, unit: "%" }.
-   - DO NOT approximate. Map EVERY visible element to a coordinate.
+   - Root acts as positioning container. Children are absolutely positioned inside it.
 
 2. **FIDELITY RULES**:
    - If there is an icon visible, use type: "icon" with correct attributes.src.
@@ -394,7 +395,17 @@ OUTPUT: Complete JSON LayoutManifest with ALL required fields.
       if (!classes.includes('min-h-screen')) classes = `min-h-screen ${classes}`;
       if (!classes.includes('w-full')) classes = `w-full ${classes}`;
       if (!classes.includes('bg-background')) classes = `${classes} bg-background`;
+      // CRITICAL: Root must have relative positioning to contain absolute children
+      if (!classes.includes('relative')) classes = `relative ${classes}`;
       manifest.root.styles.tailwindClasses = classes.trim();
+
+      // CRITICAL: Force root to flow mode - root must NEVER be absolute
+      // When root is absolute, it has no height guarantee and collapses to 0px (invisible layout)
+      if (manifest.root.layout?.mode === 'absolute') {
+        manifest.root.layout.mode = 'flow';
+        delete manifest.root.layout.bounds;
+        console.log('[Architect] Forced root from absolute to flow mode');
+      }
     }
 
     // Sanitize manifest (remove children from void elements)

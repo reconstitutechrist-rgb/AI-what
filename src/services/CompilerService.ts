@@ -209,9 +209,10 @@ export const ${name} = () => {
       props += ` animate={${JSON.stringify(node.styles.motion.animate)}}`;
     }
 
-    // 4. Handle Icons (Fixed)
-    if (node.type === 'icon' && node.attributes.src) {
-      return `<Icons.${node.attributes.src} ${props} />`;
+    // 4. Handle Icons (with fallback for missing src)
+    if (node.type === 'icon') {
+      const iconName = node.attributes?.src || 'HelpCircle';
+      return `<Icons.${iconName} ${props} />`;
     }
 
     // 5. Handle Next.js Image
