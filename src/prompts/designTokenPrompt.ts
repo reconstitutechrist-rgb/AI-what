@@ -6,6 +6,7 @@
  */
 
 import type { LayoutDesign, GlobalStyles, CompleteDesignAnalysis } from '@/types/layoutDesign';
+import { getPresetKey } from '@/types/layoutDesign';
 import {
   borderRadiusMap,
   shadowMap,
@@ -50,6 +51,10 @@ export function buildDesignTokenPrompt(layoutDesign: LayoutDesign): string {
 export function buildDesignTokenPromptCompact(layoutDesign: LayoutDesign): string {
   const { globalStyles } = layoutDesign;
 
+  // Extract preset keys for CustomizableValue types
+  const radiusKey = getPresetKey(globalStyles.effects.borderRadius, 'lg');
+  const shadowKey = getPresetKey(globalStyles.effects.shadows, 'medium');
+
   return `## DESIGN SYSTEM (MANDATORY)
 
 Use these CSS variables in ALL generated components:
@@ -71,8 +76,8 @@ Use these CSS variables in ALL generated components:
 - Headings: \`font-[${fontWeightMap[globalStyles.typography.headingWeight]?.css || '600'}]\`
 
 ### Effects
-- Border Radius: \`${borderRadiusMap[globalStyles.effects.borderRadius]?.css || '0.5rem'}\`
-- Shadows: \`${shadowMap[globalStyles.effects.shadows]?.css || '0 4px 6px -1px rgb(0 0 0 / 0.1)'}\`
+- Border Radius: \`${borderRadiusMap[radiusKey]?.css || '0.5rem'}\`
+- Shadows: \`${shadowMap[shadowKey]?.css || '0 4px 6px -1px rgb(0 0 0 / 0.1)'}\`
 
 IMPORTANT: Use \`var(--color-*)\`, \`var(--border-radius)\`, etc. instead of hardcoded Tailwind colors!`;
 }
@@ -117,8 +122,10 @@ function buildColorSection(colors: GlobalStyles['colors']): string {
 function buildTypographySection(typography: GlobalStyles['typography']): string {
   const headingWeight = fontWeightMap[typography.headingWeight] || fontWeightMap.semibold;
   const bodyWeight = fontWeightMap[typography.bodyWeight] || fontWeightMap.normal;
-  const lineHeight = lineHeightMap[typography.lineHeight] || lineHeightMap.normal;
-  const letterSpacing = letterSpacingMap[typography.letterSpacing] || letterSpacingMap.normal;
+  const lineHeightKey = getPresetKey(typography.lineHeight, 'normal');
+  const letterSpacingKey = getPresetKey(typography.letterSpacing, 'normal');
+  const lineHeight = lineHeightMap[lineHeightKey] || lineHeightMap.normal;
+  const letterSpacing = letterSpacingMap[letterSpacingKey] || letterSpacingMap.normal;
 
   return `### Typography
 
@@ -139,9 +146,12 @@ ${typography.headingFont ? `**Heading Font**: \`${typography.headingFont}\`` : '
 }
 
 function buildSpacingSection(spacing: GlobalStyles['spacing']): string {
-  const container = containerWidthMap[spacing.containerWidth] || containerWidthMap.standard;
-  const section = sectionPaddingMap[spacing.sectionPadding] || sectionPaddingMap.lg;
-  const gap = componentGapMap[spacing.componentGap] || componentGapMap.md;
+  const containerKey = getPresetKey(spacing.containerWidth, 'standard');
+  const sectionKey = getPresetKey(spacing.sectionPadding, 'lg');
+  const gapKey = getPresetKey(spacing.componentGap, 'md');
+  const container = containerWidthMap[containerKey] || containerWidthMap.standard;
+  const section = sectionPaddingMap[sectionKey] || sectionPaddingMap.lg;
+  const gap = componentGapMap[gapKey] || componentGapMap.md;
 
   return `### Spacing
 
@@ -160,8 +170,10 @@ function buildSpacingSection(spacing: GlobalStyles['spacing']): string {
 }
 
 function buildEffectsSection(effects: GlobalStyles['effects']): string {
-  const radius = borderRadiusMap[effects.borderRadius] || borderRadiusMap.lg;
-  const shadow = shadowMap[effects.shadows] || shadowMap.medium;
+  const radiusKey = getPresetKey(effects.borderRadius, 'lg');
+  const shadowKey = getPresetKey(effects.shadows, 'medium');
+  const radius = borderRadiusMap[radiusKey] || borderRadiusMap.lg;
+  const shadow = shadowMap[shadowKey] || shadowMap.medium;
   const animation = animationMap[effects.animations] || animationMap.smooth;
 
   return `### Effects
@@ -236,6 +248,15 @@ function buildComponentSection(components: LayoutDesign['components']): string {
 }
 
 function buildCSSVariablesReference(globalStyles: GlobalStyles): string {
+  // Extract preset keys for CustomizableValue types
+  const lineHeightKey = getPresetKey(globalStyles.typography.lineHeight, 'normal');
+  const letterSpacingKey = getPresetKey(globalStyles.typography.letterSpacing, 'normal');
+  const containerKey = getPresetKey(globalStyles.spacing.containerWidth, 'standard');
+  const sectionKey = getPresetKey(globalStyles.spacing.sectionPadding, 'lg');
+  const gapKey = getPresetKey(globalStyles.spacing.componentGap, 'md');
+  const radiusKey = getPresetKey(globalStyles.effects.borderRadius, 'lg');
+  const shadowKey = getPresetKey(globalStyles.effects.shadows, 'medium');
+
   return `### Complete CSS Variables Reference
 
 Include these in your \`globals.css\`:
@@ -259,17 +280,17 @@ Include these in your \`globals.css\`:
   --font-family: ${globalStyles.typography.fontFamily};
   --font-weight-heading: ${fontWeightMap[globalStyles.typography.headingWeight]?.css || '600'};
   --font-weight-body: ${fontWeightMap[globalStyles.typography.bodyWeight]?.css || '400'};
-  --line-height: ${lineHeightMap[globalStyles.typography.lineHeight]?.css || '1.5'};
-  --letter-spacing: ${letterSpacingMap[globalStyles.typography.letterSpacing]?.css || '0'};
+  --line-height: ${lineHeightMap[lineHeightKey]?.css || '1.5'};
+  --letter-spacing: ${letterSpacingMap[letterSpacingKey]?.css || '0'};
 
   /* Spacing */
-  --container-width: ${containerWidthMap[globalStyles.spacing.containerWidth]?.css || '64rem'};
-  --section-padding: ${sectionPaddingMap[globalStyles.spacing.sectionPadding]?.css || '4rem'};
-  --component-gap: ${componentGapMap[globalStyles.spacing.componentGap]?.css || '1rem'};
+  --container-width: ${containerWidthMap[containerKey]?.css || '64rem'};
+  --section-padding: ${sectionPaddingMap[sectionKey]?.css || '4rem'};
+  --component-gap: ${componentGapMap[gapKey]?.css || '1rem'};
 
   /* Effects */
-  --border-radius: ${borderRadiusMap[globalStyles.effects.borderRadius]?.css || '0.5rem'};
-  --shadow: ${shadowMap[globalStyles.effects.shadows]?.css || '0 4px 6px -1px rgb(0 0 0 / 0.1)'};
+  --border-radius: ${borderRadiusMap[radiusKey]?.css || '0.5rem'};
+  --shadow: ${shadowMap[shadowKey]?.css || '0 4px 6px -1px rgb(0 0 0 / 0.1)'};
   --transition-duration: ${animationMap[globalStyles.effects.animations]?.duration || '300ms'};
   --transition-easing: ${animationMap[globalStyles.effects.animations]?.easing || 'ease-in-out'};
 }

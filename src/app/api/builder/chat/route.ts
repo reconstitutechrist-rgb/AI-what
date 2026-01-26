@@ -15,6 +15,10 @@ import {
   RESPONSE_TYPES,
   type ResponseType,
 } from '@/prompts/builderExpertPrompt';
+import {
+  GEMINI_LAYOUT_BUILDER_SYSTEM_PROMPT,
+  GEMINI_IMAGE_ANALYSIS_PROMPT,
+} from '@/prompts/geminiLayoutBuilderPrompt';
 
 // Railway serverless function config
 export const maxDuration = 60;
@@ -214,8 +218,10 @@ export async function POST(request: Request) {
     }
 
     // Build system prompt with app context
+    // Use Visual Analysis Expert prompt when an image is present for pixel-perfect replication
+    const basePrompt = hasImage ? GEMINI_LAYOUT_BUILDER_SYSTEM_PROMPT : BUILDER_EXPERT_PROMPT;
     const appContext = generateBuilderContext(currentAppState || null);
-    const fullSystemPrompt = BUILDER_EXPERT_PROMPT + appContext;
+    const fullSystemPrompt = basePrompt + appContext;
 
     // Build conversation messages
     const messages: Anthropic.MessageParam[] = [];
@@ -247,6 +253,9 @@ export async function POST(request: Request) {
         const mediaType = imageMatch[1] as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
         const base64Data = imageMatch[2];
 
+        // Inject exhaustive component detection checklist for rigorous visual analysis
+        const augmentedMessage = `${message}\n\n${GEMINI_IMAGE_ANALYSIS_PROMPT}`;
+
         messages.push({
           role: 'user',
           content: [
@@ -260,7 +269,7 @@ export async function POST(request: Request) {
             },
             {
               type: 'text',
-              text: message,
+              text: augmentedMessage,
             },
           ],
         });
@@ -336,14 +345,16 @@ export async function POST(request: Request) {
 export async function GET() {
   return NextResponse.json({
     name: 'Builder Expert Chat',
-    version: '1.0',
-    description: 'AI-powered ACT mode with intelligent intent detection',
+    version: '1.1',
+    description: 'AI-powered ACT mode with intelligent intent detection & Visual Analysis',
     features: [
       'Extended thinking for deep reasoning',
       'Intent detection (question vs build vs modify)',
       'Accuracy-focused responses',
       'Context-aware conversations',
       'Image support for visual references',
+      'Visual Analysis Expert mode (20-30+ component detection)',
+      'Advanced Effects detection (glassmorphism, gradients, neumorphism)',
     ],
     responseTypes: RESPONSE_TYPES,
   });

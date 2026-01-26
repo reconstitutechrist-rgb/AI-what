@@ -26,6 +26,7 @@ export interface ColorPalette {
   text: string;
   textMuted: string;
   border: string;
+  gradient?: string; // Detected CSS gradient string (linear/radial)
 }
 
 export interface ExtractedColor {
@@ -41,6 +42,7 @@ export interface ExtractionResult {
   palette: ColorPalette;
   dominantColor: string;
   isDarkImage: boolean;
+  gradient?: string; // Detected CSS gradient string
 }
 
 // ============================================================================
@@ -142,6 +144,112 @@ export function getContrastRatio(color1: RGB, color2: RGB): number {
 //   if (max === 0) return 0;
 //   return (max - min) / max;
 // }
+
+// ============================================================================
+// Gradient Detection
+// ============================================================================
+
+/**
+ * Check if two RGB colors are significantly different
+ * Uses perceptual threshold based on human color perception
+ */
+function isColorDifferent(c1: RGB, c2: RGB, threshold: number = 40): boolean {
+  const dist = Math.sqrt(
+    Math.pow(c1.r - c2.r, 2) + Math.pow(c1.g - c2.g, 2) + Math.pow(c1.b - c2.b, 2)
+  );
+  return dist > threshold;
+}
+
+/**
+ * Check if two RGB colors are similar (within threshold)
+ */
+function isColorSimilar(c1: RGB, c2: RGB, threshold: number = 40): boolean {
+  return !isColorDifferent(c1, c2, threshold);
+}
+
+/**
+ * Detect gradient flow by sampling corners and center of image
+ * Returns a CSS gradient string if a gradient is detected, undefined otherwise
+ *
+ * Detection logic:
+ * - Vertical gradient: top colors similar, bottom colors similar, but top ≠ bottom
+ * - Horizontal gradient: left colors similar, right colors similar, but left ≠ right
+ * - Diagonal gradient: opposite corners differ
+ * - Radial gradient: center differs from all corners (which are similar to each other)
+ */
+export function detectGradientFlow(imageData: ImageData): string | undefined {
+  const { width, height, data } = imageData;
+
+  // Helper to get pixel RGB at specific coordinates
+  const getPixel = (x: number, y: number): RGB => {
+    // Clamp coordinates to valid range
+    const clampedX = Math.max(0, Math.min(width - 1, Math.floor(x)));
+    const clampedY = Math.max(0, Math.min(height - 1, Math.floor(y)));
+    const i = (clampedY * width + clampedX) * 4;
+    return { r: data[i], g: data[i + 1], b: data[i + 2] };
+  };
+
+  // Sample corners and center
+  const margin = Math.min(10, Math.floor(width * 0.05), Math.floor(height * 0.05));
+  const tl = getPixel(margin, margin); // top-left
+  const tr = getPixel(width - margin, margin); // top-right
+  const bl = getPixel(margin, height - margin); // bottom-left
+  const br = getPixel(width - margin, height - margin); // bottom-right
+  const center = getPixel(Math.floor(width / 2), Math.floor(height / 2));
+
+  // Also sample mid-edges for better detection
+  const midTop = getPixel(Math.floor(width / 2), margin);
+  const midBottom = getPixel(Math.floor(width / 2), height - margin);
+  const midLeft = getPixel(margin, Math.floor(height / 2));
+  const midRight = getPixel(width - margin, Math.floor(height / 2));
+
+  const rgbToHexLocal = (c: RGB): string => rgbToHex(c.r, c.g, c.b);
+
+  // Check for vertical gradient (top to bottom)
+  // Top edge colors similar, bottom edge colors similar, but top ≠ bottom
+  if (isColorSimilar(tl, tr) && isColorSimilar(bl, br) && isColorDifferent(tl, bl)) {
+    return `linear-gradient(to bottom, ${rgbToHexLocal(midTop)}, ${rgbToHexLocal(midBottom)})`;
+  }
+
+  // Check for horizontal gradient (left to right)
+  // Left edge colors similar, right edge colors similar, but left ≠ right
+  if (isColorSimilar(tl, bl) && isColorSimilar(tr, br) && isColorDifferent(tl, tr)) {
+    return `linear-gradient(to right, ${rgbToHexLocal(midLeft)}, ${rgbToHexLocal(midRight)})`;
+  }
+
+  // Check for diagonal gradient (top-left to bottom-right)
+  if (
+    isColorSimilar(tl, tr) === false &&
+    isColorDifferent(tl, br) &&
+    isColorSimilar(tr, bl, 60) // opposite diagonal should be similar
+  ) {
+    return `linear-gradient(to bottom right, ${rgbToHexLocal(tl)}, ${rgbToHexLocal(br)})`;
+  }
+
+  // Check for diagonal gradient (top-right to bottom-left)
+  if (
+    isColorDifferent(tr, bl) &&
+    isColorSimilar(tl, br, 60) // opposite diagonal should be similar
+  ) {
+    return `linear-gradient(to bottom left, ${rgbToHexLocal(tr)}, ${rgbToHexLocal(bl)})`;
+  }
+
+  // Check for radial gradient (center differs from corners, corners similar to each other)
+  const cornersAreSimilar =
+    isColorSimilar(tl, tr, 50) && isColorSimilar(tl, bl, 50) && isColorSimilar(tl, br, 50);
+  const centerDiffersFromCorners =
+    isColorDifferent(center, tl, 50) &&
+    isColorDifferent(center, tr, 50) &&
+    isColorDifferent(center, bl, 50) &&
+    isColorDifferent(center, br, 50);
+
+  if (cornersAreSimilar && centerDiffersFromCorners) {
+    return `radial-gradient(circle at center, ${rgbToHexLocal(center)}, ${rgbToHexLocal(tl)})`;
+  }
+
+  // No clear gradient detected
+  return undefined;
+}
 
 // ============================================================================
 // K-Means Clustering
@@ -488,14 +596,23 @@ function processImageData(imageData: ImageData, numColors: number): ExtractionRe
     pixels.reduce((sum, p) => sum + getLuminance(p.r, p.g, p.b), 0) / pixels.length;
   const isDarkImage = avgLuminance < 0.5;
 
+  // Detect gradient flow from image
+  const detectedGradient = detectGradientFlow(imageData);
+
   // Create palette from extracted colors
   const palette = categorizeColors(colors, isDarkImage);
+
+  // Add gradient to palette if detected
+  if (detectedGradient) {
+    palette.gradient = detectedGradient;
+  }
 
   return {
     colors,
     palette,
     dominantColor: colors[0]?.hex || '#6B7280',
     isDarkImage,
+    gradient: detectedGradient,
   };
 }
 
@@ -609,6 +726,7 @@ export function adjustLightness(hex: string, amount: number): string {
 const colorUtils = {
   extractColorsFromImage,
   extractColorsFromFile,
+  detectGradientFlow,
   rgbToHex,
   hexToRgb,
   rgbToHsl,

@@ -15,7 +15,7 @@ type VisualAnalysis = Record<string, unknown>;
 
 export interface HeaderDesign {
   visible: boolean;
-  height: 'compact' | 'standard' | 'tall';
+  height: CustomizableValue<'compact' | 'standard' | 'tall'> | 'compact' | 'standard' | 'tall';
   style: 'transparent' | 'solid' | 'gradient' | 'blur';
   logoPosition: 'left' | 'center';
   navPosition: 'center' | 'right';
@@ -23,12 +23,13 @@ export interface HeaderDesign {
   hasCTA: boolean;
   ctaText?: string;
   ctaStyle?: 'filled' | 'outline' | 'ghost';
+  backgroundColor?: string; // Explicit override for pixel-perfect matching
 }
 
 export interface SidebarDesign {
   visible: boolean;
   position: 'left' | 'right';
-  width: 'narrow' | 'standard' | 'wide';
+  width: CustomizableValue<'narrow' | 'standard' | 'wide'> | 'narrow' | 'standard' | 'wide';
   collapsible: boolean;
   defaultCollapsed: boolean;
   style: 'minimal' | 'standard' | 'rich';
@@ -38,13 +39,19 @@ export interface SidebarDesign {
 
 export interface HeroDesign {
   visible: boolean;
-  height: 'compact' | 'standard' | 'tall' | 'fullscreen';
+  height:
+    | CustomizableValue<'compact' | 'standard' | 'tall' | 'fullscreen'>
+    | 'compact'
+    | 'standard'
+    | 'tall'
+    | 'fullscreen';
   layout: 'centered' | 'left-aligned' | 'split' | 'image-background';
   hasImage: boolean;
   imagePosition?: 'left' | 'right' | 'background';
   hasSubtitle: boolean;
   hasCTA: boolean;
   ctaCount: 1 | 2;
+  padding?: CustomizableValue<'sm' | 'md' | 'lg' | 'xl'> | 'sm' | 'md' | 'lg' | 'xl';
 }
 
 export interface NavigationDesign {
@@ -54,6 +61,7 @@ export interface NavigationDesign {
   showIcons: boolean;
   showLabels: boolean;
   maxVisibleItems: number;
+  gap?: CustomizableValue<'sm' | 'md' | 'lg'> | 'sm' | 'md' | 'lg';
 }
 
 export interface CardDesign {
@@ -63,6 +71,15 @@ export interface CardDesign {
   showFooter: boolean;
   hoverEffect: 'none' | 'lift' | 'glow' | 'scale';
   aspectRatio: 'auto' | 'square' | 'video' | 'portrait';
+  borderRadius?:
+    | CustomizableValue<'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full'>
+    | 'none'
+    | 'sm'
+    | 'md'
+    | 'lg'
+    | 'xl'
+    | 'full';
+  padding?: CustomizableValue<'sm' | 'md' | 'lg'> | 'sm' | 'md' | 'lg';
 }
 
 export interface ListDesign {
@@ -71,7 +88,7 @@ export interface ListDesign {
   showAvatar: boolean;
   showMeta: boolean;
   showActions: boolean;
-  density: 'compact' | 'normal' | 'relaxed';
+  density: CustomizableValue<'compact' | 'normal' | 'relaxed'> | 'compact' | 'normal' | 'relaxed';
 }
 
 export interface FooterDesign {
@@ -82,6 +99,7 @@ export interface FooterDesign {
   showNewsletter: boolean;
   showCopyright: boolean;
   position: 'fixed' | 'static';
+  padding?: CustomizableValue<'sm' | 'md' | 'lg' | 'xl'> | 'sm' | 'md' | 'lg' | 'xl';
 }
 
 export interface StatsDesign {
@@ -102,10 +120,10 @@ export interface TypographySettings {
   headingFont?: string;
   headingWeight: 'light' | 'normal' | 'medium' | 'semibold' | 'bold';
   bodyWeight: 'light' | 'normal' | 'medium' | 'semibold' | 'bold';
-  headingSize: 'sm' | 'base' | 'lg' | 'xl';
-  bodySize: 'xs' | 'sm' | 'base';
-  lineHeight: 'tight' | 'normal' | 'relaxed';
-  letterSpacing: 'tight' | 'normal' | 'wide';
+  headingSize: CustomizableValue<'sm' | 'base' | 'lg' | 'xl'> | 'sm' | 'base' | 'lg' | 'xl';
+  bodySize: CustomizableValue<'xs' | 'sm' | 'base'> | 'xs' | 'sm' | 'base';
+  lineHeight: CustomizableValue<'tight' | 'normal' | 'relaxed'> | 'tight' | 'normal' | 'relaxed';
+  letterSpacing: CustomizableValue<'tight' | 'normal' | 'wide'> | 'tight' | 'normal' | 'wide';
 }
 
 export interface ColorSettings {
@@ -124,17 +142,39 @@ export interface ColorSettings {
 }
 
 export interface SpacingSettings {
-  density: 'compact' | 'normal' | 'relaxed';
-  containerWidth: 'narrow' | 'standard' | 'wide' | 'full';
-  sectionPadding: 'sm' | 'md' | 'lg' | 'xl';
-  componentGap: 'sm' | 'md' | 'lg';
+  density: CustomizableValue<'compact' | 'normal' | 'relaxed'> | 'compact' | 'normal' | 'relaxed';
+  containerWidth:
+    | CustomizableValue<'narrow' | 'standard' | 'wide' | 'full'>
+    | 'narrow'
+    | 'standard'
+    | 'wide'
+    | 'full';
+  sectionPadding: CustomizableValue<'sm' | 'md' | 'lg' | 'xl'> | 'sm' | 'md' | 'lg' | 'xl';
+  componentGap: CustomizableValue<'sm' | 'md' | 'lg'> | 'sm' | 'md' | 'lg';
 }
 
 export interface EffectsSettings {
-  borderRadius: 'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
-  shadows: 'none' | 'subtle' | 'medium' | 'strong';
+  borderRadius:
+    | CustomizableValue<'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full'>
+    | 'none'
+    | 'sm'
+    | 'md'
+    | 'lg'
+    | 'xl'
+    | 'full';
+  shadows:
+    | CustomizableValue<'none' | 'subtle' | 'medium' | 'strong'>
+    | 'none'
+    | 'subtle'
+    | 'medium'
+    | 'strong';
   animations: 'none' | 'subtle' | 'smooth' | 'playful';
-  blur: 'none' | 'subtle' | 'medium' | 'strong';
+  blur:
+    | CustomizableValue<'none' | 'subtle' | 'medium' | 'strong'>
+    | 'none'
+    | 'subtle'
+    | 'medium'
+    | 'strong';
   gradients: boolean;
   // Advanced Effects (AI-controllable)
   advancedEffects?: AdvancedEffectsConfig;
@@ -152,6 +192,15 @@ export interface AdvancedEffectsConfig {
   gradientBorder?: GradientBorderConfig;
   textEffect?: TextEffectConfig;
   customShadow?: CustomShadowConfig;
+  meshGradient?: MeshGradientConfig; // For high-fidelity background detection
+}
+
+export interface MeshGradientConfig {
+  enabled: boolean;
+  colors: string[];
+  speed?: number;
+  opacity?: number;
+  blur?: number; // px
 }
 
 export interface GlassmorphismConfig {
@@ -1270,6 +1319,20 @@ export function getCustomizableValue<T extends string>(
   if (value.custom) return value.custom;
   if (value.preset) return presetMap[value.preset] || defaultValue;
   return defaultValue;
+}
+
+/**
+ * Helper to extract the preset key from a CustomizableValue or string
+ * Returns the preset key for use as an index, or undefined if custom-only
+ */
+export function getPresetKey<T extends string>(
+  value: CustomizableValue<T> | T | undefined,
+  defaultKey: T
+): T {
+  if (!value) return defaultKey;
+  if (typeof value === 'string') return value;
+  if (value.preset) return value.preset;
+  return defaultKey;
 }
 
 // ============================================================================

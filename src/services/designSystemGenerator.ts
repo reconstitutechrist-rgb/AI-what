@@ -6,6 +6,7 @@
  */
 
 import type { LayoutDesign } from '@/types/layoutDesign';
+import { getPresetKey } from '@/types/layoutDesign';
 
 // ============================================================================
 // TYPES
@@ -158,17 +159,19 @@ function extractTypographyTokens(design: Partial<LayoutDesign>): Record<string, 
     '2xl': '1.5rem',
   };
 
-  if (typography.headingSize && sizeScale[typography.headingSize]) {
+  const headingSizeKey = getPresetKey(typography.headingSize, 'lg');
+  if (headingSizeKey && sizeScale[headingSizeKey]) {
     tokens.headingSize = {
-      value: sizeScale[typography.headingSize],
+      value: sizeScale[headingSizeKey],
       type: 'fontSize',
       description: 'Heading font size',
     };
   }
 
-  if (typography.bodySize && sizeScale[typography.bodySize]) {
+  const bodySizeKey = getPresetKey(typography.bodySize, 'base');
+  if (bodySizeKey && sizeScale[bodySizeKey]) {
     tokens.bodySize = {
-      value: sizeScale[typography.bodySize],
+      value: sizeScale[bodySizeKey],
       type: 'fontSize',
       description: 'Body text font size',
     };
@@ -181,9 +184,10 @@ function extractTypographyTokens(design: Partial<LayoutDesign>): Record<string, 
     relaxed: '1.75',
   };
 
-  if (typography.lineHeight && lineHeightScale[typography.lineHeight]) {
+  const lineHeightKey = getPresetKey(typography.lineHeight, 'normal');
+  if (lineHeightKey && lineHeightScale[lineHeightKey]) {
     tokens.lineHeight = {
-      value: lineHeightScale[typography.lineHeight],
+      value: lineHeightScale[lineHeightKey],
       type: 'lineHeight',
       description: 'Default line height',
     };
@@ -224,8 +228,9 @@ function extractSpacingTokens(design: Partial<LayoutDesign>): Record<string, Tok
       lg: '6rem',
       xl: '8rem',
     };
+    const sectionPaddingKey = getPresetKey(spacing.sectionPadding, 'lg');
     tokens.sectionPadding = {
-      value: paddingValues[spacing.sectionPadding] || '4rem',
+      value: paddingValues[sectionPaddingKey] || '4rem',
       type: 'spacing',
       description: 'Section vertical padding',
     };
@@ -239,8 +244,9 @@ function extractSpacingTokens(design: Partial<LayoutDesign>): Record<string, Tok
       lg: '1.5rem',
       xl: '2rem',
     };
+    const componentGapKey = getPresetKey(spacing.componentGap, 'md');
     tokens.componentGap = {
-      value: gapValues[spacing.componentGap] || '1rem',
+      value: gapValues[componentGapKey] || '1rem',
       type: 'spacing',
       description: 'Gap between components',
     };

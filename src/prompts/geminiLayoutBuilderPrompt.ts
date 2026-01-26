@@ -222,12 +222,40 @@ You are the ULTIMATE layout builder AI. You can:
  * Enhanced analysis prompt for reference image processing
  */
 export const GEMINI_IMAGE_ANALYSIS_PROMPT = `
-Analyze this reference image exhaustively and detect EVERY component you can see.
+Analyze this reference image exhaustively and detect EVERY component, effect, and style with PIXEL-PERFECT ACCURACY.
 
 ## Your Mission
-Detect 20-30+ components minimum. Every component you detect will be built into a real, production application. Missing components = missing features.
+You are not just "describing" the image. You are **reverse-engineering it into code**.
+Detect 20-30+ components minimum. Missing components = missing features.
 
-## Component Detection Checklist
+## 1. Advanced Effects & Physics (CRITICAL)
+Look closely for these specific high-end UI patterns. If seen, extract exact CSS values.
+
+- **Glassmorphism**:
+  - Look for: Semi-transparent backgrounds with blur behind them.
+  - Extract: \`backdrop-filter: blur(Xpx)\`, \`background: rgba(255,255,255, 0.X)\`, \`border: 1px solid rgba(255,255,255, 0.Y)\`
+
+- **Mesh Gradients / Auroras**:
+  - Look for: Soft, multi-colored blended backgrounds that are NOT simple linear gradients.
+  - Extract: The specific 3-5 colors used and their approximate positions.
+
+- **Neumorphism (Soft UI)**:
+  - Look for: Elements that appear to be extruded from the background using double shadows (light & dark).
+  - Extract: \`box-shadow: -Xpx -Ypx ... #light, Xpx Ypx ... #dark\`
+
+- **Inner Glows / Borders**:
+  - Look for: Subtle 1px inner highlights on buttons or cards.
+  - Extract: \`box-shadow: inset 0 0 0 1px ...\`
+
+## 2. Layout & Spacing (EXACT VALUES - No Vague Terms)
+Do NOT use vague terms like "tall" or "wide". Estimate pixels:
+- Hero Height: Estimate exact pixels (e.g., "850px" not just "tall")
+- Card Border Radius: Estimate exact pixels (e.g., "16px" or "24px" not just "rounded")
+- Section Padding: Estimate pixels (e.g., "80px" not just "spacious")
+- Font Sizes: Estimate heading size (e.g., "64px") and body size (e.g., "16px")
+- Gap/Spacing: Estimate pixels between elements (e.g., "24px gap")
+
+## 3. Component Detection Checklist
 
 ### Navigation & Headers
 - [ ] Navigation bar (sticky, transparent, with dropdowns?)
@@ -308,50 +336,88 @@ For EACH component you detect, provide:
 
 ## Output Format
 
-Return a JSON object with this structure:
+Return a JSON object with this structure. NOTE: Use specific values in 'custom' fields where applicable.
 
 \`\`\`json
 {
   "componentCount": 25,
-  "components": [
-    {
-      "type": "NavigationDesign",
-      "details": "Sticky navigation with logo, 5 menu items, search bar, and 'Get Started' CTA",
-      "styling": "White background, blue accent color, 16px font size",
-      "content": {
-        "logo": "Company Logo",
-        "menuItems": ["Features", "Pricing", "About", "Blog", "Contact"],
-        "ctaText": "Get Started"
-      }
-    },
-    // ... 24+ more components
-  ],
   "designSystem": {
     "colors": {
       "primary": "#3B82F6",
       "secondary": "#8B5CF6",
       "accent": "#10B981",
-      "background": "#FFFFFF",
-      "text": "#1F2937"
+      "background": "#0F172A",
+      "surface": "#1E293B",
+      "text": "#F8FAFC",
+      "meshGradient": {
+        "enabled": true,
+        "colors": ["#4F46E5", "#EC4899", "#8B5CF6"]
+      }
+    },
+    "effects": {
+      "glassmorphism": {
+        "enabled": true,
+        "blur": 12,
+        "opacity": 0.1,
+        "borderOpacity": 0.2
+      },
+      "borderRadius": {
+        "preset": "lg",
+        "custom": "16px"
+      },
+      "shadows": {
+        "preset": "medium",
+        "custom": "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
+      }
     },
     "typography": {
       "headingFont": "Inter",
       "bodyFont": "Inter",
-      "headingSizes": ["48px", "36px", "24px"],
-      "bodySize": "16px"
+      "headingSize": { "custom": "64px" },
+      "bodySize": { "custom": "16px" }
     },
     "spacing": {
-      "unit": "8px",
-      "sectionPadding": "80px"
+      "sectionPadding": { "custom": "80px" },
+      "componentGap": { "custom": "24px" }
     }
-  }
+  },
+  "components": [
+    {
+      "type": "HeroDesign",
+      "details": "Full-screen hero with mesh gradient background",
+      "height": { "custom": "900px" },
+      "layout": "centered",
+      "content": {
+        "headline": "Build faster with AI",
+        "subheadline": "Create production-ready apps in minutes",
+        "ctaText": "Start Building"
+      },
+      "effects": {
+        "glassmorphism": { "enabled": true, "blur": 16 }
+      }
+    },
+    {
+      "type": "NavigationDesign",
+      "details": "Sticky navigation with glassmorphism blur effect",
+      "styling": "backdrop-blur-md bg-white/10 border-b border-white/20",
+      "content": {
+        "logo": "Company Logo",
+        "menuItems": ["Features", "Pricing", "About", "Blog", "Contact"],
+        "ctaText": "Get Started"
+      }
+    }
+    // ... 23+ more components
+  ]
 }
 \`\`\`
 
 ## Remember
 
+- **Precise Values**: Use 'custom' fields for exact pixel estimates, not vague presets
+- **Deep Inspection**: Look at the EDGES of elements. Is there a 1px border? A subtle shadow? A blur?
+- **Gradient Truth**: If the background varies, it's likely a gradient. Extract the color stops.
 - **Be exhaustive**: 20-30+ components minimum
-- **Be specific**: Don't just say "button" - say "Primary CTA button with gradient background and hover animation"
+- **Be specific**: Don't just say "button" - say "Primary CTA button with gradient background, 16px border-radius, and scale hover animation"
 - **Think production**: Every component you detect becomes real code
 - **Include everything**: Even small elements like icons, badges, tags, dividers
 - **Note patterns**: Repeated elements, layout grids, spacing systems
