@@ -18,7 +18,7 @@ import { assembleManifest } from './stages/Stage4ManifestAssembly';
 
 export interface PipelineInput {
   image: string;
-  extractedColors: ColorPalette;
+  extractedColors?: ColorPalette;
   userPrompt?: string;
 }
 

@@ -15,8 +15,21 @@ export interface Stage4Input {
   stage1: Stage1Output;
   stage2: Stage2Output;
   stage3: Stage3Output;
-  extractedColors: ColorPalette;
+  extractedColors?: ColorPalette;
 }
+
+// Default colors used when no colors are extracted from the image
+// These are neutral colors that work with most designs
+const DEFAULT_COLORS: ColorPalette = {
+  primary: '#3b82f6',
+  secondary: '#6366f1',
+  accent: '#8b5cf6',
+  background: '#ffffff',
+  surface: '#f8fafc',
+  text: '#0f172a',
+  textMuted: '#64748b',
+  border: '#e2e8f0',
+};
 
 /**
  * Convert CSS property to Tailwind arbitrary value
@@ -251,18 +264,29 @@ function generateAttributes(
 
 /**
  * Find effects CSS for a specific element
+ * STRICT matching - exact ID match only to prevent wrong effects
  */
 function findEffectsForElement(elementId: string, stage3: Stage3Output): string | undefined {
-  // Look for exact match or partial match in element ID
-  const matchingEffects = stage3.effects.filter((effect) => {
-    const effectId = effect.elementId.toLowerCase();
-    const targetId = elementId.toLowerCase();
-    return effectId === targetId || effectId.includes(targetId) || targetId.includes(effectId);
-  });
+  // EXACT match only - no fuzzy matching to prevent wrong effects
+  const exactMatch = stage3.effects.find(
+    (effect) => effect.elementId.toLowerCase() === elementId.toLowerCase()
+  );
 
-  if (matchingEffects.length === 0) return undefined;
+  if (exactMatch) return exactMatch.css;
+  return undefined;
+}
 
-  return matchingEffects.map((e) => e.css).join(' ');
+/**
+ * Determine layout mode based on component type
+ * Text and lists should flow naturally, others use absolute for pixel-precision
+ */
+function determineLayoutMode(nodeType: ComponentType): 'absolute' | 'flow' {
+  // Text should flow naturally for wrapping
+  if (nodeType === 'text') return 'flow';
+  // Lists flow their items
+  if (nodeType === 'list') return 'flow';
+  // Everything else uses absolute for pixel-precise positioning
+  return 'absolute';
 }
 
 /**
@@ -270,7 +294,9 @@ function findEffectsForElement(elementId: string, stage3: Stage3Output): string 
  * Pure translation - no design decisions
  */
 export function assembleManifest(input: Stage4Input): LayoutManifest {
-  const { stage1, stage2, stage3, extractedColors } = input;
+  const { stage1, stage2, stage3 } = input;
+  // Use extracted colors or fall back to defaults
+  const colors = input.extractedColors || DEFAULT_COLORS;
 
   console.log('[Stage4] Assembling manifest (pure translation mode)...');
 
@@ -284,6 +310,9 @@ export function assembleManifest(input: Stage4Input): LayoutManifest {
 
     const { tailwindClasses, customCSS } = convertStyles(styles, effectsCSS);
 
+    // Determine layout mode based on component type
+    const layoutMode = determineLayoutMode(nodeType);
+
     const node: UISpecNode = {
       id: component.id,
       type: nodeType,
@@ -293,21 +322,27 @@ export function assembleManifest(input: Stage4Input): LayoutManifest {
         customCSS,
       },
       attributes: generateAttributes(component, nodeType),
-      layout: {
-        mode: 'absolute',
-        bounds: {
-          x: component.bounds.x,
-          y: component.bounds.y,
-          width: component.bounds.width,
-          height: component.bounds.height,
-          unit: '%',
-        },
-      },
+      layout:
+        layoutMode === 'absolute'
+          ? {
+              mode: 'absolute',
+              bounds: {
+                x: component.bounds.x,
+                y: component.bounds.y,
+                width: component.bounds.width,
+                height: component.bounds.height,
+                unit: '%',
+              },
+            }
+          : { mode: 'flow' },
       children: [],
     };
 
     nodeMap.set(component.id, node);
   }
+
+  // Track which components have been added as children (to prevent duplicates at root)
+  const addedAsChild = new Set<string>();
 
   // Second pass: Build hierarchy based on parentId
   for (const component of stage1.components) {
@@ -316,12 +351,13 @@ export function assembleManifest(input: Stage4Input): LayoutManifest {
       const child = nodeMap.get(component.id)!;
       parent.children = parent.children || [];
       parent.children.push(child);
+      addedAsChild.add(component.id); // Track that this was added as a child
     }
   }
 
-  // Find root nodes (no parent or parent not in our list)
+  // Find root nodes - components NOT added as children to another node
   const rootNodes = stage1.components
-    .filter((c) => !c.parentId || !nodeMap.has(c.parentId))
+    .filter((c) => !addedAsChild.has(c.id)) // Exclude any component already added as child
     .map((c) => nodeMap.get(c.id)!)
     .filter(Boolean)
     .sort((a, b) => (a.layout?.bounds?.y || 0) - (b.layout?.bounds?.y || 0));
@@ -347,14 +383,14 @@ export function assembleManifest(input: Stage4Input): LayoutManifest {
     detectedFeatures: [...new Set(stage1.components.map((c) => c.type))],
     designSystem: {
       colors: {
-        primary: extractedColors.primary,
-        secondary: extractedColors.secondary,
-        accent: extractedColors.accent,
-        background: extractedColors.background,
-        surface: extractedColors.surface,
-        text: extractedColors.text,
-        textMuted: extractedColors.textMuted || extractedColors.text,
-        border: extractedColors.border,
+        primary: colors.primary,
+        secondary: colors.secondary,
+        accent: colors.accent,
+        background: colors.background,
+        surface: colors.surface,
+        text: colors.text,
+        textMuted: colors.textMuted || colors.text,
+        border: colors.border,
       },
       fonts: {
         heading: 'system-ui',

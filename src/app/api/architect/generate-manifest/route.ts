@@ -81,17 +81,9 @@ export async function POST(request: Request) {
     if (hasImages && !hasVideo) {
       console.log('[generate-manifest] Using multi-stage pipeline for static image');
 
-      // Ensure we have colors (use defaults if not provided)
-      const colors: ColorPalette = extractedColors || {
-        primary: '#3b82f6',
-        secondary: '#6366f1',
-        accent: '#8b5cf6',
-        background: '#ffffff',
-        surface: '#f8fafc',
-        text: '#0f172a',
-        textMuted: '#64748b',
-        border: '#e2e8f0',
-      };
+      // Use extracted colors if provided, otherwise pass undefined and let Stage 4 handle
+      // This avoids hardcoding color defaults here
+      const colors: ColorPalette | undefined = extractedColors;
 
       const orchestrator = new PipelineOrchestrator(apiKey);
       const pipelineResult = await orchestrator.execute({
@@ -102,7 +94,21 @@ export async function POST(request: Request) {
 
       console.log('[generate-manifest] Pipeline complete:', pipelineResult.metadata);
 
-      // Sanitize the manifest
+      // Post-process: sanitize image URLs that aren't valid
+      function sanitizeImageUrls(node: UISpecNode): void {
+        if (node.type === 'image' && node.attributes?.src) {
+          const src = node.attributes.src as string;
+          // Only allow http(s) URLs or data URIs
+          if (!src.startsWith('http') && !src.startsWith('data:')) {
+            const desc = encodeURIComponent((node.attributes.alt as string) || 'Image');
+            node.attributes.src = `https://placehold.co/400x300/e2e8f0/64748b?text=${desc}`;
+          }
+        }
+        node.children?.forEach(sanitizeImageUrls);
+      }
+      sanitizeImageUrls(pipelineResult.manifest.root);
+
+      // Sanitize the manifest (removes children from void elements)
       const { manifest: sanitizedManifest } = sanitizeManifest(pipelineResult.manifest);
 
       return NextResponse.json({ manifest: sanitizedManifest });
