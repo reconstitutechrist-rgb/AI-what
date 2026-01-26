@@ -15,6 +15,7 @@ import type { LayoutManifest, UISpecNode } from '@/types/schema';
 import { sanitizeManifest } from '@/utils/manifestSanitizer';
 import type { ColorPalette } from '@/utils/colorExtraction';
 import { geminiImageService } from '@/services/GeminiImageService';
+import { PipelineOrchestrator } from '@/services/PipelineOrchestrator';
 
 export const maxDuration = 120;
 export const dynamic = 'force-dynamic';
@@ -75,6 +76,39 @@ export async function POST(request: Request) {
       imageCount: images?.length ?? 0,
     });
 
+    // --- MULTI-STAGE PIPELINE FOR STATIC IMAGES ---
+    // Use new pipeline for image-only mode (no video) for better component detection
+    if (hasImages && !hasVideo) {
+      console.log('[generate-manifest] Using multi-stage pipeline for static image');
+
+      // Ensure we have colors (use defaults if not provided)
+      const colors: ColorPalette = extractedColors || {
+        primary: '#3b82f6',
+        secondary: '#6366f1',
+        accent: '#8b5cf6',
+        background: '#ffffff',
+        surface: '#f8fafc',
+        text: '#0f172a',
+        textMuted: '#64748b',
+        border: '#e2e8f0',
+      };
+
+      const orchestrator = new PipelineOrchestrator(apiKey);
+      const pipelineResult = await orchestrator.execute({
+        image: images[0].base64,
+        extractedColors: colors,
+        userPrompt,
+      });
+
+      console.log('[generate-manifest] Pipeline complete:', pipelineResult.metadata);
+
+      // Sanitize the manifest
+      const { manifest: sanitizedManifest } = sanitizeManifest(pipelineResult.manifest);
+
+      return NextResponse.json({ manifest: sanitizedManifest });
+    }
+
+    // --- LEGACY SINGLE-PROMPT FLOW (for video, merge mode, or no images) ---
     const genAI = new GoogleGenerativeAI(apiKey);
     const fileManager = new GoogleAIFileManager(apiKey);
     const model = genAI.getGenerativeModel({
