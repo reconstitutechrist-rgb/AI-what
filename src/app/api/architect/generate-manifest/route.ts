@@ -15,7 +15,6 @@ import type { LayoutManifest, UISpecNode } from '@/types/schema';
 import { sanitizeManifest } from '@/utils/manifestSanitizer';
 import type { ColorPalette } from '@/utils/colorExtraction';
 import { geminiImageService } from '@/services/GeminiImageService';
-import { AssetExtractionService, type ExtractedAssets } from '@/services/AssetExtractionService';
 
 export const maxDuration = 120;
 export const dynamic = 'force-dynamic';
@@ -43,6 +42,14 @@ function findBackgroundNode(node: UISpecNode): UISpecNode | null {
     }
   }
   return null;
+}
+
+/**
+ * Count total nodes in a manifest tree (for validation)
+ */
+function countNodes(node: UISpecNode): number {
+  if (!node) return 0;
+  return 1 + (node.children?.reduce((sum, child) => sum + countNodes(child), 0) || 0);
 }
 
 export async function POST(request: Request) {
@@ -148,49 +155,176 @@ The user wants the EXACT "Look and Feel" of this video.
    - Example: { "initial": { "opacity": 0, "y": 20 }, "animate": { "opacity": 1, "y": 0 } }
 `;
     } else {
-      // STATIC IMAGE HARDCOPY with PIXEL-PRECISION (Phase 18 Enhanced)
+      // FORENSIC MODE - Maximum Accuracy for Image Replication
       strategyInstruction = `
-STRATEGY: **STATIC IMAGE HARDCOPY (Exact Replica with Pixel Precision)**
-The user wants an EXACT REPLICA of this specific screen.
+STRATEGY: **FORENSIC REPLICATION MODE (100% Accuracy Target)**
+⚠️ USER DEMANDS EXACT REPLICA - This is a visual forensics exercise.
 
-1. **LAYOUT (HARDCOPY MODE)**:
-   - **ROOT NODE EXCEPTION**: The root container MUST use 'layout.mode: "flow"' with "relative" class.
-   - **ALL CHILDREN**: Use 'layout.mode: "absolute"' with bounds.
-   - Every button, text, icon, and card gets a bounding box: { x, y, width, height, unit: "%" }.
-   - Root acts as positioning container. Children are absolutely positioned inside it.
+═══════════════════════════════════════════════════════════
+🎯 CRITICAL RULES - ZERO TOLERANCE FOR APPROXIMATION:
+═══════════════════════════════════════════════════════════
 
-2. **PIXEL-PRECISION RULES (CRITICAL)**:
-   - **Do NOT use vague terms.** Estimate exact values:
-     - Hero Height: "850px" not "tall"
-     - Border Radius: "16px" or "24px" not "rounded"
-     - Font Sizes: "64px" heading, "16px" body - not "large" or "small"
-     - Padding/Margin: "80px" not "spacious"
-     - Gap/Spacing: "24px" not "normal"
-   - Store these in 'styles.customCSS' or use Tailwind arbitrary values: 'h-[850px]', 'rounded-[16px]'
+1. **COUNT EVERYTHING**: Detect 30-50+ components minimum (every icon, button, text, image)
+2. **MEASURE EXACTLY**: Use precise pixel values in customCSS or arbitrary Tailwind - NEVER approximate
+3. **MATCH COLORS EXACTLY**: Use the extracted palette provided (GROUND TRUTH)
+4. **DETECT ALL ELEMENTS**: Every visible component gets its own UISpecNode
+5. **ABSOLUTE POSITIONING**: Lock every element in place with exact bounds
 
-3. **ADVANCED EFFECTS DETECTION**:
-   - **Glassmorphism**: If you see blurred, semi-transparent backgrounds:
-     Extract: 'backdrop-filter: blur(Xpx)', 'background: rgba(255,255,255,0.X)'
-   - **Mesh Gradients / Auroras**: Soft multi-color blends (not linear):
-     Extract the 3-5 colors and positions
-   - **Neumorphism**: Elements with double shadows (light + dark):
-     Extract: 'box-shadow: -Xpx -Ypx #light, Xpx Ypx #dark'
-   - Store effects in 'styles.customCSS'
+═══════════════════════════════════════════════════════════
+📋 FORENSIC DETECTION CHECKLIST (Execute Systematically):
+═══════════════════════════════════════════════════════════
 
-4. **BOUNDS CALCULATION**:
-   - X/Y/Width/Height as PERCENTAGES (0-100) relative to viewport.
-   - SPATIAL PROTOCOL: HEADER (0-15%), HERO (15-50%), CONTENT (50-90%), FOOTER (90-100%).
+**STEP 1: LAYOUT STRUCTURE ANALYSIS**
+□ Header Section (measure: top %, height %, sticky behavior?)
+□ Navigation Bar (measure: items count, spacing, alignment)
+□ Hero/Banner Section (measure: exact height in px, background type)
+□ Content Sections (count them, measure vertical spacing between)
+□ Sidebar (if present, measure: width %, position)
+□ Footer (measure: height %, column count, spacing)
 
-5. **EXHAUSTIVE COMPONENT DETECTION**:
-   - Detect 20-30+ components minimum
-   - Every button, icon, text, card, image you see = a UISpecNode
-   - Don't summarize: "navigation with links" → wrong
-   - Be specific: "sticky nav with logo, 5 menu items, search icon, CTA button" → correct
+**STEP 2: ICON FORENSICS (CRITICAL - Most Common Failure Point)**
+For EVERY icon visible, you MUST:
+1. Identify the exact shape visually:
+   - 3 horizontal lines = "Menu"
+   - Magnifying glass = "Search"
+   - Person silhouette = "User"
+   - Chevron/Arrow pointing down = "ChevronDown"
+   - Chevron/Arrow pointing right = "ChevronRight"
+   - X or close symbol = "X"
+   - Heart shape = "Heart"
+   - Star shape = "Star"
+   - Gear/cog = "Settings"
+   - Envelope = "Mail"
+   - Phone = "Phone"
+   - Shopping bag/cart = "ShoppingCart"
+   - Circle (default if unsure) = "Circle"
 
-6. **FIDELITY RULES**:
-   - If there is an icon visible, use type: "icon" with correct attributes.src.
-   - If there is a background image/gradient, use customCSS on the container.
-   - Match colors, spacing, and typography EXACTLY using the pixel values you detected.
+2. Create exact node structure:
+{
+  "type": "icon",
+  "semanticTag": "header-menu-icon",
+  "attributes": { "src": "Menu" },
+  "styles": { 
+    "tailwindClasses": "w-6 h-6 text-text",
+    "customCSS": ""
+  },
+  "layout": {
+    "mode": "absolute",
+    "bounds": { "x": 2, "y": 2, "width": 2, "height": 2, "unit": "%" }
+  }
+}
+
+**STEP 3: BUTTON FORENSICS**
+For EVERY clickable element:
+1. Measure exact dimensions (width x height in px)
+2. Extract border-radius (e.g., "8px", "12px", "24px", "50%")
+3. Extract padding (e.g., "12px 24px", "16px 32px")
+4. Extract background (solid color, gradient with stops, or image)
+5. Extract box-shadow (full CSS: "0 4px 14px rgba(0,0,0,0.15)")
+6. Extract text color, font-size, font-weight
+7. Store ALL measurements in customCSS:
+
+{
+  "type": "button",
+  "semanticTag": "hero-cta-button",
+  "attributes": { "text": "Get Started" },
+  "styles": {
+    "tailwindClasses": "font-semibold cursor-pointer",
+    "customCSS": "background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 16px 32px; box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4); color: #ffffff; font-size: 16px; font-weight: 600;"
+  },
+  "layout": {
+    "mode": "absolute",
+    "bounds": { "x": 42, "y": 65, "width": 16, "height": 6, "unit": "%" }
+  }
+}
+
+**STEP 4: TEXT FORENSICS**
+For EVERY text element:
+1. Identify type: headline, subheading, paragraph, caption, label
+2. Measure font-size in px (e.g., "64px", "48px", "24px", "16px", "14px")
+3. Measure line-height (e.g., "1.2", "1.5", "1.8")
+4. Measure letter-spacing if notable (e.g., "-0.02em", "0.05em")
+5. Extract font-weight (e.g., "400", "500", "600", "700", "800")
+6. Store in customCSS for exactness
+
+**STEP 5: IMAGE/VISUAL FORENSICS**
+For EVERY image, photo, illustration, or graphic:
+1. Measure exact bounds (x, y, width, height as %)
+2. Note aspect ratio
+3. Detect border-radius if rounded
+4. Detect shadow/effects
+5. Create image node with placeholder URL
+
+**STEP 6: SPACING FORENSICS**
+1. Measure gap between nav items (e.g., "gap-[24px]")
+2. Measure padding inside sections (e.g., "p-[80px]" or "px-[120px] py-[80px]")
+3. Measure margin between sections (e.g., "mt-[60px]")
+4. Use arbitrary Tailwind values: 'gap-[18px]', 'p-[24px]', NOT presets
+
+**STEP 7: EFFECT FORENSICS**
+□ Glassmorphism detected? → Extract: 'backdrop-filter: blur(12px); background: rgba(255,255,255,0.1);'
+□ Gradient detected? → Extract: 'background: linear-gradient(135deg, #color1 0%, #color2 100%);'
+□ Shadow detected? → Extract: 'box-shadow: 0 Xpx Ypx Zpx rgba(0,0,0,0.N);'
+□ Border detected? → Extract: 'border: Npx solid #color; border-radius: Npx;'
+
+═══════════════════════════════════════════════════════════
+🎨 ABSOLUTE POSITIONING PROTOCOL:
+═══════════════════════════════════════════════════════════
+
+**ROOT CONTAINER (CRITICAL):**
+- MUST use 'layout.mode: "flow"'
+- MUST have "relative" class (to contain absolute children)
+- Acts as positioning context for all children
+
+**ALL CHILD ELEMENTS:**
+- MUST use 'layout.mode: "absolute"' with precise bounds
+- Bounds format: { "x": 0-100, "y": 0-100, "width": 0-100, "height": 0-100, "unit": "%" }
+- Calculate percentages relative to viewport dimensions
+
+**SPATIAL ZONES (Reference Guide):**
+- Header: y: 0-12%
+- Hero: y: 12-55%
+- Content: y: 55-90%
+- Footer: y: 90-100%
+
+═══════════════════════════════════════════════════════════
+🎨 COLOR FIDELITY (GROUND TRUTH - DO NOT DEVIATE):
+═══════════════════════════════════════════════════════════
+
+The extracted color palette is PROVIDED and is GROUND TRUTH.
+USE SEMANTIC CLASSES - NEVER invent new colors:
+- Primary → "bg-primary" or "text-primary"
+- Secondary → "bg-secondary" or "text-secondary"
+- Accent → "bg-accent" or "text-accent"
+- Background → "bg-background"
+- Surface → "bg-surface"
+- Text → "text-text"
+- Text Muted → "text-text-muted"
+- Border → "border-border"
+
+If a button has a gradient, use customCSS with the palette colors.
+
+═══════════════════════════════════════════════════════════
+✅ QUALITY GATES (All Must Pass):
+═══════════════════════════════════════════════════════════
+
+Before returning the manifest, verify:
+□ Detected 30+ components minimum?
+□ Every icon has correct Lucide name (not "icon" text)?
+□ Every button has exact border-radius in px?
+□ Every text has exact font-size in px?
+□ All colors use semantic palette classes?
+□ Every element has layout.bounds with exact coordinates?
+□ Root is relative + flow, children are absolute?
+□ No vague terms used ("large", "spacious", "rounded")?
+
+If ANY gate fails → REGENERATE with more precision.
+
+═══════════════════════════════════════════════════════════
+📊 COMPONENT COUNT TARGET: 30-50+ UISpecNodes
+═══════════════════════════════════════════════════════════
+
+Remember: Every visible element = a node. DO NOT summarize.
 `;
     }
 
@@ -469,24 +603,6 @@ OUTPUT: Complete JSON LayoutManifest with ALL required fields.
       }
     }
 
-    // --- ASSET EXTRACTION PIPELINE (NEW) ---
-    // Extract real icons, images, and button styles from reference
-    if (hasImages && !hasVideo) {
-      console.log('[generate-manifest] Starting asset extraction pipeline...');
-      try {
-        const extractor = new AssetExtractionService();
-        const extractedAssets = await extractor.extractAllAssets(images![0].base64);
-
-        // Apply extracted assets to manifest
-        manifest = applyExtractedAssets(manifest, extractedAssets);
-
-        console.log('[generate-manifest] Asset extraction complete');
-      } catch (error) {
-        console.error('[generate-manifest] Asset extraction failed:', error);
-        // Continue without extraction - don't block generation
-      }
-    }
-
     // Force root background & layout
     if (manifest.root) {
       if (!manifest.root.styles) manifest.root.styles = { tailwindClasses: '' };
@@ -520,10 +636,24 @@ OUTPUT: Complete JSON LayoutManifest with ALL required fields.
       );
     }
 
+    // Component count validation (quality check)
+    const componentCount = countNodes(sanitizedManifest.root);
+    console.log(`[generate-manifest] Component count: ${componentCount}`);
+
+    if (hasImages && !hasVideo && componentCount < 20) {
+      console.warn(
+        '[generate-manifest] ⚠️  LOW COMPONENT COUNT - Layout may lack detail. Expected 30+, got',
+        componentCount
+      );
+    } else if (componentCount >= 30) {
+      console.log('[generate-manifest] ✅ Component count meets quality threshold');
+    }
+
     console.log('[generate-manifest] FINAL MANIFEST:', {
       id: sanitizedManifest.id,
       rootType: sanitizedManifest.root?.type,
       rootChildrenCount: sanitizedManifest.root?.children?.length ?? 0,
+      componentCount,
       strategy: isMergeMode ? 'MERGE' : hasVideo ? 'VIDEO_FLOW' : 'IMAGE_FIDELITY',
     });
 
@@ -537,126 +667,22 @@ OUTPUT: Complete JSON LayoutManifest with ALL required fields.
   }
 }
 
-/**
- * Apply extracted assets (icons, images, buttons) to the manifest
- * Matches by bounding box coordinates with tolerance
- */
-function applyExtractedAssets(manifest: LayoutManifest, assets: ExtractedAssets): LayoutManifest {
-  interface BoundsLike {
-    x?: number;
-    y?: number;
-    width?: number;
-    height?: number;
-  }
-
-  function boundsMatch(b1: BoundsLike | undefined, b2: BoundsLike | undefined): boolean {
-    if (!b1 || !b2) return false;
-    const threshold = 5; // 5% tolerance for matching
-    return (
-      Math.abs((b1.x || 0) - (b2.x || 0)) < threshold &&
-      Math.abs((b1.y || 0) - (b2.y || 0)) < threshold &&
-      Math.abs((b1.width || 0) - (b2.width || 0)) < threshold &&
-      Math.abs((b1.height || 0) - (b2.height || 0)) < threshold
-    );
-  }
-
-  function matchAndApply(node: UISpecNode): UISpecNode {
-    const nodeBounds = node.layout?.bounds;
-
-    // Match and apply icons
-    if (node.type === 'icon' && nodeBounds) {
-      const match = assets.icons.find((icon) => boundsMatch(nodeBounds, icon.bounds));
-      if (match) {
-        console.log(`[AssetExtraction] Matched icon: ${match.semanticId} -> ${match.url}`);
-        node.attributes = {
-          ...node.attributes,
-          src: match.url,
-        };
-      }
-    }
-
-    // Match and apply images
-    if (node.type === 'image' && nodeBounds) {
-      const match = assets.images.find((img) => boundsMatch(nodeBounds, img.bounds));
-      if (match) {
-        console.log(`[AssetExtraction] Matched image: ${match.semanticId} -> ${match.url}`);
-        node.attributes = {
-          ...node.attributes,
-          src: match.url,
-          alt: match.semanticId,
-        };
-      }
-    }
-
-    // Match and apply button styles
-    if (node.type === 'button' && nodeBounds) {
-      const match = assets.buttons.find((btn) => boundsMatch(nodeBounds, btn.bounds));
-      if (match) {
-        console.log(`[AssetExtraction] Matched button: ${match.semanticId}`);
-        const styles = match.styles;
-
-        // Build custom CSS from extracted styles
-        const customCSS = `
-          background: ${styles.background};
-          border-radius: ${styles.borderRadius};
-          border: ${styles.borderWidth} solid ${styles.borderColor};
-          box-shadow: ${styles.boxShadow};
-          color: ${styles.textColor};
-          font-size: ${styles.fontSize};
-          font-weight: ${styles.fontWeight};
-          padding: ${styles.padding};
-        `
-          .trim()
-          .replace(/\s+/g, ' ');
-
-        node.styles = {
-          ...node.styles,
-          customCSS: customCSS,
-        };
-      }
-    }
-
-    // Match and apply logos (treated like icons)
-    if ((node.type === 'icon' || node.type === 'image') && nodeBounds) {
-      const match = assets.logos.find((logo) => boundsMatch(nodeBounds, logo.bounds));
-      if (match) {
-        console.log(`[AssetExtraction] Matched logo: ${match.semanticId} -> ${match.url}`);
-        node.attributes = {
-          ...node.attributes,
-          src: match.url,
-          alt: match.semanticId,
-        };
-      }
-    }
-
-    // Recurse through children
-    if (node.children && Array.isArray(node.children)) {
-      node.children = node.children.map(matchAndApply);
-    }
-
-    return node;
-  }
-
-  return {
-    ...manifest,
-    root: matchAndApply(manifest.root),
-  };
-}
-
 export async function GET() {
   return NextResponse.json({
     name: 'Architect API - Multi-Strategy Layout Generator',
-    version: '3.1',
-    description: 'Generate layouts with smart source detection + asset extraction',
+    version: '4.0',
+    description: 'Forensic Mode - Maximum accuracy layout replication with Gemini 3 Flash',
     strategies: {
-      IMAGE: 'Visual Fidelity with absolute bounds + extracted assets',
+      IMAGE: 'Forensic Replication Mode - 30-50+ components with exact measurements',
       VIDEO: 'Precision Flow with arbitrary Tailwind (no absolute)',
       MERGE: 'Directors Cut - Image visuals + Video motions',
     },
     features: {
-      assetExtraction: 'Automatic extraction of icons, images, and button styles',
-      backgroundGeneration: 'Custom background image generation',
-      colorExtraction: 'Client-side color palette detection',
+      forensicMode: 'Systematic analysis with 30+ component minimum',
+      colorExtraction: 'Client-side color palette detection (ground truth)',
+      backgroundGeneration: 'Custom background image generation via Imagen 4 Ultra',
+      componentValidation: 'Automatic quality checks on component count',
     },
+    model: 'gemini-3-flash-preview',
   });
 }
