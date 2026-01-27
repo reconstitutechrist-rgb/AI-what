@@ -14,12 +14,12 @@ import { useLayoutBuilder } from '@/hooks/useLayoutBuilder';
 import { FloatingEditBubble } from './layout-builder/FloatingEditBubble';
 
 export const LayoutPreview: React.FC = () => {
-  const { 
-    components, 
-    selectedId, 
-    selectComponent, 
-    analyzeImage, 
-    analyzeVideo, 
+  const {
+    components,
+    selectedId,
+    selectComponent,
+    analyzeImage,
+    analyzeVideo,
     isAnalyzing,
     applyAIEdit,
     deleteComponent,
@@ -30,22 +30,22 @@ export const LayoutPreview: React.FC = () => {
     saveToWizard,
     generatePhasePlan,
     canUndo,
-    canRedo
+    canRedo,
   } = useLayoutBuilder();
 
   const [dragActive, setDragActive] = useState(false);
   const layoutRef = useRef<HTMLDivElement>(null);
 
   // Helper to find selected component data
-  const selectedComponent = components.find(c => c.id === selectedId);
+  const selectedComponent = components.find((c) => c.id === selectedId);
 
   // --- Upload Handlers ---
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
+    if (e.type === 'dragenter' || e.type === 'dragover') {
       setDragActive(true);
-    } else if (e.type === "dragleave") {
+    } else if (e.type === 'dragleave') {
       setDragActive(false);
     }
   };
@@ -96,59 +96,69 @@ export const LayoutPreview: React.FC = () => {
               className={`p-2 rounded hover:bg-white/10 ${!canRedo ? 'opacity-50 cursor-not-allowed' : ''}`}
               title="Redo"
             >
+              ↪
+            </button>
+          </div>
+
+          <button
             onClick={exportCode}
             disabled={components.length === 0}
             className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg disabled:opacity-50 transition-colors"
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-            >
-              Export React
-            </button>
-            
-            <button
-              onClick={async () => {
-                try {
-                  // 1. Generate Plan
-                  await generatePhasePlan();
-                  
-                  // 2. Switch Mode & Redirect
-                  const { useAppStore } = await import('@/store/useAppStore');
-                  useAppStore.getState().setCurrentMode('ACT');
-                  useAppStore.getState().setActiveTab('chat');
-                  
-                  // 3. Navigate
-                  // We need Next.js router here. 
-                  // Since we are in a client component, we should strictly use `useRouter`.
-                  // However, we are inside an onClick handler.
-                  window.location.href = '/app'; 
-                } catch (error) {
-                  console.error('Build Failed:', error);
-                  alert('Failed to generate build plan. See console.');
-                }
-              }}
-              disabled={components.length === 0 || isAnalyzing}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-all
-                ${(components.length === 0 || isAnalyzing) ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md active:scale-95'}
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+              />
+            </svg>
+            Export React
+          </button>
+
+          <button
+            onClick={async () => {
+              try {
+                // 1. Generate Plan
+                await generatePhasePlan();
+
+                // 2. Switch Mode & Redirect
+                const { useAppStore } = await import('@/store/useAppStore');
+                useAppStore.getState().setCurrentMode('ACT');
+                useAppStore.getState().setActiveTab('chat');
+
+                // 3. Navigate
+                // We need Next.js router here.
+                // Since we are in a client component, we should strictly use `useRouter`.
+                // However, we are inside an onClick handler.
+                window.location.href = '/app';
+              } catch (error) {
+                console.error('Build Failed:', error);
+                alert('Failed to generate build plan. See console.');
+              }
+            }}
+            disabled={components.length === 0 || isAnalyzing}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-all
+                ${components.length === 0 || isAnalyzing ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md active:scale-95'}
               `}
-            >
-              {isAnalyzing ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Building...
-                </>
-              ) : (
-                <>
-                  <span>✨</span>
-                  Build App
-                </>
-              )}
-            </button>
-          </div>
+          >
+            {isAnalyzing ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Building...
+              </>
+            ) : (
+              <>
+                <span>✨</span>
+                Build App
+              </>
+            )}
+          </button>
         </div>
       </div>
 
       {/* Main Canvas Area */}
-      <div 
+      <div
         className={`flex-1 overflow-auto p-8 relative transition-colors ${dragActive ? 'bg-blue-50' : ''}`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
@@ -156,8 +166,11 @@ export const LayoutPreview: React.FC = () => {
         onDrop={handleDrop}
         onClick={() => selectComponent(null)} // Deselect on background click
       >
-        <div ref={layoutRef} className="min-h-[800px] w-full bg-white shadow-sm ring-1 ring-gray-200 rounded-md relative">
-          <DynamicLayoutRenderer 
+        <div
+          ref={layoutRef}
+          className="min-h-[800px] w-full bg-white shadow-sm ring-1 ring-gray-200 rounded-md relative"
+        >
+          <DynamicLayoutRenderer
             components={components}
             onSelectComponent={selectComponent}
             selectedComponentId={selectedId}
@@ -165,7 +178,7 @@ export const LayoutPreview: React.FC = () => {
 
           {/* Edit Bubble Overlay */}
           {selectedComponent && (
-            <FloatingEditBubble 
+            <FloatingEditBubble
               component={selectedComponent}
               onClose={() => selectComponent(null)}
               onAiEdit={applyAIEdit}

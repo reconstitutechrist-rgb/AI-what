@@ -11,7 +11,7 @@ function stylesToTailwind(style: Record<string, any>): string {
 
   Object.entries(style).forEach(([key, value]) => {
     if (value === undefined || value === null || value === '') return;
-    
+
     // Stringify value for template literals
     const valStr = String(value);
 
@@ -42,18 +42,18 @@ function stylesToTailwind(style: Record<string, any>): string {
  */
 function mapComponentType(detectedType: string): ComponentType {
   const typeMap: Record<string, ComponentType> = {
-    'header': 'container',
-    'sidebar': 'container',
-    'hero': 'container',
-    'cards': 'list',
-    'navigation': 'container',
-    'footer': 'container',
-    'button': 'button',
-    'input': 'input',
-    'image': 'image',
-    'text': 'text',
-    'icon': 'icon',
-    'video': 'video',
+    header: 'container',
+    sidebar: 'container',
+    hero: 'container',
+    cards: 'list',
+    navigation: 'container',
+    footer: 'container',
+    button: 'button',
+    input: 'input',
+    image: 'image',
+    text: 'text',
+    icon: 'icon',
+    video: 'video',
   };
 
   return typeMap[detectedType] || 'container';
@@ -67,23 +67,23 @@ function buildNodeTree(
   allComponents: DetectedComponentEnhanced[]
 ): UISpecNode {
   const childNodes: UISpecNode[] = [];
-  
+
   if (component.children && component.children.length > 0) {
-    component.children.forEach(childId => {
-      const childComponent = allComponents.find(c => c.id === childId);
+    component.children.forEach((childId) => {
+      const childComponent = allComponents.find((c) => c.id === childId);
       if (childComponent) {
         childNodes.push(buildNodeTree(childComponent, allComponents));
       }
     });
   }
 
+  // Type assertion to allow access to specific properties that might not be in the strict Record<string, string|number> definition
+  const styleObj = component.style as any;
+
   return {
     id: component.id,
     type: mapComponentType(component.type),
     semanticTag: component.type,
-    // Type assertion to allow access to specific properties that might not be in the strict Record<string, string|number> definition
-    const styleObj = component.style as any;
-
     styles: {
       tailwindClasses: stylesToTailwind(styleObj),
     },
@@ -98,7 +98,7 @@ function buildNodeTree(
         y: component.bounds?.top || 0,
         width: component.bounds?.width || 0,
         height: component.bounds?.height || 0,
-        unit: '%', 
+        unit: '%',
       },
       zIndex: component.zIndex,
     },
@@ -112,8 +112,10 @@ function buildNodeTree(
 export function convertToLayoutManifest(components: DetectedComponentEnhanced[]): LayoutManifest {
   // 1. Identify Root Nodes (components with no parentId OR parentId not found in current set)
   // This handles cases where we might export a subset or the parent linkage is broken
-  const rootComponents = components.filter(c => !c.parentId || !components.find(p => p.id === c.parentId));
-  
+  const rootComponents = components.filter(
+    (c) => !c.parentId || !components.find((p) => p.id === c.parentId)
+  );
+
   let rootNode: UISpecNode;
 
   if (rootComponents.length === 1) {
@@ -128,7 +130,7 @@ export function convertToLayoutManifest(components: DetectedComponentEnhanced[])
         tailwindClasses: 'w-full h-full relative',
       },
       attributes: {},
-      children: rootComponents.map(c => buildNodeTree(c, components)),
+      children: rootComponents.map((c) => buildNodeTree(c, components)),
     };
   }
 
@@ -137,9 +139,9 @@ export function convertToLayoutManifest(components: DetectedComponentEnhanced[])
     version: '1.0.0',
     root: rootNode,
     definitions: {},
-    detectedFeatures: [], 
+    detectedFeatures: [],
     designSystem: {
-      colors: {}, 
+      colors: {},
       fonts: { heading: 'Inter', body: 'Inter' },
     },
   };

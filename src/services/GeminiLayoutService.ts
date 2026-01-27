@@ -14,11 +14,7 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import {
-  DetectedComponentEnhanced,
-  PageAnalysis,
-  LayoutStructure,
-} from '@/types/layoutDesign';
+import { DetectedComponentEnhanced, PageAnalysis, LayoutStructure } from '@/types/layoutDesign';
 
 // ============================================================================
 // CONFIGURATION
@@ -73,7 +69,10 @@ class GeminiLayoutService {
    * Analyze an image to extract pixel-perfect layout components
    * Uses Gemini 3 Flash for speed and high context window
    */
-  async analyzeImage(imageBase64: string, instructions?: string): Promise<DetectedComponentEnhanced[]> {
+  async analyzeImage(
+    imageBase64: string,
+    instructions?: string
+  ): Promise<DetectedComponentEnhanced[]> {
     if (!this.client) throw new Error('Gemini API not configured');
 
     const model = this.client.getGenerativeModel({
@@ -84,15 +83,15 @@ class GeminiLayoutService {
     const prompt = `
       Analyze this UI screenshot and extract a "Zero-Preset" component tree.
       
-      USER INSTRUCTIONS: ${instructions || "Replicate this design exactly as seen."}
+      USER INSTRUCTIONS: ${instructions || 'Replicate this design exactly as seen.'}
 
       CRITICAL REQUIREMENTS:
       1. **Exact values**: Do NOT use presets (like "p-4"). Use ARBITRARY values (e.g., "padding: '18px'", "width: '340px'").
       2. **Exhaustive**: Detect every single visible element (min 20+ components).
       3. **Hierarchy**: Identify parent/child relationships.
       4. **Data-ID**: Assign a unique readable ID to every component (e.g., "hero-cta-primary").
-      5. **True Customization**: For ANY property not covered by standard fields (like 'backgroundImage', 'backdropFilter', 'transform', 'clipPath', 'backgroundClip'), strictly put them into `style.customCSS`.
-         - Example: `style: { ..., customCSS: { backgroundImage: 'linear-gradient(135deg, #FF0080, #7928CA)', backdropFilter: 'blur(10px)' } }`
+      5. **True Customization**: For ANY property not covered by standard fields (like 'backgroundImage', 'backdropFilter', 'transform', 'clipPath', 'backgroundClip'), strictly put them into 'style.customCSS'.
+         - Example: style: { ..., customCSS: { backgroundImage: 'linear-gradient(135deg, #FF0080, #7928CA)', backdropFilter: 'blur(10px)' } }
 
       Return JSON format matching 'DetectedComponentEnhanced[]'.
       Focus on 'bounds' (0-100% viewport), 'style' (exact CSS), and 'content'.
@@ -101,7 +100,7 @@ class GeminiLayoutService {
     const imagePart = this.fileToPart(imageBase64);
     const result = await model.generateContent([prompt, imagePart]);
     const response = result.response;
-    
+
     try {
       return JSON.parse(response.text()) as DetectedComponentEnhanced[];
     } catch (e) {
@@ -125,7 +124,7 @@ class GeminiLayoutService {
     const prompt = `
       Analyze these 3 video frames (Start, Middle, End) to reverse-engineer the web animations.
       
-      USER INSTRUCTIONS: ${instructions || "Analyze the natural motion flow."}
+      USER INSTRUCTIONS: ${instructions || 'Analyze the natural motion flow.'}
 
       Look for:
       1. **Entrance Animations**: Do elements fade in? Slide up? Scale up?
@@ -136,8 +135,8 @@ class GeminiLayoutService {
     `;
 
     // Convert all frames to parts
-    const imageParts = frames.map(f => this.fileToPart(f));
-    
+    const imageParts = frames.map((f) => this.fileToPart(f));
+
     const result = await model.generateContent([prompt, ...imageParts]);
     const response = result.response;
 
@@ -149,7 +148,7 @@ class GeminiLayoutService {
         keyframes: { start: 0, end: 1 },
         transitions: [],
         hoverEffects: false,
-        scrollEffects: false
+        scrollEffects: false,
       };
     }
   }
@@ -197,7 +196,10 @@ class GeminiLayoutService {
   /**
    * Edit a specific component based on User Instruction
    */
-  async editComponent(component: DetectedComponentEnhanced, prompt: string): Promise<DetectedComponentEnhanced> {
+  async editComponent(
+    component: DetectedComponentEnhanced,
+    prompt: string
+  ): Promise<DetectedComponentEnhanced> {
     if (!this.client) throw new Error('Gemini API not configured');
 
     const model = this.client.getGenerativeModel({

@@ -30,22 +30,41 @@ function stylesToTailwind(style: Record<string, string | number>): string {
 
 /**
  * Recursively generates JSX for a component tree.
+ * @param component The component to render
+ * @param allComponents All components (for looking up children by ID)
+ * @param indentLevel Current indentation level
  */
-function generateJSX(component: DetectedComponentEnhanced, indentLevel = 2): string {
+function generateJSX(
+  component: DetectedComponentEnhanced,
+  allComponents: DetectedComponentEnhanced[],
+  indentLevel = 2
+): string {
   const indent = ' '.repeat(indentLevel);
-  const tailwindClasses = stylesToTailwind(component.style);
-  
+  // Cast to any to handle style properties that may include booleans
+  const tailwindClasses = stylesToTailwind(component.style as Record<string, string | number>);
+
   // Clean up content: escape generic text
-  const content = component.content ? component.content.trim() : '';
-  
+  const content = component.content?.text ? component.content.text.trim() : '';
+
   let jsx = `${indent}<div className="${tailwindClasses}" data-id="${component.id}">`;
-  
+
   if (content) {
     jsx += `\n${indent}  ${content}`;
   }
 
+  // Children are IDs - look them up in allComponents
   if (component.children && component.children.length > 0) {
-    jsx += '\n' + component.children.map(child => generateJSX(child, indentLevel + 2)).join('\n');
+    const childComponents = component.children
+      .map((childId) => allComponents.find((c) => c.id === childId))
+      .filter((c): c is DetectedComponentEnhanced => c !== undefined);
+
+    if (childComponents.length > 0) {
+      jsx +=
+        '\n' +
+        childComponents
+          .map((child) => generateJSX(child, allComponents, indentLevel + 2))
+          .join('\n');
+    }
     jsx += `\n${indent}</div>`;
   } else if (!content) {
     jsx += `</div>`; // Self-closing if desired, but <div> usually needs closing
@@ -60,7 +79,9 @@ function generateJSX(component: DetectedComponentEnhanced, indentLevel = 2): str
  * Main Export Function
  */
 export function exportToReact(components: DetectedComponentEnhanced[]): string {
-  const jsxContent = components.map(c => generateJSX(c)).join('\n\n');
+  // Only render root components (those without a parent)
+  const rootComponents = components.filter((c) => !c.parentId);
+  const jsxContent = rootComponents.map((c) => generateJSX(c, components)).join('\n\n');
 
   return `
 import React from 'react';
