@@ -247,13 +247,40 @@ For EVERY text element:
 5. Extract font-weight (e.g., "400", "500", "600", "700", "800")
 6. Store in customCSS for exactness
 
-**STEP 5: IMAGE/VISUAL FORENSICS**
+**STEP 5: IMAGE/VISUAL FORENSICS (ENHANCED)**
 For EVERY image, photo, illustration, or graphic:
-1. Measure exact bounds (x, y, width, height as %)
-2. Note aspect ratio
-3. Detect border-radius if rounded
-4. Detect shadow/effects
-5. Create image node with placeholder URL
+
+CRITICAL STRUCTURE:
+{
+  "type": "image",
+  "semanticTag": "hero-image",
+  "attributes": {
+    "src": "https://placehold.co/WIDTHxHEIGHT/bgcolor/textcolor?text=ImageType",
+    "alt": "Descriptive alt text"
+  },
+  "styles": {
+    "tailwindClasses": "object-cover",
+    "customCSS": "border-radius: 12px; filter: ...; (any effects)"
+  },
+  "layout": {
+    "mode": "absolute",
+    "bounds": { "x": N, "y": N, "width": N, "height": N, "unit": "%" }
+  }
+}
+
+MEASUREMENT CHECKLIST:
+1. Exact bounds (x, y, width, height as %)
+2. Aspect ratio (for placeholder dimensions)
+3. Border-radius if rounded → store in customCSS
+4. Shadow/effects → store in customCSS  
+5. Filters (blur, grayscale, etc.) → store in customCSS
+
+FORBIDDEN on image nodes:
+❌ attributes.text (images have NO text content)
+❌ children array (images are void elements)
+❌ Filename strings like "logo.png" (use proper placeholder URLs)
+
+CORRECT placeholder format: "https://placehold.co/800x600/e2e8f0/64748b?text=ProductImage"
 
 **STEP 6: SPACING FORENSICS**
 1. Measure gap between nav items (e.g., "gap-[24px]")
@@ -261,11 +288,34 @@ For EVERY image, photo, illustration, or graphic:
 3. Measure margin between sections (e.g., "mt-[60px]")
 4. Use arbitrary Tailwind values: 'gap-[18px]', 'p-[24px]', NOT presets
 
-**STEP 7: EFFECT FORENSICS**
-□ Glassmorphism detected? → Extract: 'backdrop-filter: blur(12px); background: rgba(255,255,255,0.1);'
-□ Gradient detected? → Extract: 'background: linear-gradient(135deg, #color1 0%, #color2 100%);'
-□ Shadow detected? → Extract: 'box-shadow: 0 Xpx Ypx Zpx rgba(0,0,0,0.N);'
-□ Border detected? → Extract: 'border: Npx solid #color; border-radius: Npx;'
+**STEP 7: UNIVERSAL VISUAL EFFECT DETECTION**
+For ANY visual effect you observe (whether listed below or not):
+
+1. **Identify the effect** - What makes it visually unique?
+2. **Choose CSS properties** from this toolbox:
+   • filter: blur(Npx), contrast(N), brightness(N), saturate(N), grayscale(N), sepia(N)
+   • image-rendering: pixelated, crisp-edges (for retro/pixel art)
+   • backdrop-filter: blur(Npx) (for glassmorphism)
+   • box-shadow: X Y Blur Spread Color (for depth, glow, neumorphism)
+   • text-shadow: X Y Blur Color (for text effects)
+   • mix-blend-mode: multiply, screen, overlay (for layer blending)
+   • transform: rotate(), scale(), skew() (for 3D effects)
+   • clip-path: (for custom shapes)
+   • mask-image: (for image masking)
+3. **Store in customCSS** - Put the full CSS string
+
+**Common effect examples (detect these AND any others):**
+□ Pixelation/Retro → 'image-rendering: pixelated; filter: contrast(1.2);'
+□ Glassmorphism → 'backdrop-filter: blur(12px); background: rgba(255,255,255,0.1);'
+□ Neon Glow → 'box-shadow: 0 0 20px #color, 0 0 40px #color;'
+□ Neumorphism → 'box-shadow: -4px -4px 8px #light, 4px 4px 8px #dark;'
+□ Gradient Overlay → 'background: linear-gradient(...); mix-blend-mode: overlay;'
+□ Blur Effect → 'filter: blur(4px);'
+□ Grayscale → 'filter: grayscale(100%);'
+□ Drop Shadow → 'box-shadow: 0 4px 8px rgba(0,0,0,0.2);'
+□ Border Effects → 'border: 2px solid #color; border-radius: 8px;'
+
+**IMPORTANT**: If you see an effect not listed, still extract it using appropriate CSS properties.
 
 ═══════════════════════════════════════════════════════════
 🎨 ABSOLUTE POSITIONING PROTOCOL:
@@ -395,7 +445,16 @@ ${colorInjectionLine}
 
 **COMPONENT PROTOCOLS:**
 
-BUTTON_DETECTION_PROTOCOL:
+**TEXT CONTENT PROTOCOL (CRITICAL - READ ACTUAL TEXT):**
+- READ THE ACTUAL TEXT visible in the image
+- If button says "Buy Now" → attributes.text: "Buy Now"
+- If heading says "Welcome to Our Store" → attributes.text: "Welcome to Our Store"  
+- If paragraph says "Lorem ipsum dolor..." → attributes.text: "Lorem ipsum dolor..."
+- FORBIDDEN placeholders: "text", "content", "pixels", "button text", "heading", "paragraph"
+- EXCEPTION: If text is illegible/blurred, use "[Unreadable text]"
+- For decorative/empty elements, omit attributes.text entirely
+
+**BUTTON_DETECTION_PROTOCOL:**
 - Any element that looks clickable (Pills, Rectangles with text) IS A BUTTON.
 - Use type: "button" for these. DO NOT simplify to text.
 
