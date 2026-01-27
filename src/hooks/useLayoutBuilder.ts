@@ -50,7 +50,6 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
 
   const selectComponent = useCallback((id: string | null) => {
     setSelectedId(id);
-    console.log('[useLayoutBuilder] Selected:', id);
   }, []);
 
   const updateComponentStyle = useCallback((id: string, newStyle: Record<string, any>) => {

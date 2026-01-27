@@ -35,16 +35,21 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
 
   // 1. Dynamic Style Generation (The Zero-Preset Logic)
   // Maps API styles to inline styles or atomic classes
+  // Uses absolute positioning with bounds for precise layout replication
   const dynamicStyles: React.CSSProperties = {
-    // Layout - uses optional chaining for defensive access
-    position:
-      style?.isFloating || style?.isSticky ? (style?.isSticky ? 'sticky' : 'absolute') : 'relative',
-    top: style?.isFloating ? `${bounds?.top ?? 0}%` : undefined,
-    left: style?.isFloating ? `${bounds?.left ?? 0}%` : undefined,
-    width: style.display === 'inline' ? 'auto' : '100%',
+    // Layout - use absolute positioning to place components precisely based on AI-detected bounds
+    position: 'absolute',
+    top: `${bounds?.top ?? 0}%`,
+    left: `${bounds?.left ?? 0}%`,
+    width: style?.display === 'inline' ? 'auto' : `${bounds?.width ?? 100}%`,
+    height: `${bounds?.height ?? 50}%`,
+    minHeight: '20px', // Ensure visibility even for empty components
+    overflow: 'hidden', // Prevent content overflow
 
     // Visuals (Arbitrary Values from AI)
     backgroundColor: style.backgroundColor,
+    // Add fallback border for components without background (visibility during design)
+    border: !style.backgroundColor && !style.borderWidth ? '1px dashed #e5e7eb' : undefined,
     color: style.textColor,
     borderColor: style.borderColor,
     borderWidth: style.borderWidth,
@@ -95,7 +100,8 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
           Image
         </div>
       );
-    return null;
+    // Fallback: show component type label for visibility during design
+    return <span className="text-xs text-gray-400 opacity-50 select-none">{type}</span>;
   };
 
   // 5. Component Specific Envelopes
