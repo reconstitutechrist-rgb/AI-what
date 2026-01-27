@@ -13,7 +13,28 @@ The layout builder preview was showing only the skeleton structure without color
 
 ## Fixes Applied
 
-### 1. Color Utilities (`src/utils/colorUtils.ts`)
+### 1. **AI Prompt Enhancement** (`src/services/GeminiLayoutService.ts`) - PRIMARY FIX
+
+This was the root cause! The AI was returning poor data because the prompt wasn't specific enough.
+
+**Updated the Gemini prompt to:**
+
+- **Explicitly forbid "transparent"**: Tell the AI to NEVER use "transparent" - instead measure the actual visible color
+- **Provide color guidance**: Give specific examples of what colors to use:
+  - Dark backgrounds → `#1a1a1a`, `#2d2d2d`, `#000000`
+  - Red backgrounds → `#cc0000`, `#ff0000`, `#8b0000`
+  - Blue backgrounds → `#0066cc`, `#1e3a8a`, `#003d82`
+- **Extract ALL text content**: Tell the AI to extract every piece of visible text:
+  - Logo text (company/brand names)
+  - Button text
+  - Headings
+  - Paragraphs
+  - Never leave `content.text` empty
+- **Better color measurement**: "When in doubt, provide a color - it's better to have a slightly wrong color than 'transparent'"
+
+### 2. **Color Utilities** (`src/utils/colorUtils.ts`) - FALLBACK SAFETY
+
+Added defensive handling for any transparent colors that slip through:
 
 - Added `isTransparent()` function to detect:
   - Named 'transparent' color
@@ -23,7 +44,9 @@ The layout builder preview was showing only the skeleton structure without color
   - Handle transparent colors first (returns light gray #f3f4f6)
   - Then handle white/light colors (returns #e5e7eb)
 
-### 2. Generic Component Renderer (`src/components/layout-builder/GenericComponentRenderer.tsx`)
+### 3. **Component Renderer** (`src/components/layout-builder/GenericComponentRenderer.tsx`) - DISPLAY FIXES
+
+Fixed how components are actually displayed on canvas:
 
 - **Z-index Management**:
   - Added 'main-canvas' and 'container' types with z-index: 1 (behind everything)

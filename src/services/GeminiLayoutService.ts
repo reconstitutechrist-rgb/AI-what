@@ -103,8 +103,8 @@ class GeminiLayoutService {
           "height": <number 0-100, percentage of viewport height>
         },
         "style": {
-          "backgroundColor": "<exact hex color like #1a1a2e>",
-          "textColor": "<exact hex color>",
+          "backgroundColor": "<exact hex color like #1a1a2e - NEVER use 'transparent' or 'white' - use the ACTUAL visible color>",
+          "textColor": "<exact hex color - measure the actual text color you see>",
           "fontSize": "<exact size like 48px, 16px>",
           "fontWeight": "<bold|normal|600|700>",
           "padding": "<exact value like 16px or 12px 24px>",
@@ -115,7 +115,7 @@ class GeminiLayoutService {
           "customCSS": { "<any other CSS properties>": "<values>" }
         },
         "content": {
-          "text": "<actual text content you can read>",
+          "text": "<actual text content you can read - be thorough, extract ALL visible text>",
           "hasImage": true/false,
           "hasIcon": true/false
         },
@@ -137,11 +137,29 @@ class GeminiLayoutService {
          - left: 0 = left edge, 50 = center, 100 = right edge
          - width/height: as percentage of total viewport
 
-      3. **EXTRACT ACTUAL TEXT**: Read all visible text and put it in content.text
+      3. **EXTRACT ACTUAL TEXT**: Read ALL visible text and put it in content.text
+         - DO NOT leave text empty - extract everything you can read
+         - For logos, extract the company/brand name
+         - For buttons, extract the button text
+         - For headings, extract the full heading text
 
-      4. **USE EXACT CSS VALUES**: No Tailwind classes. Use "padding": "16px", "fontSize": "24px", "backgroundColor": "#1a1a2e"
+      4. **MEASURE ACTUAL COLORS**: Look at the screenshot and identify the REAL colors:
+         - DO NOT use "transparent" - instead measure what color you actually see
+         - DO NOT use "white" unless the background is truly #FFFFFF
+         - For dark backgrounds, use colors like #1a1a1a, #2d2d2d, #000000
+         - For red backgrounds, use colors like #cc0000, #ff0000, #8b0000
+         - For blue backgrounds, use colors like #0066cc, #1e3a8a, #003d82
+         - ALWAYS use exact hex codes based on what you see
 
-      5. **UNIQUE IDS**: Give each component a descriptive ID like "header-logo", "hero-main-heading", "cta-primary-button", "footer-social-links"
+      5. **USE EXACT CSS VALUES**: No Tailwind classes. Use "padding": "16px", "fontSize": "24px", "backgroundColor": "#1a1a2e"
+
+      6. **UNIQUE IDS**: Give each component a descriptive ID like "header-logo", "hero-main-heading", "cta-primary-button", "footer-social-links"
+
+      SPECIAL RULE FOR COLORS:
+      - If an element appears to have a dark background, measure the darkness and return a hex like #1a1a1a or #2d2d2d
+      - If an element has a colored background (red, blue, green, etc.), return the actual hex color
+      - Only use "transparent" if the element truly has no background and you can see through to elements behind it
+      - When in doubt, provide a color - it's better to have a slightly wrong color than "transparent"
 
       Return ONLY the JSON array. No markdown, no explanation.
     `;
