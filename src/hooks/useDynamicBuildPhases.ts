@@ -46,6 +46,11 @@ export interface UseDynamicBuildPhasesOptions {
   onBuildFailed?: (error: Error, phase?: DynamicPhase) => void;
   onPlanInitialized?: (plan: DynamicPhasePlan) => void;
   onError?: (error: Error, phase?: DynamicPhase) => void;
+  /**
+   * If true, automatically starts the next phase upon successful completion of the current one.
+   * @default false
+   */
+  autoAdvance?: boolean;
 }
 
 export interface UseDynamicBuildPhasesReturn {
@@ -114,6 +119,7 @@ export function useDynamicBuildPhases(
     onBuildFailed,
     onPlanInitialized,
     onError,
+    autoAdvance = false,
   } = options;
 
   // Track mounted state
@@ -276,12 +282,23 @@ export function useDynamicBuildPhases(
         if (manager.isComplete()) {
           setIsBuilding(false);
           onBuildComplete?.(updatedPlan);
+        } else if (autoAdvance && updatedPlan.currentPhaseNumber) {
+           // Auto-advance to next phase if enabled
+           const nextPhaseNumber = manager.getNextPhase()?.number;
+           if (nextPhaseNumber) {
+             // Use a timeout to allow UI update before starting next phase
+             setTimeout(() => {
+               if (mountedRef.current && !isPaused) {
+                 startPhase(nextPhaseNumber);
+               }
+             }, 1500);
+           }
         }
       } catch (error) {
         onError?.(error as Error);
       }
     },
-    [plan, manager, onPhaseComplete, onBuildComplete, onError]
+    [plan, manager, onPhaseComplete, onBuildComplete, onError, autoAdvance, startPhase, isPaused]
   );
 
   /**

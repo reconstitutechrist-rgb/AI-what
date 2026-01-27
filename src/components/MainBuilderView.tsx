@@ -331,6 +331,7 @@ export function MainBuilderView() {
   });
 
   const dynamicBuildPhases = useDynamicBuildPhases({
+    autoAdvance: true, // Enable continuous build flow
     onPhaseComplete: (phase, result) => {
       const notification: ChatMessage = {
         id: generateId(),
@@ -664,6 +665,31 @@ export function MainBuilderView() {
     implementationPlan,
   ]);
 
+  // Sync global dynamic phase plan to local hook manager
+  useEffect(() => {
+    if (dynamicPhasePlan && !dynamicBuildPhases.plan) {
+      dynamicBuildPhases.initializePlan(dynamicPhasePlan);
+    }
+  }, [dynamicPhasePlan, dynamicBuildPhases.plan, dynamicBuildPhases.initializePlan]);
+
+  // Auto-start build if in ACT mode and ready (Zombie State Prevention)
+  useEffect(() => {
+    if (
+      currentMode === 'ACT' &&
+      dynamicBuildPhases.plan &&
+      !dynamicBuildPhases.isBuilding &&
+      !dynamicBuildPhases.currentPhase
+    ) {
+      dynamicBuildPhases.startPhase(1);
+    }
+  }, [
+    currentMode,
+    dynamicBuildPhases.plan,
+    dynamicBuildPhases.isBuilding,
+    dynamicBuildPhases.currentPhase,
+    dynamicBuildPhases.startPhase,
+  ]);
+
   // Persist UI state to localStorage
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -819,6 +845,14 @@ export function MainBuilderView() {
                 onConceptUpdate={updateAppConceptField}
                 onStartBuilding={() => {
                   setCurrentMode('ACT');
+                  // Auto-start first phase if ready and not already building
+                  if (
+                    dynamicBuildPhases.plan &&
+                    !dynamicBuildPhases.isBuilding &&
+                    !dynamicBuildPhases.currentPhase
+                  ) {
+                    dynamicBuildPhases.startPhase(1);
+                  }
                 }}
                 buildState={{
                   uiPhases: dynamicBuildPhases.uiPhases,

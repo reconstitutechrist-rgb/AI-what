@@ -817,18 +817,19 @@ export class DynamicPhaseGenerator {
 
   /**
    * Extract features from LayoutManifest
-   * Maps semantic tags from Layout to Backend Features
+   * Analyzes the full component tree to detect features and complexity
    */
   private extractFeaturesFromLayout(manifest: LayoutManifest): FeatureClassification[] {
     const features: FeatureClassification[] = [];
+    const analysis = this.analyzeLayoutComplexity(manifest.root);
 
-    // Maps semantic tags from Layout to Backend Features
-    if (manifest.detectedFeatures.includes('Authentication')) {
+    // 1. explicit features from detection tags
+    if (manifest.detectedFeatures.includes('Authentication') || analysis.hasAuthComponents) {
       features.push({
         originalFeature: {
           id: 'layout-auth',
           name: 'Authentication System',
-          description: 'Detected from Layout Design',
+          description: 'Detected from Layout Design (Login/Signup forms)',
           priority: 'high',
         },
         domain: 'auth',
@@ -841,13 +842,13 @@ export class DynamicPhaseGenerator {
       });
     }
 
-    // Add logic for 'FileUpload', 'Stripe', etc.
+    // 2. File Upload / Storage
     if (manifest.detectedFeatures.includes('FileUpload')) {
       features.push({
         originalFeature: {
           id: 'layout-file-upload',
           name: 'File Upload System',
-          description: 'Detected from Layout Design',
+          description: 'Detected from Layout Design (Upload zones)',
           priority: 'medium',
         },
         domain: 'storage',
@@ -860,7 +861,93 @@ export class DynamicPhaseGenerator {
       });
     }
 
+    // 3. Complex UI / Dashboard Detection
+    // If layout is complex (many nodes or deep nesting), add a dedicated UI Construction phase
+    if (analysis.totalNodes > 15 || analysis.maxDepth > 4 || manifest.detectedFeatures.includes('Dashboard')) {
+      features.push({
+        originalFeature: {
+          id: 'layout-complex-ui',
+          name: 'Complex UI Implementation',
+          description: `Implement complex layout structure (${analysis.totalNodes} nodes, ${analysis.maxDepth} levels deep). Includes: ${analysis.componentTypes.join(', ')}`,
+          priority: 'high',
+        },
+        domain: 'ui-component',
+        complexity: 'complex',
+        estimatedTokens: 5000,
+        requiresOwnPhase: true,
+        suggestedPhaseName: 'UI & Layout Implementation',
+        dependencies: ['Design System Setup'],
+        keywords: ['dashboard', 'layout', 'components', 'ui'],
+      });
+    }
+
+    // 4. Video/Media Detection
+    if (analysis.hasVideo) {
+       features.push({
+        originalFeature: {
+          id: 'layout-media-player',
+          name: 'Media Player Integration',
+          description: 'Video player components detected in layout',
+          priority: 'medium',
+        },
+        domain: 'ui-component',
+        complexity: 'moderate',
+        estimatedTokens: 2500,
+        requiresOwnPhase: false,
+        suggestedPhaseName: 'Media Features',
+        dependencies: [],
+        keywords: ['video', 'player', 'media'],
+      });
+    }
+
     return features;
+  }
+
+  /**
+   * Recursive analysis of the visual node tree
+   */
+  private analyzeLayoutComplexity(root: any): {
+    totalNodes: number;
+    maxDepth: number;
+    hasAuthComponents: boolean;
+    hasVideo: boolean;
+    componentTypes: string[];
+  } {
+    let count = 0;
+    let depth = 0;
+    let hasAuth = false;
+    let hasVideo = false;
+    const types = new Set<string>();
+
+    const traverse = (node: any, currentDepth: number) => {
+      count++;
+      depth = Math.max(depth, currentDepth);
+
+      if (node.type) types.add(node.type);
+      if (node.type === 'video') hasVideo = true;
+      
+      // Semantic checks
+      if (node.semanticTag) {
+        const tag = node.semanticTag.toLowerCase();
+        if (tag.includes('login') || tag.includes('auth') || tag.includes('password')) {
+          hasAuth = true;
+        }
+      }
+
+      if (node.children && Array.isArray(node.children)) {
+        node.children.forEach((child: any) => traverse(child, currentDepth + 1));
+      }
+    };
+
+    if (root) traverse(root, 1);
+
+    return {
+      totalNodes: count,
+      maxDepth: depth,
+      hasAuthComponents: hasAuth,
+      hasVideo,
+      componentTypes: Array.from(types)
+    };
   }
 
   /**

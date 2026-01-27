@@ -300,11 +300,11 @@ export function useSendMessage(options: UseSendMessageOptions): UseSendMessageRe
         });
       } else {
         // ACT mode: Use builder expert
-        endpoint = '/api/builder/chat';
+        endpoint = '/api/ai-builder';
         const compressed = compressForACTMode(chatMessages);
 
         fetchBody = JSON.stringify({
-          message: userInput,
+          prompt: userInput,
           conversationHistory: compressed.history,
           contextSummary: compressed.summary,
           currentAppState: currentComponent

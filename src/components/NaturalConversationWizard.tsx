@@ -388,6 +388,29 @@ What would you like to build?`,
         } else {
           setSuggestedActions([]);
         }
+
+        // SPECIAL TRIGGER: Detect "I'm finished" or similar user intent (Client-side override)
+        // This ensures we always show the build button when the user explicitly asks
+        const lowerInput = messageText.toLowerCase();
+        if (
+            lowerInput.includes("i'm finished") || 
+            lowerInput.includes("im finished") || 
+            lowerInput.includes("i am finished") ||
+            lowerInput.includes("done with design") ||
+            lowerInput.includes("ready to build")
+        ) {
+            setSuggestedActions(prev => {
+                const hasBuild = prev.some(a => a.action === 'start_building');
+                if (hasBuild) return prev;
+                return [{ label: 'Build App', action: 'start_building' }, ...prev];
+            });
+            
+            // Auto-trigger phase generation if we don't have a plan yet
+            if (!phasePlan && !isGeneratingPhases) {
+                generatePhases(architectureSpec || undefined);
+            }
+        }
+
       } catch (err) {
         console.error('Chat error:', err);
         setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -434,8 +457,8 @@ What would you like to build?`,
               workflows: extractWorkflowsFromConversation(),
               // Preserve full conversation context for detail retention
               conversationContext: buildConversationContext(),
-              // Include imported layout manifest for pixel-perfect styling
-              layoutManifest: importedLayoutManifest || undefined,
+              // Include imported layout manifest OR current global manifest if not imported
+              layoutManifest: importedLayoutManifest || currentLayoutManifest || undefined,
               // Include generated backend architecture for build phase
               architectureSpec: architectureSpec || undefined,
               createdAt: new Date().toISOString(),
@@ -444,6 +467,14 @@ What would you like to build?`,
             // Clear drafts since we're completing the wizard
             clearDrafts();
             onComplete(concept, phasePlan);
+          } else if (!phasePlan) {
+            // If phases aren't ready, generate them first
+             showToast({ type: 'info', message: 'Generating implementation plan first...' });
+             generatePhases(architectureSpec || undefined).then(() => {
+                // We'll need to user to click again, or we can use an effect. 
+                // For now, simple feedback is better.
+                setSuggestedActions([{ label: 'Build App Now', action: 'start_building' }]);
+             });
           }
           break;
 

@@ -660,6 +660,8 @@ export interface DetectedComponentEnhanced {
     display?: string;
     alignment?: string;
     gap?: string;
+    /** Arbitrary CSS properties for "Zero-Preset" custom designs (e.g., gradients, filters, complex shadows) */
+    customCSS?: Record<string, string>;
   };
   /** Content information extracted from the component */
   content?: {

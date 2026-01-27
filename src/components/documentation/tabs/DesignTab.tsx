@@ -1,11 +1,6 @@
-'use client';
-
-/**
- * DesignTab - Displays layout manifest snapshot with preview
- * Updated for Gemini 3 LayoutManifest structure
- */
-
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAppStore } from '@/store/useAppStore';
 import {
   ImageIcon,
   PaletteIcon,
@@ -60,16 +55,32 @@ function ColorSwatch({ color, label }: { color: string; label: string }) {
 }
 
 export function DesignTab({ snapshot, onUpdateScreenshot }: DesignTabProps) {
+  const router = useRouter();
+  const savedLayoutManifests = useAppStore((state) => state.savedLayoutManifests);
+  const setCurrentLayoutManifest = useAppStore((state) => state.setCurrentLayoutManifest);
+  const setShowDocumentationPanel = useAppStore((state) => state.setShowDocumentationPanel);
+  const setCurrentMode = useAppStore((state) => state.setCurrentMode);
+
   // Extract design system from layoutManifest (Gemini 3 structure)
   const manifest = snapshot.layoutManifest;
   const designSystem = manifest?.designSystem;
   const colors = designSystem?.colors || {};
   const fonts = designSystem?.fonts;
 
+  const handleLoadLayout = useCallback((layout: typeof manifest) => {
+    if (!layout) return;
+    setCurrentLayoutManifest(layout);
+    // Switch to Design mode to see it
+    setCurrentMode('PLAN'); // Initial plan mode, layout builder is accessible
+    setShowDocumentationPanel(false);
+    router.push('/app/design');
+  }, [setCurrentLayoutManifest, setCurrentMode, setShowDocumentationPanel, router]);
+
   return (
     <div className="p-4">
-      {/* Preview Image */}
+      {/* Existing Preview Image Section */}
       <div className="mb-6">
+        {/* ... (existing preview code) ... */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <ImageIcon size={16} className="text-slate-400" />
@@ -104,6 +115,33 @@ export function DesignTab({ snapshot, onUpdateScreenshot }: DesignTabProps) {
           Captured: {new Date(snapshot.capturedAt).toLocaleString()}
         </div>
       </div>
+
+      {/* Saved Layouts Section */}
+      {savedLayoutManifests.length > 0 && (
+         <Section icon={<LayoutIcon size={16} />} title={`Saved Layouts (${savedLayoutManifests.length})`}>
+           <div className="space-y-2">
+             {savedLayoutManifests.map((layout, idx) => (
+               <div key={layout.id || idx} className="bg-slate-800/30 rounded-lg p-3 flex items-center justify-between group hover:bg-slate-800/50 transition-colors">
+                 <div>
+                   <div className="text-xs font-medium text-slate-300">
+                     {layout.id ? `Layout ${layout.id.slice(0, 8)}` : `Saved Layout ${idx + 1}`}
+                   </div>
+                   <div className="text-[10px] text-slate-500">
+                     {layout.designSystem?.colors ? Object.keys(layout.designSystem.colors).length : 0} Colors • {' '}
+                     {layout.detectedFeatures?.length || 0} Features
+                   </div>
+                 </div>
+                 <button
+                   onClick={() => handleLoadLayout(layout)}
+                   className="opacity-0 group-hover:opacity-100 px-3 py-1.5 bg-garden-600 hover:bg-garden-500 text-white text-xs rounded transition-all"
+                 >
+                   Load
+                 </button>
+               </div>
+             ))}
+           </div>
+         </Section>
+      )}
 
       {/* Color Palette */}
       {Object.keys(colors).length > 0 && (
