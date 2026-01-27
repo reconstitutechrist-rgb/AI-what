@@ -9,23 +9,27 @@ export async function POST(req: NextRequest) {
     switch (action) {
       case 'analyze-image':
         if (!image) return NextResponse.json({ error: 'Image required' }, { status: 400 });
-        const analysis = await service.analyzeImage(image, instructions);
+        // Use two-stage architecture for better results
+        const analysis = await service.analyzeImageTwoStage(image, instructions);
         return NextResponse.json(analysis);
 
       case 'analyze-video-flow':
-        if (!images || !Array.isArray(images)) return NextResponse.json({ error: 'Keyframes required' }, { status: 400 });
+        if (!images || !Array.isArray(images))
+          return NextResponse.json({ error: 'Keyframes required' }, { status: 400 });
         const motion = await service.analyzeVideoFlow(images, instructions);
         return NextResponse.json(motion);
 
       case 'edit-component':
         const { component, prompt } = await req.json();
-        if (!component || !prompt) return NextResponse.json({ error: 'Component and prompt required' }, { status: 400 });
+        if (!component || !prompt)
+          return NextResponse.json({ error: 'Component and prompt required' }, { status: 400 });
         const edited = await service.editComponent(component, prompt);
         return NextResponse.json(edited);
 
       case 'critique':
         const { original, current } = await req.json(); // Re-parsing just to be safe/clear
-        if (!original || !current) return NextResponse.json({ error: 'Both images required' }, { status: 400 });
+        if (!original || !current)
+          return NextResponse.json({ error: 'Both images required' }, { status: 400 });
         const critique = await service.critiqueLayout(original, current);
         return NextResponse.json(critique);
 

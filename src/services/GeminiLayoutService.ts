@@ -16,6 +16,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { DetectedComponentEnhanced, PageAnalysis, LayoutStructure } from '@/types/layoutDesign';
 import { sanitizeComponents } from '@/utils/layoutValidation';
+import type { DesignSpec } from '@/types/designSpec';
 
 // ============================================================================
 // CONFIGURATION
@@ -67,6 +68,213 @@ class GeminiLayoutService {
   }
 
   /**
+   * STAGE 1: The Architect
+   * Extract high-level design specification (colors, fonts, structure)
+   * This provides context for Stage 2 to build accurate components
+   */
+  async extractDesignSpec(imageBase64: string, instructions?: string): Promise<DesignSpec> {
+    if (!this.client) throw new Error('Gemini API not configured');
+
+    const model = this.client.getGenerativeModel({
+      model: MODEL_FLASH,
+      generationConfig: { responseMimeType: 'application/json' },
+    });
+
+    const prompt = `
+      You are "The Architect" - a design system expert with exceptional vision.
+      
+      USER INSTRUCTIONS: ${instructions || 'Analyze this design.'}
+
+      YOUR TASK: Extract the design system specification from this screenshot.
+      DO NOT detect individual components yet. Focus on the DESIGN SYSTEM:
+
+      Return this JSON structure:
+      {
+        "colorPalette": {
+          "primary": "<hex>",
+          "secondary": "<hex>", 
+          "accent": "<hex>",
+          "background": "<hex>",
+          "surface": "<hex>",
+          "text": "<hex>",
+          "textMuted": "<hex>",
+          "border": "<hex>",
+          "additional": [
+            {"name": "button-bg", "hex": "#...", "usage": "primary buttons"},
+            {"name": "header-bg", "hex": "#...", "usage": "header background"}
+          ]
+        },
+        "typography": {
+          "headingFont": "font name or 'Inter' if unsure",
+          "bodyFont": "font name or 'Inter' if unsure",
+          "fontSizes": {
+            "h1": "48px",
+            "h2": "36px",
+            "h3": "24px",
+            "body": "16px",
+            "small": "14px"
+          },
+          "fontWeights": {
+            "heading": 700,
+            "body": 400,
+            "bold": 600
+          }
+        },
+        "spacing": {
+          "unit": 8,
+          "scale": [4, 8, 12, 16, 24, 32, 48, 64],
+          "containerPadding": "24px",
+          "sectionGap": "48px"
+        },
+        "structure": {
+          "type": "header-top|sidebar-left|sidebar-right|centered|split|dashboard",
+          "hasHeader": true/false,
+          "hasSidebar": true/false,
+          "hasFooter": true/false,
+          "mainContentWidth": "narrow|standard|wide|full"
+        },
+        "componentTypes": [
+          {"type": "hero", "count": 1, "locations": ["top"]},
+          {"type": "navigation", "count": 1, "locations": ["top"]},
+          {"type": "cards", "count": 3, "locations": ["middle"]}
+        ],
+        "effects": {
+          "borderRadius": "8px",
+          "shadows": "subtle",
+          "hasGradients": false,
+          "hasBlur": false
+        },
+        "vibe": "Modern and minimalist" or "Bold and colorful" etc,
+        "confidence": 0.9
+      }
+
+      FOCUS: Extract the DESIGN SYSTEM, not individual components.
+      Return ONLY valid JSON. No markdown, no explanation.
+    `;
+
+    const imagePart = this.fileToPart(imageBase64);
+    const result = await model.generateContent([prompt, imagePart]);
+    const response = result.response;
+
+    try {
+      return JSON.parse(response.text()) as DesignSpec;
+    } catch (e) {
+      console.error('[GeminiLayoutService] Failed to parse DesignSpec', e);
+      throw new Error('Failed to extract design specification');
+    }
+  }
+
+  /**
+   * STAGE 2: The Engineer
+   * Build specific component list using the DesignSpec from Stage 1
+   * Colors are provided, so no guessing needed
+   */
+  async buildComponentsFromSpec(
+    imageBase64: string,
+    designSpec: DesignSpec,
+    instructions?: string
+  ): Promise<DetectedComponentEnhanced[]> {
+    if (!this.client) throw new Error('Gemini API not configured');
+
+    const model = this.client.getGenerativeModel({
+      model: MODEL_FLASH,
+      generationConfig: { responseMimeType: 'application/json' },
+    });
+
+    const prompt = `
+      You are "The Engineer" - you build pixel-perfect component specifications.
+
+      USER INSTRUCTIONS: ${instructions || 'Build component list.'}
+
+      You have been given this DESIGN SPEC from Stage 1 (The Architect):
+      ${JSON.stringify(designSpec, null, 2)}
+
+      YOUR TASK: Build the SPECIFIC component list.
+      Use the colors from the DesignSpec above - DO NOT guess or invent colors.
+
+      For each visible element, return:
+      {
+        "id": "descriptive-id",
+        "type": "header|logo|navigation|hero|button|etc",
+        "bounds": {
+          "top": <0-100 percentage>,
+          "left": <0-100 percentage>,
+          "width": <0-100 percentage>,
+          "height": <0-100 percentage>
+        },
+        "style": {
+          "backgroundColor": "<USE COLOR FROM DESIGN SPEC>",
+          "textColor": "<USE COLOR FROM DESIGN SPEC>",
+          "fontSize": "<USE SIZE FROM DESIGN SPEC>",
+          "fontWeight": "<USE WEIGHT FROM DESIGN SPEC>",
+          "padding": "<USE SPACING FROM DESIGN SPEC>",
+          "borderRadius": "<USE FROM DESIGN SPEC>",
+          "shadow": "<USE FROM DESIGN SPEC IF APPLICABLE>"
+        },
+        "content": {
+          "text": "<ACTUAL TEXT YOU SEE>",
+          "hasImage": true/false,
+          "hasIcon": true/false
+        },
+        "confidence": 0.9
+      }
+
+      CRITICAL RULES:
+      1. **USE DESIGN SPEC COLORS**: Match elements to colors from designSpec.colorPalette
+      2. **USE DESIGN SPEC TYPOGRAPHY**: Match text to fontSizes from designSpec.typography
+      3. **USE DESIGN SPEC SPACING**: Use spacing.scale values for padding/margins
+      4. **EXTRACT ALL TEXT**: Read and include all visible text content
+      5. **BE EXHAUSTIVE**: Find 20-50+ components
+
+      Return ONLY a JSON array of components. No markdown, no explanation.
+    `;
+
+    const imagePart = this.fileToPart(imageBase64);
+    const result = await model.generateContent([prompt, imagePart]);
+    const response = result.response;
+
+    try {
+      const rawData = JSON.parse(response.text());
+      const { components, errors } = sanitizeComponents(rawData);
+      if (errors.length > 0) {
+        console.warn('[GeminiLayoutService] Validation issues in buildComponentsFromSpec:', errors);
+      }
+      return components;
+    } catch (e) {
+      console.error('[GeminiLayoutService] Failed to parse components', e);
+      return [];
+    }
+  }
+
+  /**
+   * Two-Stage Analysis: Extract DesignSpec, then build components
+   * This is the new recommended approach
+   */
+  async analyzeImageTwoStage(
+    imageBase64: string,
+    instructions?: string
+  ): Promise<DetectedComponentEnhanced[]> {
+    console.log('[GeminiLayoutService] Starting two-stage analysis...');
+
+    // Stage 1: Extract design specification
+    console.log('[GeminiLayoutService] Stage 1: Extracting DesignSpec...');
+    const designSpec = await this.extractDesignSpec(imageBase64, instructions);
+    console.log('[GeminiLayoutService] DesignSpec extracted:', {
+      colors: designSpec.colorPalette.primary,
+      structure: designSpec.structure.type,
+      componentTypes: designSpec.componentTypes.length,
+    });
+
+    // Stage 2: Build components using the spec
+    console.log('[GeminiLayoutService] Stage 2: Building components from spec...');
+    const components = await this.buildComponentsFromSpec(imageBase64, designSpec, instructions);
+    console.log('[GeminiLayoutService] Built', components.length, 'components');
+
+    return components;
+  }
+
+  /**
+   * LEGACY: Single-stage analysis (kept for backward compatibility)
    * Analyze an image to extract pixel-perfect layout components
    * Uses Gemini 3 Flash for speed and high context window
    */
