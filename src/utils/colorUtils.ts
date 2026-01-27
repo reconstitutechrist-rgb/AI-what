@@ -40,6 +40,33 @@ export function normalizeColor(color: string | undefined): string {
 }
 
 /**
+ * Check if a color is transparent or has low opacity
+ */
+export function isTransparent(color: string | undefined): boolean {
+  if (!color) return false;
+
+  const normalized = color.toLowerCase().trim();
+
+  // Named transparent
+  if (normalized === 'transparent') return true;
+
+  // RGBA with alpha < 0.3
+  const rgbaMatch = normalized.match(/rgba?\(\d+,\s*\d+,\s*\d+,?\s*([\d.]+)?\)/);
+  if (rgbaMatch) {
+    const alpha = rgbaMatch[1] ? parseFloat(rgbaMatch[1]) : 1;
+    return alpha < 0.3;
+  }
+
+  // Hex with alpha channel (#00000000 or #ffffff00)
+  if (/^#[0-9a-f]{8}$/i.test(normalized)) {
+    const alpha = parseInt(normalized.slice(7, 9), 16);
+    return alpha < 77; // 77 is ~30% of 255
+  }
+
+  return false;
+}
+
+/**
  * Check if a color is effectively white (or very light)
  */
 export function isWhiteOrLight(color: string | undefined): boolean {
@@ -61,8 +88,12 @@ export function isWhiteOrLight(color: string | undefined): boolean {
 }
 
 /**
- * Get a visible fallback color for white/light backgrounds
+ * Get a visible fallback color for white/light/transparent backgrounds
  */
 export function getVisibleFallback(color: string | undefined): string {
+  // Handle transparent colors first
+  if (isTransparent(color)) return '#f3f4f6'; // light gray for transparent
+
+  // Handle white/light colors
   return isWhiteOrLight(color) ? '#e5e7eb' : color || '#f3f4f6';
 }

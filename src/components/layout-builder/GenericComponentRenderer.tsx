@@ -46,8 +46,22 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
       sidebar: 80,
       footer: 50,
       hero: 20,
+      'main-canvas': 1, // Container should be behind everything
+      container: 1,
     };
     return zIndexMap[componentType] || 10;
+  };
+
+  // Helper to check if component is a full-viewport container
+  const isFullViewportContainer = (): boolean => {
+    const containerTypes = ['main-canvas', 'container', 'content-section'];
+    return (
+      containerTypes.includes(type as string) &&
+      bounds?.top === 0 &&
+      bounds?.left === 0 &&
+      bounds?.width >= 99 &&
+      bounds?.height >= 99
+    );
   };
 
   // 1. Dynamic Style Generation (The Zero-Preset Logic)
@@ -102,6 +116,9 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
 
     // Smart z-index based on component type
     zIndex: component.zIndex ?? getDefaultZIndex(type),
+
+    // For full-viewport containers, allow clicks to pass through to children
+    pointerEvents: isFullViewportContainer() ? 'none' : 'auto',
   };
 
   // 2. Click Handler for Vision Loop
@@ -129,7 +146,14 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
         </div>
       );
     // Fallback: show component type label for visibility during design
-    return <span className="text-xs text-gray-400 opacity-50 select-none">{type}</span>;
+    // Make it more prominent for debugging
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded border border-gray-300 select-none">
+          {type.replace(/-/g, ' ').toUpperCase()}
+        </span>
+      </div>
+    );
   };
 
   // 5. Early returns for void elements and special cases
