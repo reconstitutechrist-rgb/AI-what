@@ -50,13 +50,8 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
     minHeight: '50px', // Ensure minimum visible height
     overflow: 'hidden', // Prevent content overflow
 
-    // Visuals (Arbitrary Values from AI)
-    backgroundColor: style.backgroundColor || 'rgba(59, 130, 246, 0.1)', // Light blue fallback for visibility
-    // DEBUG: Always show visible border
-    border: '2px solid #3b82f6', // Blue border for visibility during development
+    // Visuals (Arbitrary Values from AI) - these can be overridden by debug styles below
     color: style.textColor,
-    borderColor: style.borderColor,
-    borderWidth: style.borderWidth,
     borderRadius: style.borderRadius,
     padding: style.padding,
     fontSize: style.fontSize,
@@ -75,6 +70,10 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
         : style.alignment === 'between'
           ? 'space-between'
           : 'flex-start',
+
+    // DEBUG: Force visible styling - these come LAST to ensure visibility
+    backgroundColor: 'rgba(59, 130, 246, 0.15)', // Light blue background
+    border: '3px solid #3b82f6', // Thick blue border
 
     // Zero-Preset Override: Apply arbitrary CSS detected by AI
     ...style.customCSS,
