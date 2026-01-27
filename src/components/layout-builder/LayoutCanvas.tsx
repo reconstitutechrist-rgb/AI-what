@@ -53,6 +53,9 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
   const [dragActive, setDragActive] = useState(false);
   const layoutRef = useRef<HTMLDivElement>(null);
 
+  // Debug: Log when components change
+  console.log('[LayoutCanvas] Rendering with', components.length, 'components');
+
   // Helper to find selected component data
   const selectedComponent = components.find((c) => c.id === selectedId);
 

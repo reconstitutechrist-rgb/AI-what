@@ -77,11 +77,23 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
         }),
       });
 
-      if (!response.ok) throw new Error('Analysis failed');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[useLayoutBuilder] Analysis failed:', response.status, errorText);
+        throw new Error(`Analysis failed: ${response.status}`);
+      }
 
       const detected = await response.json();
+      console.log('[useLayoutBuilder] Raw API response:', detected);
+
       // Secondary validation layer - sanitize components before setting state
       const { components: validatedComponents, errors } = sanitizeComponents(detected);
+      console.log(
+        '[useLayoutBuilder] Validated components:',
+        validatedComponents.length,
+        'components'
+      );
+
       if (errors.length > 0) {
         console.warn('[useLayoutBuilder] Components sanitized:', errors);
       }

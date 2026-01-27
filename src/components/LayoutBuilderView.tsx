@@ -66,6 +66,9 @@ export const LayoutBuilderView: React.FC = () => {
     canRedo,
   } = useLayoutBuilder();
 
+  // Debug: Log component count changes
+  console.log('[LayoutBuilderView] components:', components.length, 'isAnalyzing:', isAnalyzing);
+
   // Handle sending a text message (no media)
   const handleSendMessage = useCallback(
     (message: string, media: UploadedMedia[]) => {
