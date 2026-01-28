@@ -1,5 +1,21 @@
 # AI App Builder - Project Memory
 
+## CRITICAL: Read Master Context First
+
+> **Before doing ANY work on this codebase, read [`MASTER_CONTEXT_VERIFIED.md`](MASTER_CONTEXT_VERIFIED.md)**
+>
+> This codebase is too large for AI context windows. The Master Context document provides:
+>
+> - **Verified file counts and line counts** (audited and accurate)
+> - **Dependency hierarchy** (which files break what when modified)
+> - **Critical files list** (DO NOT BREAK these)
+> - **Import rules** (architectural boundaries)
+> - **Known risks and tech debt**
+>
+> **Treat `MASTER_CONTEXT_VERIFIED.md` as your senior programmer briefing.**
+
+---
+
 ## Overview
 
 Personal AI App Builder - Build React components and apps using Claude AI with natural conversation, visual design, and full-stack support.
@@ -145,7 +161,13 @@ OPENAI_API_KEY=               # DALL-E API key
 
 ## See Also
 
-Check `.claude/rules/` for domain-specific documentation:
+### Primary Context Document (READ FIRST)
+
+- **[`MASTER_CONTEXT_VERIFIED.md`](MASTER_CONTEXT_VERIFIED.md)** - Verified codebase stats, dependency hierarchy, critical files, import rules. **This is your source of truth for project structure.**
+
+### Domain-Specific Documentation
+
+Check `.claude/rules/` for detailed documentation:
 
 - `layout-builder.md` - Layout builder patterns
 - `conversation-wizard.md` - Planning wizard flow
@@ -155,6 +177,79 @@ Check `.claude/rules/` for domain-specific documentation:
 - `testing.md` - Testing conventions
 - `services-layer.md` - Context/parsing services
 - `utilities.md` - Utility functions and AST
+
+---
+
+## Keeping Master Context Updated
+
+**`MASTER_CONTEXT_VERIFIED.md` must stay accurate.** When you make changes that affect the documented stats, update the document.
+
+### When to Update Master Context
+
+Update `MASTER_CONTEXT_VERIFIED.md` after ANY of these changes:
+
+| Change Type                            | What to Update                                   |
+| -------------------------------------- | ------------------------------------------------ |
+| Add/remove `.ts` or `.tsx` files       | Quick Stats → TypeScript/TSX Files count         |
+| Add/remove API route (`route.ts`)      | Quick Stats → API Route Handlers count           |
+| Add/remove hooks in `src/hooks/`       | Quick Stats → Custom Hooks count                 |
+| Add/remove services in `src/services/` | Quick Stats → Service Classes count              |
+| Add/modify code in `src/types/`        | Quick Stats → Type Definitions line count        |
+| Add/modify code in `src/utils/`        | Quick Stats → Utilities line count               |
+| Modify a Critical File                 | Critical Files table → update line count         |
+| Add new file with 5+ dependents        | Consider adding to Dependency Hierarchy          |
+| Create file over 500 lines             | Consider adding to Critical Files or Known Risks |
+
+### How to Verify and Update
+
+**For file counts:**
+
+```bash
+# TypeScript/TSX files
+find src -name "*.ts" -o -name "*.tsx" | wc -l
+
+# API routes
+find src/app/api -name "route.ts" | wc -l
+
+# Hooks (excluding tests and index)
+find src/hooks -name "*.ts" ! -name "*.test.ts" ! -name "index.ts" | wc -l
+
+# Services (excluding tests and index)
+find src/services -name "*.ts" ! -name "*.test.ts" ! -name "index.ts" | wc -l
+```
+
+**For line counts:**
+
+```bash
+# Types directory total
+find src/types -name "*.ts" ! -name "*.test.ts" -exec wc -l {} \; | awk '{sum+=$1} END {print sum}'
+
+# Utils directory total
+find src/utils -name "*.ts" ! -name "*.test.ts" -exec wc -l {} \; | awk '{sum+=$1} END {print sum}'
+
+# Specific file
+wc -l src/path/to/file.ts
+```
+
+**For dependency counts:**
+
+```bash
+# Count files importing a type/module
+grep -r "from.*moduleName\|import.*moduleName" src --include="*.ts" --include="*.tsx" -l | wc -l
+```
+
+### Update Protocol
+
+1. **After significant changes**, run the relevant verification commands
+2. **Compare** actual values with documented values
+3. **Update** `MASTER_CONTEXT_VERIFIED.md` if numbers differ
+4. **Note the date** in the document status line if making updates
+
+### What NOT to Update
+
+- Don't update for minor line count changes (±10 lines in large files)
+- Don't update during work-in-progress - update when feature is complete
+- Don't guess - always verify with actual commands before updating
 
 ---
 
@@ -228,10 +323,11 @@ If asked to review or analyze something, go deep by default. Surface-level summa
 
 ### Before Making Changes
 
-1. **Read before editing** - Always read the full file before modifying. Understand existing patterns.
-2. **Check dependencies** - Use grep to find all usages of functions/types before changing signatures.
-3. **Understand the data flow** - Trace how data moves: AppConcept → PhaseGenerator → PhaseExecutionManager → Preview
-4. **Respect existing patterns** - Match the style of surrounding code. Don't introduce new patterns without reason.
+1. **Consult Master Context** - Check [`MASTER_CONTEXT_VERIFIED.md`](MASTER_CONTEXT_VERIFIED.md) for dependency counts and critical file warnings before touching any file.
+2. **Read before editing** - Always read the full file before modifying. Understand existing patterns.
+3. **Check dependencies** - Use grep to find all usages of functions/types before changing signatures. Cross-reference with Master Context dependency hierarchy.
+4. **Understand the data flow** - Trace how data moves: AppConcept → PhaseGenerator → PhaseExecutionManager → Preview
+5. **Respect existing patterns** - Match the style of surrounding code. Don't introduce new patterns without reason.
 
 ### When Modifying Code
 
@@ -246,6 +342,7 @@ If asked to review or analyze something, go deep by default. Surface-level summa
 2. Run `npm run lint` - Fix any lint issues
 3. Run `npm test` - All tests must pass
 4. Test in browser if UI changes - Verify the change works visually
+5. **Update Master Context if needed** - If you added/removed files or significantly changed critical file line counts, update `MASTER_CONTEXT_VERIFIED.md` (see "Keeping Master Context Updated" section)
 
 ## Common Mistakes to Avoid
 
@@ -364,6 +461,13 @@ const result = modifyFunction(code, 'old', { rename: 'new' });
 - [ ] All usages updated
 - [ ] Optional fields have default handling
 - [ ] No breaking changes to existing data
+
+### For Structural Changes (adding/removing files)
+
+- [ ] `MASTER_CONTEXT_VERIFIED.md` file counts updated if files added/removed
+- [ ] `MASTER_CONTEXT_VERIFIED.md` line counts updated if critical files changed significantly
+- [ ] New high-dependency files added to Dependency Hierarchy if applicable
+- [ ] New large files (500+ lines) added to Critical Files or Known Risks if applicable
 
 ---
 
@@ -823,11 +927,12 @@ Before any implementation:
 
 Before making ANY changes:
 
-1. Read the entire file(s) being modified
-2. Identify all related files and their relationships
-3. Understand the full workflow/pipeline the code is part of
-4. Map dependencies and connections
-5. Identify architectural patterns already in use
+1. **Consult `MASTER_CONTEXT_VERIFIED.md`** - Check if the file you're modifying is in the Critical Files list or has high dependency counts
+2. Read the entire file(s) being modified
+3. Identify all related files and their relationships
+4. Understand the full workflow/pipeline the code is part of
+5. Map dependencies and connections
+6. Identify architectural patterns already in use
 
 ### Step 2: Plan the Changes
 
