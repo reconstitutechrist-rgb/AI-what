@@ -132,13 +132,13 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
       };
     }
 
-    if (layout.type === 'grid') {
+    if (layoutType === 'grid') {
       return {
         display: 'grid',
-        gridTemplateColumns: layout.columns || 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: layout.gap,
-        justifyItems: mapAlign(layout.justify),
-        alignItems: mapAlign(layout.align),
+        gridTemplateColumns: layout?.columns || 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: layout?.gap,
+        justifyItems: mapAlign(layout?.justify),
+        alignItems: mapAlign(layout?.align),
       };
     }
 
