@@ -40,31 +40,19 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
   selectedId,
   depth = 0,
 }) => {
-  const { id, type, style = {}, content, bounds = DEFAULT_BOUNDS, role, layout, parentId, children, isInteractive } = component;
+  const { id, type, style = {}, content, bounds = DEFAULT_BOUNDS, role, layout, parentId, children } = component;
   const isSelected = selectedId === id;
   const isContainer = role === 'container' || (children && children.length > 0);
   const isOverlay = role === 'overlay' || ['modal', 'dropdown', 'tooltip'].includes(type);
 
-  // Determine positioning strategy
   // Determine positioning strategy
   const getPositionStrategy = (): 'absolute' | 'relative' => {
     // Overlays always use absolute positioning
     if (isOverlay) return 'absolute';
     // Root components (no parent) use absolute positioning
     if (!parentId) return 'absolute';
-
-    // Check parent layout type to determine if we should flow or float
-    if (componentMap && parentId) {
-      const parent = componentMap.get(parentId);
-      // If parent has explicit flex/grid layout, use relative (flow) positioning
-      if (parent?.layout?.type === 'flex' || parent?.layout?.type === 'grid') {
-        return 'relative';
-      }
-    }
-    
-    // Fallback: If parent has no layout engine (or is unknown), use absolute positioning
-    // This ensures components from legacy/imperfect AI analysis still appear in correct spots
-    return 'absolute';
+    // Children use relative positioning (parent handles layout via flex/grid)
+    return 'relative';
   };
 
   const positionStrategy = getPositionStrategy();
@@ -127,16 +115,20 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
 
   // Get container layout styles (flex/grid)
   const getContainerLayoutStyles = (): React.CSSProperties => {
-    if (!layout || layout.type === 'none') return {};
+    // If no layout is specified but it's a container, use valid defaults
+    // This prevents "layout: undefined" components from collapsing their children
+    const layoutType = layout?.type || 'flex';
+    
+    if (layoutType === 'none') return {};
 
-    if (layout.type === 'flex') {
+    if (layoutType === 'flex') {
       return {
         display: 'flex',
-        flexDirection: layout.direction || 'row',
-        gap: layout.gap,
-        justifyContent: mapJustify(layout.justify),
-        alignItems: mapAlign(layout.align),
-        flexWrap: layout.wrap ? 'wrap' : 'nowrap',
+        flexDirection: layout?.direction || 'column', // Safe default: vertical stack
+        gap: layout?.gap || '1rem',
+        justifyContent: mapJustify(layout?.justify),
+        alignItems: mapAlign(layout?.align),
+        flexWrap: layout?.wrap ? 'wrap' : 'nowrap',
       };
     }
 
@@ -179,9 +171,7 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
     // Ensure visibility
     minWidth: '20px',
     minHeight: '20px',
-    
-    // Overflow logic - respect explicit overflow, default to visible for containers
-    overflow: style.overflow || (isContainer ? 'visible' : 'hidden'),
+    overflow: isContainer ? 'visible' : 'hidden',
 
     // Visuals - trust AI-provided colors, no hardcoded fallbacks
     color: style.textColor,
@@ -191,30 +181,6 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
     fontWeight: style.fontWeight as React.CSSProperties['fontWeight'],
     textAlign: style.textAlign as React.CSSProperties['textAlign'],
     boxShadow: style.shadow,
-    
-    // Typography nuances
-    textTransform: style.textTransform as React.CSSProperties['textTransform'],
-    lineHeight: style.lineHeight,
-    letterSpacing: style.letterSpacing,
-    
-    // Cursor
-    cursor: style.cursor || (isInteractive ? 'pointer' : undefined),
-
-    // Backgrounds (Images & Gradients)
-    backgroundImage: style.backgroundImage,
-    backgroundSize: style.backgroundSize,
-    backgroundPosition: style.backgroundPosition,
-    backgroundRepeat: style.backgroundRepeat,
-
-    // Borders (Style support)
-    borderStyle: style.borderStyle || (style.borderWidth ? 'solid' : undefined),
-    borderWidth: style.borderWidth,
-    borderColor: style.borderColor || 'transparent',
-
-    // Visual Effects & Transforms
-    opacity: style.opacity,
-    backdropFilter: style.backdropFilter,
-    transform: style.transform,
 
     // Container layout (flex/grid) - applies to containers with children
     ...(isContainer ? getContainerLayoutStyles() : {
@@ -231,6 +197,9 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
       gap: style.gap,
     }),
 
+    // Apply custom CSS first
+    ...style.customCSS,
+
     // Apply background color - trust AI-provided colors, use transparent for undefined
     backgroundColor: (() => {
       const bgColor = (style.customCSS?.backgroundColor as string) || style.backgroundColor;
@@ -242,6 +211,11 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
       return bgColor;
     })(),
 
+    // Only add border if explicitly specified in style
+    border: style.borderWidth
+      ? `${style.borderWidth} solid ${style.borderColor || 'transparent'}`
+      : undefined,
+
     // Smart z-index based on component type (don't use index - components are sorted by top, not z-order)
     zIndex: component.zIndex ?? getDefaultZIndex(type),
 
@@ -250,10 +224,6 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
 
     // Debug outline in development to see all component positions
     outline: process.env.NODE_ENV === 'development' ? '1px dashed rgba(255, 0, 0, 0.3)' : undefined,
-    
-    // CRITICAL for Zero-Preset Architecture:
-    // Custom CSS must be applied LAST to override any default behavior
-    ...style.customCSS,
   };
 
   // 2. Click Handler for Vision Loop
@@ -441,18 +411,9 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
     if (hasIconContent && hasTextContent) {
       const iconPosition = content?.iconPosition || 'left';
       const isReversed = iconPosition === 'right';
-      const isVertical = iconPosition === 'top' || iconPosition === 'bottom';
-      const isVerticalReversed = iconPosition === 'bottom';
 
       return (
-        <div 
-          className={cn(
-            'flex gap-2',
-            isVertical 
-              ? (isVerticalReversed ? 'flex-col-reverse items-center text-center' : 'flex-col items-center text-center')
-              : (isReversed ? 'flex-row-reverse items-center' : 'flex-row items-center')
-          )}
-        >
+        <div className={`flex items-center gap-2 ${isReversed ? 'flex-row-reverse' : 'flex-row'}`}>
           {renderIcon()}
           <span>{content.text}</span>
         </div>

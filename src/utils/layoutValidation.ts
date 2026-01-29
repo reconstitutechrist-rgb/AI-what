@@ -720,13 +720,127 @@ export function repairOrphans(
  * Migrate a flat layout to hierarchical structure.
  * Infers parent-child relationships from bounds containment.
  */
+/**
+ * Infer layout configuration for containers that are missing it.
+ * Analyzes child positions to determine if they look like a Row (flex-row), Column (flex-col), or Grid.
+ */
+export function inferContainerLayouts(
+  components: DetectedComponentEnhanced[]
+): DetectedComponentEnhanced[] {
+  // Create mutable copy
+  const updatedComponents = components.map((c) => ({ ...c }));
+  const componentMap = new Map(updatedComponents.map((c) => [c.id, c]));
+
+  // Process all containers
+  for (const component of updatedComponents) {
+    if (
+      (component.role === 'container' || (component.children && component.children.length > 0)) &&
+      (!component.layout || component.layout.type === 'none')
+    ) {
+      const children = (component.children || [])
+        .map((id) => componentMap.get(id))
+        .filter((c): c is DetectedComponentEnhanced => !!c);
+
+      if (children.length === 0) continue;
+
+      // Analyze children bounds to guess layout
+      // Sort children by top/left
+      const byTop = [...children].sort((a, b) => a.bounds.top - b.bounds.top);
+      const byLeft = [...children].sort((a, b) => a.bounds.left - b.bounds.left);
+
+      // Check vertical stacking (Column)
+      // Check if items essentially stack on top of each other
+      let isVertical = true;
+      for (let i = 0; i < byTop.length - 1; i++) {
+        const current = byTop[i];
+        const next = byTop[i + 1];
+        // If there's significant horizontal overlap, they might be stacked vertically
+        // But if they are side-by-side (no vertical overlap), it's not a purely vertical stack
+        if (current.bounds.top + current.bounds.height <= next.bounds.top + 5) {
+          // Clean vertical gap
+        } else {
+          // Check horizontal alignment
+          const horizontalOverlap = Math.max(
+            0,
+            Math.min(current.bounds.left + current.bounds.width, next.bounds.left + next.bounds.width) -
+              Math.max(current.bounds.left, next.bounds.left)
+          );
+          if (horizontalOverlap < Math.min(current.bounds.width, next.bounds.width) * 0.5) {
+            // Not enough horizontal overlap to be considered a column
+            isVertical = false;
+            break;
+          }
+        }
+      }
+
+      // Check horizontal arrangement (Row)
+      // Similar logic for row
+      let isHorizontal = true;
+      for (let i = 0; i < byLeft.length - 1; i++) {
+        const current = byLeft[i];
+        const next = byLeft[i + 1];
+        
+        if (current.bounds.left + current.bounds.width <= next.bounds.left + 5) {
+          // Clean horizontal gap
+        } else {
+           const verticalOverlap = Math.max(
+            0,
+            Math.min(current.bounds.top + current.bounds.height, next.bounds.top + next.bounds.height) -
+              Math.max(current.bounds.top, next.bounds.top)
+          );
+          if (verticalOverlap < Math.min(current.bounds.height, next.bounds.height) * 0.5) {
+            isHorizontal = false;
+            break;
+          }
+        }
+      }
+
+      // Assign layout
+      if (isVertical) {
+        component.layout = {
+          type: 'flex',
+          direction: 'column',
+          gap: '16px', // Reasonable default
+          align: 'stretch',
+          justify: 'start',
+        };
+      } else if (isHorizontal) {
+        component.layout = {
+          type: 'flex',
+          direction: 'row',
+          gap: '16px',
+          align: 'center',
+          justify: 'start',
+          wrap: true,
+        };
+      } else {
+        // Grid or unknown - default to vertical flow to prevent collapse, but grid is safer for mixed
+        // For now, let's fallback to relative flow (defaults to block/vertical in CSS) 
+        // by setting a generic column layout unless explicitly grid
+         component.layout = {
+          type: 'flex',
+          direction: 'column',
+          gap: '16px',
+        };
+      }
+    }
+  }
+
+  return updatedComponents;
+}
+
+/**
+ * Migrate a flat layout to hierarchical structure.
+ * Infers parent-child relationships from bounds containment AND infers layout types.
+ */
 export function migrateToHierarchical(
   components: DetectedComponentEnhanced[]
 ): DetectedComponentEnhanced[] {
   // If already hierarchical, return as-is
   const hasHierarchy = components.some((c) => c.parentId || (c.children && c.children.length > 0));
   if (hasHierarchy) {
-    return components;
+    // Even if hierarchy exists, we might need to infer layout if missing
+    return inferContainerLayouts(components);
   }
 
   // Container types that can have children
@@ -794,5 +908,6 @@ export function migrateToHierarchical(
     }
   }
 
-  return migratedComponents;
+  // Final Pass: Infer layout strategies for all containers
+  return inferContainerLayouts(migratedComponents);
 }
