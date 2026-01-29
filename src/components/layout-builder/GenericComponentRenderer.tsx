@@ -19,9 +19,16 @@ import { getVisibleFallback, type ColorContext } from '@/utils/colorUtils';
 
 interface GenericComponentRendererProps {
   component: DetectedComponentEnhanced;
+  /** Map of all components for recursive child lookup */
+  componentMap?: Map<string, DetectedComponentEnhanced>;
   onSelect?: (id: string) => void;
   selectedId?: string | null;
+  /** Nesting depth for debugging and recursion limits */
+  depth?: number;
 }
+
+/** Maximum nesting depth to prevent infinite recursion */
+const MAX_DEPTH = 10;
 
 // Default bounds for components with missing/invalid bounds data
 // Using smaller defaults to prevent full-width stacking
@@ -29,11 +36,27 @@ const DEFAULT_BOUNDS = { top: 0, left: 0, width: 20, height: 10 };
 
 export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> = ({
   component,
+  componentMap,
   onSelect,
   selectedId,
+  depth = 0,
 }) => {
-  const { id, type, style = {}, content, bounds = DEFAULT_BOUNDS } = component;
+  const { id, type, style = {}, content, bounds = DEFAULT_BOUNDS, role, layout, parentId, children } = component;
   const isSelected = selectedId === id;
+  const isContainer = role === 'container' || (children && children.length > 0);
+  const isOverlay = role === 'overlay' || ['modal', 'dropdown', 'tooltip'].includes(type);
+
+  // Determine positioning strategy
+  const getPositionStrategy = (): 'absolute' | 'relative' => {
+    // Overlays always use absolute positioning
+    if (isOverlay) return 'absolute';
+    // Root components (no parent) use absolute positioning
+    if (!parentId) return 'absolute';
+    // Children use relative positioning (parent handles layout via flex/grid)
+    return 'relative';
+  };
+
+  const positionStrategy = getPositionStrategy();
 
   // DEBUG: Log component bounds to diagnose visibility issues (dev only)
   if (process.env.NODE_ENV === 'development') {
@@ -67,42 +90,109 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
     );
   };
 
+  // Map justify values to CSS
+  const mapJustify = (justify?: string): string => {
+    const map: Record<string, string> = {
+      start: 'flex-start',
+      center: 'center',
+      end: 'flex-end',
+      between: 'space-between',
+      around: 'space-around',
+      evenly: 'space-evenly',
+    };
+    return map[justify || 'start'] || 'flex-start';
+  };
+
+  // Map align values to CSS
+  const mapAlign = (align?: string): string => {
+    const map: Record<string, string> = {
+      start: 'flex-start',
+      center: 'center',
+      end: 'flex-end',
+      stretch: 'stretch',
+    };
+    return map[align || 'stretch'] || 'stretch';
+  };
+
+  // Get container layout styles (flex/grid)
+  const getContainerLayoutStyles = (): React.CSSProperties => {
+    if (!layout || layout.type === 'none') return {};
+
+    if (layout.type === 'flex') {
+      return {
+        display: 'flex',
+        flexDirection: layout.direction || 'row',
+        gap: layout.gap || '8px',
+        justifyContent: mapJustify(layout.justify),
+        alignItems: mapAlign(layout.align),
+        flexWrap: layout.wrap ? 'wrap' : 'nowrap',
+      };
+    }
+
+    if (layout.type === 'grid') {
+      return {
+        display: 'grid',
+        gridTemplateColumns: layout.columns || 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: layout.gap || '16px',
+        justifyItems: mapAlign(layout.justify),
+        alignItems: mapAlign(layout.align),
+      };
+    }
+
+    return {};
+  };
+
   // 1. Dynamic Style Generation (The Zero-Preset Logic)
   // Maps API styles to inline styles or atomic classes
-  // Uses absolute positioning with bounds for precise layout replication
+  // Uses hybrid positioning: absolute for roots/overlays, relative for children
   const dynamicStyles: React.CSSProperties = {
-    // Layout - use absolute positioning to place components precisely based on AI-detected bounds
-    position: 'absolute',
-    top: `${bounds?.top ?? 0}%`,
-    left: `${bounds?.left ?? 0}%`,
-    width: style?.display === 'inline' ? 'auto' : `${bounds?.width ?? 100}%`,
-    height: `${bounds?.height ?? 50}%`,
+    // Layout - position strategy depends on hierarchy
+    position: positionStrategy,
+
+    // Absolute positioning for roots and overlays
+    ...(positionStrategy === 'absolute'
+      ? {
+          top: `${bounds?.top ?? 0}%`,
+          left: `${bounds?.left ?? 0}%`,
+          width: style?.display === 'inline' ? 'auto' : `${bounds?.width ?? 100}%`,
+          height: `${bounds?.height ?? 50}%`,
+        }
+      : {
+          // Relative positioning for children - let parent flex/grid handle layout
+          // Use flex property for sizing within flex container
+          flex: bounds?.width ? `0 0 ${bounds.width}%` : '1',
+          minWidth: bounds?.width ? `${bounds.width}%` : undefined,
+          height: bounds?.height ? `${bounds.height}%` : 'auto',
+        }),
 
     // Ensure visibility
     minWidth: '20px',
     minHeight: '20px',
-    overflow: 'hidden',
+    overflow: isContainer ? 'visible' : 'hidden',
 
     // Visuals
     color: style.textColor || '#1f2937',
     borderRadius: style.borderRadius,
     padding: style.padding || '8px',
     fontSize: style.fontSize || '14px',
-    fontWeight: style.fontWeight as any,
-    textAlign: style.textAlign as any,
+    fontWeight: style.fontWeight as React.CSSProperties['fontWeight'],
+    textAlign: style.textAlign as React.CSSProperties['textAlign'],
     boxShadow: style.shadow,
-    gap: style.gap,
 
-    // Flex/Grid
-    display: style.display || 'flex',
-    flexDirection: type === 'list' || type === 'content-section' ? 'column' : 'row',
-    alignItems: style.alignment === 'center' ? 'center' : 'flex-start',
-    justifyContent:
-      style.alignment === 'center'
-        ? 'center'
-        : style.alignment === 'between'
-          ? 'space-between'
-          : 'flex-start',
+    // Container layout (flex/grid) - applies to containers with children
+    ...(isContainer ? getContainerLayoutStyles() : {
+      // Leaf node layout
+      display: style.display || 'flex',
+      flexDirection: type === 'list' || type === 'content-section' ? 'column' : 'row',
+      alignItems: style.alignment === 'center' ? 'center' : 'flex-start',
+      justifyContent:
+        style.alignment === 'center'
+          ? 'center'
+          : style.alignment === 'between'
+            ? 'space-between'
+            : 'flex-start',
+      gap: style.gap,
+    }),
 
     // Apply custom CSS first
     ...style.customCSS,
@@ -151,11 +241,45 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
     : 'hover:ring-1 hover:ring-blue-300 hover:ring-offset-1';
 
   // 4. Recursive Children Rendering
-  // In a real app, you'd look up children from a map or pass them down.
-  // For this snippet, we assume children IDs might need lookup, but let's assume
-  // for now that `children` contains actual node structures or we render content.
+  // Looks up children from componentMap and renders them recursively
+  const renderChildren = () => {
+    // Check depth limit to prevent infinite recursion
+    if (depth >= MAX_DEPTH) {
+      console.warn(`[GenericComponentRenderer] Max depth (${MAX_DEPTH}) reached for component ${id}`);
+      return null;
+    }
+
+    // No children to render
+    if (!children || children.length === 0 || !componentMap) {
+      return null;
+    }
+
+    return children.map((childId) => {
+      const childComponent = componentMap.get(childId);
+      if (!childComponent) {
+        console.warn(`[GenericComponentRenderer] Child component "${childId}" not found in map`);
+        return null;
+      }
+
+      return (
+        <GenericComponentRenderer
+          key={childId}
+          component={childComponent}
+          componentMap={componentMap}
+          onSelect={onSelect}
+          selectedId={selectedId}
+          depth={depth + 1}
+        />
+      );
+    });
+  };
 
   const renderContent = () => {
+    // If this is a container with children, don't show placeholder content
+    if (isContainer && children && children.length > 0) {
+      return null;
+    }
+
     if (content?.text) return content.text;
     if (content?.hasImage)
       return (
@@ -210,15 +334,14 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
   return (
     <div
       data-id={id}
+      data-role={role || (isContainer ? 'container' : 'leaf')}
+      data-depth={depth}
       style={dynamicStyles}
       className={cn('transition-all duration-200 cursor-pointer', selectionClass)}
       onClick={handleClick}
     >
       {renderContent()}
-      {/* 
-         TODO: Recursively render children if the data structure supports full nesting.
-         For this MVP, we focus on the leaf node rendering logic.
-      */}
+      {renderChildren()}
     </div>
   );
 };

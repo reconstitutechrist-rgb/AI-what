@@ -675,6 +675,25 @@ export interface DetectedComponentEnhanced {
   parentId?: string;
   /** Child component IDs */
   children?: string[];
+  /** Component role for positioning strategy */
+  role?: 'container' | 'leaf' | 'overlay';
+  /** Container layout configuration (for role: 'container') */
+  layout?: {
+    /** Layout type: flex, grid, or none (absolute) */
+    type: 'flex' | 'grid' | 'none';
+    /** Flex direction */
+    direction?: 'row' | 'column';
+    /** Gap between children */
+    gap?: string;
+    /** Justify content */
+    justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
+    /** Align items */
+    align?: 'start' | 'center' | 'end' | 'stretch';
+    /** Flex wrap */
+    wrap?: boolean;
+    /** Grid columns (e.g., "repeat(3, 1fr)") */
+    columns?: string;
+  };
   /** Z-index layer */
   zIndex?: number;
   /** If this is a navigation item, which page does it link to */

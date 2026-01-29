@@ -243,80 +243,99 @@ class GeminiLayoutService {
       DESIGN SPEC (from Stage 1 - The Architect):
       ${JSON.stringify(designSpec, null, 2)}
 
-      YOUR TASK: Create a JSON Scene Graph of EVERY visible UI element.
+      YOUR TASK: Create a HIERARCHICAL JSON Scene Graph of every visible UI element.
 
       COORDINATE SYSTEM: Use normalized 0-1000 scale where:
-      - 0 = left/top edge of the image
-      - 1000 = right/bottom edge of the image
-      - 500 = center of the image
+      - 0 = left/top edge of the image/parent
+      - 1000 = right/bottom edge of the image/parent
+      - 500 = center
 
-      This gives you 10x more precision than percentages!
+      COMPONENT ROLES:
+      1. "container" - Has children, uses flex/grid layout to arrange them
+      2. "leaf" - No children, renders actual content (text, image, button, icon)
+      3. "overlay" - Positioned absolutely over other content (modals, tooltips, dropdowns)
 
-      For EACH visible element, return:
+      For EACH element, return:
       {
         "id": "descriptive-unique-id",
-        "type": "header|logo|navigation|hero|button|text|image|card|input|link|icon|container|section|footer|sidebar|menu|badge|avatar|divider|list|unknown",
+        "type": "header|sidebar|hero|section|container|cards|navigation|footer|form|logo|button|text|image|input|link|icon|badge|avatar|divider|list|menu|card|unknown",
+        "role": "container|leaf|overlay",
+        "parentId": "<parent-id or null for root sections>",
+        "children": ["child-id-1", "child-id-2"],
         "bounds": {
-          "top": <0-1000 from top edge>,
-          "left": <0-1000 from left edge>,
-          "width": <0-1000 element width>,
-          "height": <0-1000 element height>
+          "top": <0-1000>,
+          "left": <0-1000>,
+          "width": <0-1000>,
+          "height": <0-1000>
+        },
+        "layout": {
+          "type": "flex|grid|none",
+          "direction": "row|column",
+          "gap": "16px",
+          "justify": "start|center|end|between",
+          "align": "start|center|end|stretch"
         },
         "style": {
           "backgroundColor": "<hex from designSpec.colorPalette>",
           "textColor": "<hex from designSpec.colorPalette>",
-          "fontSize": "<px value from designSpec.typography>",
-          "fontWeight": "<weight from designSpec.typography>",
-          "padding": "<px value from designSpec.spacing>",
-          "borderRadius": "<px value from designSpec.effects>"
+          "fontSize": "<px value>",
+          "fontWeight": "<weight>",
+          "padding": "<px value>",
+          "borderRadius": "<px value>"
         },
         "content": {
-          "text": "<EXACT text you can read - be thorough>",
+          "text": "<EXACT visible text>",
           "hasImage": true/false,
           "hasIcon": true/false
         },
-        "zIndex": <number based on visual layer: 1-10 backgrounds, 11-50 content, 51-100 interactive, 100+ overlays>,
+        "zIndex": <number>,
         "confidence": 0.9
       }
 
-      CRITICAL RULES:
+      HIERARCHY RULES:
 
-      1. **DETECT EVERY ELEMENT INDIVIDUALLY**:
-         - Each heading = separate component
-         - Each paragraph = separate component
-         - Each button = separate component
-         - Each link = separate component
-         - Each image = separate component
-         - Each icon = separate component
-         - Each input field = separate component
-         - Each card = separate component
+      1. **DETECT VISUAL CONTAINERS**:
+         - Headers are containers with logo, nav, and CTA as children
+         - Hero sections contain heading, subheading, and buttons as children
+         - Card groups are containers with individual cards as children
+         - Footers contain columns which contain links
 
-      2. **DO NOT NEST EVERYTHING IN ONE CONTAINER**:
-         Example: If you see a header with logo + nav links + CTA button, return:
-         - "header-bg" (background container, zIndex: 1, bounds covering full header area)
-         - "header-logo" (the logo image/text, zIndex: 2, precise bounds)
-         - "nav-link-home" (first nav link, zIndex: 2, precise bounds)
-         - "nav-link-about" (second nav link, zIndex: 2, precise bounds)
-         - "nav-link-services" (third nav link, zIndex: 2, precise bounds)
-         - "header-cta-button" (CTA button, zIndex: 3, precise bounds)
-         That's 6 components for ONE header section!
+      2. **ASSIGN PARENT-CHILD RELATIONSHIPS**:
+         Every component (except root sections) MUST have a parentId.
 
-      3. **UNIQUE BOUNDS FOR EACH ELEMENT**:
-         A button at top-right corner of a header should have bounds like:
-         { "top": 20, "left": 850, "width": 120, "height": 40 }
-         NOT the same bounds as its parent container!
+         Example header structure:
+         - "header-container" (parentId: null, role: "container", children: ["logo", "nav-container", "cta-button"])
+         - "logo" (parentId: "header-container", role: "leaf")
+         - "nav-container" (parentId: "header-container", role: "container", children: ["nav-1", "nav-2", "nav-3"])
+         - "nav-1" (parentId: "nav-container", role: "leaf")
+         - "nav-2" (parentId: "nav-container", role: "leaf")
+         - "nav-3" (parentId: "nav-container", role: "leaf")
+         - "cta-button" (parentId: "header-container", role: "leaf")
 
-      4. **ASSIGN Z-INDEX BY VISUAL LAYER**:
-         - Background/container elements: zIndex 1-10
-         - Text and content elements: zIndex 11-50
-         - Interactive elements (buttons, links): zIndex 51-100
-         - Overlays, modals, tooltips: zIndex 100+
+      3. **SPECIFY CONTAINER LAYOUTS**:
+         Containers MUST include a "layout" object:
+         - Header with horizontal items: { "type": "flex", "direction": "row", "justify": "between", "align": "center" }
+         - Card grid: { "type": "grid", "columns": "repeat(3, 1fr)", "gap": "24px" }
+         - Vertical stack: { "type": "flex", "direction": "column", "gap": "16px" }
 
-      5. **MINIMUM 20 COMPONENTS** for any real UI
-         A typical landing page has 30-50+ individual elements.
-         Count them: logo + nav links + hero heading + hero subtext + hero button + hero image + feature cards + footer links...
+      4. **ROOT COMPONENTS** (parentId: null):
+         These are major page sections positioned with absolute bounds on the viewport:
+         - header (top: 0, height: ~60-80)
+         - hero (below header)
+         - features/content sections
+         - footer (bottom)
 
-      6. **USE DESIGN SPEC VALUES**:
+         Typically 3-7 root sections for a landing page.
+
+      5. **CHILD BOUNDS ARE RELATIVE**:
+         - Root components: bounds relative to viewport (0-1000)
+         - Children: bounds relative to parent's content area (0-1000 within parent)
+
+      6. **LEAF COMPONENTS**:
+         These have role: "leaf", no children array, and render actual content:
+         - Buttons, text, images, icons, links, inputs, badges, avatars
+
+      7. **USE DESIGN SPEC VALUES**:
          - Colors from designSpec.colorPalette
          - Font sizes from designSpec.typography.fontSizes
          - Spacing from designSpec.spacing.scale

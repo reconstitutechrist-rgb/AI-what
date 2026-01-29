@@ -4,11 +4,17 @@
  * The Orchestrator for the Zero-Preset Layout Builder.
  * Maps the flat or tree-based 'detectedComponents' from Gemini
  * into a visual React tree.
+ *
+ * Supports hierarchical layouts:
+ * - Builds a component tree from flat array using parentId/children
+ * - Only renders root components (they recursively render children)
+ * - Falls back to flat rendering for legacy layouts without hierarchy
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { DetectedComponentEnhanced } from '@/types/layoutDesign';
 import { GenericComponentRenderer } from './GenericComponentRenderer';
+import { buildComponentTree } from '@/utils/layoutValidation';
 
 interface DynamicLayoutRendererProps {
   components: DetectedComponentEnhanced[];
@@ -21,30 +27,50 @@ export const DynamicLayoutRenderer: React.FC<DynamicLayoutRendererProps> = ({
   onSelectComponent,
   selectedComponentId,
 }) => {
-  // Sort components by vertical position (top bounds) to ensure roughly correct flow order
-  // for non-absolute layouts. Uses defensive null checks to handle incomplete bounds.
-  const sortedComponents = [...components].sort((a, b) => {
-    const aTop = a?.bounds?.top ?? 0;
-    const bTop = b?.bounds?.top ?? 0;
-    return aTop - bTop;
-  });
+  // Build component tree from flat array
+  // This handles both hierarchical (with parentId/children) and flat (legacy) layouts
+  const { roots, componentMap } = useMemo(() => {
+    return buildComponentTree(components);
+  }, [components]);
+
+  // Sort root components by vertical position (top bounds)
+  // to ensure roughly correct visual order
+  const sortedRoots = useMemo(() => {
+    return [...roots].sort((a, b) => {
+      const aTop = a?.bounds?.top ?? 0;
+      const bTop = b?.bounds?.top ?? 0;
+      return aTop - bTop;
+    });
+  }, [roots]);
+
+  // Debug: Log tree structure in development
+  if (process.env.NODE_ENV === 'development' && components.length > 0) {
+    console.log('[DynamicLayoutRenderer] Tree structure:', {
+      totalComponents: components.length,
+      rootCount: roots.length,
+      hasHierarchy: components.some((c) => c.parentId || (c.children && c.children.length > 0)),
+    });
+  }
 
   return (
     <div
-      className="relative w-full h-full bg-white"
+      className="relative w-full h-full bg-white flex flex-col"
       id="layout-canvas" // ID for html2canvas
       style={{ minHeight: '600px' }}
     >
-      {sortedComponents.map((component) => (
+      {/* Only render root components - they recursively render their children */}
+      {sortedRoots.map((component) => (
         <GenericComponentRenderer
           key={component.id}
           component={component}
+          componentMap={componentMap}
           onSelect={onSelectComponent}
           selectedId={selectedComponentId}
+          depth={0}
         />
       ))}
 
-      {/* 
+      {/*
         Empty State / Placeholder
         If no components, show a helper message
       */}
