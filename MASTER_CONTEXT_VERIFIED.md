@@ -56,8 +56,8 @@ Preview (Sandpack) + Version History
 | File                        | Dependents   | Notes                               |
 | --------------------------- | ------------ | ----------------------------------- |
 | `types/codeReview.ts`       | **15 files** | Validation layer types              |
-| `DynamicPhaseGenerator.ts`  | ~8 files     | Core planning engine (2,642 lines)  |
-| `PhaseExecutionManager.ts`  | ~4 files     | Core execution engine (2,095 lines) |
+| `DynamicPhaseGenerator.ts`  | ~8 files     | Core planning engine (2,364 lines)  |
+| `PhaseExecutionManager.ts`  | ~4 files     | Core execution engine (1,799 lines) |
 | Deployment services cluster | 10+ files    |                                     |
 
 ### TIER 3: HOOKS & COMPONENTS (1-3 dependents each)
@@ -75,11 +75,11 @@ Lower risk, but still follow patterns.
 | File                            | Lines     | Purpose                              | Risk                                          |
 | ------------------------------- | --------- | ------------------------------------ | --------------------------------------------- |
 | `useAppStore.ts`                | **717**   | Centralized Zustand state (8 slices) | 24+ files break                               |
-| `types/layoutDesign.ts`         | **2,821** | Comprehensive design type system     | 14 files — **RECOMMEND SPLITTING**            |
+| `types/layoutDesign.ts`         | **2,729** | Comprehensive design type system     | 14 files — **RECOMMEND SPLITTING**            |
 | `middleware.ts`                 | **87**    | Auth flow for all routes             | Auth breaks                                   |
-| `DynamicPhaseGenerator.ts`      | **2,642** | Phase planning engine                | Build system breaks — **RECOMMEND SPLITTING** |
-| `PhaseExecutionManager.ts`      | **2,095** | Phase execution orchestrator         | Build system breaks                           |
-| `MainBuilderView.tsx`           | **1,164** | Main orchestrator (PLAN/ACT modes)   | UI breaks                                     |
+| `DynamicPhaseGenerator.ts`      | **2,364** | Phase planning engine                | Build system breaks — **RECOMMEND SPLITTING** |
+| `PhaseExecutionManager.ts`      | **1,799** | Phase execution orchestrator         | Build system breaks                           |
+| `MainBuilderView.tsx`           | **1,063** | Main orchestrator (PLAN/ACT modes)   | UI breaks                                     |
 | `NaturalConversationWizard.tsx` | **807**   | PLAN mode wizard UI                  | Planning breaks                               |
 
 ---
@@ -152,13 +152,13 @@ src/
 
 ## Known Risks & Tech Debt
 
-| Risk                                      | Severity     | Mitigation                                                                          |
-| ----------------------------------------- | ------------ | ----------------------------------------------------------------------------------- |
-| `DynamicPhaseGenerator.ts` is 2.6k+ lines | **CRITICAL** | ✅ Service-to-Service rule relaxed (Jan 29, 2026) — NOW: Split into Domain Services |
-| `layoutDesign.ts` is 2.8k+ lines          | HIGH         | Split into `layout/typography`, `layout/grids`, etc.                                |
-| `appConcept` dependency explosion         | HIGH         | 51 dependencies; any change is expensive. Freeze this interface.                    |
-| Browser memory with large file histories  | MEDIUM       | Move historical versions to IndexedDB                                               |
-| AI rate limits at scale                   | HIGH         | Enterprise quotas, multiple keys, Inngest queueing                                  |
+| Risk                                     | Severity     | Mitigation                                                                          |
+| ---------------------------------------- | ------------ | ----------------------------------------------------------------------------------- |
+| `DynamicPhaseGenerator.ts` is 2.4k lines | **CRITICAL** | ✅ Service-to-Service rule relaxed (Jan 29, 2026) — NOW: Split into Domain Services |
+| `layoutDesign.ts` is 2.7k lines          | HIGH         | Split into `layout/typography`, `layout/grids`, etc.                                |
+| `appConcept` dependency explosion        | HIGH         | 51 dependencies; any change is expensive. Freeze this interface.                    |
+| Browser memory with large file histories | MEDIUM       | Move historical versions to IndexedDB                                               |
+| AI rate limits at scale                  | HIGH         | Enterprise quotas, multiple keys, Inngest queueing                                  |
 
 ---
 
@@ -178,8 +178,8 @@ Phase-by-phase code generation → quality checks → live preview
 
 | File                            | Lines | Purpose                                                  |
 | ------------------------------- | ----- | -------------------------------------------------------- |
-| `MainBuilderView.tsx`           | 1,164 | Main orchestrator — imports 15+ hooks, coordinates modes |
+| `MainBuilderView.tsx`           | 1,063 | Main orchestrator — imports 15+ hooks, coordinates modes |
 | `NaturalConversationWizard.tsx` | 807   | PLAN mode wizard UI                                      |
 | `useAppStore.ts`                | 717   | Centralized state                                        |
-| `DynamicPhaseGenerator.ts`      | 2,642 | Phase planning                                           |
-| `PhaseExecutionManager.ts`      | 2,095 | Phase execution                                          |
+| `DynamicPhaseGenerator.ts`      | 2,364 | Phase planning                                           |
+| `PhaseExecutionManager.ts`      | 1,799 | Phase execution                                          |
