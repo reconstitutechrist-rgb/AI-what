@@ -1,7 +1,7 @@
 # AI-APP-BUILDER - Master Context (Verified)
 
 > **Purpose**: This file provides full project context for Antigravity, Claude Code, and other AI tools.
-> **Status**: ✅ VERIFIED (Jan 29, 2026)
+> **Status**: ✅ VERIFIED (Jan 30, 2026)
 
 ---
 
@@ -37,6 +37,25 @@ CodeReviewService → Quality validation (lazy-loaded)
     ↓
 Preview (Sandpack) + Version History
 ```
+
+### Step-Based Navigation Flow (Added Jan 30, 2026)
+
+```
+/app/wizard  →  /app/design  →  /app/build  →  /app (builder)
+     ↓              ↓               ↓              ↓
+ AppConcept    LayoutManifest   Build Phases    Code Editor
+ PhasePlan     DesignSpec       Quality Check   Preview
+     └────────────────────────────────────────────┘
+              Data persists via Zustand + localStorage
+```
+
+**Key Data Persistence Points:**
+
+- `appConcept` - Created in Wizard, used throughout
+- `dynamicPhasePlan` - Created in Wizard, used in Build
+- `currentLayoutManifest` - Created in Design, used in Builder
+- `currentDesignSpec` - Extracted from images in Design
+- `components` / `currentComponent` - Generated code, persists across navigation
 
 ---
 
