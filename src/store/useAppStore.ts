@@ -588,6 +588,19 @@ export const useAppStore = create<AppState>()(
       {
         name: 'ai-app-builder-storage',
         version: 2, // Bumped: now persists components and currentComponent
+        // Migration function to preserve data when version changes
+        migrate: (persistedState: unknown, version: number) => {
+          const state = persistedState as Record<string, unknown>;
+          if (version === 1) {
+            // Migration from v1 to v2: add components and currentComponent
+            return {
+              ...state,
+              components: state.components ?? [],
+              currentComponent: state.currentComponent ?? null,
+            };
+          }
+          return state;
+        },
         partialize: (state) => ({
           // Only persist workflow-critical data (not UI state, chat, etc.)
           appConcept: state.appConcept,

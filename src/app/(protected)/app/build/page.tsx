@@ -1,8 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { ArrowRight } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { useDynamicBuildPhases } from '@/hooks/useDynamicBuildPhases';
 import { PhasedBuildPanel } from '@/components/modals';
@@ -29,6 +30,20 @@ export default function BuildPage() {
       console.log('All phases complete!');
     },
   });
+
+  // Sync store's dynamicPhasePlan to the hook (critical for data persistence)
+  useEffect(() => {
+    if (dynamicPhasePlan && !dynamicBuildPhases.plan) {
+      dynamicBuildPhases.initializePlan(dynamicPhasePlan);
+    }
+  }, [dynamicPhasePlan, dynamicBuildPhases.plan, dynamicBuildPhases.initializePlan]);
+
+  // Check if build is complete (all phases done or reviewed)
+  const isBuildComplete = dynamicBuildPhases.isComplete();
+
+  const handleProceedToBuilder = useCallback(() => {
+    router.push('/app');
+  }, [router]);
 
   const handleClose = useCallback(() => {
     router.push('/app');
@@ -96,101 +111,132 @@ export default function BuildPage() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
-      className="h-[calc(100vh-56px)] md:h-[calc(100vh-56px)] flex"
+      className="h-[calc(100vh-56px)] md:h-[calc(100vh-56px)] flex flex-col"
     >
-      {/* Concept Panel - collapsible sidebar */}
-      <div
-        className={`h-full transition-all duration-300 flex-shrink-0 ${
-          isConceptPanelCollapsed ? 'w-12' : 'w-80'
-        }`}
-        style={{
-          borderRight: '1px solid var(--border-color)',
-          background: 'var(--bg-secondary)',
-        }}
-      >
-        <AppConceptPanel
-          appConcept={appConcept}
-          phasePlan={dynamicPhasePlan}
-          mode="act"
-          isCollapsed={isConceptPanelCollapsed}
-          onToggleCollapse={() => setConceptPanelCollapsed(!isConceptPanelCollapsed)}
-          onConceptUpdate={updateAppConceptField}
-          buildState={{
-            uiPhases: dynamicBuildPhases.uiPhases,
-            dynamicPhases: dynamicBuildPhases.phases,
-            progress: dynamicBuildPhases.progress,
-            isBuilding: dynamicBuildPhases.isBuilding,
-            isPaused: dynamicBuildPhases.isPaused,
-            currentPhase: dynamicBuildPhases.currentPhase,
+      {/* Header with Proceed to Builder button when complete */}
+      {isBuildComplete && (
+        <div
+          className="flex-shrink-0 px-4 py-3 border-b flex items-center justify-between"
+          style={{
+            borderColor: 'var(--border-color)',
+            background: 'var(--bg-secondary)',
           }}
-          onPauseBuild={dynamicBuildPhases.pauseBuild}
-          onResumeBuild={dynamicBuildPhases.resumeBuild}
-          onSkipPhase={(phaseNumber) => dynamicBuildPhases.skipPhase(phaseNumber)}
-          onRetryPhase={(phaseNumber) => dynamicBuildPhases.retryPhase(phaseNumber)}
-        />
-      </div>
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-green-500">✓</span>
+            <span style={{ color: 'var(--text-primary)' }} className="font-medium">
+              Build Complete!
+            </span>
+            <span style={{ color: 'var(--text-secondary)' }} className="text-sm">
+              All phases have been executed successfully.
+            </span>
+          </div>
+          <button
+            onClick={handleProceedToBuilder}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            Proceed to Builder
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
-      {/* Build Panel - takes remaining space */}
-      <div className="flex-1 h-full overflow-hidden">
-        <PhasedBuildPanel
-          isOpen={true}
-          onClose={handleClose}
-          phases={dynamicBuildPhases.uiPhases}
-          progress={dynamicBuildPhases.progress}
-          currentPhase={
-            dynamicBuildPhases.currentPhase
-              ? dynamicBuildPhases.uiPhases.find(
-                  (p) => p.order === dynamicBuildPhases.currentPhase?.number
-                ) || null
-              : null
-          }
-          isBuilding={dynamicBuildPhases.isBuilding}
-          isPaused={dynamicBuildPhases.isPaused}
-          isValidating={false}
-          onStartBuild={() => {
-            const nextPhase = dynamicBuildPhases.getNextPhase();
-            if (nextPhase) {
-              dynamicBuildPhases.startPhase(nextPhase.number);
-            }
+      {/* Main content area */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Concept Panel - collapsible sidebar */}
+        <div
+          className={`h-full transition-all duration-300 flex-shrink-0 ${
+            isConceptPanelCollapsed ? 'w-12' : 'w-80'
+          }`}
+          style={{
+            borderRight: '1px solid var(--border-color)',
+            background: 'var(--bg-secondary)',
           }}
-          onPauseBuild={dynamicBuildPhases.pauseBuild}
-          onResumeBuild={dynamicBuildPhases.resumeBuild}
-          onSkipPhase={(phaseId) => {
-            const phase = dynamicBuildPhases.uiPhases.find((p) => p.id === phaseId);
-            if (phase) {
-              dynamicBuildPhases.skipPhase(phase.order);
+        >
+          <AppConceptPanel
+            appConcept={appConcept}
+            phasePlan={dynamicPhasePlan}
+            mode="act"
+            isCollapsed={isConceptPanelCollapsed}
+            onToggleCollapse={() => setConceptPanelCollapsed(!isConceptPanelCollapsed)}
+            onConceptUpdate={updateAppConceptField}
+            buildState={{
+              uiPhases: dynamicBuildPhases.uiPhases,
+              dynamicPhases: dynamicBuildPhases.phases,
+              progress: dynamicBuildPhases.progress,
+              isBuilding: dynamicBuildPhases.isBuilding,
+              isPaused: dynamicBuildPhases.isPaused,
+              currentPhase: dynamicBuildPhases.currentPhase,
+            }}
+            onPauseBuild={dynamicBuildPhases.pauseBuild}
+            onResumeBuild={dynamicBuildPhases.resumeBuild}
+            onSkipPhase={(phaseNumber) => dynamicBuildPhases.skipPhase(phaseNumber)}
+            onRetryPhase={(phaseNumber) => dynamicBuildPhases.retryPhase(phaseNumber)}
+          />
+        </div>
+
+        {/* Build Panel - takes remaining space */}
+        <div className="flex-1 h-full overflow-hidden">
+          <PhasedBuildPanel
+            isOpen={true}
+            onClose={handleClose}
+            phases={dynamicBuildPhases.uiPhases}
+            progress={dynamicBuildPhases.progress}
+            currentPhase={
+              dynamicBuildPhases.currentPhase
+                ? dynamicBuildPhases.uiPhases.find(
+                    (p) => p.order === dynamicBuildPhases.currentPhase?.number
+                  ) || null
+                : null
             }
-          }}
-          onRetryPhase={(phaseId) => {
-            const phase = dynamicBuildPhases.uiPhases.find((p) => p.id === phaseId);
-            if (phase) {
-              dynamicBuildPhases.retryPhase(phase.order);
-            }
-          }}
-          onViewPhaseDetails={() => {}}
-          onRunValidation={() => {}}
-          onResetBuild={dynamicBuildPhases.resetBuild}
-          onExecuteCurrentPhase={async () => {
-            const nextPhase = dynamicBuildPhases.getNextPhase();
-            if (nextPhase) {
-              dynamicBuildPhases.startPhase(nextPhase.number);
-            }
-          }}
-          onProceedToNextPhase={() => {
-            const nextPhase = dynamicBuildPhases.getNextPhase();
-            if (nextPhase) {
-              dynamicBuildPhases.startPhase(nextPhase.number);
-            }
-          }}
-          dynamicPlan={dynamicPhasePlan}
-          isFullPage
-          qualityReport={dynamicBuildPhases.qualityReport}
-          pipelineState={dynamicBuildPhases.pipelineState}
-          isReviewing={dynamicBuildPhases.isReviewing}
-          strictness={dynamicBuildPhases.reviewStrictness}
-          onRunReview={dynamicBuildPhases.runFinalQualityCheck}
-          onStrictnessChange={dynamicBuildPhases.setReviewStrictness}
-        />
+            isBuilding={dynamicBuildPhases.isBuilding}
+            isPaused={dynamicBuildPhases.isPaused}
+            isValidating={false}
+            onStartBuild={() => {
+              const nextPhase = dynamicBuildPhases.getNextPhase();
+              if (nextPhase) {
+                dynamicBuildPhases.startPhase(nextPhase.number);
+              }
+            }}
+            onPauseBuild={dynamicBuildPhases.pauseBuild}
+            onResumeBuild={dynamicBuildPhases.resumeBuild}
+            onSkipPhase={(phaseId) => {
+              const phase = dynamicBuildPhases.uiPhases.find((p) => p.id === phaseId);
+              if (phase) {
+                dynamicBuildPhases.skipPhase(phase.order);
+              }
+            }}
+            onRetryPhase={(phaseId) => {
+              const phase = dynamicBuildPhases.uiPhases.find((p) => p.id === phaseId);
+              if (phase) {
+                dynamicBuildPhases.retryPhase(phase.order);
+              }
+            }}
+            onViewPhaseDetails={() => {}}
+            onRunValidation={() => {}}
+            onResetBuild={dynamicBuildPhases.resetBuild}
+            onExecuteCurrentPhase={async () => {
+              const nextPhase = dynamicBuildPhases.getNextPhase();
+              if (nextPhase) {
+                dynamicBuildPhases.startPhase(nextPhase.number);
+              }
+            }}
+            onProceedToNextPhase={() => {
+              const nextPhase = dynamicBuildPhases.getNextPhase();
+              if (nextPhase) {
+                dynamicBuildPhases.startPhase(nextPhase.number);
+              }
+            }}
+            dynamicPlan={dynamicPhasePlan}
+            isFullPage
+            qualityReport={dynamicBuildPhases.qualityReport}
+            pipelineState={dynamicBuildPhases.pipelineState}
+            isReviewing={dynamicBuildPhases.isReviewing}
+            strictness={dynamicBuildPhases.reviewStrictness}
+            onRunReview={dynamicBuildPhases.runFinalQualityCheck}
+            onStrictnessChange={dynamicBuildPhases.setReviewStrictness}
+          />
+        </div>
       </div>
     </motion.div>
   );
