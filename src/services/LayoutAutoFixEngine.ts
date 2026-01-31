@@ -92,6 +92,7 @@ const SAFE_STYLE_PROPERTIES = [
   'transition',
   'mixBlendMode',
   'textShadow',
+  'whiteSpace',
 ];
 
 /**

@@ -27,6 +27,7 @@ import type {
   LayoutDiscrepancy,
 } from '@/types/layoutAnalysis';
 import type { VideoMotionAnalysis } from '@/types/motionConfig';
+import { validateFontSizeForContainer } from '@/utils/responsiveTypography';
 
 // ============================================================================
 // CONFIGURATION
@@ -43,6 +44,38 @@ interface LayoutCritique {
     suggestion: string; // "Increase padding to 24px"
     correctionJSON?: Partial<DetectedComponentEnhanced>;
   }[];
+}
+
+/**
+ * Post-processing: Validate and correct typography scaling.
+ * Ensures font sizes don't exceed container dimensions to prevent overflow.
+ */
+function validateTypographyScaling(
+  components: DetectedComponentEnhanced[]
+): DetectedComponentEnhanced[] {
+  return components.map((component) => {
+    if (!component.style?.fontSize || !component.bounds?.height) return component;
+
+    const validation = validateFontSizeForContainer(
+      component.style.fontSize,
+      component.bounds.height
+    );
+
+    if (!validation.valid && validation.recommendedFontSize) {
+      console.log(
+        `[GeminiLayoutService] Typography fix: ${component.id} fontSize ${component.style.fontSize} → ${validation.recommendedFontSize}px (container height: ${component.bounds.height}%)`
+      );
+      return {
+        ...component,
+        style: {
+          ...component.style,
+          fontSize: `${validation.recommendedFontSize}px`,
+        },
+      };
+    }
+
+    return component;
+  });
 }
 
 class GeminiLayoutService {
@@ -562,6 +595,13 @@ class GeminiLayoutService {
          - Transparent backgrounds should explicitly use "transparent" or "rgba(0,0,0,0)"
          - Font sizes from designSpec.typography.fontSizes
          - Spacing from designSpec.spacing.scale
+         - TYPOGRAPHY SIZING (MANDATORY — prevents overflow):
+           * fontSize MUST be proportional to the component's container height
+           * Max fontSize ≈ (containerHeight% / 100) × 800 × 0.4 pixels
+           * Example: height 5% → max ~16px, height 10% → max ~32px, height 60% → max ~192px
+           * ALWAYS include lineHeight (unitless multiplier like 1.2 or 1.4) for ALL text components
+           * For single-line text (nav items, buttons, labels): add "whiteSpace": "nowrap" in customCSS
+           * Multi-line text: ensure container height fits all lines at fontSize × lineHeight
 
       8. **ICON DETECTION - EXACT SVG REPLICATION**:
          - When you see an icon, set hasIcon: true
@@ -661,9 +701,12 @@ class GeminiLayoutService {
       // This fixes containers where AI didn't specify layout.type, layout.gap, etc.
       const withInferredLayouts = inferContainerLayouts(sanitizedComponents);
 
+      // Post-process: Validate typography scaling to prevent font overflow
+      const withValidatedTypography = validateTypographyScaling(withInferredLayouts);
+
       // CRITICAL FIX: Resolve root overlaps
       // Stack root sections vertically to prevent them from piling on top of each other
-      const components = resolveRootOverlaps(withInferredLayouts);
+      const components = resolveRootOverlaps(withValidatedTypography);
 
       console.log('[GeminiLayoutService] After inferContainerLayouts & resolveRootOverlaps:', {
         before: sanitizedComponents.filter((c) => c.role === 'container' && !c.layout?.type).length,
@@ -990,6 +1033,12 @@ class GeminiLayoutService {
       - Only use "transparent" if the element truly has no background and you can see through to elements behind it
       - When in doubt, provide a color - it's better to have a slightly wrong color than "transparent"
 
+      TYPOGRAPHY SIZING:
+      - Font sizes must be proportional to the component's bounds height
+      - Max fontSize ≈ (height% / 100) × 800 × 0.4 pixels. Example: height 5% → max ~16px, height 10% → max ~32px
+      - Always include lineHeight (1.2 or 1.4) for text elements
+      - For single-line text (nav items, buttons): add "whiteSpace": "nowrap" in customCSS
+
       Return ONLY the JSON array. No markdown, no explanation.
     `;
 
@@ -1005,8 +1054,10 @@ class GeminiLayoutService {
       }
       // Infer layout for containers missing layout data
       const withInferredLayouts = inferContainerLayouts(sanitizedComponents);
+      // Validate typography scaling to prevent font overflow
+      const withValidatedTypography = validateTypographyScaling(withInferredLayouts);
       // Resolve root overlaps
-      const components = resolveRootOverlaps(withInferredLayouts);
+      const components = resolveRootOverlaps(withValidatedTypography);
       return components;
     } catch (e) {
       console.error('Failed to parse Gemini response', e);

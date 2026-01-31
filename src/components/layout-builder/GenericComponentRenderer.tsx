@@ -17,6 +17,7 @@ import { Lock } from 'lucide-react';
 import { DetectedComponentEnhanced } from '@/types/layoutDesign';
 import { cn } from '@/lib/utils'; // Assuming cn utility exists, otherwise standard classnames
 import { VisualEffectRenderer } from '@/components/effects/VisualEffectRenderer';
+import { calculateMinHeightForText } from '@/utils/responsiveTypography';
 
 interface GenericComponentRendererProps {
   component: DetectedComponentEnhanced;
@@ -208,9 +209,20 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
           height: bounds?.height ? `${bounds.height}%` : 'auto',
         }),
 
-    // No hardcoded minWidth/minHeight - let content determine size
-    // Removing the forced 20px minimum allows small badges/icons to render correctly
-    minHeight: undefined,
+    // Content-aware minHeight for text components to prevent overflow
+    // Calculates the minimum height needed based on text content, font size, and container width
+    minHeight: (() => {
+      if (!content?.text || !bounds?.width) return undefined;
+      const minHeightPx = calculateMinHeightForText(
+        content.text,
+        style.fontSize,
+        style.lineHeight,
+        bounds.width
+      );
+      // Only apply if text requires more space than the AI-assigned container height
+      const currentHeightPx = bounds.height ? (bounds.height / 100) * 800 : 0;
+      return minHeightPx > currentHeightPx ? `${minHeightPx}px` : undefined;
+    })(),
 
     // Visuals - trust AI-provided colors, no hardcoded fallbacks
     color: style.textColor,
@@ -316,12 +328,18 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
     // Border style (dashed, dotted, etc.)
     borderStyle: style.borderStyle as React.CSSProperties['borderStyle'],
 
-    // Overflow control - use style.overflow if provided, else smart defaults
-    // Text components should NOT clip by default (causes text clipping issues)
+    // Overflow control - prevent text bleed into adjacent sections
+    // Combined with content-aware minHeight, containers expand to fit content
+    // rather than clipping, while overflow:hidden prevents bleed if text still exceeds bounds
     overflow: (() => {
       // Explicit AI override wins
       if (style.overflow) return style.overflow;
-      // Text-heavy components should not clip
+
+      // Root containers must stay visible for absolute-positioned children
+      if (!parentId && isContainer) return 'visible' as const;
+
+      // Text components: hidden to prevent bleed into adjacent sections
+      // (minHeight calculation above ensures the container is large enough for content)
       const typeStr = type as string;
       const isTextComponent =
         content?.text ||
@@ -332,8 +350,9 @@ export const GenericComponentRenderer: React.FC<GenericComponentRendererProps> =
         typeStr === 'button' ||
         typeStr === 'link' ||
         typeStr === 'badge';
-      if (isTextComponent) return 'visible' as const;
-      // Containers visible, images/media hidden
+      if (isTextComponent) return 'hidden' as const;
+
+      // Child containers visible, images/media hidden
       return isContainer ? ('visible' as const) : ('hidden' as const);
     })(),
 

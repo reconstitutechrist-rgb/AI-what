@@ -101,7 +101,7 @@ export const LayoutBuilderView: React.FC = () => {
     originalImage,
     runSelfHealingLoop,
     cancelHealing,
-    registerRenderToHtml,
+    registerCaptureScreenshot,
   } = useLayoutBuilder();
 
   // Source registry for multi-source merge pipeline
@@ -322,7 +322,7 @@ export const LayoutBuilderView: React.FC = () => {
           originalImage={originalImage}
           onRunSelfHealing={runSelfHealingLoop}
           onCancelHealing={cancelHealing}
-          registerRenderToHtml={registerRenderToHtml}
+          registerCaptureScreenshot={registerCaptureScreenshot}
           // Direct Manipulation Props
           editMode={editMode}
           onToggleEditMode={setEditMode}

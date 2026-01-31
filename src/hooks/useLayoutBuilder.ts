@@ -82,10 +82,10 @@ interface UseLayoutBuilderReturn {
   // Self-Healing Actions
   runSelfHealingLoop: (
     originalImage: string,
-    renderToHtml: () => string
+    captureScreenshot: () => Promise<string | null>
   ) => Promise<SelfHealingResult | null>;
   cancelHealing: () => void;
-  registerRenderToHtml: (callback: (() => string) | null) => void;
+  registerCaptureScreenshot: (callback: (() => Promise<string | null>) | null) => void;
 }
 
 export function useLayoutBuilder(): UseLayoutBuilderReturn {
@@ -111,12 +111,12 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
     previousFidelity: number;
     originalImage: string;
   } | null>(null);
-  const renderToHtmlRef = useRef<(() => string) | null>(null);
+  const captureScreenshotRef = useRef<(() => Promise<string | null>) | null>(null);
 
   // Auto-trigger self-healing state
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [autoHealingTriggered, setAutoHealingTriggered] = useState(false);
-  const renderToHtmlCallbackRef = useRef<(() => string) | null>(null);
+  const captureScreenshotCallbackRef = useRef<(() => Promise<string | null>) | null>(null);
 
   // Pending video motion data — applied when image analysis completes
   const pendingMotionRef = useRef<
@@ -143,10 +143,13 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
     setAnalysisWarnings([]);
   }, []);
 
-  // Allow UI to register the renderToHtml callback for auto-trigger
-  const registerRenderToHtml = useCallback((callback: (() => string) | null) => {
-    renderToHtmlCallbackRef.current = callback;
-  }, []);
+  // Allow UI to register the captureScreenshot callback for auto-trigger
+  const registerCaptureScreenshot = useCallback(
+    (callback: (() => Promise<string | null>) | null) => {
+      captureScreenshotCallbackRef.current = callback;
+    },
+    []
+  );
 
   // --- Step-Based Self-Healing Orchestration ---
   // This useEffect triggers the next healing step AFTER React has re-rendered
@@ -187,10 +190,10 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
     // Execute next step after a small delay to ensure DOM is painted
     const timeoutId = setTimeout(async () => {
       const engine = visionLoopEngineRef.current;
-      const renderToHtml = renderToHtmlRef.current;
+      const captureScreenshot = captureScreenshotRef.current;
 
-      if (!engine || !renderToHtml || !designSpec) {
-        console.error('[useLayoutBuilder] Missing engine, renderToHtml, or designSpec');
+      if (!engine || !captureScreenshot || !designSpec) {
+        console.error('[useLayoutBuilder] Missing engine, captureScreenshot, or designSpec');
         setHealingState(null);
         setIsHealing(false);
         return;
@@ -203,7 +206,7 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
           healingState.originalImage,
           components,
           designSpec,
-          renderToHtml,
+          captureScreenshot,
           healingState.iteration + 1
         );
 
@@ -501,7 +504,7 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
   const runSelfHealingLoop = useCallback(
     async (
       originalImage: string,
-      renderToHtml: () => string
+      captureScreenshot: () => Promise<string | null>
     ): Promise<SelfHealingResult | null> => {
       if (!designSpec) {
         console.error('[useLayoutBuilder] Cannot run self-healing without designSpec');
@@ -540,7 +543,7 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
 
         // Store references for step-based healing
         visionLoopEngineRef.current = engine;
-        renderToHtmlRef.current = renderToHtml;
+        captureScreenshotRef.current = captureScreenshot;
 
         // Save pre-healing snapshot to history
         setHistory((h) => [...h, components]);
@@ -586,7 +589,7 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
     // Clear step-based healing state
     setHealingState(null);
     setIsHealing(false);
-    renderToHtmlRef.current = null;
+    captureScreenshotRef.current = null;
     console.log('[useLayoutBuilder] Self-healing cancelled by user');
   }, []);
 
@@ -595,7 +598,7 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
   // - Components have been analyzed
   // - Design spec is available
   // - Original image is stored
-  // - UI has registered the renderToHtml callback
+  // - UI has registered the captureScreenshot callback
   // - Not already analyzing or healing
   useEffect(() => {
     // Diagnostic logging: already triggered check
@@ -609,7 +612,8 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
     if (components.length === 0) missingConditions.push('no components');
     if (!designSpec) missingConditions.push('no designSpec');
     if (!originalImage) missingConditions.push('no originalImage');
-    if (!renderToHtmlCallbackRef.current) missingConditions.push('no renderToHtml callback');
+    if (!captureScreenshotCallbackRef.current)
+      missingConditions.push('no captureScreenshot callback');
     if (isAnalyzing) missingConditions.push('still analyzing');
     if (isHealing) missingConditions.push('already healing');
 
@@ -625,7 +629,7 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
 
     // Capture current values to avoid race conditions
     const capturedImage = originalImage;
-    const capturedCallback = renderToHtmlCallbackRef.current;
+    const capturedCallback = captureScreenshotCallbackRef.current;
 
     // Small delay to ensure DOM is painted with initial components
     const timeoutId = setTimeout(() => {
@@ -905,7 +909,7 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
     // Self-Healing Actions
     runSelfHealingLoop,
     cancelHealing,
-    registerRenderToHtml,
+    registerCaptureScreenshot,
     // New Action: Generate Phase Plan
     generatePhasePlan: useCallback(async () => {
       setIsAnalyzing(true);

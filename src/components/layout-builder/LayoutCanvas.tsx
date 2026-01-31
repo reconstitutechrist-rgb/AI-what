@@ -20,6 +20,7 @@ import { DetectedComponentEnhanced } from '@/types/layoutDesign';
 import type { VisionLoopProgress, SelfHealingResult } from '@/services/VisionLoopEngine';
 import type { DesignSpec } from '@/types/designSpec';
 import type { Bounds, DragState, SnapLine, ResizeHandle } from '@/types/manipulation';
+import { captureElement, extractBase64FromDataUrl } from '@/utils/screenshotCapture';
 
 export interface LayoutCanvasProps {
   components: DetectedComponentEnhanced[];
@@ -49,11 +50,11 @@ export interface LayoutCanvasProps {
   originalImage?: string | null;
   onRunSelfHealing?: (
     originalImage: string,
-    renderToHtml: () => string
+    captureScreenshot: () => Promise<string | null>
   ) => Promise<SelfHealingResult | null>;
   onCancelHealing?: () => void;
-  /** Register the renderToHtml callback for auto-trigger self-healing */
-  registerRenderToHtml?: (callback: (() => string) | null) => void;
+  /** Register the captureScreenshot callback for auto-trigger self-healing */
+  registerCaptureScreenshot?: (callback: (() => Promise<string | null>) | null) => void;
 
   // Direct Manipulation Props (Gap 3)
   editMode?: boolean;
@@ -111,7 +112,7 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
   originalImage = null,
   onRunSelfHealing,
   onCancelHealing,
-  registerRenderToHtml,
+  registerCaptureScreenshot,
   // Direct Manipulation
   editMode = false,
   onToggleEditMode,
@@ -168,35 +169,48 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
     // Cleanup function - don't remove the link as other components may use it
   }, [designSpec?.typography]);
 
-  // Generate HTML from current layout for self-healing
-  const generateLayoutHtml = useCallback((): string => {
-    if (!layoutRef.current) return '';
-    return layoutRef.current.innerHTML;
+  // Capture screenshot of current layout for self-healing (client-side via html2canvas)
+  // This ensures Gemini sees exactly what the user sees, including all Tailwind CSS and dynamic fonts
+  const captureLayoutScreenshot = useCallback(async (): Promise<string | null> => {
+    if (!layoutRef.current) return null;
+    try {
+      const result = await captureElement({
+        element: layoutRef.current,
+        quality: 0.92,
+        format: 'jpeg',
+        backgroundColor: '#ffffff',
+      });
+      if (!result.success || !result.dataUrl) {
+        console.warn('[LayoutCanvas] Screenshot capture failed:', result.error);
+        return null;
+      }
+      const extracted = extractBase64FromDataUrl(result.dataUrl);
+      return extracted?.base64 ?? null;
+    } catch (error) {
+      console.error('[LayoutCanvas] Screenshot capture error:', error);
+      return null;
+    }
   }, []);
 
-  // Register the renderToHtml callback with the hook for auto-trigger
+  // Register the captureScreenshot callback with the hook for auto-trigger
   useEffect(() => {
-    if (registerRenderToHtml) {
-      registerRenderToHtml(generateLayoutHtml);
-      console.log('[LayoutCanvas] Registered renderToHtml callback for auto-trigger');
+    if (registerCaptureScreenshot) {
+      registerCaptureScreenshot(captureLayoutScreenshot);
+      console.log('[LayoutCanvas] Registered captureScreenshot callback for auto-trigger');
     }
 
     // Cleanup on unmount
     return () => {
-      if (registerRenderToHtml) {
-        registerRenderToHtml(null);
-        console.log('[LayoutCanvas] Unregistered renderToHtml callback');
+      if (registerCaptureScreenshot) {
+        registerCaptureScreenshot(null);
+        console.log('[LayoutCanvas] Unregistered captureScreenshot callback');
       }
     };
-  }, [registerRenderToHtml, generateLayoutHtml]);
+  }, [registerCaptureScreenshot, captureLayoutScreenshot]);
 
   // Handler for auto-refine button
   const handleAutoRefine = useCallback(async () => {
     console.log('[LayoutCanvas] Auto-refine button clicked');
-    console.log('[LayoutCanvas] originalImage exists:', !!originalImage);
-    console.log('[LayoutCanvas] originalImage length:', originalImage?.length || 0);
-    console.log('[LayoutCanvas] onRunSelfHealing exists:', !!onRunSelfHealing);
-    console.log('[LayoutCanvas] layoutRef exists:', !!layoutRef.current);
 
     if (!originalImage) {
       console.error('[LayoutCanvas] Cannot run self-healing: no original image stored');
@@ -207,14 +221,9 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
       return;
     }
 
-    // Test the generateLayoutHtml function
-    const testHtml = generateLayoutHtml();
-    console.log('[LayoutCanvas] Generated HTML length:', testHtml?.length || 0);
-    console.log('[LayoutCanvas] Generated HTML preview:', testHtml?.substring(0, 200) || 'empty');
-
-    console.log('[LayoutCanvas] Calling onRunSelfHealing...');
+    console.log('[LayoutCanvas] Calling onRunSelfHealing with client-side capture...');
     try {
-      const result = await onRunSelfHealing(originalImage, generateLayoutHtml);
+      const result = await onRunSelfHealing(originalImage, captureLayoutScreenshot);
       console.log('[LayoutCanvas] Self-healing result:', result);
       if (result) {
         setShowHealingResult(true);
@@ -222,7 +231,7 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
     } catch (error) {
       console.error('[LayoutCanvas] Self-healing error:', error);
     }
-  }, [originalImage, onRunSelfHealing, generateLayoutHtml]);
+  }, [originalImage, onRunSelfHealing, captureLayoutScreenshot]);
 
   const hasErrors = analysisErrors.length > 0;
   const hasWarnings = analysisWarnings.length > 0;

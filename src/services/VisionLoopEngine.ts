@@ -19,8 +19,6 @@ import type {
   SelfHealingConfig,
   SelfHealingResult,
   SelfHealingIteration,
-  ScreenshotRequest,
-  ScreenshotResponse,
 } from '@/types/layoutAnalysis';
 
 // Re-export types for convenience (consumers can import from this file)
@@ -112,17 +110,18 @@ export class VisionLoopEngine {
    * @param originalImage - Base64 encoded original design reference
    * @param initialComponents - Starting component array
    * @param designSpec - Design specification for context
-   * @param renderToHtml - Function to get current layout HTML (captures current DOM state)
+   * @param captureScreenshot - Async function that captures the current rendered state as base64 image
    *
-   * Note: renderToHtml captures the current DOM state. For accurate intermediate
-   * screenshots, the component state should be updated and React should re-render
-   * before each iteration. Currently, this means the first iteration is most accurate.
+   * Note: captureScreenshot captures the live DOM via html2canvas, ensuring all
+   * Tailwind CSS, inline styles, and dynamic fonts are included in the screenshot.
+   * For accurate intermediate screenshots, the component state should be updated
+   * and React should re-render before each iteration.
    */
   async runLoop(
     originalImage: string,
     initialComponents: DetectedComponentEnhanced[],
     designSpec: DesignSpec | null,
-    renderToHtml: () => string
+    captureScreenshot: () => Promise<string | null>
   ): Promise<SelfHealingResult> {
     this.resetAbort();
 
@@ -157,13 +156,11 @@ export class VisionLoopEngine {
           message: `Iteration ${iteration}: Capturing screenshot...`,
         });
 
-        const html = renderToHtml();
-        const screenshot = await this.captureScreenshot(html);
+        const screenshot = await captureScreenshot();
 
         if (!screenshot) {
-          // CRITICAL: Don't silently fallback - comparing identical images makes healing useless
           const errorMsg =
-            'Screenshot capture failed - cannot compare layouts. Self-healing requires Puppeteer to capture rendered output.';
+            'Screenshot capture failed - cannot compare layouts. Ensure the layout canvas is rendered and visible.';
           console.error('[VisionLoopEngine]', errorMsg);
           throw new Error(errorMsg);
         }
@@ -179,7 +176,7 @@ export class VisionLoopEngine {
 
         const critique = await this.geminiService.critiqueLayoutEnhanced(
           originalImage,
-          screenshot, // Screenshot is now guaranteed to exist
+          screenshot,
           currentComponents,
           this.config.targetFidelity
         );
@@ -297,41 +294,6 @@ export class VisionLoopEngine {
   }
 
   /**
-   * Capture screenshot using the API route
-   */
-  private async captureScreenshot(html: string): Promise<string | null> {
-    try {
-      const request: ScreenshotRequest = {
-        html,
-        viewport: { width: 1280, height: 800 },
-      };
-
-      const response = await fetch('/api/layout/screenshot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request),
-      });
-
-      if (!response.ok) {
-        console.warn('[VisionLoopEngine] Screenshot API returned error:', response.status);
-        return null;
-      }
-
-      const data: ScreenshotResponse = await response.json();
-
-      if (!data.success || !data.image) {
-        console.warn('[VisionLoopEngine] Screenshot API failed:', data.error);
-        return null;
-      }
-
-      return data.image;
-    } catch (error) {
-      console.error('[VisionLoopEngine] Screenshot capture error:', error);
-      return null;
-    }
-  }
-
-  /**
    * Execute a single healing iteration (step-based for React integration)
    *
    * This method performs ONE iteration and returns the result, allowing React
@@ -341,7 +303,7 @@ export class VisionLoopEngine {
    * @param originalImage - Base64 encoded original design reference
    * @param currentComponents - Current component array (after React re-render)
    * @param designSpec - Design specification for context
-   * @param renderToHtml - Function to get current layout HTML
+   * @param captureScreenshot - Async function that captures the current rendered state as base64 image
    * @param iteration - Current iteration number (1-based)
    * @returns Step result with updated components and continuation flag
    */
@@ -349,7 +311,7 @@ export class VisionLoopEngine {
     originalImage: string,
     currentComponents: DetectedComponentEnhanced[],
     designSpec: DesignSpec | null,
-    renderToHtml: () => string,
+    captureScreenshot: () => Promise<string | null>,
     iteration: number
   ): Promise<{
     components: DetectedComponentEnhanced[];
@@ -369,13 +331,11 @@ export class VisionLoopEngine {
         message: `Iteration ${iteration}: Capturing screenshot...`,
       });
 
-      const html = renderToHtml();
-      const screenshot = await this.captureScreenshot(html);
+      const screenshot = await captureScreenshot();
 
       if (!screenshot) {
-        // CRITICAL: Don't silently fallback - comparing identical images makes healing useless
         const errorMsg =
-          'Screenshot capture failed - cannot compare layouts. Self-healing requires Puppeteer to capture rendered output.';
+          'Screenshot capture failed - cannot compare layouts. Ensure the layout canvas is rendered and visible.';
         console.error('[VisionLoopEngine]', errorMsg);
         throw new Error(errorMsg);
       }
@@ -391,7 +351,7 @@ export class VisionLoopEngine {
 
       const critique = await this.geminiService.critiqueLayoutEnhanced(
         originalImage,
-        screenshot, // Screenshot is now guaranteed to exist
+        screenshot,
         currentComponents,
         this.config.targetFidelity
       );
@@ -499,14 +459,13 @@ export class VisionLoopEngine {
   async runSingleCritique(
     originalImage: string,
     components: DetectedComponentEnhanced[],
-    renderToHtml: () => string
+    captureScreenshot: () => Promise<string | null>
   ): Promise<LayoutCritiqueEnhanced> {
-    const html = renderToHtml();
-    const screenshot = await this.captureScreenshot(html);
+    const screenshot = await captureScreenshot();
 
     if (!screenshot) {
       throw new Error(
-        'Screenshot capture failed - cannot compare layouts. Self-healing requires Puppeteer.'
+        'Screenshot capture failed - cannot compare layouts. Ensure the layout canvas is rendered and visible.'
       );
     }
 

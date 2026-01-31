@@ -253,7 +253,11 @@ Do NOT use vague terms like "tall" or "wide". Estimate pixels:
 - Card Border Radius: Estimate exact pixels (e.g., "16px" or "24px" not just "rounded")
 - Section Padding: Estimate pixels (e.g., "80px" not just "spacious")
 - Font Sizes: Estimate heading size (e.g., "64px") and body size (e.g., "16px")
+- Line Height: Specify as unitless multiplier (e.g., 1.2 for headings, 1.6 for body text)
+- Font Weight: Specify exact weight (e.g., "700" for bold headings, "400" for body)
+- Letter Spacing: Note if tight ("-0.02em") or wide ("0.05em")
 - Gap/Spacing: Estimate pixels between elements (e.g., "24px gap")
+- Typography Sizing Rule: Font sizes must be proportional to container height — no 48px text in a 40px-tall container
 
 ## 3. Component Detection Checklist
 
@@ -374,7 +378,11 @@ Return a JSON object with this structure. NOTE: Use specific values in 'custom' 
       "headingFont": "Inter",
       "bodyFont": "Inter",
       "headingSize": { "custom": "64px" },
-      "bodySize": { "custom": "16px" }
+      "bodySize": { "custom": "16px" },
+      "headingLineHeight": 1.2,
+      "bodyLineHeight": 1.6,
+      "headingWeight": "700",
+      "headingLetterSpacing": "-0.02em"
     },
     "spacing": {
       "sectionPadding": { "custom": "80px" },
@@ -421,6 +429,8 @@ Return a JSON object with this structure. NOTE: Use specific values in 'custom' 
 - **Think production**: Every component you detect becomes real code
 - **Include everything**: Even small elements like icons, badges, tags, dividers
 - **Note patterns**: Repeated elements, layout grids, spacing systems
+- **Icons — prefer SVG paths**: When you detect an icon, extract the actual SVG path data (iconSvgPath) for exact replication. Only fall back to iconName if extraction is not possible.
+- **Typography completeness**: Always include lineHeight, fontWeight, and letterSpacing for text elements. Single-line text (nav items, buttons) should note whiteSpace: "nowrap".
 
 **Missing components = missing features in the final product. Detect EVERYTHING!**
 `;
