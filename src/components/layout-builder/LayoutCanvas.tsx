@@ -380,7 +380,7 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
 
       {/* ── Main Canvas Area ───────────────────────────────────────── */}
       <div
-        className={`flex-1 overflow-hidden relative transition-colors ${
+        className={`flex-1 overflow-hidden relative transition-colors layout-canvas-sandpack ${
           dragActive ? 'bg-blue-50' : ''
         }`}
         onDragEnter={handleDrag}
@@ -400,9 +400,9 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
             options={{
               externalResources: [TAILWIND_CDN],
               classes: {
-                "sp-wrapper": "h-full w-full flex flex-col",
-                "sp-layout": "h-full w-full flex flex-col",
-                "sp-stack": "h-full w-full flex-1",
+                'sp-wrapper': 'h-full w-full flex flex-col',
+                'sp-layout': 'h-full w-full flex flex-col',
+                'sp-stack': 'h-full w-full flex-1',
               },
             }}
           >

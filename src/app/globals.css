@@ -667,3 +667,44 @@ html {
   background-image: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
   background-size: 24px 24px;
 }
+
+/* ============================================
+   Layout Builder - Sandpack Height Fix
+   ============================================
+   Sandpack's internal DOM (sp-wrapper > sp-stack >
+   sp-preview-container > iframe) does not propagate
+   height from flex parents by default. These overrides
+   force all intermediate elements to fill their
+   containers. Scoped to .layout-canvas-sandpack to
+   avoid affecting other potential Sandpack usage.
+   ============================================ */
+
+.layout-canvas-sandpack .sp-wrapper {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0% !important;
+}
+
+.layout-canvas-sandpack .sp-stack {
+  height: 100% !important;
+  flex: 1 1 0% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.layout-canvas-sandpack .sp-preview-container {
+  height: 100% !important;
+  flex: 1 1 0% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.layout-canvas-sandpack .sp-preview-container iframe {
+  height: 100% !important;
+  flex: 1 1 0% !important;
+}
+
+.layout-canvas-sandpack .sp-preview-actions {
+  position: absolute !important;
+}
