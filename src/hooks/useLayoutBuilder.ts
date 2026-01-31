@@ -103,15 +103,16 @@ function extractMainCode(files: AppFile[]): string | null {
  */
 function buildFinalProgress(hasImages: boolean, hasVideos: boolean): PipelineProgress {
   return {
-    currentStep: 'builder',
+    currentStep: 'assembling',
+    status: 'completed',
     steps: {
-      router: 'complete',
-      surveyor: hasImages ? 'complete' : 'skipped',
-      architect: 'complete',
-      physicist: hasVideos ? 'complete' : 'skipped',
-      builder: 'complete',
+      routing: { status: 'completed' },
+      surveying: { status: hasImages ? 'completed' : 'idle' },
+      architecting: { status: 'completed' },
+      physicist: { status: hasVideos ? 'completed' : 'idle' },
+      photographer: { status: 'completed' },
+      assembling: { status: 'completed' },
     },
-    message: 'Pipeline complete',
   };
 }
 
@@ -179,9 +180,12 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
         // 1. Convert browser Files → pipeline FileInput[]
         progress = {
           ...progress,
-          currentStep: 'router',
-          steps: { ...progress.steps, router: 'running' },
-          message: 'Preparing files...',
+          currentStep: 'routing',
+          status: 'running',
+          steps: {
+            ...progress.steps,
+            routing: { status: 'running', message: 'Preparing files...' },
+          },
         };
         setPipelineProgress(progress);
 
@@ -193,7 +197,10 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
         // 3. Update progress to "routing"
         progress = {
           ...progress,
-          message: 'Routing intent...',
+          steps: {
+            ...progress.steps,
+            routing: { status: 'running', message: 'Routing intent...' },
+          },
         };
         setPipelineProgress(progress);
 

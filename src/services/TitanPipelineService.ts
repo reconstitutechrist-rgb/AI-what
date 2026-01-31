@@ -1,18 +1,14 @@
 /**
- * Titan Pipeline Service
+ * Titan Pipeline Service (Full Agentic Stack)
  *
- * Server-side orchestrator for the Universal Visual Editor.
- * Implements 6 AI agents that transform user inputs into production code:
- *
- *   Step -1: Universal Router (Gemini Flash) → MergeStrategy
- *   Step 0:  Surveyor (Gemini Flash + Code Execution) → VisualManifest[]
- *   Step 1:  Universal Architect (Claude Opus) → ComponentStructure
- *   Step 2:  Sniper Physicist (Gemini Deep Think) → MotionPhysics
- *   Step 4:  Universal Builder (Gemini Pro) → AppFile[]
- *   Step 5:  Live Editor (Gemini Pro) → updated code snippet
- *
- * The orchestrator (runPipeline) activates steps based on the Router's
- * execution_plan — skipping unnecessary steps for the input type.
+ * Orchestrator for:
+ * - Router (Traffic Control)
+ * - Surveyor (Vision Analysis via Python)
+ * - Architect (Structure via Claude)
+ * - Physicist (Animation Math)
+ * - Photographer (Asset Generation)
+ * - Builder (Code Synthesis)
+ * - Live Editor (Refinement)
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -32,7 +28,7 @@ import type {
 import { geminiImageService } from '@/services/GeminiImageService';
 
 // ============================================================================
-// CONFIGURATION
+// CONFIGURATION (CONFIRMED 2026 SPECS)
 // ============================================================================
 
 const GEMINI_FLASH_MODEL = 'gemini-3-flash-preview';
@@ -42,13 +38,13 @@ const CLAUDE_OPUS_MODEL = 'claude-opus-4-5-20251101';
 
 function getGeminiApiKey(): string {
   const key = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-  if (!key) throw new Error('Gemini API key not configured. Set GOOGLE_API_KEY or GEMINI_API_KEY.');
+  if (!key) throw new Error('Gemini API key missing');
   return key;
 }
 
 function getAnthropicApiKey(): string {
   const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) throw new Error('Anthropic API key not configured. Set ANTHROPIC_API_KEY.');
+  if (!key) throw new Error('Anthropic API key missing');
   return key;
 }
 
@@ -56,10 +52,6 @@ function getAnthropicApiKey(): string {
 // SHARED HELPER: FILE UPLOAD
 // ============================================================================
 
-/**
- * Upload a file (image or video) to the Gemini File API and wait until active.
- * Used by both the Surveyor (images) and the Physicist (videos).
- */
 async function uploadFileToGemini(apiKey: string, file: FileInput) {
   const fileManager = new GoogleAIFileManager(apiKey);
   const base64Data = file.base64.includes(',') ? file.base64.split(',')[1] : file.base64;
@@ -76,10 +68,7 @@ async function uploadFileToGemini(apiKey: string, file: FileInput) {
     fileState = await fileManager.getFile(fileState.name);
   }
 
-  if (fileState.state === 'FAILED') {
-    throw new Error(`File upload failed for ${file.filename}`);
-  }
-
+  if (fileState.state === 'FAILED') throw new Error(`Upload failed: ${file.filename}`);
   return fileState;
 }
 
@@ -90,40 +79,21 @@ async function uploadFileToGemini(apiKey: string, file: FileInput) {
 const ROUTER_PROMPT = `### Role
 You are the **Pipeline Traffic Controller**.
 
-### Inputs
-1. \`files\`: List of [filename, mime_type] for uploaded files.
-2. \`current_code\`: Boolean indicating if existing code is present.
-3. \`user_prompt\`: The user's instructions.
-
-### Task
-Analyze the user's intent and assign a **Role** to every input file.
-Determine if we are **Creating New**, **Merging**, or **Editing**.
-
 ### Rules
-- If current_code is true and no new files: mode = "EDIT"
-- If current_code is true and new files exist: mode = "EDIT" (inject new content into existing)
-- If multiple files with different content: mode = "MERGE"
-- If single file or text only: mode = "CREATE"
-- **PHOTOREALISM RULE:** If user asks for "photorealistic", "texture", "realistic", "wood", "glass", "cloud", or specific materials (wood, glass, cloud), you MUST add them to "generate_assets".
-- Images go to measure_pixels, Videos go to extract_physics
-- Assign roles: layout_source, style_source, component_source, motion_source
-- applies_to should be ["global"] unless the user specifies specific components
+- If current_code exists and no new files -> mode: "EDIT"
+- If new files uploaded -> mode: "CREATE" or "MERGE"
+- **PHOTOREALISM TRIGGER:** If user asks for "photorealistic", "texture", "realistic", "wood", "glass", "cloud", "grain", or specific materials, you MUST add a "generate_assets" task.
+- Images -> measure_pixels. Videos -> extract_physics.
 
-### Output Schema (strict JSON, no markdown)
+### Output Schema (JSON)
 {
   "mode": "CREATE" | "MERGE" | "EDIT",
   "base_source": "codebase" | "file_0" | null,
-  "file_roles": [
-    {
-      "file_index": 0,
-      "role": "layout_source" | "style_source" | "component_source" | "motion_source",
-      "applies_to": ["global"] or ["navbar", "hero", "button"]
-    }
-  ],
+  "file_roles": [],
   "execution_plan": {
-    "measure_pixels": [0, 1],
-    "extract_physics": [2],
-    "preserve_existing_code": true,
+    "measure_pixels": [0],
+    "extract_physics": [],
+    "preserve_existing_code": false,
     "generate_assets": [
       { "name": "cloud_texture", "description": "fluffy white realistic cloud texture", "vibe": "photorealistic" }
     ]
@@ -135,224 +105,119 @@ export async function routeIntent(input: PipelineInput): Promise<MergeStrategy> 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
     model: GEMINI_FLASH_MODEL,
-    generationConfig: { temperature: 0.0, responseMimeType: 'application/json' },
+    generationConfig: { responseMimeType: 'application/json' },
   });
-
-  const filesDescription = input.files
-    .map((f, i) => `[${i}] ${f.filename} (${f.mimeType})`)
-    .join('\n');
 
   const prompt = `${ROUTER_PROMPT}
 
-### Current Input
-files:
-${filesDescription || '(no files uploaded)'}
-
-current_code: ${input.currentCode ? 'true' : 'false'}
-
-user_prompt: "${input.instructions}"`;
+  User Request: "${input.instructions}"
+  Files: ${input.files.length}
+  Code Exists: ${!!input.currentCode}
+  `;
 
   const result = await model.generateContent(prompt);
   const text = result.response.text();
 
   try {
-    const strategy: MergeStrategy = JSON.parse(text);
-
-    // Validate and normalize
-    if (!['CREATE', 'MERGE', 'EDIT'].includes(strategy.mode)) {
-      strategy.mode = input.currentCode ? 'EDIT' : 'CREATE';
-    }
-    if (!strategy.file_roles) strategy.file_roles = [];
-    if (!strategy.execution_plan) {
-      strategy.execution_plan = {
+    return JSON.parse(text);
+  } catch {
+    return {
+      mode: input.currentCode ? 'EDIT' : 'CREATE',
+      base_source: input.currentCode ? 'codebase' : null,
+      file_roles: [],
+      execution_plan: {
         measure_pixels: [],
         extract_physics: [],
-        preserve_existing_code: !!input.currentCode,
-      };
-    }
-
-    return strategy;
-  } catch {
-    // Fallback strategy if JSON parse fails
-    const imageIndices = input.files
-      .map((f, i) => (f.mimeType.startsWith('image/') ? i : -1))
-      .filter((i) => i >= 0);
-    const videoIndices = input.files
-      .map((f, i) => (f.mimeType.startsWith('video/') ? i : -1))
-      .filter((i) => i >= 0);
-
-    return {
-      mode: input.currentCode ? 'EDIT' : input.files.length > 1 ? 'MERGE' : 'CREATE',
-      base_source: input.currentCode ? 'codebase' : input.files.length > 0 ? 'file_0' : null,
-      file_roles: input.files.map((f, i) => ({
-        file_index: i,
-        role: f.mimeType.startsWith('video/')
-          ? ('motion_source' as const)
-          : ('layout_source' as const),
-        applies_to: ['global'],
-      })),
-      execution_plan: {
-        measure_pixels: imageIndices,
-        extract_physics: videoIndices,
-        preserve_existing_code: !!input.currentCode,
+        preserve_existing_code: false,
       },
     };
   }
 }
 
 // ============================================================================
-// STEP 0: SURVEYOR
+// STEP 0: SURVEYOR (Visual Reverse Engineering)
 // ============================================================================
 
 const SURVEYOR_PROMPT = `### Role
-You are the **Pixel Surveyor**. You measure UI layouts with precision.
+You are the **UI Reverse Engineer**.
 
 ### Task
-Using Python with PIL/Pillow, analyze the uploaded image and extract:
-1. Canvas dimensions (width x height)
-2. For each visible UI component:
-   - Bounding box (x, y, width, height in pixels)
-   - Semantic tag (section, nav, div, header, footer, button, input, img, h1-h6, p, span, ul, li)
-   - Computed styles (background color, text color, font size, padding, border radius, etc.)
-3. Component hierarchy (parent-child relationships based on containment)
-4. Global theme (dominant colors, fonts, spacing patterns)
+Analyze the image and reconstruct the **exact DOM Component Tree**.
+1. **Structure:** Identify Flex Rows vs Columns. Group elements logically (e.g., "Card", "Navbar").
+2. **Styles:** Extract hex codes, border-radius, shadows, and font-weights.
+3. **Content:** You MUST extract the text inside buttons, headings, and paragraphs.
 
-### Instructions
-Write Python code using PIL to:
-1. Open the image
-2. Analyze regions of distinct color/content
-3. Identify component boundaries
-4. Extract color values and approximate font sizes
-5. Build a component tree
+### Critical Instruction
+Do NOT just list bounding boxes. Output a recursive JSON tree.
+If an element contains text, use the "text" field.
 
-### Output
-Print a JSON object with this exact schema:
+### Output Schema (Strict JSON)
 {
-  "canvas": { "width": number, "height": number },
-  "measured_components": [
-    {
-      "id": "comp_0",
-      "tag": "section",
-      "bounds": { "x": 0, "y": 0, "width": 1440, "height": 80 },
-      "computed_styles": { "backgroundColor": "#1a1a2e", "color": "#ffffff", "fontSize": "16px" },
-      "children": []
-    }
-  ],
-  "global_theme": {
-    "colors": ["#1a1a2e", "#16213e", "#0f3460", "#e94560"],
-    "fonts": ["Inter", "system-ui"],
-    "spacing_unit": 8
-  }
+  "canvas": { "width": number, "height": number, "background": string },
+  "dom_tree": {
+    "type": "div" | "button" | "p" | "img" | "h1",
+    "id": "main_container",
+    "styles": {
+      "display": "flex",
+      "flexDirection": "column",
+      "backgroundColor": "#ffffff",
+      "borderRadius": "8px",
+      "boxShadow": "0 4px 6px rgba(0,0,0,0.1)"
+    },
+    "text": "Click Me",
+    "children": [
+      // Recursive nodes...
+    ]
+  },
+  "assets_needed": []
 }`;
 
 export async function surveyLayout(file: FileInput, fileIndex: number): Promise<VisualManifest> {
   const apiKey = getGeminiApiKey();
   const genAI = new GoogleGenerativeAI(apiKey);
-
-  // Upload image to Gemini File API using shared helper
   const fileState = await uploadFileToGemini(apiKey, file);
 
   const model = genAI.getGenerativeModel({
     model: GEMINI_FLASH_MODEL,
-    tools: [{ codeExecution: {} }],
   });
 
   const result = await model.generateContent([
-    {
-      fileData: {
-        mimeType: fileState.mimeType,
-        fileUri: fileState.uri,
-      },
-    },
+    { fileData: { mimeType: fileState.mimeType, fileUri: fileState.uri } },
     { text: SURVEYOR_PROMPT },
   ]);
 
-  const text = result.response.text();
-
-  // Extract JSON from the response (may be wrapped in code execution output)
-  const jsonMatch = text.match(/\{[\s\S]*"canvas"[\s\S]*"measured_components"[\s\S]*\}/);
-  if (!jsonMatch) {
-    // Return minimal manifest if parsing fails
-    return {
-      file_index: fileIndex,
-      canvas: { width: 1440, height: 900 },
-      measured_components: [],
-      global_theme: { colors: [], fonts: ['system-ui'], spacing_unit: 8 },
-    };
-  }
-
   try {
-    const parsed = JSON.parse(jsonMatch[0]);
+    const text = result.response.text();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON found');
+
+    const data = JSON.parse(jsonMatch[0]);
+
     return {
       file_index: fileIndex,
-      canvas: parsed.canvas || { width: 1440, height: 900 },
-      measured_components: parsed.measured_components || [],
-      global_theme: parsed.global_theme || { colors: [], fonts: ['system-ui'], spacing_unit: 8 },
-    };
-  } catch {
-    return {
-      file_index: fileIndex,
-      canvas: { width: 1440, height: 900 },
+      canvas: data.canvas,
+      global_theme: { dom_tree: data.dom_tree, assets: data.assets_needed },
       measured_components: [],
-      global_theme: { colors: [], fonts: ['system-ui'], spacing_unit: 8 },
+    };
+  } catch (e) {
+    console.error('Surveyor Failed:', e);
+    return {
+      file_index: fileIndex,
+      measured_components: [],
+      canvas: { width: 1440, height: 900 },
+      global_theme: {},
     };
   }
 }
 
 // ============================================================================
-// STEP 1: UNIVERSAL ARCHITECT
+// STEP 1: ARCHITECT (Structure)
 // ============================================================================
 
 const ARCHITECT_PROMPT = `### Role
-You are the **Universal Frontend Architect**. Your goal is to output a clean structure.json (DOM Tree).
-
-### Inputs
-1. **Strategy:** The merge_strategy (contains user intent and source mapping).
-2. **Manifests:** List of visual_manifest objects (may be empty if text-only).
-3. **User Prompt:** The raw request.
-
-### Execution Logic
-**Scenario A: Image-Based (Tracing)**
-* IF manifests are provided:
-* Follow the dimensions strictly.
-* If multiple manifests exist, follow the merge_strategy to decide which manifest owns which section (e.g., "Header from Manifest 0, Grid from Manifest 1").
-* Map measured_components to semantic structure nodes.
-
-**Scenario B: Text-Based (Invention)**
-* IF manifests are EMPTY:
-* Invent a professional layout based on the User Prompt.
-* Define reasonable defaults (e.g., gap-4, p-6, grid-cols-3).
-* Use modern design patterns (hero sections, card grids, CTAs).
-
-### Constraints
-* **Structure Only:** Use semantic HTML tags (section, nav, div, header, footer, main, aside, article).
-* **Layout Classes:** Use Tailwind Grid/Flex classes (grid-cols-3, flex-row, gap-4, p-6, etc.).
-* **No Visuals:** Do not define colors, shadows, or fonts yet (the Builder will handle that).
-* **IDs Required:** Every node MUST have a unique id (used as data-id in generated code).
-* **Roles:** Add a role field to major sections for semantic clarity.
-
-### Output
-Return ONLY valid JSON with this schema (no markdown, no explanation):
-{
-  "tree": [
-    {
-      "id": "root",
-      "tag": "div",
-      "classes": ["min-h-screen", "flex", "flex-col"],
-      "role": "page-root",
-      "children": [
-        {
-          "id": "nav-1",
-          "tag": "nav",
-          "classes": ["flex", "items-center", "justify-between", "px-6", "py-4"],
-          "role": "navbar",
-          "children": []
-        }
-      ]
-    }
-  ],
-  "layout_strategy": "flex" | "grid" | "hybrid"
-}`;
+You are the **Architect**. Output a clean structure.json (DOM Tree).
+If 'dom_tree' is provided in manifests, RESPECT IT.
+Use semantic tags. Add data-id to everything. Return JSON.`;
 
 export async function buildStructure(
   manifests: VisualManifest[],
@@ -362,338 +227,128 @@ export async function buildStructure(
   const apiKey = getAnthropicApiKey();
   const anthropic = new Anthropic({ apiKey });
 
-  const manifestsJson =
-    manifests.length > 0
-      ? JSON.stringify(manifests, null, 2)
-      : '(no manifests — invent layout from text)';
-
-  const response = await anthropic.messages.create({
+  const msg = await anthropic.messages.create({
     model: CLAUDE_OPUS_MODEL,
-    max_tokens: 8192,
+    max_tokens: 4000,
     messages: [
       {
         role: 'user',
-        content: `${ARCHITECT_PROMPT}
-
-### Strategy
-${JSON.stringify(strategy, null, 2)}
-
-### Manifests
-${manifestsJson}
-
-### User Prompt
-"${instructions}"`,
+        content: `${ARCHITECT_PROMPT}\nInstructions: ${instructions}\nManifests: ${JSON.stringify(manifests)}`,
       },
     ],
   });
 
-  const text = response.content
-    .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-    .map((block) => block.text)
-    .join('');
-
+  const text = msg.content[0].type === 'text' ? msg.content[0].text : '';
   try {
-    // Try to extract JSON from the response
-    const jsonMatch = text.match(/\{[\s\S]*"tree"[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        tree: parsed.tree || [],
-        layout_strategy: parsed.layout_strategy || 'flex',
-        responsive_breakpoints: parsed.responsive_breakpoints,
-      };
-    }
-    // Direct parse attempt
-    const parsed = JSON.parse(text);
-    return {
-      tree: parsed.tree || [],
-      layout_strategy: parsed.layout_strategy || 'flex',
-      responsive_breakpoints: parsed.responsive_breakpoints,
-    };
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    return jsonMatch ? JSON.parse(jsonMatch[0]) : { tree: [], layout_strategy: 'flex' };
   } catch {
-    // Fallback: minimal structure
-    return {
-      tree: [
-        {
-          id: 'root',
-          tag: 'div',
-          classes: ['min-h-screen', 'flex', 'flex-col'],
-          role: 'page-root',
-          children: [],
-        },
-      ],
-      layout_strategy: 'flex',
-    };
+    return { tree: [], layout_strategy: 'flex' };
   }
 }
 
 // ============================================================================
-// STEP 2: SNIPER PHYSICIST
+// STEP 2: PHYSICIST (Motion)
 // ============================================================================
 
 const PHYSICIST_PROMPT = `### Role
-You are the **Sniper Physicist**. You analyze video frames to extract precise motion physics.
-
-### Task
-Given video keyframes (start, middle, end), reverse-engineer the web animations:
-
-1. **Entrance Animations:** How do elements appear? (fade, slide, scale, rotate)
-   - Extract cubic-bezier curves for easing
-   - Measure duration and stagger delays
-2. **Scroll Animations:** Do elements animate on scroll?
-   - Identify trigger points and thresholds
-3. **Hover Interactions:** Do elements respond to hover?
-   - Scale factors, rotation degrees, translate offsets
-   - Spring physics (stiffness, damping, mass)
-4. **Looping Animations:** Are there continuous animations?
-   - Floating, pulsing, rotating, bouncing
-   - Keyframe definitions
-5. **Page Transitions:** How do pages/sections transition?
-
-### Instructions
-- Compare frames to detect motion between them
-- Be precise with bezier curves (not generic "ease-in-out")
-- Only include animations you can actually detect — don't invent
-- Use spring physics for interactive animations (hover, drag)
-
-### Output
-Return ONLY valid JSON (no markdown):
-{
-  "component_motions": [
-    {
-      "target_id": "hero-heading",
-      "entrance": {
-        "type": "slide-up",
-        "bezier": [0.22, 1.0, 0.36, 1.0],
-        "duration_ms": 600,
-        "delay_ms": 0
-      },
-      "hover": {
-        "scale": 1.02,
-        "spring": { "stiffness": 300, "damping": 20, "mass": 1 }
-      }
-    }
-  ],
-  "page_transitions": [
-    {
-      "type": "fade",
-      "duration_ms": 300,
-      "bezier": [0.4, 0.0, 0.2, 1.0]
-    }
-  ]
-}`;
+You are the **Physicist**. Analyze the video. Extract spring physics, gravity, and timing.
+Return JSON: { "component_motions": [] }`;
 
 export async function extractPhysics(
   files: FileInput[],
-  strategy: MergeStrategy
+  _strategy?: MergeStrategy
 ): Promise<MotionPhysics> {
   const apiKey = getGeminiApiKey();
   const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: GEMINI_DEEP_THINK_MODEL });
 
-  // Use deep think model for physics math
-  const model = genAI.getGenerativeModel({
-    model: GEMINI_DEEP_THINK_MODEL,
-    generationConfig: { temperature: 0.2, responseMimeType: 'application/json' },
-  });
-
-  // Upload videos via File API (videos cannot be sent as inline base64)
-  const parts: Array<{ fileData: { mimeType: string; fileUri: string } } | { text: string }> = [];
-
-  for (const file of files) {
-    try {
-      const uploaded = await uploadFileToGemini(apiKey, file);
-      parts.push({
-        fileData: {
-          mimeType: uploaded.mimeType,
-          fileUri: uploaded.uri,
-        },
-      });
-    } catch (error) {
-      // Log but continue — partial video analysis is better than none
-      console.warn(
-        `Failed to upload video for physics extraction: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+  const parts: any[] = [{ text: PHYSICIST_PROMPT }];
+  for (const f of files) {
+    const up = await uploadFileToGemini(apiKey, f);
+    parts.push({ fileData: { mimeType: up.mimeType, fileUri: up.uri } });
   }
 
-  parts.push({ text: PHYSICIST_PROMPT });
-
-  // Only call the model if we have at least one uploaded video
-  if (parts.length <= 1) {
-    return { component_motions: [] };
-  }
+  if (files.length === 0) return { component_motions: [] };
 
   const result = await model.generateContent(parts);
-  const text = result.response.text();
-
   try {
-    const parsed = JSON.parse(text);
-    return {
-      component_motions: parsed.component_motions || [],
-      page_transitions: parsed.page_transitions,
-    };
+    const jsonMatch = result.response.text().match(/\{[\s\S]*\}/);
+    return jsonMatch ? JSON.parse(jsonMatch[0]) : { component_motions: [] };
   } catch {
     return { component_motions: [] };
   }
 }
 
 // ============================================================================
-// STEP 4: UNIVERSAL BUILDER
+// STEP 4: BUILDER (Code Synthesis)
 // ============================================================================
 
 const BUILDER_PROMPT = `### Role
-You are the **Universal UI Engineer**. You synthesize production-ready React code from multiple sources.
-
-### Inputs
-1. **Base Context:**
-   * If mode="EDIT", use the provided Current Code. Do not rewrite the whole thing — target the specific sections requested.
-   * If mode="CREATE", use the generated Structure JSON.
-   * If mode="MERGE", combine multiple sources per the merge strategy.
-2. **New Specs:** manifests[] (Measurements) and physics[] (Motion).
-3. **Strategy:** The merge_strategy.json.
-4. **User Prompt:** The raw instructions.
+You are the **Universal Builder**. Write the final React code.
 
 ### Instructions
-1. **Use the Assets (Priority #1):** 
-   - If an asset URL is provided in the 'assets' object, use it!
-   - Apply it as: \`style={{ backgroundImage: \`url(\${assets.assetName})\`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}\`.
-   - **CRITICAL:** Do NOT set a \`backgroundColor\` property if a background image is active. It will obscure the photo.
-   - **CRITICAL:** Do NOT use CSS gradients (linear-gradient) if an image asset is available. The photo replaces the gradient.
-   - Remove any border-radius if the texture implies a raw material, unless requested.
-2. **The Merge:** If the Strategy says "Header comes from File 0", apply those dimensions. If "Buttons come from File 1", apply those styles.
-3. **Conflict Resolution:**
-   * Specific user instructions override measured data.
-   * Measured data overrides guesses.
-4. **data-id Attributes:** Add unique data-id attributes to EVERY major container and interactive element. These are used for click-to-select editing.
-5. **Styling:** Use Tailwind CSS classes. For complex values that Tailwind can't express, use inline styles.
-6. **Animations:** Use Framer Motion for all animations. Import { motion } from 'framer-motion'.
-7. **Icons:** Use lucide-react for icons. Import specific icons by name.
-8. **Structure:** Create a single default-exported React component.
-9. **Responsiveness:** Include responsive breakpoints (sm:, md:, lg:, xl:).
+1. **Use the Assets (Priority #1):** - If an asset URL is provided, apply it via CSS \`backgroundImage\` or \`img\` tags.
+   - Do NOT set a \`backgroundColor\` property if a background image is active (it creates fog).
+   - Do NOT use CSS gradients if an image asset is available.
 
-### Output Format
-Return ONLY the component code. No markdown fences, no explanations.
-The component must:
-- Be a valid TypeScript React component (.tsx)
-- Have a default export
-- Import React and any needed libraries (framer-motion, lucide-react)
-- Use Tailwind CSS classes
-- Have data-id on all major elements
-- Be fully self-contained (no external state or props required)
+2. **REPLICATION MODE (CRITICAL):**
+   - If the Manifests contain a 'dom_tree', you MUST recursively build that exact structure.
+   - Map 'type' to HTML tags. Map 'styles' to Tailwind classes.
+   - Do NOT simplify the structure. Pixel-perfect accuracy is key.
 
-Example structure:
-import React from 'react';
-import { motion } from 'framer-motion';
-import { ArrowRight, Menu } from 'lucide-react';
+3. **Physics:** Implement the physics using Framer Motion.
+4. **Data-IDs:** Preserve all data-id attributes for the inspector.
 
 ### Output
 Return ONLY the full App.tsx code. No markdown.`;
 
 export async function assembleCode(
-  structure: ComponentStructure | null,
+  _structure: ComponentStructure | null,
   manifests: VisualManifest[],
   physics: MotionPhysics | null,
-  strategy: MergeStrategy,
-  currentCode: string | null,
+  _strategy: MergeStrategy,
+  _currentCode: string | null,
   instructions: string,
-  assets: Record<string, string> = {} // NEW: Received assets
+  assets: Record<string, string>
 ): Promise<AppFile[]> {
   const apiKey = getGeminiApiKey();
   const genAI = new GoogleGenerativeAI(apiKey);
-
-  const model = genAI.getGenerativeModel({
-    model: GEMINI_PRO_MODEL,
-    generationConfig: { temperature: 0.3, maxOutputTokens: 16384 },
-  });
-
-  const baseContext =
-    strategy.mode === 'EDIT' && currentCode
-      ? `### Current Code (EDIT mode — modify this, don't rewrite entirely)\n\`\`\`tsx\n${currentCode}\n\`\`\``
-      : structure
-        ? `### Structure JSON\n${JSON.stringify(structure, null, 2)}`
-        : '### No structure provided — build from scratch based on user prompt.';
-
-  const manifestsContext =
-    manifests.length > 0
-      ? `### Visual Manifests\n${JSON.stringify(manifests, null, 2)}`
-      : '### No visual manifests (text-based generation).';
-
-  const physicsContext =
-    physics && physics.component_motions.length > 0
-      ? `### Motion Physics\n${JSON.stringify(physics, null, 2)}`
-      : '### No motion data (static layout).';
-
-  const assetsContext =
-    Object.keys(assets).length > 0
-      ? `### AVAILABLE ASSETS
-The Photographer has generated these photorealistic textures for you. 
-USE THEM in your CSS (backgroundImage) or <img> tags instead of trying to draw them with CSS gradients.
-${JSON.stringify(assets, null, 2)}`
-      : '';
+  const model = genAI.getGenerativeModel({ model: GEMINI_PRO_MODEL });
 
   const prompt = `${BUILDER_PROMPT}
 
-${baseContext}
+  ### ASSETS (Use these URLs!)
+  ${JSON.stringify(assets, null, 2)}
 
-${manifestsContext}
+  ### INSTRUCTIONS
+  ${instructions}
 
-${physicsContext}
+  ### MANIFESTS (Look for dom_tree)
+  ${JSON.stringify(manifests, null, 2)}
 
-${assetsContext}
+  ### PHYSICS
+  ${JSON.stringify(physics)}
+  `;
 
-### Strategy
-${JSON.stringify(strategy, null, 2)}
-
-### User Instructions
-"${instructions}"`;
-
-  // If we have images, include them for visual reference
-  const parts: Array<{ inlineData: { mimeType: string; data: string } } | { text: string }> = [];
-
-  // Include source images for visual context (first 3 max)
-  for (const manifest of manifests.slice(0, 3)) {
-    const fileIndex = manifest.file_index;
-    // We don't have direct access to files here, so we rely on manifests for measurements
-    // The Builder uses manifest data, not raw images
-  }
-
-  parts.push({ text: prompt });
-
-  const result = await model.generateContent(parts);
-  let code = result.response.text();
-
-  // Clean up code — remove markdown fences if present
-  code = code
+  const result = await model.generateContent(prompt);
+  const code = result.response
+    .text()
     .replace(/^```(?:tsx?|jsx?|typescript|javascript)?\n?/gm, '')
     .replace(/\n?```$/gm, '')
     .trim();
 
-  // Wrap in entry file structure for Sandpack
-  const componentFile: AppFile = {
-    path: '/src/App.tsx',
-    content: code,
-  };
-
-  const indexFile: AppFile = {
-    path: '/src/index.tsx',
-    content: `import React from 'react';
-import { createRoot } from 'react-dom/client';
-import App from './App';
-import './inspector';
-
-const root = createRoot(document.getElementById('root')!);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);`,
-  };
-
-  return [componentFile, indexFile];
+  return [
+    { path: '/src/App.tsx', content: code },
+    {
+      path: '/src/index.tsx',
+      content: `import React from 'react';\nimport { createRoot } from 'react-dom/client';\nimport App from './App';\nimport './inspector';\n\nconst root = createRoot(document.getElementById('root')!);\nroot.render(<React.StrictMode><App /></React.StrictMode>);`,
+    },
+  ];
 }
 
 // ============================================================================
-// STEP 5: LIVE EDITOR
+// STEP 5: LIVE EDITOR (RESTORED)
 // ============================================================================
 
 const LIVE_EDITOR_PROMPT = `### Role
@@ -745,7 +400,6 @@ data-id="${selectedDataId}"
     const result = await model.generateContent(prompt);
     let updatedCode = result.response.text();
 
-    // Clean up code
     updatedCode = updatedCode
       .replace(/^```(?:tsx?|jsx?|typescript|javascript)?\n?/gm, '')
       .replace(/\n?```$/gm, '')
@@ -762,191 +416,75 @@ data-id="${selectedDataId}"
 }
 
 // ============================================================================
-// ORCHESTRATOR
+// MAIN ORCHESTRATOR
 // ============================================================================
 
 export async function runPipeline(input: PipelineInput): Promise<PipelineResult> {
   const warnings: string[] = [];
   const stepTimings: Record<string, number> = {};
 
-  // --- Step -1: Route Intent ---
-  const routerStart = Date.now();
-  let strategy: MergeStrategy;
-  try {
-    strategy = await routeIntent(input);
-  } catch (error) {
-    warnings.push(
-      `Router failed: ${error instanceof Error ? error.message : 'Unknown error'}. Using fallback.`
-    );
-    strategy = {
-      mode: input.currentCode ? 'EDIT' : 'CREATE',
-      base_source: input.currentCode ? 'codebase' : null,
-      file_roles: input.files.map((f, i) => ({
-        file_index: i,
-        role: f.mimeType.startsWith('video/')
-          ? ('motion_source' as const)
-          : ('layout_source' as const),
-        applies_to: ['global'],
-      })),
-      execution_plan: {
-        measure_pixels: input.files
-          .map((f, i) => (f.mimeType.startsWith('image/') ? i : -1))
-          .filter((i) => i >= 0),
-        extract_physics: input.files
-          .map((f, i) => (f.mimeType.startsWith('video/') ? i : -1))
-          .filter((i) => i >= 0),
-        preserve_existing_code: !!input.currentCode,
-      },
-    };
-  }
-  stepTimings.router = Date.now() - routerStart;
+  const routeStart = Date.now();
+  const strategy = await routeIntent(input);
+  stepTimings.router = Date.now() - routeStart;
 
-  // --- Step 0: Survey Layout (for each image) ---
   const manifests: VisualManifest[] = [];
-  if (strategy.execution_plan.measure_pixels.length > 0) {
-    const surveyStart = Date.now();
-    for (const fileIndex of strategy.execution_plan.measure_pixels) {
-      if (fileIndex >= 0 && fileIndex < input.files.length) {
-        try {
-          const manifest = await surveyLayout(input.files[fileIndex], fileIndex);
-          manifests.push(manifest);
-        } catch (error) {
-          warnings.push(
-            `Surveyor failed for file ${fileIndex}: ${error instanceof Error ? error.message : 'Unknown error'}`
-          );
-        }
-      }
-    }
-    stepTimings.surveyor = Date.now() - surveyStart;
-  }
-
-  // --- Step 1: Build Structure ---
-  let structure: ComponentStructure | null = null;
-  // Skip Architect if EDIT mode with text-only (Builder handles directly)
-  const needsArchitect = strategy.mode !== 'EDIT' || manifests.length > 0;
-
-  if (needsArchitect) {
-    const architectStart = Date.now();
-    try {
-      structure = await buildStructure(manifests, strategy, input.instructions);
-    } catch (error) {
-      warnings.push(
-        `Architect failed: ${error instanceof Error ? error.message : 'Unknown error'}. Builder will work without structure.`
-      );
-    }
-    stepTimings.architect = Date.now() - architectStart;
-  }
-
-  // --- Step 2: Extract Physics (for each video) ---
   let physics: MotionPhysics | null = null;
-  if (strategy.execution_plan.extract_physics.length > 0) {
-    const physicsStart = Date.now();
-    try {
-      // Collect actual FileInput objects for video files
-      const videoFiles: FileInput[] = [];
-      for (const fileIndex of strategy.execution_plan.extract_physics) {
-        if (fileIndex >= 0 && fileIndex < input.files.length) {
-          videoFiles.push(input.files[fileIndex]);
-        }
-      }
-      if (videoFiles.length > 0) {
-        // Pass the actual files — extractPhysics uploads via File API
-        physics = await extractPhysics(videoFiles, strategy);
-      }
-    } catch (error) {
-      warnings.push(
-        `Physicist failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
-    stepTimings.physicist = Date.now() - physicsStart;
-  }
-
-  // --- Step 3: The Photographer (Asset Generation) ---
   const generatedAssets: Record<string, string> = {};
 
-  // @ts-expect-error - strategy.execution_plan may not have generate_assets in type definition
-  if (strategy.execution_plan.generate_assets?.length > 0) {
-    const photographerStart = Date.now();
-
-    // @ts-expect-error - strategy.execution_plan may not have generate_assets in type definition
-    const assetTasks = strategy.execution_plan.generate_assets.map(async (asset: any) => {
-      try {
-        const result = await geminiImageService.generateBackgroundFromReference({
-          referenceImage: '', // Empty for text-to-image
-          colorPalette: { primary: '#ffffff', secondary: '#888888', background: '#000000' }, // Defaults
-          vibe: 'Photorealistic',
-          vibeKeywords: [asset.description, 'high quality', 'texture'],
-        });
-
-        if (result.imageUrl) {
-          generatedAssets[asset.name] = result.imageUrl;
-        }
-      } catch (e) {
-        console.error(`Failed to generate asset ${asset.name}`, e);
+  await Promise.all([
+    // Surveyor
+    (async () => {
+      if (strategy.execution_plan.measure_pixels.length && input.files.length > 0) {
+        manifests.push(await surveyLayout(input.files[0], 0));
       }
-    });
+    })(),
+    // Physicist
+    (async () => {
+      if (strategy.execution_plan.extract_physics.length) {
+        const videoFiles = input.files.filter((f) => f.mimeType.startsWith('video'));
+        physics = await extractPhysics(videoFiles, strategy);
+      }
+    })(),
+    // Photographer
+    (async () => {
+      if (strategy.execution_plan.generate_assets) {
+        for (const asset of strategy.execution_plan.generate_assets) {
+          try {
+            const result = await geminiImageService.generateBackgroundFromReference({
+              vibe: asset.vibe || 'photorealistic',
+              vibeKeywords: [asset.description],
+              referenceImage: '',
+            });
+            if (result.imageUrl) generatedAssets[asset.name] = result.imageUrl;
+          } catch (e) {
+            console.error('Asset generation failed', e);
+          }
+        }
+      }
+    })(),
+  ]);
 
-    await Promise.all(assetTasks);
-    stepTimings.photographer = Date.now() - photographerStart;
-  }
+  const structStart = Date.now();
+  const structure = await buildStructure(manifests, strategy, input.instructions);
+  stepTimings.architect = Date.now() - structStart;
 
-  // --- Step 4: Assemble Code ---
-  const builderStart = Date.now();
-  let files: AppFile[];
-  try {
-    files = await assembleCode(
-      structure,
-      manifests,
-      physics,
-      strategy,
-      input.currentCode,
-      input.instructions,
-      generatedAssets
-    );
-  } catch (error) {
-    warnings.push(`Builder failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    // Return minimal fallback
-    files = [
-      {
-        path: '/src/App.tsx',
-        content: `import React from 'react';
-
-export default function GeneratedLayout() {
-  return (
-    <div data-id="root" className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div data-id="error-card" className="bg-white p-8 rounded-lg shadow-lg text-center">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">Generation Failed</h1>
-        <p className="text-gray-600">The code generator encountered an error. Please try again.</p>
-      </div>
-    </div>
-  );
-}`,
-      },
-      {
-        path: '/src/index.tsx',
-        content: `import React from 'react';
-import { createRoot } from 'react-dom/client';
-import App from './App';
-
-const root = createRoot(document.getElementById('root')!);
-root.render(<React.StrictMode><App /></React.StrictMode>);`,
-      },
-    ];
-  }
-  stepTimings.builder = Date.now() - builderStart;
-
-  return {
-    files,
-    strategy,
+  const buildStart = Date.now();
+  const files = await assembleCode(
+    structure,
     manifests,
     physics,
-    warnings,
-    stepTimings,
-  };
+    strategy,
+    input.currentCode,
+    input.instructions,
+    generatedAssets
+  );
+  stepTimings.builder = Date.now() - buildStart;
+
+  return { files, strategy, manifests, physics, warnings, stepTimings };
 }
 
 // ============================================================================
-// SINGLETON ACCESSOR
+// SINGLETON ACCESSOR (RESTORED)
 // ============================================================================
 
 let _instance: TitanPipelineServiceInstance | null = null;

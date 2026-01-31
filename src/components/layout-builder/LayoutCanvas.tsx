@@ -15,7 +15,7 @@ import { SandpackProvider, SandpackPreview } from '@codesandbox/sandpack-react';
 import { FloatingEditBubble } from './FloatingEditBubble';
 import { useInspectorBridge, createInspectorFileContent } from '@/utils/inspectorBridge';
 import type { AppFile } from '@/types/railway';
-import type { PipelineProgress, PipelineStepName } from '@/types/titanPipeline';
+import type { PipelineProgress, PipelineStepName, PipelineStepStatus } from '@/types/titanPipeline';
 import { PIPELINE_STEP_LABELS } from '@/types/titanPipeline';
 
 // ============================================================================
@@ -130,12 +130,10 @@ function StepIndicator({ status }: { status: string }) {
   switch (status) {
     case 'running':
       return <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />;
-    case 'complete':
+    case 'completed':
       return <span className="w-2 h-2 rounded-full bg-green-600" />;
     case 'error':
       return <span className="w-2 h-2 rounded-full bg-red-600" />;
-    case 'skipped':
-      return <span className="w-2 h-2 rounded-full bg-gray-300" />;
     default:
       return <span className="w-2 h-2 rounded-full bg-gray-200" />;
   }
@@ -148,7 +146,7 @@ function stepTextClass(status: string): string {
   switch (status) {
     case 'running':
       return 'text-blue-800 font-medium';
-    case 'complete':
+    case 'completed':
       return 'text-green-700';
     case 'error':
       return 'text-red-700';
@@ -237,7 +235,9 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
           {isProcessing && (
             <span className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full animate-pulse">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-              {pipelineProgress?.message || 'Processing...'}
+              {(pipelineProgress &&
+                pipelineProgress.steps[pipelineProgress.currentStep]?.message) ||
+                'Processing...'}
             </span>
           )}
 
@@ -320,16 +320,19 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
       {isProcessing && pipelineProgress && (
         <div className="px-4 py-2 bg-blue-50 border-b border-blue-200">
           <div className="flex items-center gap-4">
-            {(Object.entries(pipelineProgress.steps) as [PipelineStepName, string][]).map(
-              ([step, status]) => (
-                <div key={step} className="flex items-center gap-1.5">
-                  <StepIndicator status={status} />
-                  <span className={`text-xs ${stepTextClass(status)}`}>
-                    {PIPELINE_STEP_LABELS[step]}
-                  </span>
-                </div>
-              )
-            )}
+            {(
+              Object.entries(pipelineProgress.steps) as [
+                PipelineStepName,
+                { status: PipelineStepStatus; message?: string },
+              ][]
+            ).map(([step, stepData]) => (
+              <div key={step} className="flex items-center gap-1.5">
+                <StepIndicator status={stepData.status} />
+                <span className={`text-xs ${stepTextClass(stepData.status)}`}>
+                  {PIPELINE_STEP_LABELS[step]}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -467,7 +470,9 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
             <div className="text-center p-8">
               <div className="w-10 h-10 border-[3px] border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
               <p className="text-sm font-medium text-gray-700">
-                {pipelineProgress?.message || 'Generating layout...'}
+                {(pipelineProgress &&
+                  pipelineProgress.steps[pipelineProgress.currentStep]?.message) ||
+                  'Generating layout...'}
               </p>
             </div>
           </div>
