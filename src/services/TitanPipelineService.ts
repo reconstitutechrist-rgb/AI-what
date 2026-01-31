@@ -623,12 +623,13 @@ export async function assembleCode(
       ? `### Motion Physics\n${JSON.stringify(physics, null, 2)}`
       : '### No motion data (static layout).';
 
-  const assetsContext = Object.keys(assets).length > 0
-    ? `### AVAILABLE ASSETS
+  const assetsContext =
+    Object.keys(assets).length > 0
+      ? `### AVAILABLE ASSETS
 The Photographer has generated these photorealistic textures for you. 
 USE THEM in your CSS (backgroundImage) or <img> tags instead of trying to draw them with CSS gradients.
 ${JSON.stringify(assets, null, 2)}`
-    : '';
+      : '';
 
   const prompt = `${BUILDER_PROMPT}
 
@@ -862,21 +863,21 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
 
   // --- Step 3: The Photographer (Asset Generation) ---
   const generatedAssets: Record<string, string> = {};
-  
-  // @ts-ignore
+
+  // @ts-expect-error - strategy.execution_plan may not have generate_assets in type definition
   if (strategy.execution_plan.generate_assets?.length > 0) {
     const photographerStart = Date.now();
-    
-    // @ts-ignore
+
+    // @ts-expect-error - strategy.execution_plan may not have generate_assets in type definition
     const assetTasks = strategy.execution_plan.generate_assets.map(async (asset: any) => {
       try {
         const result = await geminiImageService.generateBackgroundFromReference({
-          referenceImage: "", // Empty for text-to-image
-          colorPalette: { primary: "#ffffff", secondary: "#888888", background: "#000000" }, // Defaults
-          vibe: "Photorealistic",
-          vibeKeywords: [asset.description, "high quality", "texture"],
+          referenceImage: '', // Empty for text-to-image
+          colorPalette: { primary: '#ffffff', secondary: '#888888', background: '#000000' }, // Defaults
+          vibe: 'Photorealistic',
+          vibeKeywords: [asset.description, 'high quality', 'texture'],
         });
-        
+
         if (result.imageUrl) {
           generatedAssets[asset.name] = result.imageUrl;
         }
