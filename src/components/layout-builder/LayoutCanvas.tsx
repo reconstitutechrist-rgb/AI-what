@@ -1,249 +1,204 @@
 /**
- * Layout Canvas (Stateless Preview Component)
+ * Layout Canvas (Sandpack Preview)
  *
- * A stateless canvas component that displays the layout preview.
- * All state is managed by the parent component and passed via props.
+ * Renders generated code in an interactive preview via Sandpack.
+ * The inspector bridge enables click-to-select on [data-id] elements.
+ * FloatingEditBubble appears for inline editing of selected components.
  *
- * Features:
- * - Drag & drop file upload
- * - Component selection
- * - Floating edit bubble for selected components
- * - Undo/redo controls
- * - Export functionality
+ * This component replaces the old DynamicLayoutRenderer with code-generation
+ * based preview. The existing BrowserPreview + esbuild-wasm (for the main
+ * app builder) is untouched.
  */
 
-import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { DynamicLayoutRenderer } from './DynamicLayoutRenderer';
+import React, { useRef, useState, useCallback, useMemo } from 'react';
+import { SandpackProvider, SandpackPreview } from '@codesandbox/sandpack-react';
 import { FloatingEditBubble } from './FloatingEditBubble';
-import { ManipulationOverlay } from './ManipulationOverlay';
-import { DetectedComponentEnhanced } from '@/types/layoutDesign';
-import type { VisionLoopProgress, SelfHealingResult } from '@/services/VisionLoopEngine';
-import type { DesignSpec } from '@/types/designSpec';
-import type { Bounds, DragState, SnapLine, ResizeHandle } from '@/types/manipulation';
-import { captureElement, extractBase64FromDataUrl } from '@/utils/screenshotCapture';
+import { useInspectorBridge, createInspectorFileContent } from '@/utils/inspectorBridge';
+import type { AppFile } from '@/types/railway';
+import type { PipelineProgress, PipelineStepName } from '@/types/titanPipeline';
+import { PIPELINE_STEP_LABELS } from '@/types/titanPipeline';
+
+// ============================================================================
+// SANDPACK CONFIGURATION
+// ============================================================================
+
+/** Dependencies pre-loaded in Sandpack for generated code */
+const SANDPACK_DEPENDENCIES: Record<string, string> = {
+  'framer-motion': 'latest',
+  'lucide-react': 'latest',
+  clsx: 'latest',
+  'tailwind-merge': 'latest',
+};
+
+/** Tailwind CSS CDN for external resource injection */
+const TAILWIND_CDN = 'https://cdn.tailwindcss.com';
+
+/** Default entry file when Builder doesn't output one */
+const DEFAULT_ENTRY_CODE = [
+  "import React from 'react';",
+  "import { createRoot } from 'react-dom/client';",
+  "import App from './App';",
+  "import './inspector';",
+  '',
+  "const root = createRoot(document.getElementById('root')!);",
+  'root.render(',
+  '  <React.StrictMode>',
+  '    <App />',
+  '  </React.StrictMode>',
+  ');',
+].join('\n');
+
+// ============================================================================
+// PROPS
+// ============================================================================
 
 export interface LayoutCanvasProps {
-  components: DetectedComponentEnhanced[];
-  selectedId: string | null;
-  isAnalyzing: boolean;
-  analysisErrors?: string[];
-  analysisWarnings?: string[];
-  /** Design specification for font loading */
-  designSpec?: DesignSpec | null;
-  onSelectComponent: (id: string | null) => void;
-  onAnalyzeImage: (file: File, instructions?: string) => Promise<void>;
-  onAnalyzeVideo: (file: File, instructions?: string) => Promise<void>;
-  onApplyAIEdit: (id: string, prompt: string) => Promise<void>;
-  onDeleteComponent: (id: string) => void;
-  onDuplicateComponent: (id: string) => void;
+  /** Generated code files from the pipeline */
+  generatedFiles: AppFile[];
+  /** Whether the pipeline is currently running */
+  isProcessing: boolean;
+  /** Pipeline progress state */
+  pipelineProgress?: PipelineProgress | null;
+  /** Errors from pipeline or analysis */
+  errors?: string[];
+  /** Non-fatal warnings */
+  warnings?: string[];
+  /** Called when user drops files on the canvas */
+  onDropFiles: (files: File[]) => void;
+  /** Called when a component edit is submitted via FloatingEditBubble */
+  onRefineComponent: (dataId: string, prompt: string, outerHTML: string) => Promise<void>;
+  /** Undo last change */
   onUndo: () => void;
+  /** Redo last undone change */
   onRedo: () => void;
+  /** Export generated code */
   onExportCode: () => void;
+  /** Clear error/warning display */
   onClearErrors?: () => void;
+  /** Whether undo is available */
   canUndo: boolean;
+  /** Whether redo is available */
   canRedo: boolean;
-
-  // Self-Healing Props
-  isHealing?: boolean;
-  healingProgress?: VisionLoopProgress | null;
-  lastHealingResult?: SelfHealingResult | null;
-  originalImage?: string | null;
-  onRunSelfHealing?: (
-    originalImage: string,
-    captureScreenshot: () => Promise<string | null>
-  ) => Promise<SelfHealingResult | null>;
-  onCancelHealing?: () => void;
-  /** Register the captureScreenshot callback for auto-trigger self-healing */
-  registerCaptureScreenshot?: (callback: (() => Promise<string | null>) | null) => void;
-
-  // Direct Manipulation Props (Gap 3)
-  editMode?: boolean;
-  onToggleEditMode?: (enabled: boolean) => void;
-  dragState?: DragState | null;
-  activeSnapLines?: SnapLine[];
-  onStartMove?: (
-    componentId: string,
-    startBounds: Bounds,
-    pointerX: number,
-    pointerY: number,
-    canvasRect: DOMRect
-  ) => void;
-  onStartResize?: (
-    componentId: string,
-    handle: ResizeHandle,
-    startBounds: Bounds,
-    pointerX: number,
-    pointerY: number,
-    canvasRect: DOMRect
-  ) => void;
-  onUpdateDrag?: (
-    pointerX: number,
-    pointerY: number,
-    canvasRect: DOMRect,
-    otherComponents: Array<{ id: string; bounds: Bounds }>
-  ) => Bounds | null;
-  onEndDrag?: () => Bounds | null;
-  onCommitBounds?: (id: string, bounds: Bounds) => void;
 }
 
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Converts AppFile[] from the pipeline into Sandpack's files format.
+ * Also injects the inspector script and ensures a valid entry file exists.
+ *
+ * The pipeline outputs paths like `/src/App.tsx` but Sandpack's react-ts
+ * template expects `/App.tsx`. We strip the `/src/` prefix for compatibility.
+ */
+function toSandpackFiles(files: AppFile[]): Record<string, { code: string; hidden?: boolean }> {
+  const result: Record<string, { code: string; hidden?: boolean }> = {};
+  let hasEntryFile = false;
+
+  for (const file of files) {
+    // Normalize: strip /src/ prefix for Sandpack react-ts template compat
+    let path = file.path;
+    if (path.startsWith('/src/')) {
+      path = '/' + path.slice(5);
+    }
+    result[path] = { code: file.content };
+
+    if (path === '/index.tsx' || path === '/index.ts') {
+      hasEntryFile = true;
+    }
+  }
+
+  // Inject inspector script (self-executing IIFE, imported by entry file)
+  result['/inspector.ts'] = {
+    code: createInspectorFileContent(),
+    hidden: true,
+  };
+
+  // Ensure entry file exists with inspector import
+  if (!hasEntryFile) {
+    result['/index.tsx'] = { code: DEFAULT_ENTRY_CODE };
+  }
+
+  return result;
+}
+
+/**
+ * Returns the status indicator element for a pipeline step.
+ */
+function StepIndicator({ status }: { status: string }) {
+  switch (status) {
+    case 'running':
+      return <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />;
+    case 'complete':
+      return <span className="w-2 h-2 rounded-full bg-green-600" />;
+    case 'error':
+      return <span className="w-2 h-2 rounded-full bg-red-600" />;
+    case 'skipped':
+      return <span className="w-2 h-2 rounded-full bg-gray-300" />;
+    default:
+      return <span className="w-2 h-2 rounded-full bg-gray-200" />;
+  }
+}
+
+/**
+ * Returns a Tailwind text color class for a pipeline step status.
+ */
+function stepTextClass(status: string): string {
+  switch (status) {
+    case 'running':
+      return 'text-blue-800 font-medium';
+    case 'complete':
+      return 'text-green-700';
+    case 'error':
+      return 'text-red-700';
+    default:
+      return 'text-gray-400';
+  }
+}
+
+// ============================================================================
+// COMPONENT
+// ============================================================================
+
 export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
-  components,
-  selectedId,
-  isAnalyzing,
-  analysisErrors = [],
-  analysisWarnings = [],
-  designSpec = null,
-  onSelectComponent,
-  onAnalyzeImage,
-  onAnalyzeVideo,
-  onApplyAIEdit,
-  onDeleteComponent,
-  onDuplicateComponent,
+  generatedFiles,
+  isProcessing,
+  pipelineProgress,
+  errors = [],
+  warnings = [],
+  onDropFiles,
+  onRefineComponent,
   onUndo,
   onRedo,
   onExportCode,
   onClearErrors,
   canUndo,
   canRedo,
-  // Self-Healing Props
-  isHealing = false,
-  healingProgress = null,
-  lastHealingResult = null,
-  originalImage = null,
-  onRunSelfHealing,
-  onCancelHealing,
-  registerCaptureScreenshot,
-  // Direct Manipulation
-  editMode = false,
-  onToggleEditMode,
-  dragState = null,
-  activeSnapLines = [],
-  onStartMove,
-  onStartResize,
-  onUpdateDrag,
-  onEndDrag,
-  onCommitBounds,
 }) => {
   const [dragActive, setDragActive] = useState(false);
-  const [showHealingResult, setShowHealingResult] = useState(false);
-  const layoutRef = useRef<HTMLDivElement>(null);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
+  const inspector = useInspectorBridge();
 
-  // Load Google Fonts based on DesignSpec typography
-  useEffect(() => {
-    if (!designSpec?.typography) return;
+  const hasFiles = generatedFiles.length > 0;
+  const hasErrors = errors.length > 0;
+  const hasWarnings = warnings.length > 0;
 
-    const { headingFont, bodyFont } = designSpec.typography;
-    const fonts = [headingFont, bodyFont].filter(
-      (f): f is string => !!f && f !== 'Inter' && f !== 'system-ui'
-    );
+  // Convert AppFile[] to Sandpack format (memoized to avoid re-renders)
+  const sandpackFiles = useMemo(() => {
+    if (!hasFiles) return null;
+    return toSandpackFiles(generatedFiles);
+  }, [generatedFiles, hasFiles]);
 
-    if (fonts.length === 0) return;
+  // Container offset for FloatingEditBubble positioning.
+  // The inspector sends rect relative to the iframe viewport.
+  // Since the Sandpack preview iframe fills its container, offset is 0.
+  // If Sandpack adds internal chrome (toolbars etc.), we'd need to measure
+  // the actual iframe element's offset here.
+  const containerOffset = useMemo(() => ({ top: 0, left: 0 }), []);
 
-    // Create unique font families (remove duplicates)
-    const uniqueFonts = [...new Set(fonts)];
-
-    // Check if fonts are already loaded
-    const fontLinkId = 'layout-builder-fonts';
-    const existingLink = document.getElementById(fontLinkId);
-
-    // Build Google Fonts URL
-    const fontFamilies = uniqueFonts
-      .map((f) => f.replace(/\s+/g, '+'))
-      .map((f) => `family=${f}:wght@400;500;600;700`)
-      .join('&');
-    const fontUrl = `https://fonts.googleapis.com/css2?${fontFamilies}&display=swap`;
-
-    // Update or create the font link
-    if (existingLink) {
-      if (existingLink.getAttribute('href') !== fontUrl) {
-        existingLink.setAttribute('href', fontUrl);
-      }
-    } else {
-      const link = document.createElement('link');
-      link.id = fontLinkId;
-      link.href = fontUrl;
-      link.rel = 'stylesheet';
-      document.head.appendChild(link);
-    }
-
-    // Cleanup function - don't remove the link as other components may use it
-  }, [designSpec?.typography]);
-
-  // Capture screenshot of current layout for self-healing (client-side via html2canvas)
-  // This ensures Gemini sees exactly what the user sees, including all Tailwind CSS and dynamic fonts
-  const captureLayoutScreenshot = useCallback(async (): Promise<string | null> => {
-    if (!layoutRef.current) return null;
-    try {
-      const result = await captureElement({
-        element: layoutRef.current,
-        quality: 0.92,
-        format: 'jpeg',
-        backgroundColor: '#ffffff',
-      });
-      if (!result.success || !result.dataUrl) {
-        console.warn('[LayoutCanvas] Screenshot capture failed:', result.error);
-        return null;
-      }
-      const extracted = extractBase64FromDataUrl(result.dataUrl);
-      return extracted?.base64 ?? null;
-    } catch (error) {
-      console.error('[LayoutCanvas] Screenshot capture error:', error);
-      return null;
-    }
-  }, []);
-
-  // Register the captureScreenshot callback with the hook for auto-trigger
-  useEffect(() => {
-    if (registerCaptureScreenshot) {
-      registerCaptureScreenshot(captureLayoutScreenshot);
-      console.log('[LayoutCanvas] Registered captureScreenshot callback for auto-trigger');
-    }
-
-    // Cleanup on unmount
-    return () => {
-      if (registerCaptureScreenshot) {
-        registerCaptureScreenshot(null);
-        console.log('[LayoutCanvas] Unregistered captureScreenshot callback');
-      }
-    };
-  }, [registerCaptureScreenshot, captureLayoutScreenshot]);
-
-  // Handler for auto-refine button
-  const handleAutoRefine = useCallback(async () => {
-    console.log('[LayoutCanvas] Auto-refine button clicked');
-
-    if (!originalImage) {
-      console.error('[LayoutCanvas] Cannot run self-healing: no original image stored');
-      return;
-    }
-    if (!onRunSelfHealing) {
-      console.error('[LayoutCanvas] Cannot run self-healing: no handler provided');
-      return;
-    }
-
-    console.log('[LayoutCanvas] Calling onRunSelfHealing with client-side capture...');
-    try {
-      const result = await onRunSelfHealing(originalImage, captureLayoutScreenshot);
-      console.log('[LayoutCanvas] Self-healing result:', result);
-      if (result) {
-        setShowHealingResult(true);
-      }
-    } catch (error) {
-      console.error('[LayoutCanvas] Self-healing error:', error);
-    }
-  }, [originalImage, onRunSelfHealing, captureLayoutScreenshot]);
-
-  const hasErrors = analysisErrors.length > 0;
-  const hasWarnings = analysisWarnings.length > 0;
-
-  // Debug: Log when components change
-  console.log('[LayoutCanvas] Rendering with', components.length, 'components');
-
-  // Helper to find selected component data
-  const selectedComponent = components.find((c) => c.id === selectedId);
-
-  // --- Upload Handlers ---
-  const handleDrag = (e: React.DragEvent) => {
+  // --- Drag Handlers ---
+  const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.type === 'dragenter' || e.type === 'dragover') {
@@ -251,96 +206,101 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
     } else if (e.type === 'dragleave') {
       setDragActive(false);
     }
-  };
+  }, []);
 
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (file.type.startsWith('video/')) {
-        await onAnalyzeVideo(file);
-      } else {
-        await onAnalyzeImage(file);
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        onDropFiles(Array.from(e.dataTransfer.files));
       }
-    }
-  };
+    },
+    [onDropFiles]
+  );
+
+  // Background click deselects the inspector selection
+  const handleBackgroundClick = useCallback(() => {
+    inspector.clearSelection();
+  }, [inspector]);
 
   return (
     <div className="flex flex-col h-full w-full bg-gray-50">
-      {/* Toolbar / Status */}
+      {/* ── Toolbar ─────────────────────────────────────────────────── */}
       <div className="h-14 border-b bg-white flex items-center px-4 justify-between shadow-sm z-10">
         <div className="flex items-center gap-3">
-          <span className="font-semibold text-sm text-gray-700">Interactive Canvas</span>
-          {isAnalyzing && (
+          <span className="font-semibold text-sm text-gray-700">Preview</span>
+
+          {/* Processing indicator */}
+          {isProcessing && (
             <span className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full animate-pulse">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-              AI Analyzing...
+              {pipelineProgress?.message || 'Processing...'}
             </span>
           )}
-          {isHealing && (
-            <span className="flex items-center gap-2 text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-full animate-pulse">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-600" />
-              Self-Healing...
-            </span>
-          )}
-          {/* Error indicator */}
-          {hasErrors && !isAnalyzing && (
+
+          {/* Error badge */}
+          {hasErrors && !isProcessing && (
             <span className="flex items-center gap-2 text-xs text-red-600 bg-red-50 px-2 py-1 rounded-full">
               <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
-              {analysisErrors.length} error{analysisErrors.length > 1 ? 's' : ''}
+              {errors.length} error{errors.length > 1 ? 's' : ''}
             </span>
           )}
-          {/* Warning indicator */}
-          {hasWarnings && !hasErrors && !isAnalyzing && (
+
+          {/* Warning badge */}
+          {hasWarnings && !hasErrors && !isProcessing && (
             <span className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
-              {analysisWarnings.length} warning{analysisWarnings.length > 1 ? 's' : ''}
+              {warnings.length} warning{warnings.length > 1 ? 's' : ''}
             </span>
           )}
         </div>
 
         <div className="flex items-center gap-2">
-          {/* History Controls */}
-          <div className="flex gap-2">
+          {/* Undo / Redo */}
+          <div className="flex gap-1">
             <button
               onClick={onUndo}
               disabled={!canUndo}
-              className={`p-2 rounded hover:bg-gray-100 ${!canUndo ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`p-2 rounded hover:bg-gray-100 ${
+                !canUndo ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
               title="Undo"
             >
-              ↩
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 10h10a5 5 0 015 5v2M3 10l4-4M3 10l4 4"
+                />
+              </svg>
             </button>
             <button
               onClick={onRedo}
               disabled={!canRedo}
-              className={`p-2 rounded hover:bg-gray-100 ${!canRedo ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`p-2 rounded hover:bg-gray-100 ${
+                !canRedo ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
               title="Redo"
             >
-              ↪
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 10H11a5 5 0 00-5 5v2M21 10l-4-4M21 10l-4 4"
+                />
+              </svg>
             </button>
           </div>
 
-          {/* Edit Mode Toggle */}
-          {onToggleEditMode && (
-            <button
-              onClick={() => onToggleEditMode(!editMode)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                editMode
-                  ? 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-              title={editMode ? 'Exit edit mode' : 'Enter edit mode (drag/resize)'}
-            >
-              {editMode ? 'Editing' : 'Edit'}
-            </button>
-          )}
-
+          {/* Export */}
           <button
             onClick={onExportCode}
-            disabled={components.length === 0}
+            disabled={!hasFiles}
             className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg disabled:opacity-50 transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -353,132 +313,41 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
             </svg>
             Export React
           </button>
-
-          {/* Self-Healing Button */}
-          {onRunSelfHealing && (
-            <button
-              onClick={isHealing ? onCancelHealing : handleAutoRefine}
-              disabled={components.length === 0 || !originalImage || isAnalyzing}
-              className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                isHealing
-                  ? 'text-white bg-red-600 hover:bg-red-700'
-                  : 'text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50'
-              }`}
-              title={isHealing ? 'Cancel healing' : 'Auto-refine layout using AI vision loop'}
-            >
-              {isHealing ? (
-                <>
-                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  Cancel
-                </>
-              ) : (
-                <>
-                  <svg
-                    className="w-3.5 h-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                  </svg>
-                  Auto-Refine
-                </>
-              )}
-            </button>
-          )}
         </div>
       </div>
 
-      {/* Self-Healing Progress Bar */}
-      {isHealing && healingProgress && (
-        <div className="px-4 py-2 bg-purple-50 border-b border-purple-200">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-medium text-purple-800">{healingProgress.message}</span>
-            <span className="text-xs text-purple-600">
-              Iteration {healingProgress.iteration}/{healingProgress.maxIterations}
-              {healingProgress.fidelityScore !== undefined && (
-                <> • Fidelity: {healingProgress.fidelityScore.toFixed(1)}%</>
-              )}
-            </span>
-          </div>
-          <div className="w-full bg-purple-200 rounded-full h-1.5">
-            <div
-              className="bg-purple-600 h-1.5 rounded-full transition-all duration-300"
-              style={{
-                width: `${Math.min(100, (healingProgress.iteration / healingProgress.maxIterations) * 100)}%`,
-              }}
-            />
+      {/* ── Pipeline Step Progress ──────────────────────────────────── */}
+      {isProcessing && pipelineProgress && (
+        <div className="px-4 py-2 bg-blue-50 border-b border-blue-200">
+          <div className="flex items-center gap-4">
+            {(Object.entries(pipelineProgress.steps) as [PipelineStepName, string][]).map(
+              ([step, status]) => (
+                <div key={step} className="flex items-center gap-1.5">
+                  <StepIndicator status={status} />
+                  <span className={`text-xs ${stepTextClass(status)}`}>
+                    {PIPELINE_STEP_LABELS[step]}
+                  </span>
+                </div>
+              )
+            )}
           </div>
         </div>
       )}
 
-      {/* Self-Healing Result Summary */}
-      {showHealingResult && lastHealingResult && !isHealing && (
-        <div className="px-4 py-2 bg-green-50 border-b border-green-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <svg
-                className="w-4 h-4 text-green-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-              <span className="text-sm font-medium text-green-800">
-                Layout refined in {lastHealingResult.iterations} iteration
-                {lastHealingResult.iterations !== 1 ? 's' : ''}
-              </span>
-              <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
-                Fidelity: {lastHealingResult.finalFidelityScore.toFixed(1)}%
-              </span>
-            </div>
-            <button
-              onClick={() => setShowHealingResult(false)}
-              className="text-xs text-green-700 hover:text-green-800 px-2 py-1"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Error/Warning Panel */}
-      {(hasErrors || hasWarnings) && !isAnalyzing && (
+      {/* ── Error / Warning Panel ──────────────────────────────────── */}
+      {(hasErrors || hasWarnings) && !isProcessing && (
         <div
-          className={`px-4 py-2 border-b ${hasErrors ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}
+          className={`px-4 py-2 border-b ${
+            hasErrors ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'
+          }`}
         >
           <div className="flex items-start justify-between">
             <div className="flex-1">
               {hasErrors && (
                 <div className="mb-1">
-                  <span className="font-medium text-sm text-red-800">Analysis Errors:</span>
+                  <span className="font-medium text-sm text-red-800">Errors:</span>
                   <ul className="mt-1 text-xs text-red-700 list-disc list-inside">
-                    {analysisErrors.map((error, idx) => (
+                    {errors.map((error, idx) => (
                       <li key={idx}>{error}</li>
                     ))}
                   </ul>
@@ -488,7 +357,7 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
                 <div>
                   <span className="font-medium text-sm text-amber-800">Warnings:</span>
                   <ul className="mt-1 text-xs text-amber-700 list-disc list-inside">
-                    {analysisWarnings.map((warning, idx) => (
+                    {warnings.map((warning, idx) => (
                       <li key={idx}>{warning}</li>
                     ))}
                   </ul>
@@ -509,65 +378,100 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
         </div>
       )}
 
-      {/* Main Canvas Area */}
+      {/* ── Main Canvas Area ───────────────────────────────────────── */}
       <div
-        className={`flex-1 overflow-auto p-8 relative transition-colors ${dragActive ? 'bg-blue-50' : ''}`}
+        className={`flex-1 overflow-hidden relative transition-colors ${
+          dragActive ? 'bg-blue-50' : ''
+        }`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
-        onClick={() => onSelectComponent(null)} // Deselect on background click
+        onClick={handleBackgroundClick}
       >
-        <div
-          ref={layoutRef}
-          className="w-full bg-white shadow-sm ring-1 ring-gray-200 rounded-md relative"
-          style={{ minHeight: '800px', overflow: 'visible' }}
-        >
-          <DynamicLayoutRenderer
-            components={components}
-            onSelectComponent={onSelectComponent}
-            selectedComponentId={selectedId}
-          />
-
-          {/* Edit Bubble Overlay */}
-          {selectedComponent && !editMode && (
-            <FloatingEditBubble
-              component={selectedComponent}
-              onClose={() => onSelectComponent(null)}
-              onAiEdit={onApplyAIEdit}
-              onDelete={onDeleteComponent}
-              onDuplicate={onDuplicateComponent}
-            />
-          )}
-
-          {/* Direct Manipulation Overlay (Gap 3) */}
-          {editMode &&
-            onStartMove &&
-            onStartResize &&
-            onUpdateDrag &&
-            onEndDrag &&
-            onCommitBounds && (
-              <ManipulationOverlay
-                components={components}
-                selectedId={selectedId}
-                dragState={dragState}
-                snapLines={activeSnapLines}
-                onStartMove={onStartMove}
-                onStartResize={onStartResize}
-                onUpdateDrag={onUpdateDrag}
-                onEndDrag={onEndDrag}
-                onCommitBounds={onCommitBounds}
+        {/* Sandpack Preview (when generated code exists) */}
+        {hasFiles && sandpackFiles && (
+          <SandpackProvider
+            template="react-ts"
+            files={sandpackFiles}
+            customSetup={{
+              dependencies: SANDPACK_DEPENDENCIES,
+            }}
+            options={{
+              externalResources: [TAILWIND_CDN],
+            }}
+          >
+            <div
+              ref={previewContainerRef}
+              className="w-full h-full relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <SandpackPreview
+                showNavigator={false}
+                showRefreshButton={false}
+                style={{ height: '100%', width: '100%' }}
               />
-            )}
-        </div>
 
-        {/* Drag Overlay Help Text */}
-        {components.length === 0 && !isAnalyzing && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="text-center p-6 bg-white/80 backdrop-blur rounded-xl border border-gray-200 shadow-lg">
-              <p className="text-lg font-medium text-gray-900">Drop an Image or Video</p>
-              <p className="text-sm text-gray-500">The AI will analyze and replicate it.</p>
+              {/* FloatingEditBubble — positioned over the selected element */}
+              {inspector.selectedComponentId &&
+                inspector.selectedHTML &&
+                inspector.selectedTagName &&
+                inspector.selectedRect && (
+                  <FloatingEditBubble
+                    dataId={inspector.selectedComponentId}
+                    componentType={inspector.selectedTagName}
+                    outerHTML={inspector.selectedHTML}
+                    rect={inspector.selectedRect}
+                    containerOffset={containerOffset}
+                    onRefine={onRefineComponent}
+                    onClose={inspector.clearSelection}
+                  />
+                )}
             </div>
+          </SandpackProvider>
+        )}
+
+        {/* Empty State / Drop Zone */}
+        {!hasFiles && !isProcessing && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center p-8 bg-white/80 backdrop-blur rounded-xl border border-dashed border-gray-300 shadow-lg max-w-sm">
+              <svg
+                className="w-12 h-12 mx-auto mb-4 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+              <p className="text-lg font-medium text-gray-900 mb-1">Drop an Image or Video</p>
+              <p className="text-sm text-gray-500">
+                Or use the chat to describe what you want to build
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Processing State (before any files are generated) */}
+        {isProcessing && !hasFiles && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center p-8">
+              <div className="w-10 h-10 border-[3px] border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-sm font-medium text-gray-700">
+                {pipelineProgress?.message || 'Generating layout...'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Drag Overlay */}
+        {dragActive && (
+          <div className="absolute inset-0 bg-blue-100/50 border-2 border-dashed border-blue-400 rounded-lg flex items-center justify-center z-20 pointer-events-none">
+            <p className="text-blue-700 font-medium text-sm">Drop files here</p>
           </div>
         )}
       </div>

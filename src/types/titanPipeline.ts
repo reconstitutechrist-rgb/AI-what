@@ -1,0 +1,339 @@
+/**
+ * Titan Pipeline Types
+ *
+ * Contract types for the Universal Visual Editor pipeline.
+ * Each pipeline step has a well-defined input/output contract.
+ *
+ * Flow:
+ *   PipelineInput (files[] + currentCode + instructions)
+ *     → Step -1: Router → MergeStrategy
+ *     → Step 0:  Surveyor → VisualManifest[]
+ *     → Step 1:  Architect → ComponentStructure
+ *     → Step 2:  Physicist → MotionPhysics
+ *     → Step 4:  Builder → AppFile[]
+ *     → Step 5:  Live Editor (lightweight code-in/code-out)
+ */
+
+import type { AppFile } from '@/types/railway';
+
+// ============================================================================
+// INPUT BUNDLE (Dynamic Context Slots)
+// ============================================================================
+
+/** A single file in the input bundle (image or video) */
+export interface FileInput {
+  /** Base64-encoded file content (data URI or raw base64) */
+  base64: string;
+  /** MIME type (e.g., 'image/png', 'video/mp4') */
+  mimeType: string;
+  /** Original filename for display and Router context */
+  filename: string;
+}
+
+/** Complete input to the pipeline — dynamic Context Bundle */
+export interface PipelineInput {
+  /** Array of uploaded files (0 to N images/videos) */
+  files: FileInput[];
+  /** Existing generated code if editing, null if creating new */
+  currentCode: string | null;
+  /** User's natural language instructions */
+  instructions: string;
+  /** Optional app context for personalization */
+  appContext?: AppContext;
+}
+
+/** App context passed from the global store for personalized generation */
+export interface AppContext {
+  name?: string;
+  colorScheme?: string;
+  primaryColor?: string;
+  style?: string;
+}
+
+// ============================================================================
+// STEP -1: UNIVERSAL ROUTER OUTPUT
+// ============================================================================
+
+/** Pipeline mode determined by the Router */
+export type PipelineMode = 'CREATE' | 'MERGE' | 'EDIT';
+
+/** Role a file plays in the pipeline */
+export type FileRoleType = 'layout_source' | 'style_source' | 'component_source' | 'motion_source';
+
+/** Maps a file to its role and target components */
+export interface FileRole {
+  /** Index into PipelineInput.files[] */
+  file_index: number;
+  /** What this file provides */
+  role: FileRoleType;
+  /** Which components this applies to: ['global'] or ['navbar', 'hero', 'button'] */
+  applies_to: string[];
+}
+
+/** Execution plan — which pipeline steps to activate */
+export interface ExecutionPlan {
+  /** Indices of image files to send to Surveyor for pixel measurement */
+  measure_pixels: number[];
+  /** Indices of video files to send to Physicist for motion extraction */
+  extract_physics: number[];
+  /** Whether to preserve existing code (true for EDIT mode) */
+  preserve_existing_code: boolean;
+}
+
+/** Router output — the merge strategy that controls the entire pipeline */
+export interface MergeStrategy {
+  /** Pipeline mode: CREATE (new), MERGE (combine sources), EDIT (modify existing) */
+  mode: PipelineMode;
+  /** Base source: 'codebase' (use currentCode), file index reference, or null */
+  base_source: 'codebase' | string | null;
+  /** Role assignments for each input file */
+  file_roles: FileRole[];
+  /** Which steps to activate and how */
+  execution_plan: ExecutionPlan;
+}
+
+// ============================================================================
+// STEP 0: SURVEYOR OUTPUT
+// ============================================================================
+
+/** Bounding box for a measured component */
+export interface ComponentBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** A single component measured by the Surveyor's Python analysis */
+export interface MeasuredComponent {
+  /** Unique identifier for this component */
+  id: string;
+  /** Semantic HTML tag (section, nav, div, button, etc.) */
+  tag: string;
+  /** Pixel-accurate bounding box */
+  bounds: ComponentBounds;
+  /** Computed CSS styles extracted by cv2/PIL analysis */
+  computed_styles: Record<string, string>;
+  /** Child components (recursive tree) */
+  children: MeasuredComponent[];
+}
+
+/** Global theme extracted from the image */
+export interface GlobalTheme {
+  /** Dominant colors (hex) */
+  colors: string[];
+  /** Detected font families */
+  fonts: string[];
+  /** Base spacing unit in pixels */
+  spacing_unit: number;
+}
+
+/** Surveyor output — one per measured image */
+export interface VisualManifest {
+  /** Which file this manifest was generated from (index into files[]) */
+  file_index: number;
+  /** Canvas dimensions in pixels */
+  canvas: { width: number; height: number };
+  /** Measured component tree */
+  measured_components: MeasuredComponent[];
+  /** Global theme/design tokens */
+  global_theme: GlobalTheme;
+}
+
+// ============================================================================
+// STEP 1: ARCHITECT OUTPUT
+// ============================================================================
+
+/** A single node in the component structure tree */
+export interface StructureNode {
+  /** Unique identifier (matches data-id in generated code) */
+  id: string;
+  /** Semantic HTML tag */
+  tag: string;
+  /** Tailwind layout classes (structural only — no colors/fonts) */
+  classes: string[];
+  /** Child nodes */
+  children: StructureNode[];
+  /** Which manifest this node's dimensions came from (for merges) */
+  source_manifest?: number;
+  /** Semantic role hint (e.g., 'header', 'hero', 'pricing-grid') */
+  role?: string;
+}
+
+/** Architect output — the DOM skeleton */
+export interface ComponentStructure {
+  /** Root-level structure nodes */
+  tree: StructureNode[];
+  /** Overall layout strategy */
+  layout_strategy: 'flex' | 'grid' | 'hybrid';
+  /** Responsive breakpoint overrides (optional) */
+  responsive_breakpoints?: Record<string, Record<string, unknown>>;
+}
+
+// ============================================================================
+// STEP 2: PHYSICIST OUTPUT
+// ============================================================================
+
+/** Spring physics configuration */
+export interface SpringConfig {
+  stiffness: number;
+  damping: number;
+  mass: number;
+}
+
+/** Page-level transition between views */
+export interface PageTransition {
+  type: string;
+  duration_ms: number;
+  bezier?: number[];
+}
+
+/** Motion configuration for a single component */
+export interface ComponentMotion {
+  /** Target component ID (matches data-id and StructureNode.id) */
+  target_id: string;
+  /** Entrance animation */
+  entrance?: {
+    type: string;
+    bezier: number[];
+    duration_ms: number;
+    delay_ms: number;
+  };
+  /** Scroll-triggered animation */
+  scroll?: {
+    trigger: string;
+    animation: string;
+    threshold: number;
+  };
+  /** Hover interaction */
+  hover?: {
+    scale?: number;
+    rotate?: number;
+    translate_y?: number;
+    spring?: SpringConfig;
+  };
+  /** Looping/continuous animation */
+  loop?: {
+    type: string;
+    duration_ms: number;
+    keyframes?: Record<string, Record<string, string>>;
+  };
+}
+
+/** Physicist output — motion physics for all components */
+export interface MotionPhysics {
+  /** Per-component motion configurations */
+  component_motions: ComponentMotion[];
+  /** Page-level transitions (if detected) */
+  page_transitions?: PageTransition[];
+}
+
+// ============================================================================
+// PIPELINE RESULT
+// ============================================================================
+
+/** Complete pipeline output */
+export interface PipelineResult {
+  /** Generated code files (AppFile[] compatible with Sandpack) */
+  files: AppFile[];
+  /** The merge strategy that was used */
+  strategy: MergeStrategy;
+  /** Visual manifests (one per measured image) */
+  manifests: VisualManifest[];
+  /** Motion physics (null if no video input) */
+  physics: MotionPhysics | null;
+  /** Non-fatal warnings from pipeline steps */
+  warnings: string[];
+  /** Timing data per step (ms) */
+  stepTimings: Record<string, number>;
+}
+
+/** Live editor output (for FloatingEditBubble quick edits) */
+export interface LiveEditResult {
+  /** Updated code snippet */
+  updatedCode: string;
+  /** Whether the edit was applied successfully */
+  success: boolean;
+  /** Error message if failed */
+  error?: string;
+}
+
+// ============================================================================
+// PIPELINE PROGRESS (for UI)
+// ============================================================================
+
+/** Names of pipeline steps */
+export type PipelineStepName = 'router' | 'surveyor' | 'architect' | 'physicist' | 'builder';
+
+/** Status of a single pipeline step */
+export type PipelineStepStatus = 'pending' | 'running' | 'complete' | 'skipped' | 'error';
+
+/** Display labels for each step */
+export const PIPELINE_STEP_LABELS: Record<PipelineStepName, string> = {
+  router: 'Routing intent',
+  surveyor: 'Measuring layout',
+  architect: 'Building structure',
+  physicist: 'Extracting motion',
+  builder: 'Generating code',
+};
+
+/** Progress state for the pipeline UI */
+export interface PipelineProgress {
+  /** Currently active step */
+  currentStep: PipelineStepName;
+  /** Status of each step */
+  steps: Record<PipelineStepName, PipelineStepStatus>;
+  /** Human-readable progress message */
+  message: string;
+}
+
+/** Create initial pipeline progress state */
+export function createInitialProgress(): PipelineProgress {
+  return {
+    currentStep: 'router',
+    steps: {
+      router: 'pending',
+      surveyor: 'pending',
+      architect: 'pending',
+      physicist: 'pending',
+      builder: 'pending',
+    },
+    message: 'Starting pipeline...',
+  };
+}
+
+// ============================================================================
+// INSPECTOR BRIDGE TYPES
+// ============================================================================
+
+/** Message sent from inspector script in Sandpack iframe to parent */
+export interface InspectorMessage {
+  type: 'COMPONENT_SELECTED';
+  /** data-id attribute value */
+  id: string;
+  /** HTML tag name */
+  tagName: string;
+  /** outerHTML of the selected element */
+  outerHTML: string;
+  /** Bounding rect relative to iframe viewport */
+  rect: {
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  };
+}
+
+/** State returned by the useInspectorBridge hook */
+export interface InspectorBridgeState {
+  /** ID of the currently selected component (data-id value) */
+  selectedComponentId: string | null;
+  /** outerHTML of the selected component */
+  selectedHTML: string | null;
+  /** Tag name of the selected component */
+  selectedTagName: string | null;
+  /** Bounding rect for positioning FloatingEditBubble */
+  selectedRect: { top: number; left: number; width: number; height: number } | null;
+  /** Clear selection */
+  clearSelection: () => void;
+}

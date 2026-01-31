@@ -1,32 +1,41 @@
 /**
  * Floating Edit Bubble
  *
- * A contextual UI that appears next to a selected component.
- * Allows the user to:
- * 1. Type natural language commands ("Make this blue")
- * 2. Delete the component
- * 3. Duplicate the component
+ * A contextual UI that appears next to a selected component in the Sandpack preview.
+ * Uses the Live Editor prompt for quick edits — sends the selected outerHTML +
+ * user instruction to the AI, gets back updated code.
  *
- * It uses absolute positioning relative to the selected element's bounds.
+ * Positioned using the inspector bridge's selectedRect (relative to the
+ * Sandpack container element).
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { DetectedComponentEnhanced } from '@/types/layoutDesign';
 
 interface FloatingEditBubbleProps {
-  component: DetectedComponentEnhanced;
+  /** data-id of the selected component */
+  dataId: string;
+  /** Tag name of the selected component */
+  componentType: string;
+  /** outerHTML of the selected component */
+  outerHTML: string;
+  /** Bounding rect from the inspector bridge (relative to iframe) */
+  rect: { top: number; left: number; width: number; height: number };
+  /** Offset of the Sandpack container from the viewport */
+  containerOffset: { top: number; left: number };
+  /** Called when the user submits an edit instruction */
+  onRefine: (dataId: string, prompt: string, outerHTML: string) => Promise<void>;
+  /** Close the bubble */
   onClose: () => void;
-  onAiEdit: (id: string, prompt: string) => Promise<void>;
-  onDelete: (id: string) => void;
-  onDuplicate: (id: string) => void;
 }
 
 export const FloatingEditBubble: React.FC<FloatingEditBubbleProps> = ({
-  component,
+  dataId,
+  componentType,
+  outerHTML,
+  rect,
+  containerOffset,
+  onRefine,
   onClose,
-  onAiEdit,
-  onDelete,
-  onDuplicate,
 }) => {
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -45,26 +54,27 @@ export const FloatingEditBubble: React.FC<FloatingEditBubbleProps> = ({
 
     setIsLoading(true);
     try {
-      await onAiEdit(component.id, prompt);
+      await onRefine(dataId, prompt, outerHTML);
       setPrompt('');
-      onClose(); // Close after successful edit? Or keep open? Let's close for now.
+      onClose();
     } catch (error) {
-      console.error('Edit failed:', error);
+      console.error('[FloatingEditBubble] Edit failed:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Calculate position: Just above the element, centered
-  // In a real app, we'd use usePopper or similar for collision detection
-  // Uses defensive defaults to prevent crashes with missing bounds
-  const bounds = component.bounds ?? { top: 0, left: 0, width: 100, height: 50 };
+  // Position: above the selected element, centered horizontally
+  // rect is relative to the iframe viewport, so we add the container offset
+  // Flip to below when the element is too close to the top (e.g., Navbar)
+  const isTooCloseToTop = rect.top < 150;
+
   const style: React.CSSProperties = {
     position: 'absolute',
-    top: `${bounds.top}%`,
-    left: `${bounds.left + bounds.width / 2}%`,
-    transform: 'translate(-50%, -110%)', // Shift up and center
-    marginTop: '-8px',
+    top: `${containerOffset.top + rect.top + (isTooCloseToTop ? rect.height + 10 : 0)}px`,
+    left: `${containerOffset.left + rect.left + rect.width / 2}px`,
+    transform: isTooCloseToTop ? 'translate(-50%, 0)' : 'translate(-50%, -110%)',
+    marginTop: isTooCloseToTop ? '8px' : '-8px',
     zIndex: 1000,
   };
 
@@ -72,12 +82,12 @@ export const FloatingEditBubble: React.FC<FloatingEditBubbleProps> = ({
     <div
       style={style}
       className="bg-white shadow-xl rounded-lg border border-gray-200 p-3 w-[280px] animate-in fade-in zoom-in-95 duration-200"
-      onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+      onClick={(e) => e.stopPropagation()}
     >
-      {/* Header / Title */}
+      {/* Header */}
       <div className="flex justify-between items-center mb-2">
         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          Edit {component.type}
+          Edit &lt;{componentType}&gt;
         </span>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1">
           &times;
@@ -85,13 +95,13 @@ export const FloatingEditBubble: React.FC<FloatingEditBubbleProps> = ({
       </div>
 
       {/* AI Input Form */}
-      <form onSubmit={handleSubmit} className="mb-3">
+      <form onSubmit={handleSubmit} className="mb-2">
         <div className="relative">
           <input
             ref={inputRef}
             type="text"
             className="w-full pl-3 pr-8 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="e.g., Make background red..."
+            placeholder="e.g., Make this blue..."
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             disabled={isLoading}
@@ -117,21 +127,8 @@ export const FloatingEditBubble: React.FC<FloatingEditBubbleProps> = ({
         </div>
       </form>
 
-      {/* Quick Actions */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => onDuplicate(component.id)}
-          className="flex-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded border border-gray-200 transition-colors"
-        >
-          Duplicate
-        </button>
-        <button
-          onClick={() => onDelete(component.id)}
-          className="flex-1 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded border border-red-200 transition-colors"
-        >
-          Delete
-        </button>
-      </div>
+      {/* data-id indicator */}
+      <div className="text-[10px] text-gray-400 truncate">data-id: {dataId}</div>
     </div>
   );
 };

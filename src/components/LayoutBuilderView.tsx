@@ -1,17 +1,17 @@
 /**
  * Layout Builder View
  *
- * Main orchestrator component for the layout builder that combines:
- * - Left panel: LayoutBuilderChatPanel for user interaction
- * - Right panel: LayoutCanvas for visual editing
+ * Main orchestrator for the Universal Visual Editor.
+ * Combines the chat panel (left) with the Sandpack preview canvas (right).
  *
- * This component manages:
- * - Chat message state
- * - Media upload and analysis flow
- * - Single source of truth for layout state via useLayoutBuilder
+ * This component:
+ *   - Owns the useLayoutBuilder hook (single source of truth)
+ *   - Converts chat input (text + media) into pipeline calls
+ *   - Passes generated code + progress to both panels
  *
- * IMPORTANT: This component owns the useLayoutBuilder hook state.
- * The LayoutCanvas is stateless and receives all state via props.
+ * All generation scenarios flow through one path:
+ *   handleAnalyzeMedia / handleSendMessage → useLayoutBuilder.runPipeline()
+ *   The Router on the backend decides CREATE / MERGE / EDIT mode.
  */
 
 'use client';
@@ -23,12 +23,9 @@ import {
   UploadedMedia,
 } from './layout-builder/LayoutBuilderChatPanel';
 import { LayoutCanvas } from './layout-builder/LayoutCanvas';
-import ComponentTreePanel from './layout-builder/ComponentTreePanel';
 import { useLayoutBuilder } from '@/hooks/useLayoutBuilder';
-import { useSourceRegistry } from '@/hooks/useSourceRegistry';
-import { useDirectManipulation } from '@/hooks/useDirectManipulation';
 import { useAppStore } from '@/store/useAppStore';
-import { Layers, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import type { AppContext } from '@/types/titanPipeline';
 
 // ============================================================================
 // HELPERS
@@ -43,20 +40,31 @@ function generateMessageId(): string {
 // ============================================================================
 
 export const LayoutBuilderView: React.FC = () => {
-  // Read app context from store for personalized experience
+  // --- App context for personalized generation ---
   const appConcept = useAppStore((state) => state.appConcept);
 
-  // Generate welcome message based on app context
+  const appContext: AppContext | undefined = useMemo(() => {
+    if (!appConcept) return undefined;
+    return {
+      name: appConcept.name,
+      colorScheme: appConcept.uiPreferences?.colorScheme,
+      primaryColor: appConcept.uiPreferences?.primaryColor,
+      style: appConcept.uiPreferences?.style,
+    };
+  }, [appConcept]);
+
+  // --- Welcome message ---
   const welcomeMessage = useMemo(() => {
     if (appConcept?.name) {
       const themeInfo = appConcept.uiPreferences?.colorScheme
         ? ` I'll use your ${appConcept.uiPreferences.colorScheme} theme preferences as guidance.`
         : '';
-      return `Welcome to the Layout Builder for **${appConcept.name}**! Upload an image or video of a design you'd like to replicate, and I'll analyze it to create a matching layout.${themeInfo} You can also add instructions to customize the result.`;
+      return `Welcome to the Layout Builder for **${appConcept.name}**! Upload an image or video of a design you'd like to replicate, or describe what you want to build.${themeInfo}`;
     }
-    return "Welcome to the Layout Builder! Upload an image or video of a design you'd like to replicate, and I'll analyze it to create a matching layout. You can also add instructions to customize the result.";
+    return "Welcome to the Layout Builder! Upload an image or video of a design you'd like to replicate, or describe what you want to build. You can also type instructions to customize the result.";
   }, [appConcept?.name, appConcept?.uiPreferences?.colorScheme]);
 
+  // --- Chat messages ---
   const [messages, setMessages] = useState<LayoutChatMessage[]>([
     {
       id: generateMessageId(),
@@ -66,131 +74,25 @@ export const LayoutBuilderView: React.FC = () => {
     },
   ]);
 
-  // Single source of truth for all layout state (including originalImage for self-healing)
+  // --- Layout builder hook (single source of truth) ---
   const {
-    analyzeImage,
-    analyzeVideo,
-    isAnalyzing,
-    components,
-    applyAIEdit,
-    selectedId,
-    selectComponent,
-    deleteComponent,
-    duplicateComponent,
+    generatedFiles,
+    isProcessing,
+    pipelineProgress,
+    errors,
+    warnings,
+    runPipeline,
+    refineComponent,
     undo,
     redo,
     exportCode,
+    clearErrors,
     canUndo,
     canRedo,
-    analysisErrors,
-    analysisWarnings,
-    clearErrors,
-    // Component Management (Gap 4)
-    groupComponents,
-    ungroupComponent,
-    reparentComponent: _reparentComponent,
-    renameComponent,
-    toggleComponentVisibility,
-    toggleComponentLock,
-    // Direct Manipulation (Gap 3)
-    updateComponentBounds,
-    // Self-Healing State
-    isHealing,
-    healingProgress,
-    lastHealingResult,
-    originalImage,
-    runSelfHealingLoop,
-    cancelHealing,
-    registerCaptureScreenshot,
   } = useLayoutBuilder();
 
-  // Source registry for multi-source merge pipeline
-  const { sources: _sources, addSource, updateSource, generateSourceId } = useSourceRegistry();
-
-  // Direct manipulation for drag/resize on canvas
-  const {
-    editMode,
-    setEditMode,
-    dragState,
-    activeSnapLines,
-    startMove,
-    startResize,
-    updateDrag,
-    endDrag,
-  } = useDirectManipulation();
-
-  // Commit bounds after drag/resize
-  const handleCommitBounds = useCallback(
-    (id: string, bounds: { top: number; left: number; width: number; height: number }) => {
-      updateComponentBounds(id, bounds);
-    },
-    [updateComponentBounds]
-  );
-
-  // Tree panel collapse state
-  const [isTreeOpen, setIsTreeOpen] = useState(true);
-
-  // Debug: Log component count changes
-  console.log('[LayoutBuilderView] components:', components.length, 'isAnalyzing:', isAnalyzing);
-
-  // Handle sending a text message (no media)
-  const handleSendMessage = useCallback(
-    (message: string, media: UploadedMedia[]) => {
-      if (!message.trim() && media.length === 0) return;
-
-      // Add user message
-      const userMessage: LayoutChatMessage = {
-        id: generateMessageId(),
-        role: 'user',
-        content: message || 'Uploaded media for analysis',
-        timestamp: new Date(),
-        mediaUrls: media.map((m) => m.previewUrl),
-      };
-      setMessages((prev) => [...prev, userMessage]);
-
-      // If there's a selected component and just text, treat as edit instruction
-      if (selectedId && message.trim() && media.length === 0) {
-        applyAIEdit(selectedId, message)
-          .then(() => {
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: generateMessageId(),
-                role: 'assistant',
-                content: `I've applied the changes to the selected component.`,
-                timestamp: new Date(),
-              },
-            ]);
-          })
-          .catch((error) => {
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: generateMessageId(),
-                role: 'system',
-                content: `Failed to apply edit: ${error.message}`,
-                timestamp: new Date(),
-              },
-            ]);
-          });
-      } else if (message.trim() && components.length > 0 && media.length === 0) {
-        // General instruction without selection - inform user
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: generateMessageId(),
-            role: 'assistant',
-            content:
-              'To edit a specific component, click on it in the preview first, then send your instruction. Or upload new media to analyze a different design.',
-            timestamp: new Date(),
-          },
-        ]);
-      }
-    },
-    [selectedId, applyAIEdit, components.length]
-  );
-
-  // Handle media analysis
+  // --- Handle media analysis (image/video uploads) ---
+  // Defined before handleSendMessage so it can be called from there
   const handleAnalyzeMedia = useCallback(
     async (media: UploadedMedia[], instructions?: string) => {
       if (media.length === 0) return;
@@ -205,70 +107,29 @@ export const LayoutBuilderView: React.FC = () => {
       };
       setMessages((prev) => [...prev, userMessage]);
 
-      // Build enhanced instructions with app context
-      let enhancedInstructions = instructions || '';
-      if (appConcept) {
-        const contextParts: string[] = [];
-        if (appConcept.name) {
-          contextParts.push(`This design is for an app called "${appConcept.name}".`);
-        }
-        if (appConcept.uiPreferences?.colorScheme) {
-          contextParts.push(`Preferred color scheme: ${appConcept.uiPreferences.colorScheme}.`);
-        }
-        if (appConcept.uiPreferences?.primaryColor) {
-          contextParts.push(`Primary color: ${appConcept.uiPreferences.primaryColor}.`);
-        }
-        if (appConcept.uiPreferences?.style) {
-          contextParts.push(`Design style: ${appConcept.uiPreferences.style}.`);
-        }
-        if (contextParts.length > 0) {
-          const contextPrefix = `[App Context: ${contextParts.join(' ')}] `;
-          enhancedInstructions = contextPrefix + enhancedInstructions;
-        }
-      }
-
       try {
-        // Process each media file with source tracking
-        for (const item of media) {
-          const sourceId = generateSourceId();
-          const source = addSource({
-            id: sourceId,
-            type: item.type === 'video' ? 'video' : 'image',
-            name: item.file.name,
-            base64: item.previewUrl,
-            instructions: enhancedInstructions || undefined,
-          });
+        // Extract raw File objects from UploadedMedia
+        const files = media.map((m) => m.file);
 
-          updateSource(source.id, { status: 'analyzing' });
+        // Run the Titan pipeline (Router determines CREATE/MERGE/EDIT)
+        await runPipeline(files, instructions || '', appContext);
 
-          try {
-            if (item.type === 'video') {
-              await analyzeVideo(item.file, enhancedInstructions || undefined, source.id);
-            } else {
-              await analyzeImage(item.file, enhancedInstructions || undefined, source.id);
-            }
-            updateSource(source.id, { status: 'complete' });
-          } catch (sourceError) {
-            updateSource(source.id, {
-              status: 'error',
-              error: sourceError instanceof Error ? sourceError.message : 'Analysis failed',
-            });
-            throw sourceError;
-          }
-        }
+        // Success message
+        const modeHint =
+          media.length > 1
+            ? `I've analyzed ${media.length} files and created a merged layout.`
+            : `I've analyzed the ${media[0].type} and created a layout.`;
 
-        // Add success message
         setMessages((prev) => [
           ...prev,
           {
             id: generateMessageId(),
             role: 'assistant',
-            content: `I've analyzed the ${media.length > 1 ? 'media files' : media[0].type} and created a layout. You can now click on any component in the preview to edit it, or upload more media to refine the design.`,
+            content: `${modeHint} Click on any component in the preview to edit it, or send more instructions to refine the design.`,
             timestamp: new Date(),
           },
         ]);
       } catch (error) {
-        // Add error message
         setMessages((prev) => [
           ...prev,
           {
@@ -280,7 +141,111 @@ export const LayoutBuilderView: React.FC = () => {
         ]);
       }
     },
-    [analyzeImage, analyzeVideo, appConcept, generateSourceId, addSource, updateSource]
+    [runPipeline, appContext]
+  );
+
+  // --- Handle text-only messages (or text + media) ---
+  const handleSendMessage = useCallback(
+    (message: string, media: UploadedMedia[]) => {
+      if (!message.trim() && media.length === 0) return;
+
+      // If there are media files, delegate to handleAnalyzeMedia with the user's text.
+      // This ensures instructions like "Copy this layout but make it blue" are
+      // passed to the pipeline as the instructions argument alongside the media.
+      if (media.length > 0) {
+        handleAnalyzeMedia(media, message);
+        return;
+      }
+
+      // Add user message to chat (text-only path)
+      const userMessage: LayoutChatMessage = {
+        id: generateMessageId(),
+        role: 'user',
+        content: message,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, userMessage]);
+
+      // Text-only: run pipeline with no files
+      // The Router will determine CREATE (no existing code) or EDIT (has currentCode)
+      if (message.trim()) {
+        const hasExistingCode = generatedFiles.length > 0;
+
+        runPipeline([], message.trim(), appContext)
+          .then(() => {
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: generateMessageId(),
+                role: 'assistant',
+                content: hasExistingCode
+                  ? "I've updated the layout based on your instructions. Click on any component in the preview to make further edits."
+                  : "I've generated a layout based on your description. Click on any component in the preview to refine it.",
+                timestamp: new Date(),
+              },
+            ]);
+          })
+          .catch((error) => {
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: generateMessageId(),
+                role: 'system',
+                content: `Failed to process: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                timestamp: new Date(),
+              },
+            ]);
+          });
+      }
+    },
+    [handleAnalyzeMedia, runPipeline, appContext, generatedFiles.length]
+  );
+
+  // --- Handle file drops on the canvas ---
+  const handleDropFiles = useCallback(
+    (files: File[]) => {
+      const mediaFiles = files.filter(
+        (f) => f.type.startsWith('image/') || f.type.startsWith('video/')
+      );
+      if (mediaFiles.length === 0) return;
+
+      // Add a chat message about the drop
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: generateMessageId(),
+          role: 'user',
+          content: `Dropped ${mediaFiles.length} file${mediaFiles.length > 1 ? 's' : ''} for analysis`,
+          timestamp: new Date(),
+        },
+      ]);
+
+      // Run pipeline
+      runPipeline(mediaFiles, '', appContext)
+        .then(() => {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: generateMessageId(),
+              role: 'assistant',
+              content: 'Layout generated from dropped files. Click on any component to edit it.',
+              timestamp: new Date(),
+            },
+          ]);
+        })
+        .catch((error) => {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: generateMessageId(),
+              role: 'system',
+              content: `Failed to process dropped files: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              timestamp: new Date(),
+            },
+          ]);
+        });
+    },
+    [runPipeline, appContext]
   );
 
   return (
@@ -290,96 +255,30 @@ export const LayoutBuilderView: React.FC = () => {
         <LayoutBuilderChatPanel
           messages={messages}
           onSendMessage={handleSendMessage}
-          isAnalyzing={isAnalyzing}
+          isAnalyzing={isProcessing}
           onAnalyzeMedia={handleAnalyzeMedia}
+          pipelineProgress={pipelineProgress}
         />
       </div>
 
-      {/* Center Panel: Preview Canvas */}
-      <div className="flex-1 h-full overflow-hidden relative">
+      {/* Right Panel: Preview Canvas */}
+      <div className="flex-1 h-full overflow-hidden">
         <LayoutCanvas
-          components={components}
-          selectedId={selectedId}
-          isAnalyzing={isAnalyzing}
-          analysisErrors={analysisErrors}
-          analysisWarnings={analysisWarnings}
-          onSelectComponent={selectComponent}
-          onAnalyzeImage={analyzeImage}
-          onAnalyzeVideo={analyzeVideo}
-          onApplyAIEdit={applyAIEdit}
-          onDeleteComponent={deleteComponent}
-          onDuplicateComponent={duplicateComponent}
+          generatedFiles={generatedFiles}
+          isProcessing={isProcessing}
+          pipelineProgress={pipelineProgress}
+          errors={errors}
+          warnings={warnings}
+          onDropFiles={handleDropFiles}
+          onRefineComponent={refineComponent}
           onUndo={undo}
           onRedo={redo}
           onExportCode={exportCode}
           onClearErrors={clearErrors}
           canUndo={canUndo}
           canRedo={canRedo}
-          // Self-Healing Props
-          isHealing={isHealing}
-          healingProgress={healingProgress}
-          lastHealingResult={lastHealingResult}
-          originalImage={originalImage}
-          onRunSelfHealing={runSelfHealingLoop}
-          onCancelHealing={cancelHealing}
-          registerCaptureScreenshot={registerCaptureScreenshot}
-          // Direct Manipulation Props
-          editMode={editMode}
-          onToggleEditMode={setEditMode}
-          dragState={dragState}
-          activeSnapLines={activeSnapLines}
-          onStartMove={startMove}
-          onStartResize={startResize}
-          onUpdateDrag={updateDrag}
-          onEndDrag={endDrag}
-          onCommitBounds={handleCommitBounds}
         />
-
-        {/* Tree panel toggle button (when tree is collapsed) */}
-        {!isTreeOpen && (
-          <button
-            className="absolute top-2 right-2 z-10 p-1.5 rounded-md bg-white border border-gray-200 shadow-sm hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition-colors"
-            onClick={() => setIsTreeOpen(true)}
-            title="Open layers panel"
-          >
-            <PanelRightOpen size={16} />
-          </button>
-        )}
       </div>
-
-      {/* Right Panel: Component Tree (collapsible) */}
-      {isTreeOpen && (
-        <div className="w-[280px] flex-shrink-0 h-full border-l border-gray-200 flex flex-col">
-          {/* Tree panel header with close button */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 bg-gray-50">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-gray-600">
-              <Layers size={14} />
-              <span>Component Tree</span>
-            </div>
-            <button
-              className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
-              onClick={() => setIsTreeOpen(false)}
-              title="Close layers panel"
-            >
-              <PanelRightClose size={14} />
-            </button>
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <ComponentTreePanel
-              components={components}
-              selectedId={selectedId}
-              onSelectComponent={selectComponent}
-              onToggleVisibility={toggleComponentVisibility}
-              onToggleLock={toggleComponentLock}
-              onDeleteComponent={deleteComponent}
-              onDuplicateComponent={duplicateComponent}
-              onGroupComponents={groupComponents}
-              onUngroupComponent={ungroupComponent}
-              onRenameComponent={renameComponent}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 };

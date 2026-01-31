@@ -14,6 +14,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import type { PipelineProgress, PipelineStepName } from '@/types/titanPipeline';
+import { PIPELINE_STEP_LABELS } from '@/types/titanPipeline';
 
 // ============================================================================
 // TYPES
@@ -39,6 +41,8 @@ export interface LayoutBuilderChatPanelProps {
   onSendMessage: (message: string, media: UploadedMedia[]) => void;
   isAnalyzing: boolean;
   onAnalyzeMedia?: (media: UploadedMedia[], instructions?: string) => Promise<void>;
+  /** Pipeline step progress (shown in loading indicator) */
+  pipelineProgress?: PipelineProgress | null;
 }
 
 // ============================================================================
@@ -115,6 +119,7 @@ export const LayoutBuilderChatPanel: React.FC<LayoutBuilderChatPanelProps> = ({
   onSendMessage,
   isAnalyzing,
   onAnalyzeMedia,
+  pipelineProgress,
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [uploadedMedia, setUploadedMedia] = useState<UploadedMedia[]>([]);
@@ -276,12 +281,52 @@ export const LayoutBuilderChatPanel: React.FC<LayoutBuilderChatPanelProps> = ({
           </div>
         ))}
 
-        {/* Loading indicator */}
+        {/* Loading indicator with pipeline progress */}
         {isAnalyzing && (
           <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-lg px-4 py-3 flex items-center gap-3">
-              <LoaderIcon />
-              <span className="text-sm text-gray-600">Analyzing layout...</span>
+            <div className="bg-gray-100 rounded-lg px-4 py-3">
+              <div className="flex items-center gap-3 mb-1">
+                <LoaderIcon />
+                <span className="text-sm text-gray-600">
+                  {pipelineProgress?.message || 'Processing...'}
+                </span>
+              </div>
+              {pipelineProgress && (
+                <div className="flex items-center gap-3 mt-2 flex-wrap">
+                  {(Object.entries(pipelineProgress.steps) as [PipelineStepName, string][]).map(
+                    ([step, status]) => (
+                      <div key={step} className="flex items-center gap-1">
+                        {status === 'running' && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+                        )}
+                        {status === 'complete' && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-600" />
+                        )}
+                        {status === 'skipped' && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                        )}
+                        {status === 'error' && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
+                        )}
+                        {status === 'pending' && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-gray-200" />
+                        )}
+                        <span
+                          className={cn(
+                            'text-xs',
+                            status === 'running' && 'text-blue-700 font-medium',
+                            status === 'complete' && 'text-green-700',
+                            status === 'error' && 'text-red-700',
+                            (status === 'pending' || status === 'skipped') && 'text-gray-400'
+                          )}
+                        >
+                          {PIPELINE_STEP_LABELS[step]}
+                        </span>
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
