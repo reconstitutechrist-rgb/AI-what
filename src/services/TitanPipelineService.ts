@@ -26,6 +26,7 @@ import type {
   FileInput,
 } from '@/types/titanPipeline';
 import { geminiImageService } from '@/services/GeminiImageService';
+import { autonomyCore } from '@/agents/AutonomyCore';
 
 // ============================================================================
 // CONFIGURATION (CONFIRMED 2026 SPECS)
@@ -84,10 +85,11 @@ You are the **Pipeline Traffic Controller**.
 - If new files uploaded -> mode: "CREATE" or "MERGE"
 - **PHOTOREALISM TRIGGER:** If user asks for "photorealistic", "texture", "realistic", "wood", "glass", "cloud", "grain", or specific materials, you MUST add a "generate_assets" task.
 - Images -> measure_pixels. Videos -> extract_physics.
+- **UNKNOWN/COMPLEX:** If the request involves concepts, libraries, or capabilities you don't know (e.g., "WebGPU", "Quantum", "L-System", "3D Metaverse"), mode: "RESEARCH_AND_BUILD".
 
 ### Output Schema (JSON)
 {
-  "mode": "CREATE" | "MERGE" | "EDIT",
+  "mode": "CREATE" | "MERGE" | "EDIT" | "RESEARCH_AND_BUILD",
   "base_source": "codebase" | "file_0" | null,
   "file_roles": [],
   "execution_plan": {
@@ -426,6 +428,31 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   const routeStart = Date.now();
   const strategy = await routeIntent(input);
   stepTimings.router = Date.now() - routeStart;
+
+  // AUTOPOIETIC/LEARNING PATH
+  if (strategy.mode === 'RESEARCH_AND_BUILD') {
+     console.log('[TitanPipeline] Triggering Autonomy Core for Unknown Task...');
+     const autonomyStart = Date.now();
+     const result = await autonomyCore.solveUnknown({
+        id: `auto_${Date.now()}`,
+        description: input.instructions,
+        context: `Files: ${input.files.length}`,
+        technical_constraints: []
+     });
+     stepTimings.autonomy = Date.now() - autonomyStart;
+
+     // Convert AgentTaskResult to PipelineResult
+     // This assumes the output of autonomy is the code.
+     // In a real system, we might need more parsing.
+     return {
+        files: [{ path: '/src/App.tsx', content: result.output }],
+        strategy,
+        manifests: [],
+        physics: null,
+        warnings: result.success ? [] : [result.error || 'Autonomy failed'],
+        stepTimings
+     };
+  }
 
   const manifests: VisualManifest[] = [];
   let physics: MotionPhysics | null = null;

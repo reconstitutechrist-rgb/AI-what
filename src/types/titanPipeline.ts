@@ -159,7 +159,7 @@ export interface ComponentStructure {
 }
 
 export interface MergeStrategy {
-  mode: 'CREATE' | 'MERGE' | 'EDIT';
+  mode: 'CREATE' | 'MERGE' | 'EDIT' | 'RESEARCH_AND_BUILD';
   base_source: 'codebase' | 'file_0' | null;
   file_roles: string[];
   execution_plan: {
