@@ -133,6 +133,15 @@ export function useAppCrud(options: UseAppCrudOptions): UseAppCrudReturn {
       setActiveTab('chat');
       setShowNameAppModal(false);
 
+      // CRITICAL: Save to database immediately to prevent data loss
+      onSaveComponent(newComponent).then((result) => {
+        if (!result.success) {
+          console.error('[useAppCrud] Failed to save new component to database:', result.error);
+        } else {
+          console.log('[useAppCrud] Component saved to database successfully');
+        }
+      });
+
       // Store ID for persistence
       if (typeof window !== 'undefined') {
         try {
@@ -159,6 +168,7 @@ export function useAppCrud(options: UseAppCrudOptions): UseAppCrudReturn {
       setActiveTab,
       setShowNameAppModal,
       getWelcomeMessage,
+      onSaveComponent, // CRITICAL: Added to save to database
       // Include wizard data in dependencies
       appConcept,
       dynamicPhasePlan,
