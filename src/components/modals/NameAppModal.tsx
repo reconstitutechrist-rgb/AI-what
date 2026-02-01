@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { FolderIcon, XIcon, CheckIcon } from '../ui/Icons';
 import { FocusTrap } from '../ui/FocusTrap';
 
@@ -8,10 +8,19 @@ export interface NameAppModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (name: string) => void;
+  /** Pre-fill the name input (e.g., from wizard's appConcept.name) */
+  defaultName?: string;
 }
 
-export function NameAppModal({ isOpen, onClose, onSubmit }: NameAppModalProps) {
-  const [appName, setAppName] = useState('');
+export function NameAppModal({ isOpen, onClose, onSubmit, defaultName }: NameAppModalProps) {
+  const [appName, setAppName] = useState(defaultName || '');
+
+  // Update appName when defaultName changes (e.g., when wizard data loads)
+  useEffect(() => {
+    if (defaultName && !appName) {
+      setAppName(defaultName);
+    }
+  }, [defaultName, appName]);
   const [error, setError] = useState('');
 
   const handleSubmit = useCallback(() => {

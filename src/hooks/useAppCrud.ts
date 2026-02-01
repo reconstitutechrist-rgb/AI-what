@@ -77,6 +77,16 @@ export function useAppCrud(options: UseAppCrudOptions): UseAppCrudReturn {
     setNewAppStagePlan,
     setCurrentAppId,
     setDynamicPhasePlan,
+    // Setters for restoring wizard data when loading a component
+    setAppConcept,
+    setCurrentLayoutManifest,
+    setLayoutThumbnail,
+    // Data from wizard flow (for creating new components)
+    appConcept,
+    dynamicPhasePlan,
+    currentLayoutManifest,
+    layoutThumbnail,
+    currentAppId,
   } = useAppStore();
 
   /**
@@ -88,25 +98,37 @@ export function useAppCrud(options: UseAppCrudOptions): UseAppCrudReturn {
 
   /**
    * Create new app with the given name
+   * Transfers all wizard data (appConcept, dynamicPhasePlan, layoutManifest) to the GeneratedComponent
    */
   const handleNameAppSubmit = useCallback(
     (name: string) => {
-      // Create new GeneratedComponent with the given name
+      // Use existing currentAppId from wizard if available, otherwise generate new one
+      // This ensures ID consistency between documentation and the app
+      const componentId = currentAppId || generateId();
+
+      // Create new GeneratedComponent with wizard data transferred
       const newComponent: GeneratedComponent = {
-        id: generateId(),
-        name: name,
+        id: componentId,
+        name: appConcept?.name || name,
         code: '',
-        description: '',
+        description: appConcept?.description || appConcept?.purpose || '',
         timestamp: new Date().toISOString(),
         isFavorite: false,
         conversationHistory: [],
         versions: [],
+        // Transfer all wizard data to the component
+        appConcept: appConcept || null,
+        dynamicPhasePlan: dynamicPhasePlan || null,
+        layoutManifest: currentLayoutManifest || null,
+        layoutThumbnail: layoutThumbnail || null,
+        // Set initial build status based on what data we have
+        buildStatus: appConcept ? (currentLayoutManifest ? 'building' : 'designing') : 'planning',
       };
 
       // Set as current component and add to library
       setCurrentComponent(newComponent);
       addComponent(newComponent);
-      setCurrentAppId(newComponent.id); // Set currentAppId for deploy flow
+      setCurrentAppId(componentId); // Ensure currentAppId is set (may already be set from wizard)
       setChatMessages([getWelcomeMessage()]);
       setActiveTab('chat');
       setShowNameAppModal(false);
@@ -114,11 +136,20 @@ export function useAppCrud(options: UseAppCrudOptions): UseAppCrudReturn {
       // Store ID for persistence
       if (typeof window !== 'undefined') {
         try {
-          localStorage.setItem('current_app_id', newComponent.id);
+          localStorage.setItem('current_app_id', componentId);
         } catch {
           // Failed to save current app ID to localStorage
         }
       }
+
+      // Log successful data transfer for debugging
+      console.log('[useAppCrud] Created component with wizard data:', {
+        id: componentId,
+        hasAppConcept: !!appConcept,
+        hasDynamicPhasePlan: !!dynamicPhasePlan,
+        hasLayoutManifest: !!currentLayoutManifest,
+        hasLayoutThumbnail: !!layoutThumbnail,
+      });
     },
     [
       setCurrentComponent,
@@ -128,25 +159,38 @@ export function useAppCrud(options: UseAppCrudOptions): UseAppCrudReturn {
       setActiveTab,
       setShowNameAppModal,
       getWelcomeMessage,
+      // Include wizard data in dependencies
+      appConcept,
+      dynamicPhasePlan,
+      currentLayoutManifest,
+      layoutThumbnail,
+      currentAppId,
     ]
   );
 
   /**
-   * Load a component from library
+   * Load a component from library or dashboard
+   * Restores all wizard data (appConcept, layoutManifest, etc.) to Zustand store
    */
   const loadComponent = useCallback(
     (comp: GeneratedComponent) => {
+      // Set the component as current
       setCurrentComponent(comp);
       setCurrentAppId(comp.id); // Set currentAppId for deploy flow
       setChatMessages(comp.conversationHistory);
       setShowLibrary(false);
       setActiveTab('preview');
+
+      // Restore stage plan if there are pending phases
       const hasPendingPhases = comp.stagePlan?.phases?.some((p) => p.status === 'pending') ?? false;
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       setNewAppStagePlan(hasPendingPhases ? comp.stagePlan! : null);
 
-      // Restore dynamic phase plan to store for build resumption
+      // Restore all wizard data to Zustand store for builder access
       setDynamicPhasePlan(comp.dynamicPhasePlan ?? null);
+      setAppConcept(comp.appConcept ?? null);
+      setCurrentLayoutManifest(comp.layoutManifest ?? null);
+      setLayoutThumbnail(comp.layoutThumbnail ?? null);
 
       // Save to localStorage for refresh persistence
       if (typeof window !== 'undefined') {
@@ -156,6 +200,16 @@ export function useAppCrud(options: UseAppCrudOptions): UseAppCrudReturn {
           // Failed to save current app ID to localStorage
         }
       }
+
+      // Log successful data restoration for debugging
+      console.log('[useAppCrud] Loaded component with wizard data:', {
+        id: comp.id,
+        hasAppConcept: !!comp.appConcept,
+        hasDynamicPhasePlan: !!comp.dynamicPhasePlan,
+        hasLayoutManifest: !!comp.layoutManifest,
+        hasLayoutThumbnail: !!comp.layoutThumbnail,
+        buildStatus: comp.buildStatus,
+      });
     },
     [
       setCurrentComponent,
@@ -165,6 +219,9 @@ export function useAppCrud(options: UseAppCrudOptions): UseAppCrudReturn {
       setActiveTab,
       setNewAppStagePlan,
       setDynamicPhasePlan,
+      setAppConcept,
+      setCurrentLayoutManifest,
+      setLayoutThumbnail,
     ]
   );
 

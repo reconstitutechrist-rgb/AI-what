@@ -1429,6 +1429,7 @@ export function MainBuilderView() {
             setShowNameAppModal(false);
             // Note: If pendingDeployAfterSave is true, the effect will redirect after currentAppId is set
           }}
+          defaultName={appConcept?.name}
         />
 
         {showShareModal && currentComponent && (

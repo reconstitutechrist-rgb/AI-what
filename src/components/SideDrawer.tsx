@@ -16,7 +16,6 @@ import {
   SunIcon,
   MoonIcon,
   HistoryIcon,
-  FolderIcon,
   ExportIcon,
   PlusIcon,
   LayoutIcon,
@@ -148,15 +147,8 @@ export function SideDrawer({
           },
           disabled: versionCount === 0,
         },
-        {
-          icon: <FolderIcon size={18} />,
-          label: 'App Library',
-          description: `${appCount} saved apps`,
-          onClick: () => {
-            onShowLibrary?.();
-            onClose();
-          },
-        },
+        // App Library removed - Dashboard is now the single source of truth
+        // Use Dashboard to view and manage all projects
         {
           icon: <ExportIcon size={18} />,
           label: 'Export Project',

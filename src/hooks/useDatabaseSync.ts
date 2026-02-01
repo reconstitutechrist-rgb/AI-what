@@ -17,6 +17,9 @@ import type {
   ImplementationPlanSnapshot,
 } from '@/types/aiBuilderTypes';
 import type { DynamicPhasePlan } from '@/types/dynamicPhases';
+import type { AppConcept } from '@/types/appConcept';
+import type { LayoutManifest } from '@/types/schema';
+import type { LayoutThumbnail } from '@/types/reviewTypes';
 import { migrateToBranchFormat } from '@/utils/branchMigration';
 
 type DbGeneratedApp = Database['public']['Tables']['generated_apps']['Row'];
@@ -24,6 +27,7 @@ type DbGeneratedAppInsert = Database['public']['Tables']['generated_apps']['Inse
 
 /**
  * Type for the metadata stored in database
+ * Contains all app state that isn't stored in dedicated columns
  */
 interface DbMetadata {
   isFavorite?: boolean;
@@ -35,6 +39,11 @@ interface DbMetadata {
   implementationPlan?: ImplementationPlanSnapshot | null;
   branches?: AppBranch[];
   activeBranchId?: string;
+  // New fields for unified data flow
+  appConcept?: AppConcept | null;
+  layoutManifest?: LayoutManifest | null;
+  layoutThumbnail?: LayoutThumbnail | null;
+  buildStatus?: 'planning' | 'designing' | 'building' | 'complete' | 'deployed';
 }
 
 /**
@@ -69,6 +78,7 @@ export interface UseDatabaseSyncReturn {
 
 /**
  * Convert a GeneratedComponent to database insert format
+ * Includes all wizard data (appConcept, layoutManifest, etc.) for unified storage
  */
 function componentToDb(component: GeneratedComponent, userId: string): DbGeneratedAppInsert {
   return {
@@ -87,6 +97,11 @@ function componentToDb(component: GeneratedComponent, userId: string): DbGenerat
       implementationPlan: component.implementationPlan || null,
       branches: component.branches || [],
       activeBranchId: component.activeBranchId,
+      // Unified data flow fields - wizard and design data
+      appConcept: component.appConcept || null,
+      layoutManifest: component.layoutManifest || null,
+      layoutThumbnail: component.layoutThumbnail || null,
+      buildStatus: component.buildStatus || 'planning',
     } as unknown as Database['public']['Tables']['generated_apps']['Row']['metadata'],
     is_public: component.isPublic ?? false,
     preview_slug: component.previewSlug || null,
@@ -98,6 +113,7 @@ function componentToDb(component: GeneratedComponent, userId: string): DbGenerat
 /**
  * Convert a database row to GeneratedComponent format
  * Applies branch migration for legacy apps without branches
+ * Includes all unified data flow fields (appConcept, layoutManifest, etc.)
  */
 function dbToComponent(dbApp: DbGeneratedApp): GeneratedComponent {
   const metadata = (dbApp.metadata as DbMetadata) || {};
@@ -119,6 +135,11 @@ function dbToComponent(dbApp: DbGeneratedApp): GeneratedComponent {
     isPublic: dbApp.is_public ?? false,
     branches: metadata.branches,
     activeBranchId: metadata.activeBranchId,
+    // Unified data flow fields - wizard and design data
+    appConcept: metadata.appConcept ?? null,
+    layoutManifest: metadata.layoutManifest ?? null,
+    layoutThumbnail: metadata.layoutThumbnail ?? null,
+    buildStatus: metadata.buildStatus ?? 'planning',
   };
 
   // Migrate to branch format if no branches exist

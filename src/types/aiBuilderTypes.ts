@@ -4,7 +4,9 @@
  */
 
 import type { DynamicPhasePlan } from './dynamicPhases';
-import type { ImplementationPlan as RuntimeImplementationPlan } from './appConcept';
+import type { ImplementationPlan as RuntimeImplementationPlan, AppConcept } from './appConcept';
+import type { LayoutManifest } from './schema';
+import type { LayoutThumbnail } from './reviewTypes';
 
 // ============================================================================
 // CHAT TYPES
@@ -119,6 +121,12 @@ export interface GeneratedComponent {
   dynamicPhasePlan?: DynamicPhasePlan | null;
   /** Implementation plan snapshot - Build strategy and approach metadata for DB persistence */
   implementationPlan?: ImplementationPlanSnapshot | null;
+  /** App concept from wizard - contains all planning data (description, features, technical requirements) */
+  appConcept?: AppConcept | null;
+  /** Layout manifest from design phase - UI structure and styling */
+  layoutManifest?: LayoutManifest | null;
+  /** Layout thumbnail for dashboard display (contains base64 dataUrl and capturedAt timestamp) */
+  layoutThumbnail?: LayoutThumbnail | null;
   /** Preview sharing - slug for public preview URL */
   previewSlug?: string | null;
   /** Preview sharing - whether preview is enabled */
@@ -129,6 +137,8 @@ export interface GeneratedComponent {
   branches?: AppBranch[];
   /** Currently active branch ID */
   activeBranchId?: string;
+  /** Build status for dashboard display */
+  buildStatus?: 'planning' | 'designing' | 'building' | 'complete' | 'deployed';
 }
 
 /**
