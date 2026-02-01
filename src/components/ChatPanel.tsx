@@ -20,6 +20,7 @@ import {
   CameraIcon,
   UndoIcon,
   RedoIcon,
+  RefreshIcon,
 } from './ui/Icons';
 
 // ============================================================================
@@ -164,6 +165,9 @@ export interface ChatPanelProps {
   // Suggested actions for PLAN mode
   suggestedActions?: Array<{ label: string; action: string }>;
   onAction?: (action: string) => void;
+
+  // Regenerate phases action (PLAN mode)
+  onRegeneratePhases?: () => void;
 }
 
 export const ChatPanel: React.FC<ChatPanelProps> = React.memo(function ChatPanel({
@@ -191,6 +195,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = React.memo(function ChatPanel
   onRedo,
   suggestedActions,
   onAction,
+  onRegeneratePhases,
 }) {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -224,40 +229,55 @@ export const ChatPanel: React.FC<ChatPanelProps> = React.memo(function ChatPanel
             Chat
           </h2>
 
-          {/* Plan/Act Mode Toggle - Gradient Styled */}
-          <div
-            className="flex backdrop-blur-sm rounded-lg p-0.5"
-            style={{
-              backgroundColor: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-color)',
-            }}
-          >
-            <button
-              onClick={() => onModeChange('PLAN')}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                currentMode === 'PLAN'
-                  ? 'bg-gradient-to-r from-gold-500 to-gold-400 text-white shadow-lg shadow-gold-500/25'
-                  : ''
-              }`}
-              style={currentMode !== 'PLAN' ? { color: 'var(--text-muted)' } : undefined}
-              title="Plan Mode: AI discusses and explains (no code changes)"
+          <div className="flex items-center gap-2">
+            {/* Regenerate Phases Button - PLAN mode only */}
+            {currentMode === 'PLAN' && onRegeneratePhases && (
+              <button
+                onClick={onRegeneratePhases}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:bg-gold-500/10"
+                style={{ color: 'var(--gold-primary)' }}
+                title="Regenerate build phases from current concept"
+              >
+                <RefreshIcon size={14} />
+                Regenerate Phases
+              </button>
+            )}
+
+            {/* Plan/Act Mode Toggle - Gradient Styled */}
+            <div
+              className="flex backdrop-blur-sm rounded-lg p-0.5"
+              style={{
+                backgroundColor: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-color)',
+              }}
             >
-              <BrainIcon size={16} />
-              Plan
-            </button>
-            <button
-              onClick={() => onModeChange('ACT')}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                currentMode === 'ACT'
-                  ? 'bg-gradient-to-r from-garden-600 to-garden-500 text-white shadow-lg shadow-garden-500/25'
-                  : ''
-              }`}
-              style={currentMode !== 'ACT' ? { color: 'var(--text-muted)' } : undefined}
-              title="Act Mode: AI can modify code"
-            >
-              <ZapIcon size={16} />
-              Act
-            </button>
+              <button
+                onClick={() => onModeChange('PLAN')}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  currentMode === 'PLAN'
+                    ? 'bg-gradient-to-r from-gold-500 to-gold-400 text-white shadow-lg shadow-gold-500/25'
+                    : ''
+                }`}
+                style={currentMode !== 'PLAN' ? { color: 'var(--text-muted)' } : undefined}
+                title="Plan Mode: AI discusses and explains (no code changes)"
+              >
+                <BrainIcon size={16} />
+                Plan
+              </button>
+              <button
+                onClick={() => onModeChange('ACT')}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  currentMode === 'ACT'
+                    ? 'bg-gradient-to-r from-garden-600 to-garden-500 text-white shadow-lg shadow-garden-500/25'
+                    : ''
+                }`}
+                style={currentMode !== 'ACT' ? { color: 'var(--text-muted)' } : undefined}
+                title="Act Mode: AI can modify code"
+              >
+                <ZapIcon size={16} />
+                Act
+              </button>
+            </div>
           </div>
         </div>
       </div>

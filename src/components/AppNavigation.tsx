@@ -43,8 +43,8 @@ const navItems = [
     description: 'Design layouts',
   },
   {
-    href: '/app/build',
-    label: 'Build',
+    href: '/app/review',
+    label: 'Review',
     step: 3,
     icon: (
       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -52,11 +52,11 @@ const navItems = [
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={2}
-          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
         />
       </svg>
     ),
-    description: 'Generate code',
+    description: 'Review & confirm',
   },
   {
     href: '/app',
@@ -96,13 +96,13 @@ export function AppNavigation({
   // Get completed steps from store
   const appConcept = useAppStore((state) => state.appConcept);
   const currentLayoutManifest = useAppStore((state) => state.currentLayoutManifest);
-  const newAppStagePlan = useAppStore((state) => state.newAppStagePlan);
+  const isReviewed = useAppStore((state) => state.isReviewed);
 
   // Determine completed steps based on state
   const completedSteps = {
     1: !!appConcept, // Wizard completed if appConcept exists
     2: !!currentLayoutManifest, // Design completed if layout exists
-    3: !!newAppStagePlan, // Build completed if stage plan exists
+    3: isReviewed, // Review completed when user confirms
     4: false, // Builder is the final destination
   };
 

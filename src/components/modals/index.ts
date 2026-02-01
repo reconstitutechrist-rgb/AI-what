@@ -13,6 +13,7 @@ export { DiffPreviewModal } from './DiffPreviewModal';
 export { CompareVersionsModal } from './CompareVersionsModal';
 export { PhasedBuildPanel } from './PhasedBuildPanel';
 export { NameAppModal } from './NameAppModal';
+export { ConceptUpdateConfirmDialog } from './ConceptUpdateConfirmDialog';
 
 // Re-export types
 export type { LibraryModalProps } from './LibraryModal';
@@ -23,3 +24,4 @@ export type { DiffPreviewModalProps } from './DiffPreviewModal';
 export type { CompareVersionsModalProps } from './CompareVersionsModal';
 export type { PhasedBuildPanelProps } from './PhasedBuildPanel';
 export type { NameAppModalProps } from './NameAppModal';
+export type { ConceptUpdateConfirmDialogProps } from './ConceptUpdateConfirmDialog';

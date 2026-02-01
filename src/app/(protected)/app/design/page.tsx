@@ -6,17 +6,31 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Palette } from 'lucide-react';
 import { LayoutBuilderView } from '@/components/LayoutBuilderView';
 import { useAppStore } from '@/store/useAppStore';
+import { captureLayoutPreview } from '@/utils/screenshotCapture';
 
 export default function DesignPage() {
   const router = useRouter();
   const appConcept = useAppStore((state) => state.appConcept);
   const currentLayoutManifest = useAppStore((state) => state.currentLayoutManifest);
+  const setLayoutThumbnail = useAppStore((state) => state.setLayoutThumbnail);
 
-  const handleContinueToBuild = useCallback(() => {
-    // Layout is auto-saved via useLayoutBuilder's saveToWizard
-    // Navigate to build step
-    router.push('/app/build');
-  }, [router]);
+  const handleContinueToReview = useCallback(async () => {
+    // Capture layout thumbnail for review page
+    try {
+      const result = await captureLayoutPreview('layout-builder-preview');
+      if (result?.success && result.dataUrl) {
+        setLayoutThumbnail({
+          dataUrl: result.dataUrl,
+          capturedAt: new Date().toISOString(),
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to capture layout thumbnail:', e);
+    }
+
+    // Navigate to review step
+    router.push('/app/review');
+  }, [router, setLayoutThumbnail]);
 
   return (
     <motion.div
@@ -43,10 +57,10 @@ export default function DesignPage() {
         </div>
 
         <button
-          onClick={handleContinueToBuild}
+          onClick={handleContinueToReview}
           className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors"
         >
-          Continue to Build
+          Continue to Review
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>

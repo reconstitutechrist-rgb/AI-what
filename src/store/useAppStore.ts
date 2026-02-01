@@ -50,6 +50,7 @@ import type { DeploymentInstructions } from '@/utils/exportApp';
 import type { ProjectDocumentation } from '@/types/projectDocumentation';
 import type { PreviewMode } from '@/types/railway';
 import type { DesignSpec } from '@/types/designSpec';
+import type { BuildSettings, LayoutThumbnail } from '@/types/reviewTypes';
 
 // ============================================================================
 // STORE STATE INTERFACE
@@ -206,6 +207,11 @@ interface DataSlice {
   currentDesignSpec: DesignSpec | null;
   // Dynamic Phase Plan
   dynamicPhasePlan: DynamicPhasePlan | null;
+  // Review state
+  isReviewed: boolean;
+  buildSettings: BuildSettings;
+  layoutThumbnail: LayoutThumbnail | null;
+  phasePlanGeneratedAt: string | null;
   // Actions
   setPendingChange: (change: PendingChange | null) => void;
   setPendingDiff: (diff: PendingDiff | null) => void;
@@ -234,6 +240,11 @@ interface DataSlice {
   updateAppConceptField: (path: string, value: unknown) => void;
   // Dynamic Phase Plan action
   setDynamicPhasePlan: (plan: DynamicPhasePlan | null) => void;
+  // Review actions
+  setIsReviewed: (reviewed: boolean) => void;
+  setBuildSettings: (settings: Partial<BuildSettings>) => void;
+  setLayoutThumbnail: (thumbnail: LayoutThumbnail | null) => void;
+  setPhasePlanGeneratedAt: (timestamp: string | null) => void;
 }
 
 /**
@@ -481,6 +492,11 @@ export const useAppStore = create<AppState>()(
         savedLayoutManifests: [] as LayoutManifest[],
         currentDesignSpec: null as DesignSpec | null,
         dynamicPhasePlan: null as DynamicPhasePlan | null,
+        // Review state
+        isReviewed: false,
+        buildSettings: { autoAdvance: true } as BuildSettings,
+        layoutThumbnail: null as LayoutThumbnail | null,
+        phasePlanGeneratedAt: null as string | null,
 
         setPendingChange: (change) => set({ pendingChange: change }),
         setPendingDiff: (diff) => set({ pendingDiff: diff }),
@@ -527,6 +543,14 @@ export const useAppStore = create<AppState>()(
             return { appConcept: updated };
           }),
         setDynamicPhasePlan: (plan) => set({ dynamicPhasePlan: plan }),
+        // Review actions
+        setIsReviewed: (reviewed) => set({ isReviewed: reviewed }),
+        setBuildSettings: (settings) =>
+          set((state) => ({
+            buildSettings: { ...state.buildSettings, ...settings },
+          })),
+        setLayoutThumbnail: (thumbnail) => set({ layoutThumbnail: thumbnail }),
+        setPhasePlanGeneratedAt: (timestamp) => set({ phasePlanGeneratedAt: timestamp }),
 
         // ========================================================================
         // DOCUMENTATION SLICE
@@ -611,6 +635,11 @@ export const useAppStore = create<AppState>()(
           // Components are critical for builder to work after refresh
           components: state.components,
           currentComponent: state.currentComponent,
+          // Review state persists across navigation
+          isReviewed: state.isReviewed,
+          buildSettings: state.buildSettings,
+          layoutThumbnail: state.layoutThumbnail,
+          phasePlanGeneratedAt: state.phasePlanGeneratedAt,
         }),
       }
     ),

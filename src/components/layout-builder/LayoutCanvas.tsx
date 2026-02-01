@@ -410,6 +410,7 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
             }}
           >
             <div
+              id="layout-builder-preview"
               ref={previewContainerRef}
               className="w-full h-full relative flex flex-col"
               onClick={(e) => e.stopPropagation()}

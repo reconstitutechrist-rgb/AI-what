@@ -23,3 +23,14 @@ export type {
   RollbackHistoryProps,
   ReviewSummaryProps,
 } from '@/types/review';
+
+// ============================================================================
+// App Review Page Components (for /app/review)
+// ============================================================================
+
+export { default as ConceptCard } from './ConceptCard';
+export { default as LayoutCard } from './LayoutCard';
+export { default as FeaturesCard } from './FeaturesCard';
+export { default as PhasesCard } from './PhasesCard';
+export { default as SettingsCard } from './SettingsCard';
+export { default as ReviewEmptyState } from './ReviewEmptyState';

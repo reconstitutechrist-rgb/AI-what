@@ -20,6 +20,10 @@ export interface ChatMessage {
   timestamp: string;
   componentCode?: string;
   componentPreview?: boolean;
+  /** Show loading indicator for in-progress messages */
+  isLoading?: boolean;
+  /** Style as error message */
+  isError?: boolean;
 }
 
 // ============================================================================
