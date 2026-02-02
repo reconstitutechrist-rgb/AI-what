@@ -21,6 +21,7 @@ interface ChatState {
   toggleChat: () => void;
   setThinking: (thinking: boolean) => void;
   addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
+  setMessages: (messages: ChatMessage[]) => void;
   clearHistory: () => void;
 }
 
@@ -54,7 +55,9 @@ export const useChatStore = create<ChatState>()(
         ]
       })),
       
-      clearHistory: () => set({ 
+      setMessages: (messages) => set({ messages }),
+
+      clearHistory: () => set({
         messages: [
            {
             id: 'welcome_reset',

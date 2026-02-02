@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppStore } from '@/store/useAppStore';
+import { useProjectStore } from '@/store/useProjectStore';
+import { useProjectManager } from '@/hooks/useProjectManager';
 import { useThemeContext } from '@/contexts/ThemeContext';
 import {
   XIcon,
@@ -18,7 +20,7 @@ import {
   HistoryIcon,
   ExportIcon,
   PlusIcon,
-  LayoutIcon,
+  FolderIcon,
 } from './ui/Icons';
 
 interface MenuItem {
@@ -52,10 +54,10 @@ export function SideDrawer({
   onClose,
   onShowSettings,
   onShowHistory,
-  onShowLibrary,
+  onShowLibrary: _onShowLibrary,
   onExport,
   versionCount = 0,
-  appCount = 0,
+  appCount: _appCount = 0,
 }: SideDrawerProps) {
   const router = useRouter();
   const { user, signOut } = useAuth();
@@ -66,22 +68,14 @@ export function SideDrawer({
   const setShowDocumentationPanel = useAppStore((state) => state.setShowDocumentationPanel);
   const currentDocumentation = useAppStore((state) => state.currentDocumentation);
 
-  // State clearing for new project
-  const setAppConcept = useAppStore((state) => state.setAppConcept);
-  const setCurrentLayoutManifest = useAppStore((state) => state.setCurrentLayoutManifest);
-  const setNewAppStagePlan = useAppStore((state) => state.setNewAppStagePlan);
-  const setDynamicPhasePlan = useAppStore((state) => state.setDynamicPhasePlan);
-  const setCurrentComponent = useAppStore((state) => state.setCurrentComponent);
+  // Project management
+  const setShowProjectList = useProjectStore((state) => state.setShowProjectList);
+  const projectCount = useProjectStore((state) => state.projectList.length);
+  const { startNewProject } = useProjectManager();
 
-  const handleStartNewProject = () => {
-    // Clear all project state INCLUDING currentComponent (critical for modal to show)
-    setAppConcept(null);
-    setCurrentLayoutManifest(null);
-    setNewAppStagePlan(null);
-    setDynamicPhasePlan(null);
-    setCurrentComponent(null);
-    // Navigate to AI Builder (naming modal will appear)
-    router.push('/app');
+  const handleStartNewProject = async () => {
+    await startNewProject();
+    router.push('/app/design');
     onClose();
   };
 
@@ -117,11 +111,11 @@ export function SideDrawer({
           onClick: handleStartNewProject,
         },
         {
-          icon: <LayoutIcon size={18} />,
-          label: 'Dashboard',
-          description: 'View all projects',
+          icon: <FolderIcon size={18} />,
+          label: 'My Projects',
+          description: projectCount > 0 ? `${projectCount} saved` : 'View all projects',
           onClick: () => {
-            router.push('/app/dashboard');
+            setShowProjectList(true);
             onClose();
           },
         },

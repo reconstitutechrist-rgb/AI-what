@@ -12,11 +12,11 @@
  *   - Undo/redo snapshots of generated code files
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { AppFile } from '@/types/railway';
+import { useAppStore } from '@/store/useAppStore';
 import type {
   PipelineProgress,
-  PipelineStepName,
   AppContext,
   FileInput,
   OmniConversationMessage,
@@ -132,8 +132,12 @@ function buildFinalProgress(hasImages: boolean, hasVideos: boolean): PipelinePro
 // ============================================================================
 
 export function useLayoutBuilder(): UseLayoutBuilderReturn {
-  // --- Core State ---
-  const [generatedFiles, setGeneratedFiles] = useState<AppFile[]>([]);
+  // --- Persisted files from store (survives refresh) ---
+  const storedFiles = useAppStore((state) => state.generatedFiles);
+  const setStoredFiles = useAppStore((state) => state.setGeneratedFiles);
+
+  // --- Core State (initialized from persisted store) ---
+  const [generatedFiles, setGeneratedFiles] = useState<AppFile[]>(storedFiles);
   const [isProcessing, setIsProcessing] = useState(false);
   const [pipelineProgress, setPipelineProgress] = useState<PipelineProgress | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -145,6 +149,30 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
   // --- History (undo/redo on AppFile[] snapshots) ---
   const [history, setHistory] = useState<AppFile[][]>([]);
   const [future, setFuture] = useState<AppFile[][]>([]);
+
+  // --- Bidirectional sync with Zustand store ---
+  // 1. Write local generatedFiles → store whenever they change
+  const syncRef = useRef(false);
+  useEffect(() => {
+    if (generatedFiles !== storedFiles) {
+      syncRef.current = true;
+      setStoredFiles(generatedFiles);
+    }
+  }, [generatedFiles, storedFiles, setStoredFiles]);
+
+  // 2. Hydrate from store when persisted data loads (Zustand hydrates async)
+  //    Also handles project switching: store changes → update local state
+  useEffect(() => {
+    if (syncRef.current) {
+      syncRef.current = false;
+      return;
+    }
+    if (storedFiles !== generatedFiles) {
+      setGeneratedFiles(storedFiles);
+      setHistory([]);
+      setFuture([]);
+    }
+  }, [storedFiles]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * Replace generatedFiles with a new set, pushing the current state to history.

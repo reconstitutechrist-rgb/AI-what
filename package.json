@@ -44,6 +44,7 @@
     "esbuild-wasm": "^0.24.2",
     "framer-motion": "^12.23.26",
     "html2canvas": "^1.4.1",
+    "idb": "^8.0.3",
     "immer": "^11.0.1",
     "inngest": "^3.48.1",
     "js-tiktoken": "^1.0.21",

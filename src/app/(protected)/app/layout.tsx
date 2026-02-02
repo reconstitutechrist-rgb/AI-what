@@ -1,23 +1,77 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { AppNavigation } from '@/components/AppNavigation';
 import { SideDrawer } from '@/components/SideDrawer';
+import { ProjectListModal } from '@/components/modals/ProjectListModal';
 import { ToastProvider } from '@/components/Toast';
 import { useAppStore } from '@/store/useAppStore';
+import { useProjectStore } from '@/store/useProjectStore';
+import { useProjectManager } from '@/hooks/useProjectManager';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Get project info from store
   const currentComponent = useAppStore((state) => state.currentComponent);
   const components = useAppStore((state) => state.components);
+  const appConcept = useAppStore((state) => state.appConcept);
   const setShowVersionHistory = useAppStore((state) => state.setShowVersionHistory);
   const showVersionHistory = useAppStore((state) => state.showVersionHistory);
   const setShowLibrary = useAppStore((state) => state.setShowLibrary);
   const showLibrary = useAppStore((state) => state.showLibrary);
   const setShowSettings = useAppStore((state) => state.setShowSettings);
+
+  // Project management
+  const activeProjectId = useProjectStore((state) => state.activeProjectId);
+  const refreshProjectList = useProjectStore((state) => state.refreshProjectList);
+  const { saveCurrentProject } = useProjectManager();
+
+  // Load project list on mount
+  useEffect(() => {
+    refreshProjectList();
+  }, [refreshProjectList]);
+
+  // Auto-save every 30 seconds when there's an active project
+  const lastSaveRef = useRef<string>('');
+  useEffect(() => {
+    if (!activeProjectId) return;
+
+    const interval = setInterval(() => {
+      // Dirty check: compare a fingerprint of key state to avoid unnecessary writes
+      const appState = useAppStore.getState();
+      const fingerprint = JSON.stringify({
+        fileCount: appState.generatedFiles.length,
+        filePaths: appState.generatedFiles.map((f) => f.path),
+        fileContentLengths: appState.generatedFiles.map((f) => f.content.length),
+        concept: appState.appConcept?.name,
+        conceptUpdated: appState.appConcept?.updatedAt,
+        reviewed: appState.isReviewed,
+        designSpec: appState.currentDesignSpec !== null,
+        component: appState.currentComponent?.name,
+      });
+
+      if (fingerprint !== lastSaveRef.current) {
+        lastSaveRef.current = fingerprint;
+        saveCurrentProject().catch(console.error);
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [activeProjectId, saveCurrentProject]);
+
+  const handleSave = useCallback(async () => {
+    setIsSaving(true);
+    try {
+      await saveCurrentProject();
+    } catch (error) {
+      console.error('[AppLayout] Save failed:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [saveCurrentProject]);
 
   const handleShowHistory = () => {
     setShowVersionHistory(!showVersionHistory);
@@ -32,7 +86,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setDrawerOpen(false);
   };
 
-  const projectName = currentComponent?.name || 'Untitled Project';
+  const projectName =
+    currentComponent?.name || appConcept?.name || 'Untitled Project';
 
   return (
     <ToastProvider>
@@ -83,6 +138,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Navigation */}
         <AppNavigation
           projectName={projectName}
+          onSave={handleSave}
+          isSaving={isSaving}
           onMenuClick={() => setDrawerOpen(true)}
         />
 
@@ -99,6 +156,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           versionCount={currentComponent?.versions?.length || 0}
           appCount={components.length}
         />
+
+        {/* Project List Modal */}
+        <ProjectListModal />
       </div>
     </ToastProvider>
   );
