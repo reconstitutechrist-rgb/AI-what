@@ -14,6 +14,7 @@ import React, { useRef, useState, useCallback, useMemo } from 'react';
 import { SandpackProvider, SandpackPreview } from '@codesandbox/sandpack-react';
 import { FloatingEditBubble } from './FloatingEditBubble';
 import { useInspectorBridge, createInspectorFileContent } from '@/utils/inspectorBridge';
+import { extractDependencies } from '@/utils/extractDependencies';
 import type { AppFile } from '@/types/railway';
 import type { PipelineProgress, PipelineStepName, PipelineStepStatus } from '@/types/titanPipeline';
 import { PIPELINE_STEP_LABELS } from '@/types/titanPipeline';
@@ -186,6 +187,13 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
   const sandpackFiles = useMemo(() => {
     if (!hasFiles) return null;
     return toSandpackFiles(generatedFiles);
+  }, [generatedFiles, hasFiles]);
+
+  // Extract npm dependencies from import statements in generated files,
+  // then merge with the baseline static deps for the Sandpack sandbox.
+  const sandpackDeps = useMemo(() => {
+    if (!hasFiles) return SANDPACK_DEPENDENCIES;
+    return { ...SANDPACK_DEPENDENCIES, ...extractDependencies(generatedFiles) };
   }, [generatedFiles, hasFiles]);
 
   // Container offset for FloatingEditBubble positioning.
@@ -398,7 +406,7 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
             template="react-ts"
             files={sandpackFiles}
             customSetup={{
-              dependencies: SANDPACK_DEPENDENCIES,
+              dependencies: sandpackDeps,
             }}
             options={{
               externalResources: [TAILWIND_CDN],

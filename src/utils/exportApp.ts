@@ -1,4 +1,5 @@
 import JSZip from 'jszip';
+import { extractDependencies } from '@/utils/extractDependencies';
 
 export interface AppFile {
   path: string;
@@ -14,9 +15,16 @@ export interface ExportOptions {
 }
 
 /**
- * Generate package.json for the exported app
+ * Generate package.json for the exported app.
+ *
+ * @param appName - Display name of the app
+ * @param extraDependencies - Additional npm packages to include
+ *        (e.g. extracted from generated code imports)
  */
-export function generatePackageJson(appName: string): string {
+export function generatePackageJson(
+  appName: string,
+  extraDependencies?: Record<string, string>
+): string {
   const packageJson = {
     name: appName.toLowerCase().replace(/\s+/g, '-'),
     version: '0.1.0',
@@ -38,6 +46,7 @@ export function generatePackageJson(appName: string): string {
       tailwindcss: '^3.3.0',
       postcss: '^8',
       autoprefixer: '^10',
+      ...extraDependencies,
     },
     devDependencies: {
       '@types/node': '^20',
@@ -254,9 +263,10 @@ export async function exportAppAsZip(options: ExportOptions): Promise<Blob> {
     zip.file(file.path, file.content);
   });
 
-  // Add package.json
+  // Add package.json (with dynamically extracted dependencies from generated code)
   if (options.includePackageJson !== false) {
-    zip.file('package.json', generatePackageJson(options.appName));
+    const extraDeps = extractDependencies(options.files);
+    zip.file('package.json', generatePackageJson(options.appName, extraDeps));
   }
 
   // Add README.md

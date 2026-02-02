@@ -47,6 +47,26 @@ export const CURATED_VERSIONS = {
   'class-variance-authority': '^0.7.0',
   clsx: '^2.1.1',
   'tailwind-merge': '^2.5.0',
+
+  // 3D / WebGL
+  three: '^0.170.0',
+  '@react-three/fiber': '^8.17.0',
+  '@react-three/drei': '^9.117.0',
+  '@react-three/postprocessing': '^2.16.0',
+
+  // Animation
+  'framer-motion': '^11.11.0',
+  gsap: '^3.12.0',
+
+  // Charts / Data Visualization
+  recharts: '^2.13.0',
+  'd3': '^7.9.0',
+  'chart.js': '^4.4.0',
+  'react-chartjs-2': '^5.2.0',
+
+  // Maps
+  'react-map-gl': '^7.1.0',
+  'mapbox-gl': '^3.7.0',
 } as const;
 
 export type CuratedPackage = keyof typeof CURATED_VERSIONS;
