@@ -49,11 +49,9 @@ export function useProjectManager(): UseProjectManagerReturn {
   const setActiveProjectId = useProjectStore((s) => s.setActiveProjectId);
   const refreshProjectList = useProjectStore((s) => s.refreshProjectList);
 
-  // Reactive selectors for hasActiveProject (re-renders when these change)
-  const hasGeneratedFiles = useAppStore((s) => s.generatedFiles.length > 0);
-  const hasAppConcept = useAppStore((s) => s.appConcept !== null);
-
-  const hasActiveProject = activeProjectId !== null || hasGeneratedFiles || hasAppConcept;
+  const hasActiveProject = activeProjectId !== null ||
+    useAppStore.getState().generatedFiles.length > 0 ||
+    useAppStore.getState().appConcept !== null;
 
   /**
    * Save the current project state to IndexedDB.
