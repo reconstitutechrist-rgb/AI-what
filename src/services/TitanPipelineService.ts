@@ -27,6 +27,8 @@ import type {
 } from '@/types/titanPipeline';
 import { geminiImageService } from '@/services/GeminiImageService';
 import { autonomyCore } from '@/agents/AutonomyCore';
+import { withGeminiRetry } from '@/utils/geminiRetry';
+import { extractCode } from '@/utils/extractCode';
 
 // ============================================================================
 // CONFIGURATION (CONFIRMED 2026 SPECS)
@@ -36,6 +38,11 @@ const GEMINI_FLASH_MODEL = 'gemini-3-flash-preview';
 const GEMINI_PRO_MODEL = 'gemini-3-pro-preview';
 const GEMINI_DEEP_THINK_MODEL = 'gemini-3-pro-preview';
 const CLAUDE_OPUS_MODEL = 'claude-opus-4-5-20251101';
+
+const CODE_ONLY_SYSTEM_INSTRUCTION =
+  'You are a code generator. Output ONLY valid TypeScript/React code. ' +
+  'Never include explanations, markdown fences (```), or conversational text. ' +
+  'Start directly with import statements or code. Any non-code text will break the build.';
 
 function getGeminiApiKey(): string {
   const key = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
@@ -117,7 +124,7 @@ export async function routeIntent(input: PipelineInput): Promise<MergeStrategy> 
   Code Exists: ${!!input.currentCode}
   `;
 
-  const result = await model.generateContent(prompt);
+  const result = await withGeminiRetry(() => model.generateContent(prompt));
   const text = result.response.text();
 
   try {
@@ -183,10 +190,10 @@ export async function surveyLayout(file: FileInput, fileIndex: number): Promise<
     model: GEMINI_FLASH_MODEL,
   });
 
-  const result = await model.generateContent([
+  const result = await withGeminiRetry(() => model.generateContent([
     { fileData: { mimeType: fileState.mimeType, fileUri: fileState.uri } },
     { text: SURVEYOR_PROMPT },
-  ]);
+  ]));
 
   try {
     const text = result.response.text();
@@ -273,7 +280,7 @@ export async function extractPhysics(
 
   if (files.length === 0) return { component_motions: [] };
 
-  const result = await model.generateContent(parts);
+  const result = await withGeminiRetry(() => model.generateContent(parts));
   try {
     const jsonMatch = result.response.text().match(/\{[\s\S]*\}/);
     return jsonMatch ? JSON.parse(jsonMatch[0]) : { component_motions: [] };
@@ -302,8 +309,29 @@ You are the **Universal Builder**. Write the final React code.
 3. **Physics:** Implement the physics using Framer Motion.
 4. **Data-IDs:** Preserve all data-id attributes for the inspector.
 
+5. **Icons (Rendering):**
+   - **Priority 1:** If \`iconSvgPath\` exists -> render inline \`<svg>\` with the path data.
+   - **Priority 2:** If only \`iconName\` exists -> import from \`lucide-react\`.
+
+6. **Shaped & Textured Elements (CRITICAL for photorealism):**
+   - When the user asks for an element that "looks like" a real object (cloud, stone, wood, etc.),
+     create BOTH the shape AND the texture:
+     a) **Shape:** Use CSS clip-path, SVG clipPath, or creative border-radius to form the silhouette.
+        Examples: cloud -> clip-path with rounded bumps, leaf -> custom polygon, stone -> irregular rounded.
+     b) **Texture:** If an asset URL exists, apply it as backgroundImage with backgroundSize: cover.
+        If no asset, use CSS gradients, box-shadows, and filters to approximate the material.
+     c) **Depth:** Add box-shadow, inner highlights, and subtle gradients for 3D realism.
+     d) **Interactivity:** The element must still function (clickable, hover states).
+   - Example: "photorealistic cloud button" ->
+     clip-path: path('M25,60 a20,20 0,0,1 0,-40 a20,20 0,0,1 35,0 a20,20 0,0,1 0,40 z');
+     backgroundImage: url(cloud_texture.png); backgroundSize: cover;
+     box-shadow for depth; filter: drop-shadow for floating effect.
+   - Do NOT just set a backgroundColor. Use real CSS shape techniques.
+
 ### Output
 Return ONLY the full App.tsx code. No markdown.`;
+
+// extractCode imported from @/utils/extractCode (shared utility with robust 3-strategy extraction)
 
 export async function assembleCode(
   _structure: ComponentStructure | null,
@@ -316,12 +344,24 @@ export async function assembleCode(
 ): Promise<AppFile[]> {
   const apiKey = getGeminiApiKey();
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: GEMINI_PRO_MODEL });
+  const model = genAI.getGenerativeModel({
+    model: GEMINI_PRO_MODEL,
+    systemInstruction: CODE_ONLY_SYSTEM_INSTRUCTION,
+  });
+
+  const hasAssets = Object.keys(assets).length > 0;
+  const assetContext = hasAssets
+    ? `\n\n  ### ASSET CONTEXT
+These texture/material images were generated for the user's request:
+${Object.entries(assets).map(([name, url]) => `  - "${name}" -> ${url}`).join('\n')}
+Apply them via backgroundImage on the matching elements. Combine with clip-path for shaped elements.`
+    : '';
 
   const prompt = `${BUILDER_PROMPT}
 
   ### ASSETS (Use these URLs!)
   ${JSON.stringify(assets, null, 2)}
+  ${assetContext}
 
   ### INSTRUCTIONS
   ${instructions}
@@ -333,12 +373,8 @@ export async function assembleCode(
   ${JSON.stringify(physics)}
   `;
 
-  const result = await model.generateContent(prompt);
-  const code = result.response
-    .text()
-    .replace(/^```(?:tsx?|jsx?|typescript|javascript)?\n?/gm, '')
-    .replace(/\n?```$/gm, '')
-    .trim();
+  const result = await withGeminiRetry(() => model.generateContent(prompt));
+  const code = extractCode(result.response.text());
 
   return [
     { path: '/src/App.tsx', content: code },
@@ -383,6 +419,7 @@ export async function liveEdit(
 
     const model = genAI.getGenerativeModel({
       model: GEMINI_PRO_MODEL,
+      systemInstruction: CODE_ONLY_SYSTEM_INSTRUCTION,
       generationConfig: { temperature: 0.2, maxOutputTokens: 16384 },
     });
 
@@ -399,13 +436,8 @@ data-id="${selectedDataId}"
 ### Instruction
 "${instruction}"`;
 
-    const result = await model.generateContent(prompt);
-    let updatedCode = result.response.text();
-
-    updatedCode = updatedCode
-      .replace(/^```(?:tsx?|jsx?|typescript|javascript)?\n?/gm, '')
-      .replace(/\n?```$/gm, '')
-      .trim();
+    const result = await withGeminiRetry(() => model.generateContent(prompt));
+    const updatedCode = extractCode(result.response.text());
 
     return { updatedCode, success: true };
   } catch (error) {
@@ -415,6 +447,46 @@ data-id="${selectedDataId}"
       error: error instanceof Error ? error.message : 'Live edit failed',
     };
   }
+}
+
+// ============================================================================
+// AUTONOMY OUTPUT PARSER
+// ============================================================================
+
+/**
+ * Parse autonomy output into multiple AppFiles.
+ * If the output contains file markers like `// === /src/filename.tsx ===`,
+ * split into separate files. Otherwise, treat entire output as App.tsx.
+ */
+function parseAutonomyOutput(output: string): AppFile[] {
+  const fileMarkerRegex = /\/\/\s*===\s*(\/[^\s]+)\s*===/g;
+  const matches = [...output.matchAll(fileMarkerRegex)];
+
+  if (matches.length === 0) {
+    // No markers — treat as single App.tsx
+    const code = extractCode(output);
+    return [{ path: '/src/App.tsx', content: code }];
+  }
+
+  // Split output by file markers
+  const files: AppFile[] = [];
+  for (let i = 0; i < matches.length; i++) {
+    const path = matches[i][1];
+    const startIndex = matches[i].index! + matches[i][0].length;
+    const endIndex = i < matches.length - 1 ? matches[i + 1].index! : output.length;
+    const content = extractCode(output.slice(startIndex, endIndex));
+
+    if (content.length > 0) {
+      files.push({ path, content });
+    }
+  }
+
+  // Ensure we always have at least an App.tsx
+  if (files.length === 0) {
+    return [{ path: '/src/App.tsx', content: output.trim() }];
+  }
+
+  return files;
 }
 
 // ============================================================================
@@ -436,16 +508,17 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
      const result = await autonomyCore.solveUnknown({
         id: `auto_${Date.now()}`,
         description: input.instructions,
-        context: `Files: ${input.files.length}`,
+        context: `Files: ${input.files.length}${input.currentCode ? '\nExisting code present.' : ''}`,
         technical_constraints: []
      });
      stepTimings.autonomy = Date.now() - autonomyStart;
 
-     // Convert AgentTaskResult to PipelineResult
-     // This assumes the output of autonomy is the code.
-     // In a real system, we might need more parsing.
+     // Parse autonomy output into multiple files if markers are present
+     // Agents may output: // === /src/filename.tsx ===\n<code>
+     const autonomyFiles = parseAutonomyOutput(result.output);
+
      return {
-        files: [{ path: '/src/App.tsx', content: result.output }],
+        files: autonomyFiles,
         strategy,
         manifests: [],
         physics: null,
@@ -481,6 +554,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
               vibe: asset.vibe || 'photorealistic',
               vibeKeywords: [asset.description],
               referenceImage: '',
+              targetElement: asset.name,
             });
             if (result.imageUrl) generatedAssets[asset.name] = result.imageUrl;
           } catch (e) {

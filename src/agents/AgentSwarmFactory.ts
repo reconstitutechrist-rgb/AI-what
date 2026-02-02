@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { withGeminiRetry } from '@/utils/geminiRetry';
 import { AgentSwarm, FabricatedAgent, AgentRole } from '@/types/autonomy';
 
 const GEMINI_MODEL = 'gemini-3-pro-preview';
@@ -62,7 +63,7 @@ export class AgentSwarmFactory {
       .replace('{CONTEXT}', context);
 
     try {
-      const result = await model.generateContent(prompt);
+      const result = await withGeminiRetry(() => model.generateContent(prompt));
       const text = result.response.text();
       const data = JSON.parse(text);
       

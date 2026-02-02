@@ -16,5 +16,3 @@ export { ConsolePanel, type ConsolePanelProps } from './ConsolePanel';
 
 // Preview mode components
 export { PreviewModeSelector, type PreviewMode } from './PreviewModeSelector';
-export { RailwayPreview } from './RailwayPreview';
-export { BrowserPreview } from './BrowserPreview';

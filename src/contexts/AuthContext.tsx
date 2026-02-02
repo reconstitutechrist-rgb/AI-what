@@ -42,10 +42,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabaseRef = useRef<SupabaseClient | null>(null);
 
   // Initialize Supabase client only on client-side
-  const getSupabase = () => {
+  const getSupabase = (): SupabaseClient => {
     if (!supabaseRef.current) {
       try {
-        supabaseRef.current = createClient();
+        const client = createClient();
+        if (!client) {
+          throw new Error('Supabase client is null — DEV_BYPASS_AUTH should prevent this path');
+        }
+        supabaseRef.current = client;
       } catch (err) {
         console.error('Supabase initialization failed:', err);
         throw err;

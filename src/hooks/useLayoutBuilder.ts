@@ -19,6 +19,8 @@ import type {
   PipelineStepName,
   AppContext,
   FileInput,
+  OmniConversationMessage,
+  OmniChatResponse,
 } from '@/types/titanPipeline';
 import { createInitialProgress } from '@/types/titanPipeline';
 
@@ -63,6 +65,15 @@ export interface UseLayoutBuilderReturn {
   canUndo: boolean;
   /** Whether redo is available */
   canRedo: boolean;
+
+  /** Whether a chat message is being processed */
+  isChatting: boolean;
+  /** Send a chat message and get an AI response with intent classification */
+  sendChatMessage: (
+    message: string,
+    conversationHistory: OmniConversationMessage[],
+    appContext?: AppContext
+  ) => Promise<OmniChatResponse>;
 }
 
 // ============================================================================
@@ -127,6 +138,9 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
   const [pipelineProgress, setPipelineProgress] = useState<PipelineProgress | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
+
+  // --- Chat State ---
+  const [isChatting, setIsChatting] = useState(false);
 
   // --- History (undo/redo on AppFile[] snapshots) ---
   const [history, setHistory] = useState<AppFile[][]>([]);
@@ -361,6 +375,47 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
     );
   }, [generatedFiles]);
 
+  /**
+   * Send a chat message to the OmniChat API.
+   * Returns the AI's response with intent classification.
+   * The caller decides what to do based on response.action.
+   */
+  const sendChatMessage = useCallback(
+    async (
+      message: string,
+      conversationHistory: OmniConversationMessage[],
+      appContext?: AppContext
+    ): Promise<OmniChatResponse> => {
+      setIsChatting(true);
+      try {
+        const currentCode = extractMainCode(generatedFiles);
+
+        const response = await fetch('/api/layout/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message,
+            conversationHistory,
+            currentCode,
+            appContext,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response
+            .json()
+            .catch(() => ({ error: `HTTP ${response.status}` }));
+          throw new Error(errorData.error || `Chat failed: ${response.status}`);
+        }
+
+        return await response.json();
+      } finally {
+        setIsChatting(false);
+      }
+    },
+    [generatedFiles]
+  );
+
   // --- Return ---
 
   return {
@@ -379,5 +434,8 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
 
     canUndo: history.length > 0,
     canRedo: future.length > 0,
+
+    isChatting,
+    sendChatMessage,
   };
 }

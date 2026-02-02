@@ -4,12 +4,14 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { withGeminiRetry } from '@/utils/geminiRetry';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 export interface BackgroundGenerationRequest {
   referenceImage?: string;
   vibe: string;
   vibeKeywords: string[];
+  targetElement?: string;
 }
 
 class GeminiImageService {
@@ -34,25 +36,36 @@ class GeminiImageService {
   async describeBackground(imageUrl: string): Promise<string> {
     if (!this.client) return 'Neutral background';
     const model = this.client.getGenerativeModel({ model: 'gemini-3-flash-preview' });
-    const result = await model.generateContent([
+    const result = await withGeminiRetry(() => model.generateContent([
       'Describe the visual texture and material of this background in 3 keywords.',
       { inlineData: { data: imageUrl.split(',')[1], mimeType: 'image/jpeg' } },
-    ]);
+    ]));
     return result.response.text();
   }
 
   async generateBackgroundFromReference(request: BackgroundGenerationRequest) {
     if (!this.client) throw new Error('Gemini API not configured');
 
-    const prompt = `CRITICAL: GENERATE A RAW, MACRO PHOTOGRAPH.
-    Subject: Close-up texture of ${request.vibeKeywords.join(', ')}.
-    Style: ${request.vibe}, photorealistic, 8k resolution.
-    Material details: Focus on surface roughness and realistic grain.
-    Constraint: NO text, NO people, NO generic rooms.`;
+    // Detect if this is a specific object (cloud, stone) vs a generic background
+    const isShapedElement = request.targetElement &&
+      !['background', 'hero', 'hero section', 'section', 'page'].includes(
+        request.targetElement.toLowerCase()
+      );
+
+    const prompt = isShapedElement
+      ? `Generate a photorealistic image of a ${request.vibeKeywords.join(', ')}.
+Style: ${request.vibe}, photorealistic, high detail.
+Requirements: Render the full object with depth and lighting. Suitable for use as a UI element background with clip-path masking. No text, no people.
+Include: Realistic shadows, highlights, and 3D volume.`
+      : `CRITICAL: GENERATE A RAW, MACRO PHOTOGRAPH.
+Subject: Close-up texture of ${request.vibeKeywords.join(', ')}.
+Style: ${request.vibe}, photorealistic, 8k resolution.
+Material details: Focus on surface roughness and realistic grain.
+Constraint: NO text, NO people, NO generic rooms.`;
 
     try {
       const model = this.client.getGenerativeModel({ model: 'gemini-3-pro-image-preview' });
-      const result = await model.generateContent(prompt);
+      const result = await withGeminiRetry(() => model.generateContent(prompt));
       const base64 = result.response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
 
       if (!base64) throw new Error('Generation failed');

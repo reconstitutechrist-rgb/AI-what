@@ -1,17 +1,14 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { AppNavigation } from '@/components/AppNavigation';
 import { SideDrawer } from '@/components/SideDrawer';
 import { ToastProvider } from '@/components/Toast';
 import { useAppStore } from '@/store/useAppStore';
-import { useDatabaseSync } from '@/hooks';
-import { useAuth } from '@/contexts/AuthContext';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { user } = useAuth();
 
   // Get project info from store
   const currentComponent = useAppStore((state) => state.currentComponent);
@@ -22,29 +19,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const showLibrary = useAppStore((state) => state.showLibrary);
   const setShowSettings = useAppStore((state) => state.setShowSettings);
 
-  // Database sync
-  const { saveComponent, isLoading: isSyncing } = useDatabaseSync({
-    userId: user?.id || null,
-  });
-
-  const handleSave = useCallback(async () => {
-    if (currentComponent) {
-      await saveComponent(currentComponent);
-    }
-  }, [currentComponent, saveComponent]);
-
-  const handleShowHistory = useCallback(() => {
+  const handleShowHistory = () => {
     setShowVersionHistory(!showVersionHistory);
-  }, [showVersionHistory, setShowVersionHistory]);
+  };
 
-  const handleShowLibrary = useCallback(() => {
+  const handleShowLibrary = () => {
     setShowLibrary(!showLibrary);
-  }, [showLibrary, setShowLibrary]);
+  };
 
-  const handleShowSettings = useCallback(() => {
+  const handleShowSettings = () => {
     setShowSettings(true);
     setDrawerOpen(false);
-  }, [setShowSettings]);
+  };
 
   const projectName = currentComponent?.name || 'Untitled Project';
 
@@ -97,8 +83,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Navigation */}
         <AppNavigation
           projectName={projectName}
-          onSave={currentComponent ? handleSave : undefined}
-          isSaving={isSyncing}
           onMenuClick={() => setDrawerOpen(true)}
         />
 

@@ -1,39 +1,27 @@
 /**
  * Layout Builder View
  *
- * Main orchestrator for the Universal Visual Editor.
- * Combines the chat panel (left) with the Sandpack preview canvas (right).
+ * Main orchestrator for the virtual reality engine.
+ * Combines OmniChat (left) with the Sandpack preview canvas (right).
  *
- * This component:
- *   - Owns the useLayoutBuilder hook (single source of truth)
- *   - Converts chat input (text + media) into pipeline calls
- *   - Passes generated code + progress to both panels
- *
- * All generation scenarios flow through one path:
- *   handleAnalyzeMedia / handleSendMessage → useLayoutBuilder.runPipeline()
- *   The Router on the backend decides CREATE / MERGE / EDIT mode.
+ * Message flow:
+ *   Text-only → OmniChat API → AI response + action classification
+ *     action: 'none'      → just show reply
+ *     action: 'pipeline'  → run Titan pipeline
+ *     action: 'autonomy'  → run pipeline (Router detects RESEARCH_AND_BUILD)
+ *     action: 'live-edit' → run refineComponent
+ *   Media → pipeline directly (image/video analysis)
  */
 
 'use client';
 
 import React, { useState, useCallback, useMemo } from 'react';
-import {
-  LayoutBuilderChatPanel,
-  LayoutChatMessage,
-  UploadedMedia,
-} from './layout-builder/LayoutBuilderChatPanel';
+import { OmniChat, type UploadedMedia } from './interface/OmniChat';
 import { LayoutCanvas } from './layout-builder/LayoutCanvas';
 import { useLayoutBuilder } from '@/hooks/useLayoutBuilder';
 import { useAppStore } from '@/store/useAppStore';
-import type { AppContext } from '@/types/titanPipeline';
-
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-function generateMessageId(): string {
-  return `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-}
+import { useChatStore } from '@/store/useChatStore';
+import type { AppContext, OmniChatAction } from '@/types/titanPipeline';
 
 // ============================================================================
 // MAIN COMPONENT
@@ -53,36 +41,24 @@ export const LayoutBuilderView: React.FC = () => {
     };
   }, [appConcept]);
 
-  // --- Welcome message ---
-  const welcomeMessage = useMemo(() => {
-    if (appConcept?.name) {
-      const themeInfo = appConcept.uiPreferences?.colorScheme
-        ? ` I'll use your ${appConcept.uiPreferences.colorScheme} theme preferences as guidance.`
-        : '';
-      return `Welcome to the Layout Builder for **${appConcept.name}**! Upload an image or video of a design you'd like to replicate, or describe what you want to build.${themeInfo}`;
-    }
-    return "Welcome to the Layout Builder! Upload an image or video of a design you'd like to replicate, or describe what you want to build. You can also type instructions to customize the result.";
-  }, [appConcept?.name, appConcept?.uiPreferences?.colorScheme]);
+  // --- Chat store (persistent messages) ---
+  const addMessage = useChatStore((s) => s.addMessage);
+  const messages = useChatStore((s) => s.messages);
 
-  // --- Chat messages ---
-  const [messages, setMessages] = useState<LayoutChatMessage[]>([
-    {
-      id: generateMessageId(),
-      role: 'assistant',
-      content: welcomeMessage,
-      timestamp: new Date(),
-    },
-  ]);
+  // --- Active action tracking ---
+  const [activeAction, setActiveAction] = useState<OmniChatAction | null>(null);
 
   // --- Layout builder hook (single source of truth) ---
   const {
     generatedFiles,
     isProcessing,
+    isChatting,
     pipelineProgress,
     errors,
     warnings,
     runPipeline,
     refineComponent,
+    sendChatMessage,
     undo,
     redo,
     exportCode,
@@ -91,114 +67,161 @@ export const LayoutBuilderView: React.FC = () => {
     canRedo,
   } = useLayoutBuilder();
 
-  // --- Handle media analysis (image/video uploads) ---
-  // Defined before handleSendMessage so it can be called from there
-  const handleAnalyzeMedia = useCallback(
+  // --- Handle media uploads (always pipeline) ---
+  const handleMediaPipeline = useCallback(
     async (media: UploadedMedia[], instructions?: string) => {
       if (media.length === 0) return;
 
-      // Add user message with media previews
-      const userMessage: LayoutChatMessage = {
-        id: generateMessageId(),
-        role: 'user',
-        content: instructions || 'Analyze this design and create a layout',
-        timestamp: new Date(),
-        mediaUrls: media.map((m) => m.previewUrl),
-      };
-      setMessages((prev) => [...prev, userMessage]);
+      setActiveAction('pipeline');
 
       try {
-        // Extract raw File objects from UploadedMedia
         const files = media.map((m) => m.file);
-
-        // Run the Titan pipeline (Router determines CREATE/MERGE/EDIT)
         await runPipeline(files, instructions || '', appContext);
 
-        // Success message
-        const modeHint =
+        const hint =
           media.length > 1
-            ? `I've analyzed ${media.length} files and created a merged layout.`
-            : `I've analyzed the ${media[0].type} and created a layout.`;
+            ? `Analyzed ${media.length} files and created a merged layout.`
+            : `Analyzed the ${media[0].type} and created a layout.`;
 
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: generateMessageId(),
-            role: 'assistant',
-            content: `${modeHint} Click on any component in the preview to edit it, or send more instructions to refine the design.`,
-            timestamp: new Date(),
-          },
-        ]);
+        addMessage({
+          role: 'assistant',
+          content: `${hint} Click on any component in the preview to edit it, or describe further changes.`,
+        });
       } catch (error) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: generateMessageId(),
-            role: 'system',
-            content: `Failed to analyze media: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            timestamp: new Date(),
-          },
-        ]);
+        addMessage({
+          role: 'system',
+          content: `Failed to analyze media: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        });
+      } finally {
+        setActiveAction(null);
       }
     },
-    [runPipeline, appContext]
+    [runPipeline, appContext, addMessage]
   );
 
-  // --- Handle text-only messages (or text + media) ---
+  // --- Execute an action returned by the chat AI ---
+  const executeAction = useCallback(
+    async (action: OmniChatAction, instructions: string, selectedDataId?: string) => {
+      setActiveAction(action);
+
+      try {
+        switch (action) {
+          case 'pipeline':
+            await runPipeline([], instructions, appContext);
+            addMessage({
+              role: 'system',
+              content: 'Layout updated. Check the preview.',
+              metadata: { context: 'Pipeline Complete' },
+            });
+            break;
+
+          case 'autonomy':
+            // The pipeline Router will detect this as RESEARCH_AND_BUILD
+            // and delegate to AutonomyCore automatically
+            addMessage({
+              role: 'system',
+              content: 'Activating autonomy system — researching, fabricating agents, and building...',
+              metadata: { context: 'Autonomy Core' },
+            });
+            await runPipeline([], instructions, appContext);
+            addMessage({
+              role: 'system',
+              content: 'Autonomy complete. Check the preview.',
+              metadata: { context: 'Autonomy Complete' },
+            });
+            break;
+
+          case 'live-edit':
+            if (generatedFiles.length === 0) {
+              addMessage({
+                role: 'system',
+                content: 'No code to edit yet. Describe what you want to build first.',
+              });
+              break;
+            }
+            await refineComponent(
+              selectedDataId || 'root',
+              instructions,
+              ''
+            );
+            addMessage({
+              role: 'system',
+              content: 'Edit applied. Check the preview.',
+              metadata: { context: 'Live Edit' },
+            });
+            break;
+        }
+      } catch (error) {
+        addMessage({
+          role: 'system',
+          content: `Action failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        });
+      } finally {
+        setActiveAction(null);
+      }
+    },
+    [runPipeline, refineComponent, appContext, generatedFiles.length, addMessage]
+  );
+
+  // --- Handle all messages from OmniChat ---
   const handleSendMessage = useCallback(
-    (message: string, media: UploadedMedia[]) => {
+    async (message: string, media: UploadedMedia[]) => {
       if (!message.trim() && media.length === 0) return;
 
-      // If there are media files, delegate to handleAnalyzeMedia with the user's text.
-      // This ensures instructions like "Copy this layout but make it blue" are
-      // passed to the pipeline as the instructions argument alongside the media.
+      // Add user message to persistent store
+      addMessage({
+        role: 'user',
+        content: media.length > 0
+          ? `${message || 'Analyze and build from uploaded media'} [${media.length} file(s)]`
+          : message,
+      });
+
+      // Media path — always pipeline
       if (media.length > 0) {
-        handleAnalyzeMedia(media, message);
+        await handleMediaPipeline(media, message);
         return;
       }
 
-      // Add user message to chat (text-only path)
-      const userMessage: LayoutChatMessage = {
-        id: generateMessageId(),
-        role: 'user',
-        content: message,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, userMessage]);
+      // Text-only path — chat first, then dispatch action
+      try {
+        // Build conversation history for the AI (last 20, exclude system)
+        const conversationHistory = messages
+          .filter((m) => m.role !== 'system')
+          .slice(-20)
+          .map((m) => ({
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+          }));
 
-      // Text-only: run pipeline with no files
-      // The Router will determine CREATE (no existing code) or EDIT (has currentCode)
-      if (message.trim()) {
-        const hasExistingCode = generatedFiles.length > 0;
+        // Get AI response with intent classification
+        const chatResponse = await sendChatMessage(
+          message,
+          conversationHistory,
+          appContext
+        );
 
-        runPipeline([], message.trim(), appContext)
-          .then(() => {
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: generateMessageId(),
-                role: 'assistant',
-                content: hasExistingCode
-                  ? "I've updated the layout based on your instructions. Click on any component in the preview to make further edits."
-                  : "I've generated a layout based on your description. Click on any component in the preview to refine it.",
-                timestamp: new Date(),
-              },
-            ]);
-          })
-          .catch((error) => {
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: generateMessageId(),
-                role: 'system',
-                content: `Failed to process: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                timestamp: new Date(),
-              },
-            ]);
-          });
+        // Display AI's conversational reply
+        addMessage({
+          role: 'assistant',
+          content: chatResponse.reply,
+        });
+
+        // Execute the classified action (if any)
+        if (chatResponse.action !== 'none' && chatResponse.actionPayload) {
+          await executeAction(
+            chatResponse.action,
+            chatResponse.actionPayload.instructions,
+            chatResponse.actionPayload.selectedDataId
+          );
+        }
+      } catch (error) {
+        addMessage({
+          role: 'system',
+          content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        });
       }
     },
-    [handleAnalyzeMedia, runPipeline, appContext, generatedFiles.length]
+    [addMessage, handleMediaPipeline, messages, sendChatMessage, appContext, executeAction]
   );
 
   // --- Handle file drops on the canvas ---
@@ -209,55 +232,42 @@ export const LayoutBuilderView: React.FC = () => {
       );
       if (mediaFiles.length === 0) return;
 
-      // Add a chat message about the drop
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: generateMessageId(),
-          role: 'user',
-          content: `Dropped ${mediaFiles.length} file${mediaFiles.length > 1 ? 's' : ''} for analysis`,
-          timestamp: new Date(),
-        },
-      ]);
+      addMessage({
+        role: 'user',
+        content: `Dropped ${mediaFiles.length} file${mediaFiles.length > 1 ? 's' : ''} for analysis`,
+      });
 
-      // Run pipeline
+      setActiveAction('pipeline');
       runPipeline(mediaFiles, '', appContext)
         .then(() => {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: generateMessageId(),
-              role: 'assistant',
-              content: 'Layout generated from dropped files. Click on any component to edit it.',
-              timestamp: new Date(),
-            },
-          ]);
+          addMessage({
+            role: 'assistant',
+            content: 'Layout generated from dropped files. Click on any component to edit it.',
+          });
         })
         .catch((error) => {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: generateMessageId(),
-              role: 'system',
-              content: `Failed to process dropped files: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              timestamp: new Date(),
-            },
-          ]);
+          addMessage({
+            role: 'system',
+            content: `Failed to process dropped files: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          });
+        })
+        .finally(() => {
+          setActiveAction(null);
         });
     },
-    [runPipeline, appContext]
+    [runPipeline, appContext, addMessage]
   );
 
   return (
     <div className="flex h-full w-full">
-      {/* Left Panel: Chat */}
+      {/* Left Panel: OmniChat */}
       <div className="w-[400px] min-w-[320px] max-w-[500px] flex-shrink-0 h-full">
-        <LayoutBuilderChatPanel
-          messages={messages}
+        <OmniChat
           onSendMessage={handleSendMessage}
-          isAnalyzing={isProcessing}
-          onAnalyzeMedia={handleAnalyzeMedia}
+          isProcessing={isProcessing}
+          isChatting={isChatting}
           pipelineProgress={pipelineProgress}
+          activeAction={activeAction}
         />
       </div>
 

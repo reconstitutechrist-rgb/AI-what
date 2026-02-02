@@ -15,18 +15,6 @@ export {
 } from './DebugPanel';
 export { MockAIBanner } from './MockAIBanner';
 
-// Re-export performance metrics utilities for convenience
-export {
-  useRenderPerformance,
-  getPerformanceMetrics,
-  getComponentMetrics,
-  clearPerformanceMetrics,
-  getSlowRenderSummary,
-  getTotalRenderStats,
-  withRenderPerformance,
-} from '@/hooks/useRenderPerformance';
-export type { RenderMetrics, PerformanceOptions } from '@/hooks/useRenderPerformance';
-
 // Re-export error report utilities
 export { getStoredErrorReports, clearStoredErrorReports } from '@/components/ErrorBoundary';
 export type { ErrorReport } from '@/components/ErrorBoundary';

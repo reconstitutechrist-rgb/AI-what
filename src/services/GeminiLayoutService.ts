@@ -14,6 +14,7 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { withGeminiRetry } from '@/utils/geminiRetry';
 import { DetectedComponentEnhanced, PageAnalysis, LayoutStructure } from '@/types/layoutDesign';
 import {
   sanitizeComponents,
@@ -234,7 +235,7 @@ class GeminiLayoutService {
     `;
 
     const imagePart = this.fileToPart(imageBase64);
-    const result = await model.generateContent([prompt, imagePart]);
+    const result = await withGeminiRetry(() => model.generateContent([prompt, imagePart]));
     const response = result.response;
 
     try {
@@ -679,7 +680,7 @@ class GeminiLayoutService {
     `;
 
     const imagePart = this.fileToPart(imageBase64);
-    const result = await model.generateContent([prompt, imagePart]);
+    const result = await withGeminiRetry(() => model.generateContent([prompt, imagePart]));
     const response = result.response;
 
     try {
@@ -1043,7 +1044,7 @@ class GeminiLayoutService {
     `;
 
     const imagePart = this.fileToPart(imageBase64);
-    const result = await model.generateContent([prompt, imagePart]);
+    const result = await withGeminiRetry(() => model.generateContent([prompt, imagePart]));
     const response = result.response;
 
     try {
@@ -1093,7 +1094,7 @@ class GeminiLayoutService {
     // Convert all frames to parts
     const imageParts = frames.map((f) => this.fileToPart(f));
 
-    const result = await model.generateContent([prompt, ...imageParts]);
+    const result = await withGeminiRetry(() => model.generateContent([prompt, ...imageParts]));
     const response = result.response;
 
     try {
@@ -1138,7 +1139,7 @@ class GeminiLayoutService {
     const originalPart = this.fileToPart(originalImage);
     const generatedPart = this.fileToPart(generatedImage);
 
-    const result = await model.generateContent([prompt, originalPart, generatedPart]);
+    const result = await withGeminiRetry(() => model.generateContent([prompt, originalPart, generatedPart]));
     const response = result.response;
 
     try {
@@ -1253,7 +1254,7 @@ class GeminiLayoutService {
     const generatedPart = this.fileToPart(generatedImage);
 
     try {
-      const result = await model.generateContent([prompt, originalPart, generatedPart]);
+      const result = await withGeminiRetry(() => model.generateContent([prompt, originalPart, generatedPart]));
       const response = result.response;
       const critique = JSON.parse(response.text()) as LayoutCritiqueEnhanced;
 
@@ -1309,7 +1310,7 @@ class GeminiLayoutService {
       4. Maintain the 'id' and 'type' unless explicitly asked to change structure.
     `;
 
-    const result = await model.generateContent(systemPrompt);
+    const result = await withGeminiRetry(() => model.generateContent(systemPrompt));
     const response = result.response;
 
     try {

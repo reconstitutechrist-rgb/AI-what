@@ -194,3 +194,34 @@ export interface LiveEditResult {
   error?: string;
   updatedCode?: string;
 }
+
+// ============================================================================
+// OMNICHAT TYPES
+// ============================================================================
+
+/** A single message in the OmniChat conversation history */
+export interface OmniConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/** Request body for the OmniChat endpoint */
+export interface OmniChatRequest {
+  message: string;
+  conversationHistory: OmniConversationMessage[];
+  currentCode: string | null;
+  appContext?: AppContext;
+}
+
+/** Action the AI decides to take after processing a message */
+export type OmniChatAction = 'pipeline' | 'autonomy' | 'live-edit' | 'none';
+
+/** Response from the OmniChat endpoint */
+export interface OmniChatResponse {
+  reply: string;
+  action: OmniChatAction;
+  actionPayload?: {
+    instructions: string;
+    selectedDataId?: string;
+  };
+}
