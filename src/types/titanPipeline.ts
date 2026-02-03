@@ -5,6 +5,7 @@
 
 import type { AppFile } from '@/types/railway';
 import type { CritiqueResult } from '@/types/visualCritic';
+import type { AgentCommand, SuspendedExecution } from '@/types/autonomy';
 
 // ============================================================================
 // UI & STATE MANAGEMENT TYPES
@@ -107,11 +108,32 @@ export interface PipelineInput {
   instructions: string;
   currentCode: string | null;
   appContext?: AppContext;
+  /** Skip the vision healing loop (default: false) */
+  skipHealing?: boolean;
 }
 
 // ============================================================================
 // PIPELINE LOGIC TYPES
 // ============================================================================
+
+/** A node in the Surveyor's recursive DOM tree output */
+export interface DomTreeNode {
+  type: string;
+  id?: string;
+  styles?: Record<string, string>;
+  text?: string;
+  children?: DomTreeNode[];
+  hasCustomVisual?: boolean;
+  extractionBounds?: {
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  };
+  iconSvgPath?: string;
+  /** Allow additional properties from AI output */
+  [key: string]: unknown;
+}
 
 export interface VisualManifest {
   file_index: number;
@@ -123,13 +145,7 @@ export interface VisualManifest {
   global_theme?: {
     colors?: string[];
     fonts?: string[];
-    dom_tree?: {
-      type: string;
-      id?: string;
-      styles?: Record<string, string>;
-      children?: any[];
-      text?: string;
-    };
+    dom_tree?: DomTreeNode;
     assets?: string[];
   };
   measured_components: Array<{
@@ -189,6 +205,17 @@ export interface PipelineResult {
   stepTimings: Record<string, number>;
   /** Visual critique result (if evaluated) */
   critique?: CritiqueResult;
+  /** Vision healing loop result (if run) */
+  healingResult?: {
+    fidelityScore: number;
+    iterations: number;
+    stopReason: string;
+    usedPatching?: boolean;
+  };
+  /** Avatar Protocol: Command to be executed by the client */
+  command?: AgentCommand;
+  /** Avatar Protocol: State to persist while waiting for feedback */
+  suspendedState?: SuspendedExecution;
 }
 
 export interface LiveEditResult {

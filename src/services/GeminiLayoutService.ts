@@ -25,7 +25,6 @@ import type { DesignSpec } from '@/types/designSpec';
 import type {
   LayoutAnalysisResult,
   LayoutCritiqueEnhanced,
-  LayoutDiscrepancy,
 } from '@/types/layoutAnalysis';
 import type { VideoMotionAnalysis } from '@/types/motionConfig';
 import { validateFontSizeForContainer } from '@/utils/responsiveTypography';
@@ -1174,14 +1173,29 @@ class GeminiLayoutService {
       generationConfig: { responseMimeType: 'application/json' },
     });
 
-    // Build component context for the AI
+    // Build rich component context for the AI
     const componentContext = components.map((c) => ({
       id: c.id,
       type: c.type,
       bounds: c.bounds,
-      hasText: !!c.content?.text,
-      backgroundColor: c.style?.backgroundColor,
-      textColor: c.style?.textColor,
+      style: {
+        backgroundColor: c.style?.backgroundColor,
+        textColor: c.style?.textColor,
+        borderRadius: c.style?.borderRadius,
+        shadow: c.style?.shadow,
+        backgroundImage: c.style?.backgroundImage,
+        backdropFilter: c.style?.backdropFilter,
+        opacity: c.style?.opacity,
+      },
+      content: {
+        text: c.content?.text,
+        hasIcon: c.content?.hasIcon,
+        iconName: c.content?.iconName,
+        iconSvgPath: c.content?.iconSvgPath,
+        hasImage: c.content?.hasImage,
+        imageDescription: c.content?.imageDescription,
+      },
+      role: c.role,
     }));
 
     const prompt = `
@@ -1210,12 +1224,14 @@ class GeminiLayoutService {
         "discrepancies": [
           {
             "componentId": "<id from components list, or 'unknown' if can't identify>",
-            "issue": "color_drift|spacing_error|typography_mismatch|position_offset|size_mismatch|missing_element|extra_element|content_mismatch|effect_missing|image_missing|gradient_mismatch|animation_missing",
+            "issue": "<descriptive issue type, e.g.: color_drift, spacing_error, typography_mismatch, position_offset, size_mismatch, missing_element, extra_element, content_mismatch, effect_missing, image_missing, gradient_mismatch, animation_missing, shape_mismatch, border_mismatch, icon_mismatch, texture_missing, or any other descriptive type>",
             "severity": "minor|moderate|critical",
             "expected": "<what it should be, e.g., '#FF0000' or '24px'>",
             "actual": "<what it currently is>",
             "correctionJSON": {
-              "style": { "<property>": "<corrected value>" }
+              "style": { "<css-property>": "<corrected value>" },
+              "content": { "<content-property>": "<corrected value>" },
+              "bounds": { "<bounds-property>": "<corrected value>" }
             }
           }
         ],
@@ -1223,12 +1239,18 @@ class GeminiLayoutService {
         "recommendation": "accept|refine|regenerate"
       }
 
+      **correctionJSON usage**:
+      - Use "style" for CSS property changes (backgroundColor, borderRadius, boxShadow, backgroundImage, etc.)
+      - Use "content" for text, icon, or image changes (text, iconName, iconSvgPath, hasIcon, hasImage, imageDescription, etc.)
+      - Use "bounds" for position/size changes (top, left, width, height)
+      - Include only the keys that need correction (omit unchanged sections)
+
       **Severity Guidelines**:
       - critical: Major visual difference that breaks the design (wrong colors, missing elements, broken layout)
       - moderate: Noticeable difference that affects quality (spacing off by >10px, wrong font weight)
       - minor: Small difference that most users wouldn't notice (spacing off by <5px, slight color variation)
 
-      **Issue Types**:
+      **Common Issue Types** (use these or create your own descriptive type):
       - color_drift: Background or text color doesn't match
       - spacing_error: Padding, margin, or gap is incorrect
       - typography_mismatch: Font size, weight, or family is wrong
@@ -1241,6 +1263,10 @@ class GeminiLayoutService {
       - image_missing: Image/logo shows as placeholder instead of actual content
       - gradient_mismatch: Gradient colors, direction, or type doesn't match original
       - animation_missing: CSS animation or particle effect exists in original but missing in generated
+      - icon_mismatch: Icon shape, path, or style doesn't match original
+      - shape_mismatch: Element shape (clip-path, border-radius pattern) doesn't match
+      - texture_missing: Material texture or pattern from original is not reproduced
+      - border_mismatch: Border style, width, or color doesn't match
 
       **Recommendation Logic**:
       - "accept": fidelityScore >= ${targetFidelity} and no critical issues

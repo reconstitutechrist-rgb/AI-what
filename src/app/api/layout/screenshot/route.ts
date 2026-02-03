@@ -14,6 +14,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import type { ScreenshotRequest, ScreenshotResponse } from '@/types/layoutAnalysis';
+import { getReactToHtmlService } from '@/services/ReactToHtmlService';
 
 // Lazy-load puppeteer to avoid issues in environments where it's not available
 let puppeteerModule: typeof import('puppeteer') | null = null;
@@ -33,11 +34,18 @@ async function getPuppeteer() {
 export async function POST(req: NextRequest) {
   try {
     const body: ScreenshotRequest = await req.json();
-    const { html, css, viewport = { width: 1280, height: 800 } } = body;
+    const { css, viewport = { width: 1280, height: 800 } } = body;
+
+    // Support both raw HTML and AppFile[] input (Avatar Protocol uses files)
+    let html = body.html;
+    if (!html && body.files && body.files.length > 0) {
+      const htmlService = getReactToHtmlService();
+      html = htmlService.buildStandaloneHtml(body.files, viewport);
+    }
 
     if (!html) {
       return NextResponse.json(
-        { success: false, error: 'HTML content is required' } as ScreenshotResponse,
+        { success: false, error: 'Either html or files is required' } as ScreenshotResponse,
         { status: 400 }
       );
     }

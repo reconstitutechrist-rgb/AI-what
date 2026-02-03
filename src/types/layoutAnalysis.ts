@@ -72,20 +72,8 @@ export interface LayoutDiscrepancy {
   /** ID of the affected component */
   componentId: string;
 
-  /** Type of issue detected */
-  issue:
-    | 'color_drift'
-    | 'spacing_error'
-    | 'typography_mismatch'
-    | 'position_offset'
-    | 'size_mismatch'
-    | 'missing_element'
-    | 'extra_element'
-    | 'content_mismatch'
-    | 'effect_missing'
-    | 'image_missing'
-    | 'gradient_mismatch'
-    | 'animation_missing';
+  /** Type of issue detected (open-ended to allow novel issue types from AI critique) */
+  issue: string;
 
   /** Severity of the discrepancy */
   severity: 'minor' | 'moderate' | 'critical';
@@ -96,8 +84,15 @@ export interface LayoutDiscrepancy {
   /** What was actually found */
   actual: string;
 
-  /** JSON patch to apply as correction */
-  correctionJSON?: Partial<DetectedComponentEnhanced>;
+  /** Structured correction to apply */
+  correctionJSON?: {
+    /** CSS/style property corrections */
+    style?: Record<string, unknown>;
+    /** Content corrections (text, icons, images) */
+    content?: Record<string, unknown>;
+    /** Position/size corrections */
+    bounds?: Record<string, unknown>;
+  };
 }
 
 /**
@@ -175,8 +170,11 @@ export interface SelfHealingIteration {
  * Request for screenshot API
  */
 export interface ScreenshotRequest {
-  /** Rendered HTML to screenshot */
-  html: string;
+  /** Rendered HTML to screenshot (required unless files is provided) */
+  html?: string;
+
+  /** Optional: AppFile[] to convert to HTML server-side (Avatar Protocol) */
+  files?: { path: string; content: string }[];
 
   /** Optional CSS to inject */
   css?: string;

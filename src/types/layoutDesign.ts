@@ -619,47 +619,8 @@ export interface VisualEffect {
 export interface DetectedComponentEnhanced {
   /** Unique identifier for this component instance */
   id: string;
-  /** Component type */
-  type:
-    | 'header'
-    | 'sidebar'
-    | 'hero'
-    | 'cards'
-    | 'navigation'
-    | 'footer'
-    | 'form'
-    | 'table'
-    | 'carousel'
-    | 'timeline'
-    | 'stepper'
-    | 'stats'
-    | 'testimonials'
-    | 'pricing'
-    | 'features'
-    | 'cta'
-    | 'breadcrumb'
-    | 'pagination'
-    | 'tabs'
-    | 'modal-trigger'
-    | 'search-bar'
-    | 'user-menu'
-    | 'logo'
-    | 'content-section'
-    | 'image-gallery'
-    | 'video-player'
-    | 'map'
-    | 'chart'
-    | 'button'
-    | 'input'
-    | 'list'
-    | 'menu'
-    | 'modal'
-    | 'dropdown'
-    | 'badge'
-    | 'avatar'
-    | 'divider'
-    | 'progress'
-    | 'unknown';
+  /** Component type (string to allow novel types from AI detection) */
+  type: string;
   /** Precise bounding box as percentage of viewport (0-100) */
   bounds: {
     top: number;
@@ -795,11 +756,11 @@ export interface DetectedComponentEnhanced {
   /** Child component IDs */
   children?: string[];
   /** Component role for positioning strategy */
-  role?: 'container' | 'leaf' | 'overlay';
+  role?: string;
   /** Container layout configuration (for role: 'container') */
   layout?: {
-    /** Layout type: flex, grid, or none (absolute) */
-    type: 'flex' | 'grid' | 'none';
+    /** Layout type */
+    type: 'flex' | 'grid' | 'absolute' | 'block' | 'none';
     /** Flex direction */
     direction?: 'row' | 'column';
     /** Gap between children */

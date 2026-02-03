@@ -426,7 +426,33 @@ class WebContainerServiceInstance {
   }
 
   /**
-   * Tear down the WebContainer instance.
+   * Execute a raw shell command in the container.
+   * Exposed for the Avatar Protocol (remote control).
+   */
+  async executeShell(cmd: string, args: string[], timeout: number = 30000): Promise<{ output: string; exitCode: number }> {
+      if (!this.container) {
+        if (!this.isSupported()) {
+          return { output: 'WebContainer not supported in this environment', exitCode: 1 };
+        }
+        await this.boot();
+      }
+
+      this._status = 'running';
+      try {
+          const result = await this.runCommand(this.container!, cmd, args, timeout);
+          const output = result.stdout + (result.stderr ? `\nERR: ${result.stderr}` : '');
+
+          this._status = 'ready';
+          return { output, exitCode: result.exitCode };
+      } catch (e) {
+          this._status = 'error';
+          const err = e instanceof Error ? e.message : String(e);
+          return { output: `Execution failed: ${err}`, exitCode: 1 };
+      }
+  }
+
+  /**
+   * Teardown the WebContainer instance.
    * Called when no longer needed (e.g., unmounting the app).
    */
   async teardown(): Promise<void> {

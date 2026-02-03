@@ -58,6 +58,7 @@ export type WebContainerStatus =
   | 'idle'
   | 'booting'
   | 'ready'
+  | 'running'
   | 'validating'
   | 'installing'
   | 'building'

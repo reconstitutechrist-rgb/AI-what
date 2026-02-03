@@ -72,6 +72,8 @@ export async function POST(req: NextRequest) {
       physics: result.physics,
       warnings: result.warnings,
       stepTimings: result.stepTimings,
+      command: result.command,
+      suspendedState: result.suspendedState,
     });
   } catch (error) {
     console.error('[Titan Pipeline API] Error:', error);

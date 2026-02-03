@@ -13,7 +13,13 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { withGeminiRetry } from '@/utils/geminiRetry';
 import { extractCode } from '@/utils/extractCode';
-import type { AgentSwarm, FabricatedAgent, WorkflowContext, AgentTaskResult } from '@/types/autonomy';
+import type {
+  AgentSwarm,
+  FabricatedAgent,
+  WorkflowContext,
+  AgentTaskResult,
+  AgentFeedback
+} from '@/types/autonomy';
 import { googleSearchService } from '@/services/GoogleSearchService';
 
 const MODEL_NAME = 'gemini-3-pro-preview';
@@ -105,6 +111,51 @@ export class DynamicWorkflowEngine {
       finalCode = cleanedOutput;
     }
 
+    // Phase 4: Execution & Verification (The "Avatar" Loop)
+    // Server agents command the client to run/test the code
+    const testers = swarm.agents.filter((a) => a.role === 'DEBUGGER' || a.role === 'REVIEWER');
+    for (const agent of testers) {
+        // If we have code, let the tester verify it
+        if (finalCode) {
+            const verificationResult = await this.executeAgentStep(agent, model, finalCode, 'EXECUTION');
+             
+            // Check if agent requested a command execution (suspension)
+            if (verificationResult.command) {
+                this.log(`[EXECUTION] Agent ${agent.name} requested command: ${verificationResult.command.type}`);
+                return {
+                    success: false, // Not failures, just paused
+                    output: finalCode,
+                    command: verificationResult.command, // Return command to API -> Client
+                    suspendedState: {
+                        step: {
+                            id: `exec_${Date.now()}`,
+                            type: 'CODE', // Logical phase
+                            description: 'Remote Execution',
+                            dependencies: [],
+                            status: 'RUNNING'
+                        },
+                        agentId: agent.id,
+                        command: verificationResult.command,
+                        swarmId: swarm.id,
+                        swarm: swarm,
+                        memory: this.context.memory
+                    }
+                };
+            }
+
+            if (!verificationResult.success) {
+                this.log(`[EXECUTION] Verification failed: ${verificationResult.error}`);
+                // If verification fails, return error to trigger AutonomyCore retry/healing
+                return {
+                    success: false,
+                    output: finalCode,
+                    error: `Verification failed (${agent.name}): ${verificationResult.error}`,
+                    retry_suggestion: verificationResult.retry_suggestion
+                };
+            }
+        }
+    }
+
     // Validate that we actually got code output
     if (!finalCode || finalCode.trim().length < 10) {
       return {
@@ -123,6 +174,141 @@ export class DynamicWorkflowEngine {
       artifacts: [this.context.global_files],
       reasoning_summary: architectReasoning.trim() || undefined,
     };
+  }
+
+  /**
+   * Resumes a suspended swarm execution with feedback from the client.
+   * Called when the Avatar Protocol returns a result (e.g. test output).
+   */
+  async resumeSwarm(
+    swarm: AgentSwarm, 
+    suspendedState: NonNullable<AgentTaskResult['suspendedState']>, 
+    feedback: AgentFeedback
+  ): Promise<AgentTaskResult> {
+      // 1. Restore Context
+      this.context = {
+          memory: suspendedState.memory,
+          global_files: {}, // Re-hydrate if needed, or assume mostly stateless for now
+          logs: []
+      };
+      
+      const apiKey = getApiKey();
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+
+      // 2. Identify Resuming Agent
+      const agent = swarm.agents.find(a => a.id === suspendedState.agentId);
+      if (!agent) {
+          return { success: false, output: '', error: 'Resuming agent not found in swarm' };
+      }
+
+      this.log(`[RESUME] resuming agent ${agent.name} with feedback...`);
+
+      // 3. Construct Feedback Prompt (include code context so agent can reason about results)
+      const lastCoderName = swarm.agents.filter(a => a.role === 'CODER').pop()?.name;
+      const codeContext = lastCoderName && this.context.memory[lastCoderName]
+        ? `\n### GENERATED CODE (for reference)\n\`\`\`tsx\n${this.context.memory[lastCoderName].slice(0, 4000)}\n\`\`\`\n`
+        : '';
+
+      const feedbackInput = `
+### PREVIOUS COMMAND
+Command: ${suspendedState.command.type}
+Args: ${suspendedState.command.command}
+
+### EXECUTION RESULT
+Exit Code: ${feedback.exitCode}
+Output:
+\`\`\`
+${feedback.output.slice(0, 5000)}
+\`\`\`
+${feedback.screenshot ? '\n(A screenshot was also captured and is available.)\n' : ''}${codeContext}
+### INSTRUCTIONS
+Analyze the result.
+If the tests passed or the output is what you expected, return {"verdict": "pass"}.
+If failed, return {"verdict": "fail"} and explain why.
+You may also issue ANOTHER command if needed.
+`;
+
+      // 4. Re-run Agent Step with Feedback
+      // We pass the feedback as "input" to the EXECUTION phase logic
+      // The logic in executeAgentStep handles the JSON parsing
+      const result = await this.executeAgentStep(agent, model, feedbackInput, 'EXECUTION_RESUME');
+
+      // 5. Handle Result
+      if (result.command) {
+          // Agent wants to run *another* command (chaining commands)
+           return {
+                success: false,
+                output: result.output,
+                command: result.command,
+                suspendedState: {
+                    ...suspendedState,
+                    command: result.command,
+                    swarm: swarm, 
+                    memory: this.context.memory
+                }
+            };
+      }
+
+      if (!result.success) {
+           return {
+              success: false,
+              output: this.context.memory[agent.name] || '',
+              error: `Verification failed after feedback: ${result.error}`,
+              retry_suggestion: result.retry_suggestion
+          };
+      }
+
+      // 6. If Agent satisfied, continue the Swarm (Rest of Testers)
+      // Identify where we were in the tester list
+      const testers = swarm.agents.filter((a) => a.role === 'DEBUGGER' || a.role === 'REVIEWER');
+      const currentIndex = testers.findIndex(a => a.id === agent.id);
+      const remainingTesters = testers.slice(currentIndex + 1);
+
+      // We need 'finalCode' to pass to remaining testers
+      // It should be in memory from the CODER phase
+      // We can try to find the last CODER's output
+      const coderName = swarm.agents.filter(a => a.role === 'CODER').pop()?.name;
+      const finalCode = coderName ? this.context.memory[coderName] : '';
+
+      if (!finalCode) {
+          return { success: false, output: '', error: 'Could not recover code for remaining testers' };
+      }
+
+      for (const nextAgent of remainingTesters) {
+           const nextResult = await this.executeAgentStep(nextAgent, model, finalCode, 'EXECUTION');
+           if (nextResult.command) {
+                return {
+                    success: false, 
+                    output: finalCode,
+                    command: nextResult.command,
+                    suspendedState: {
+                        step: {
+                            id: `exec_${Date.now()}`,
+                            type: 'CODE',
+                            description: 'Remote Execution',
+                            dependencies: [],
+                            status: 'RUNNING'
+                        },
+                        agentId: nextAgent.id,
+                        command: nextResult.command,
+                        swarmId: swarm.id,
+                        swarm: swarm,
+                        memory: this.context.memory
+                    }
+                };
+           }
+           if (!nextResult.success) {
+               return nextResult;
+           }
+      }
+
+      // All done!
+      return {
+          success: true,
+          output: finalCode,
+          artifacts: [this.context.global_files]
+      };
   }
 
   private async executeAgentStep(
@@ -148,11 +334,14 @@ export class DynamicWorkflowEngine {
         }
       }
 
-      // 2. Execute Core Task — CODING phase uses a code-only prompt template
-      //    to reinforce the systemInstruction and prevent conversational wrapping
+      // 2. Execute Core Task
       const isCoding = phase === 'CODING';
-      const executionPrompt = isCoding
-        ? `${agent.system_prompt}
+      const isExecution = phase === 'EXECUTION' || phase === 'EXECUTION_RESUME';
+
+      let executionPrompt = '';
+
+      if (isCoding) {
+        executionPrompt = `${agent.system_prompt}
 
 ### Architecture & Context (reference only — DO NOT include in output)
 ${JSON.stringify(this.context.memory)}
@@ -164,9 +353,50 @@ ${input}
 ### OUTPUT FORMAT
 Respond with ONLY the complete TypeScript/React code file.
 Start with import statements. End with export default.
-Do NOT include any explanation, markdown, or conversational text.
-Any non-code output will crash the build system.`
-        : `${agent.system_prompt}
+Do NOT include any explanation, markdown, or conversational text.`;
+      } else if (isExecution) {
+          if (phase === 'EXECUTION_RESUME') {
+              // Direct Feedback injection (no code wrapping)
+              executionPrompt = `${agent.system_prompt}\n\n${input}`;
+          } else {
+              // Initial Verification (Code needs wrapping)
+              executionPrompt = `${agent.system_prompt}
+
+### Current Code to Verify
+\`\`\`tsx
+${input.slice(0, 5000)} // Truncated for token limit
+\`\`\`
+
+### Instructions
+You are physically running inside the user's browser via the Avatar Protocol.
+To verify this code, you must issue a COMMAND.
+
+Supported Commands:
+- "shell": Run a terminal command (e.g., "npm test", "ls -la")
+- "screenshot": Capture a screenshot of the rendered app
+- "browser_log": Read the browser console logs
+
+### OUTPUT FORMAT (JSON ONLY)
+{
+  "thought": "I need to run the tests to verify the counter increments.",
+  "command": "shell",
+  "arguments": "npm test"
+}
+OR if verification passes:
+{
+  "thought": "Tests passed and code looks correct.",
+  "verdict": "pass"
+}
+OR if verification fails and you want to fail the task:
+{
+  "thought": "Tests failed.",
+  "verdict": "fail",
+  "error": "Test suite failed with exit code 1"
+}`;
+          }
+      } else {
+        // Standard (Research/Planning)
+        executionPrompt = `${agent.system_prompt}
 
 ### Context from Previous Steps
 ${JSON.stringify(this.context.memory)}
@@ -179,15 +409,49 @@ ${input}
 
 ### Instruction
 Perform your role. Return the output.`;
+      }
 
       const result = await withGeminiRetry(() => model.generateContent(executionPrompt));
-      const output = result.response.text();
+      const text = result.response.text();
+
+      // Handle Command Parsing for Execution Phase
+      if (isExecution) {
+          try {
+              const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+              const json = JSON.parse(cleaned);
+              
+              if (json.command) {
+                  return {
+                      success: true,
+                      output: json.thought,
+                      command: {
+                          id: `cmd_${Date.now()}`,
+                          type: json.command,
+                          command: json.arguments,
+                          timeout: 30000
+                      }
+                  };
+              } else if (json.verdict === 'fail') {
+                  return {
+                      success: false,
+                      output: text,
+                      error: json.error,
+                      retry_suggestion: 'Fix the issues identified in verification.'
+                  };
+              } else {
+                 return { success: true, output: text };
+              }
+          } catch (e) {
+              this.log(`[EXECUTION] Failed to parse command JSON: ${e}`);
+              return { success: false, output: text, error: 'Agent failed to issue valid JSON command' };
+          }
+      }
 
       // Update shared memory
-      this.context.memory[agent.name] = output;
-      this.context.logs.push(`[${agent.name}]: ${output.substring(0, 100)}...`);
+      this.context.memory[agent.name] = text;
+      this.context.logs.push(`[${agent.name}]: ${text.substring(0, 100)}...`);
 
-      return { success: true, output };
+      return { success: true, output: text };
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : 'Unknown agent error';
       this.log(`[${phase}] Agent ${agent.name} error: ${errorMessage}`);

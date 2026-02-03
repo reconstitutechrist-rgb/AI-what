@@ -72,6 +72,10 @@ export interface AgentTaskResult {
   retry_suggestion?: string;
   /** Summary of the architect's reasoning (captured for Skill Library) */
   reasoning_summary?: string;
+  /** Avatar Protocol: Command to be executed by the client */
+  command?: AgentCommand;
+  /** Avatar Protocol: State to persist while waiting for feedback */
+  suspendedState?: SuspendedExecution;
 }
 
 // ============================================================================
@@ -89,4 +93,33 @@ export interface KnowledgeFragment {
   content: string;
   source_url?: string;
   confidence: number;
+}
+
+// ============================================================================
+// AVATAR PROTOCOL (Remote Execution)
+// ============================================================================
+
+export type AgentCommandType = 'shell' | 'screenshot' | 'browser_log';
+
+export interface AgentCommand {
+  id: string;
+  type: AgentCommandType;
+  command?: string;      // For 'shell' (e.g., "npm test")
+  timeout?: number;
+}
+
+export interface AgentFeedback {
+  commandId: string;
+  output: string;
+  exitCode: number;
+  screenshot?: string;   // Base64 data URI
+}
+
+export interface SuspendedExecution {
+  step: StrategyStep;
+  agentId: string;
+  command: AgentCommand;
+  swarmId: string;
+  swarm: AgentSwarm; // Full swarm definition for stateless resumption
+  memory: Record<string, any>; // Snapshot of memory
 }

@@ -75,6 +75,14 @@ export class AutonomyCore {
       const result = await this.engine.runSwarm(swarm, goal.description);
 
       // 3. Check result
+      
+      // Avatar Protocol: If the engine returned a command, we are PAUSED, not failed.
+      // Return immediately so the client can execute the command.
+      if (result.command && result.suspendedState) {
+          console.log(`[AutonomyCore] Swarm suspended for Avatar Protocol command: ${result.command.type}`);
+          return result;
+      }
+
       if (result.success) {
         // Server-side syntax validation via esbuild before returning
         const syntaxErrors = await this.quickSyntaxCheck(result.output);

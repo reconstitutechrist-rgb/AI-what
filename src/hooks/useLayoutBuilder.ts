@@ -22,6 +22,7 @@ import type {
   OmniConversationMessage,
   OmniChatResponse,
 } from '@/types/titanPipeline';
+import type { AgentCommand, SuspendedExecution, AgentFeedback } from '@/types/autonomy';
 import { createInitialProgress } from '@/types/titanPipeline';
 import { getWebContainerService } from '@/services/WebContainerService';
 import type { ValidationResult, SandboxError, WebContainerStatus } from '@/types/sandbox';
@@ -129,6 +130,21 @@ function extractMainCode(files: AppFile[]): string | null {
 }
 
 /**
+ * Parse a shell command string into an array of arguments,
+ * respecting single and double quotes.
+ * e.g. `npm install "pkg@^1.0" --save` → ['npm', 'install', 'pkg@^1.0', '--save']
+ */
+function parseShellArgs(commandString: string): string[] {
+  const args: string[] = [];
+  const regex = /(?:"([^"]*)")|(?:'([^']*)')|(\S+)/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(commandString)) !== null) {
+    args.push(match[1] ?? match[2] ?? match[3]);
+  }
+  return args;
+}
+
+/**
  * Build a simulated "all steps complete" progress snapshot.
  * Used after the pipeline API returns (non-streaming) to show final status.
  */
@@ -172,6 +188,9 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
   const [validationErrors, setValidationErrors] = useState<SandboxError[]>([]);
   const [repairAttempts, setRepairAttempts] = useState(0);
   const MAX_REPAIR_ATTEMPTS = 2;
+  /** Ref for validation errors — used by Avatar Protocol to avoid stale closures */
+  const validationErrorsRef = useRef<SandboxError[]>([]);
+  useEffect(() => { validationErrorsRef.current = validationErrors; }, [validationErrors]);
 
   // --- Visual Critic State ---
   const [critiqueScore, setCritiqueScore] = useState<number | null>(null);
@@ -376,6 +395,158 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
   );
 
   /**
+   * AVATAR PROTOCOL CLIENT
+   * Handles remote commands from the server (e.g. "npm test") and returns feedback.
+   * Recursive: The feedback API might return *another* command.
+   * Guarded by MAX_AVATAR_ITERATIONS to prevent infinite loops.
+   */
+  const MAX_AVATAR_ITERATIONS = 10;
+
+  const handleAvatarCommand = useCallback(
+    async (
+      command: AgentCommand,
+      suspendedState: SuspendedExecution,
+      instructions: string,
+      currentFiles: AppFile[],
+      iteration: number = 0
+    ): Promise<void> => {
+       if (iteration >= MAX_AVATAR_ITERATIONS) {
+           setErrors(prev => [...prev, `Avatar Protocol exceeded maximum iterations (${MAX_AVATAR_ITERATIONS}). Stopping.`]);
+           return;
+       }
+
+       console.log(`[AvatarClient] Iteration ${iteration + 1}: Executing ${command.type} (${command.command || 'N/A'})`);
+
+       // Update UI progress with current command
+       setPipelineProgress(prev => prev ? ({
+         ...prev,
+         steps: {
+           ...prev.steps,
+           assembling: {
+             status: 'running',
+             message: `Avatar: Running ${command.type}${command.command ? ` (${command.command})` : ''}...`
+           }
+         }
+       }) : null);
+
+       let output = '';
+       let exitCode = 0;
+       let screenshotData: string | undefined;
+       const webContainer = getWebContainerService();
+
+       try {
+           // 1. Execute Command Client-Side
+           if (command.type === 'shell' && command.command) {
+               const [cmd, ...args] = parseShellArgs(command.command);
+
+               // Ensure container is ready
+               if (webContainer.status !== 'ready') await webContainer.boot();
+
+               const execResult = await webContainer.executeShell(cmd, args, command.timeout || 30000);
+               output = execResult.output;
+               exitCode = execResult.exitCode;
+
+           } else if (command.type === 'screenshot') {
+               // Capture screenshot via server-side Puppeteer
+               try {
+                   const screenshotResponse = await fetch('/api/layout/screenshot', {
+                       method: 'POST',
+                       headers: { 'Content-Type': 'application/json' },
+                       body: JSON.stringify({
+                           files: currentFiles,
+                           viewport: { width: 1280, height: 800 },
+                       }),
+                   });
+                   if (screenshotResponse.ok) {
+                       const screenshotResult = await screenshotResponse.json();
+                       if (screenshotResult.success) {
+                           output = 'Screenshot captured successfully.';
+                           screenshotData = screenshotResult.image;
+                       } else {
+                           output = `Screenshot failed: ${screenshotResult.error}`;
+                           exitCode = 1;
+                       }
+                   } else {
+                       output = `Screenshot API error: ${screenshotResponse.status}`;
+                       exitCode = 1;
+                   }
+               } catch (e) {
+                   output = `Screenshot failed: ${e instanceof Error ? e.message : String(e)}`;
+                   exitCode = 1;
+               }
+
+           } else if (command.type === 'browser_log') {
+               // Provide validation errors as a proxy for browser console output
+               const currentErrors = validationErrorsRef.current;
+               if (currentErrors.length > 0) {
+                   output = currentErrors.map(e =>
+                       `[${e.type}] ${e.message}${e.file ? ` in ${e.file}:${e.line}` : ''}`
+                   ).join('\n');
+               } else {
+                   output = 'No validation errors detected. Console log capture from live preview is not yet available.';
+               }
+               exitCode = 0;
+
+           } else {
+               output = `Unknown command type: ${command.type}`;
+               exitCode = 1;
+           }
+
+           // Update UI after command execution
+           setPipelineProgress(prev => prev ? ({
+             ...prev,
+             steps: {
+               ...prev.steps,
+               assembling: {
+                 status: 'running',
+                 message: `Avatar: Command completed (exit ${exitCode}), analyzing...`
+               }
+             }
+           }) : null);
+
+           // 2. Send Feedback to Server
+           const feedback: AgentFeedback = {
+               commandId: command.id,
+               output,
+               exitCode,
+               screenshot: screenshotData,
+           };
+
+           const response = await fetch('/api/layout/autonomy/feedback', {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ feedback, suspendedState })
+           });
+
+           if (!response.ok) throw new Error(`Feedback API error: ${response.status}`);
+
+           const result = await response.json();
+
+           // 3. Handle Result (Continue Loop or Finish)
+           if (result.command && result.suspendedState) {
+               // Server wants another thing done — recurse with incremented counter
+               await handleAvatarCommand(result.command, result.suspendedState, instructions, currentFiles, iteration + 1);
+           } else if (result.files) {
+               // Success! We have files.
+               if (result.files.length > 0) {
+                   const validatedFiles = await validateAndRepair(result.files, instructions);
+                   updateFilesWithHistory(validatedFiles);
+               } else {
+                   setErrors(prev => [...prev, 'Autonomy completed but returned no files.']);
+               }
+           } else if (result.error) {
+               throw new Error(result.error);
+           }
+
+       } catch (error) {
+           console.error('[AvatarClient] Error:', error);
+           setErrors(prev => [...prev, `Autonomy Error: ${error instanceof Error ? error.message : String(error)}`]);
+       }
+    },
+    [validateAndRepair, updateFilesWithHistory]
+  );
+
+  /**
    * Run the full Titan pipeline.
    *
    * This is the single entry point for ALL generation scenarios:
@@ -453,24 +624,29 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
         const hasVideos = fileInputs.some((f) => f.mimeType.startsWith('video/'));
         setPipelineProgress(buildFinalProgress(hasImages, hasVideos));
 
-        // 6. Validate generated files via WebContainer sandbox
-        if (result.files && result.files.length > 0) {
-          const validatedFiles = await validateAndRepair(result.files, instructions);
-          updateFilesWithHistory(validatedFiles);
+        // 6. Handle Autonomy / Avatar Protocol
+        if (result.command && result.suspendedState) {
+            // Pipeline entered "PAUSED" state -> Hand over to Avatar Client
+            setPipelineProgress(prev => prev ? ({...prev, status: 'running', steps: {...prev.steps, assembling: {status: 'running', message: 'Verifying solution...'}}}) : null);
+
+            await handleAvatarCommand(result.command, result.suspendedState, instructions, result.files || generatedFiles);
+
+        } else if (result.files && result.files.length > 0) {
+            // Standard Completion
+            const validatedFiles = await validateAndRepair(result.files, instructions);
+            updateFilesWithHistory(validatedFiles);
+
+            // Run critique
+            runVisualCritique(result.files, instructions, cachedSkillId).catch((err) => {
+                console.warn('[useLayoutBuilder] Visual critique failed (non-critical):', err);
+            });
         } else {
-          setErrors((prev) => [...prev, 'Pipeline completed but returned no files']);
+            setErrors((prev) => [...prev, 'Pipeline completed but returned no files']);
         }
 
         // 7. Collect warnings
         if (result.warnings && result.warnings.length > 0) {
           setWarnings(result.warnings);
-        }
-
-        // 8. Run visual critique asynchronously (non-blocking)
-        if (result.files && result.files.length > 0) {
-          runVisualCritique(result.files, instructions, cachedSkillId).catch((err) => {
-            console.warn('[useLayoutBuilder] Visual critique failed (non-critical):', err);
-          });
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Pipeline failed';
@@ -482,7 +658,7 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
         setTimeout(() => setPipelineProgress(null), 2000);
       }
     },
-    [isProcessing, generatedFiles, clearErrors, updateFilesWithHistory, validateAndRepair, runVisualCritique]
+    [isProcessing, generatedFiles, clearErrors, updateFilesWithHistory, validateAndRepair, runVisualCritique, handleAvatarCommand]
   );
 
   /**

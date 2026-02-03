@@ -26,6 +26,9 @@ import type {
   FileInput,
 } from '@/types/titanPipeline';
 import { geminiImageService } from '@/services/GeminiImageService';
+import { getAssetExtractionService } from '@/services/AssetExtractionService';
+import { getVisionLoopEngine } from '@/services/VisionLoopEngine';
+import { domTreeToComponents } from '@/utils/domTreeToComponents';
 import { autonomyCore } from '@/agents/AutonomyCore';
 import { withGeminiRetry } from '@/utils/geminiRetry';
 import { extractCode } from '@/utils/extractCode';
@@ -90,7 +93,7 @@ You are the **Pipeline Traffic Controller**.
 ### Rules
 - If current_code exists and no new files -> mode: "EDIT"
 - If new files uploaded -> mode: "CREATE" or "MERGE"
-- **PHOTOREALISM TRIGGER:** If user asks for "photorealistic", "texture", "realistic", "wood", "glass", "cloud", "grain", or specific materials, you MUST add a "generate_assets" task.
+- **PHOTOREALISM TRIGGER:** If user mentions ANY specific material, texture, photographic element, or realistic visual effect (e.g., "photorealistic", "texture", "realistic", "wood", "glass", "cloud", "grain", "marble", "metal", "fabric", "leather", "stone", "water", "iridescent", "holographic", "crystalline", or any other material/texture/visual reference), you MUST add a "generate_assets" task.
 - Images -> measure_pixels. Videos -> extract_physics.
 - **UNKNOWN/COMPLEX:** If the request involves concepts, libraries, or capabilities you don't know (e.g., "WebGPU", "Quantum", "L-System", "3D Metaverse"), mode: "RESEARCH_AND_BUILD".
 
@@ -153,18 +156,21 @@ You are the **UI Reverse Engineer**.
 ### Task
 Analyze the image and reconstruct the **exact DOM Component Tree**.
 1. **Structure:** Identify Flex Rows vs Columns. Group elements logically (e.g., "Card", "Navbar").
-2. **Styles:** Extract hex codes, border-radius, shadows, and font-weights.
+2. **Styles:** Extract hex codes, border-radius, shadows, font-weights, gradients, clip-paths, and all CSS properties.
 3. **Content:** You MUST extract the text inside buttons, headings, and paragraphs.
+4. **Custom Visuals:** For ANY non-standard visual element (textured buttons, custom icons, logos, artistic gradients, photographic textures), flag it for extraction from the original image.
 
 ### Critical Instruction
 Do NOT just list bounding boxes. Output a recursive JSON tree.
 If an element contains text, use the "text" field.
+If an element has a custom icon (not a standard icon library), set "hasCustomVisual": true and provide "extractionBounds".
+If an element has a photographic texture or artistic background, set "hasCustomVisual": true and provide "extractionBounds".
 
 ### Output Schema (Strict JSON)
 {
   "canvas": { "width": number, "height": number, "background": string },
   "dom_tree": {
-    "type": "div" | "button" | "p" | "img" | "h1",
+    "type": "div" | "button" | "p" | "img" | "h1" | "svg" | "section" | "nav" | "span",
     "id": "main_container",
     "styles": {
       "display": "flex",
@@ -174,12 +180,22 @@ If an element contains text, use the "text" field.
       "boxShadow": "0 4px 6px rgba(0,0,0,0.1)"
     },
     "text": "Click Me",
+    "hasCustomVisual": false,
+    "extractionBounds": { "top": 10, "left": 20, "width": 30, "height": 15 },
+    "iconSvgPath": "M12 2L2 7l10 5 10-5-10-5z",
     "children": [
       // Recursive nodes...
     ]
   },
   "assets_needed": []
-}`;
+}
+
+### Custom Visual Detection Rules
+- "hasCustomVisual": true if the element has a unique texture, hand-drawn icon, logo, artistic gradient, or photographic background
+- "extractionBounds": normalized coordinates (0-100 percentage of full image) for cropping this element from the original
+- "iconSvgPath": if you can trace the icon shape, provide the SVG path data directly
+- Standard UI icons (arrows, chevrons, hamburger menus, close X) do NOT need hasCustomVisual
+- Logos, brand icons, illustrations, and custom artwork DO need hasCustomVisual`;
 
 export async function surveyLayout(file: FileInput, fileIndex: number): Promise<VisualManifest> {
   const apiKey = getGeminiApiKey();
@@ -458,7 +474,7 @@ data-id="${selectedDataId}"
  * If the output contains file markers like `// === /src/filename.tsx ===`,
  * split into separate files. Otherwise, treat entire output as App.tsx.
  */
-function parseAutonomyOutput(output: string): AppFile[] {
+export function parseAutonomyOutput(output: string): AppFile[] {
   const fileMarkerRegex = /\/\/\s*===\s*(\/[^\s]+)\s*===/g;
   const matches = [...output.matchAll(fileMarkerRegex)];
 
@@ -515,6 +531,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
 
      // Parse autonomy output into multiple files if markers are present
      // Agents may output: // === /src/filename.tsx ===\n<code>
+     // Agents may output: // === /src/filename.tsx ===\n<code>
      const autonomyFiles = parseAutonomyOutput(result.output);
 
      return {
@@ -523,7 +540,9 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
         manifests: [],
         physics: null,
         warnings: result.success ? [] : [result.error || 'Autonomy failed'],
-        stepTimings
+        stepTimings,
+        command: result.command,
+        suspendedState: result.suspendedState
      };
   }
 
@@ -565,12 +584,39 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     })(),
   ]);
 
+  // Asset Extraction: crop custom visuals from original image
+  // Extracted assets override generated ones (fidelity > hallucination)
+  if (manifests.length > 0 && input.files.length > 0) {
+    const extractStart = Date.now();
+    try {
+      const domTree = manifests[0]?.global_theme?.dom_tree;
+      if (domTree) {
+        const extractor = getAssetExtractionService();
+        const extractedAssets = await extractor.extractFromDomTree(
+          domTree,
+          input.files[0].base64
+        );
+        // Extracted assets take priority over generated ones
+        Object.assign(generatedAssets, extractedAssets);
+        if (Object.keys(extractedAssets).length > 0) {
+          warnings.push(
+            `Extracted ${Object.keys(extractedAssets).length} custom visuals from reference`
+          );
+        }
+      }
+    } catch (e) {
+      console.error('[TitanPipeline] Asset extraction failed:', e);
+      warnings.push('Asset extraction failed, using generated assets only');
+    }
+    stepTimings.extraction = Date.now() - extractStart;
+  }
+
   const structStart = Date.now();
   const structure = await buildStructure(manifests, strategy, input.instructions);
   stepTimings.architect = Date.now() - structStart;
 
   const buildStart = Date.now();
-  const files = await assembleCode(
+  let files = await assembleCode(
     structure,
     manifests,
     physics,
@@ -581,7 +627,79 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   );
   stepTimings.builder = Date.now() - buildStart;
 
-  return { files, strategy, manifests, physics, warnings, stepTimings };
+  // Convert dom_tree to DetectedComponentEnhanced[] for component-level healing
+  let domTreeComponents: import('@/types/layoutDesign').DetectedComponentEnhanced[] | undefined;
+  if (manifests.length > 0 && manifests[0]?.global_theme?.dom_tree) {
+    try {
+      const conversionResult = domTreeToComponents(
+        manifests[0].global_theme.dom_tree,
+        manifests[0].canvas
+      );
+      domTreeComponents = conversionResult.components;
+      if (conversionResult.warnings.length > 0) {
+        warnings.push(
+          ...conversionResult.warnings.map((w) => `[domTreeConversion] ${w}`)
+        );
+      }
+      if (domTreeComponents.length > 0) {
+        console.log(`[TitanPipeline] Converted dom_tree to ${domTreeComponents.length} components`);
+      }
+    } catch (e) {
+      console.error('[TitanPipeline] dom_tree conversion failed:', e);
+      warnings.push('dom_tree conversion failed, healing loop will use regeneration only');
+    }
+  }
+
+  // Vision Healing Loop: screenshot → critique → patch/regenerate
+  // Only runs when we have a reference image to compare against
+  let healingResult: PipelineResult['healingResult'] | undefined;
+  if (!input.skipHealing && input.files.length > 0 && manifests.length > 0) {
+    const healStart = Date.now();
+    try {
+      const visionLoop = getVisionLoopEngine();
+      const loopResult = await visionLoop.runLoop({
+        files,
+        originalImageBase64: `data:${input.files[0].mimeType};base64,${input.files[0].base64}`,
+        manifests,
+        physics,
+        strategy,
+        currentCode: input.currentCode,
+        instructions: input.instructions,
+        assets: generatedAssets,
+        components: domTreeComponents,
+        canvasBackground: manifests[0]?.canvas?.background,
+        regenerate: async (critiqueContext: string) => {
+          // Regenerate code with critique feedback appended to instructions
+          return assembleCode(
+            structure,
+            manifests,
+            physics,
+            strategy,
+            input.currentCode,
+            `${input.instructions}\n\n${critiqueContext}`,
+            generatedAssets
+          );
+        },
+      });
+
+      files = loopResult.files;
+      healingResult = {
+        fidelityScore: loopResult.fidelityScore,
+        iterations: loopResult.iterations,
+        stopReason: loopResult.stopReason,
+        usedPatching: loopResult.usedPatching,
+      };
+      warnings.push(
+        `Healing loop: ${loopResult.stopReason} after ${loopResult.iterations} iteration(s), fidelity=${loopResult.fidelityScore}%${loopResult.usedPatching ? ' (used component patching)' : ''}`
+      );
+    } catch (e) {
+      console.error('[TitanPipeline] Healing loop error:', e);
+      warnings.push('Healing loop encountered an error but pipeline continued');
+    }
+    stepTimings.healing = Date.now() - healStart;
+  }
+
+  return { files, strategy, manifests, physics, warnings, stepTimings, healingResult };
 }
 
 // ============================================================================

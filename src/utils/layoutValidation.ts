@@ -158,10 +158,11 @@ const ContentSchema = z
   .optional();
 
 /**
- * List of valid component types.
- * Falls back to 'unknown' for unrecognized types.
+ * Known component types (reference list).
+ * Unrecognized types are kept as-is rather than forced to 'unknown',
+ * allowing the AI to generate novel component types.
  */
-const VALID_COMPONENT_TYPES = [
+const _KNOWN_COMPONENT_TYPES = [
   'header',
   'sidebar',
   'hero',
@@ -200,20 +201,44 @@ const VALID_COMPONENT_TYPES = [
   'avatar',
   'divider',
   'progress',
+  'notification',
+  'drawer',
+  'toast',
+  'popover',
+  'tooltip',
+  'spinner',
+  'skeleton',
+  'slider',
+  'toggle',
+  'checkbox',
+  'radio',
+  'select',
+  'accordion',
+  'alert',
+  'banner',
+  'chip',
+  'tag',
+  'rating',
+  'calendar',
+  'datepicker',
+  'dialog',
+  'switch',
+  'upload',
+  'tree',
   'unknown',
 ] as const;
 
 /**
  * Valid component roles for positioning strategy
  */
-const VALID_ROLES = ['container', 'leaf', 'overlay'] as const;
+const _KNOWN_ROLES = ['container', 'leaf', 'overlay', 'fixed', 'sticky', 'modal', 'background', 'wrapper'] as const;
 
 /**
  * Schema for container layout configuration
  */
 const LayoutConfigSchema = z
   .object({
-    type: z.enum(['flex', 'grid', 'none']),
+    type: z.enum(['flex', 'grid', 'absolute', 'block', 'none']),
     direction: z.enum(['row', 'column']).optional(),
     gap: z.string().optional(),
     justify: z.enum(['start', 'center', 'end', 'between', 'around', 'evenly']).optional(),
@@ -229,24 +254,13 @@ const LayoutConfigSchema = z
 export const DetectedComponentSchema = z
   .object({
     id: z.string().min(1),
-    type: z
-      .string()
-      .transform((val) =>
-        VALID_COMPONENT_TYPES.includes(val as (typeof VALID_COMPONENT_TYPES)[number])
-          ? val
-          : 'unknown'
-      ),
+    type: z.string(),
     bounds: BoundsSchema,
     style: StyleSchema,
     content: ContentSchema,
     parentId: z.string().optional(),
     children: z.array(z.string()).optional(),
-    role: z
-      .string()
-      .transform((val) =>
-        VALID_ROLES.includes(val as (typeof VALID_ROLES)[number]) ? val : undefined
-      )
-      .optional(),
+    role: z.string().optional(),
     layout: LayoutConfigSchema,
     zIndex: z.number().optional(),
     navigatesTo: z.string().optional(),
@@ -377,11 +391,8 @@ export function sanitizeComponent(
       const id =
         typeof obj.id === 'string' && obj.id.trim() ? obj.id : `component-${index}-${Date.now()}`;
 
-      // Extract type with fallback - cast to valid type
-      const rawType = typeof obj.type === 'string' ? obj.type : 'unknown';
-      const type = VALID_COMPONENT_TYPES.includes(rawType as (typeof VALID_COMPONENT_TYPES)[number])
-        ? (rawType as DetectedComponentEnhanced['type'])
-        : 'unknown';
+      // Extract type - keep original value, fallback to 'unknown' only if missing
+      const type = typeof obj.type === 'string' && obj.type.trim() ? obj.type : 'unknown';
 
       // Extract bounds with deep fallbacks
       const rawBounds = obj.bounds as Record<string, unknown> | undefined;
@@ -399,19 +410,15 @@ export function sanitizeComponent(
       const content =
         typeof obj.content === 'object' && obj.content !== null ? obj.content : undefined;
 
-      // Extract role with validation
-      const rawRole = typeof obj.role === 'string' ? obj.role : undefined;
-      const role =
-        rawRole && ['container', 'leaf', 'overlay'].includes(rawRole)
-          ? (rawRole as 'container' | 'leaf' | 'overlay')
-          : undefined;
+      // Extract role - pass through any string value
+      const role = typeof obj.role === 'string' && obj.role.trim() ? obj.role : undefined;
 
       // Extract layout configuration
       const rawLayout = obj.layout as Record<string, unknown> | undefined;
       const layout =
         rawLayout && typeof rawLayout === 'object' && rawLayout.type
           ? {
-              type: rawLayout.type as 'flex' | 'grid' | 'none',
+              type: rawLayout.type as 'flex' | 'grid' | 'absolute' | 'block' | 'none',
               direction: rawLayout.direction as 'row' | 'column' | undefined,
               gap: typeof rawLayout.gap === 'string' ? rawLayout.gap : undefined,
               justify: rawLayout.justify as
