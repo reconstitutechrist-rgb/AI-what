@@ -15,18 +15,20 @@ module.exports = {
     serverMinification: false,
   },
 
-  // COOP/COEP headers required for WebContainers (SharedArrayBuffer)
-  // Only applied to Railway API routes that need SharedArrayBuffer
-  // NOT applied globally - breaks Sandpack cross-origin resources
+  // COOP/COEP headers for WebContainers (SharedArrayBuffer)
+  // Applied globally using 'credentialless' COEP instead of 'require-corp'.
+  // 'credentialless' still enables SharedArrayBuffer but allows cross-origin
+  // subresources (CDNs used by Sandpack, Tailwind, etc.) to load without
+  // explicit CORP headers. Supported in Chrome 96+, Firefox 119+.
   async headers() {
     return [
       {
-        // Only Railway deployment routes need COEP for WebContainers
-        source: '/api/railway/:path*',
+        // Global: enables WebContainers on all pages
+        source: '/:path*',
         headers: [
           {
             key: 'Cross-Origin-Embedder-Policy',
-            value: 'require-corp',
+            value: 'credentialless',
           },
           {
             key: 'Cross-Origin-Opener-Policy',

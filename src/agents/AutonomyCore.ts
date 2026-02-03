@@ -14,6 +14,7 @@
 import { AgentSwarmFactory } from './AgentSwarmFactory';
 import { DynamicWorkflowEngine } from '@/services/DynamicWorkflowEngine';
 import type { AutonomyGoal, AgentTaskResult } from '@/types/autonomy';
+import { getSkillLibraryService } from '@/services/SkillLibraryService';
 
 const MAX_RETRIES = 3;
 
@@ -75,9 +76,32 @@ export class AutonomyCore {
 
       // 3. Check result
       if (result.success) {
+        // Server-side syntax validation via esbuild before returning
+        const syntaxErrors = await this.quickSyntaxCheck(result.output);
+        if (syntaxErrors) {
+          console.warn(
+            `[AutonomyCore] Code generated but has syntax errors: ${syntaxErrors}`
+          );
+          // Feed syntax errors back into retry loop instead of returning broken code
+          lastResult = {
+            success: false,
+            output: result.output,
+            error: `Syntax validation failed: ${syntaxErrors}`,
+            retry_suggestion: 'Fix the syntax errors in the generated code.',
+            reasoning_summary: result.reasoning_summary,
+          };
+          continue;
+        }
+
         console.log(
           `[AutonomyCore] Success on attempt ${attempt + 1}. Output length: ${result.output.length}`
         );
+
+        // Save validated solution to skill library (fire-and-forget)
+        this.saveToSkillLibrary(goal, result).catch((err) => {
+          console.warn('[AutonomyCore] Skill save failed (non-critical):', err);
+        });
+
         return result;
       }
 
@@ -98,6 +122,53 @@ export class AutonomyCore {
       output: '',
       error: `Failed after ${MAX_RETRIES} attempts. The system could not solve: "${goal.description}"`,
     };
+  }
+
+  /**
+   * Quick server-side syntax check using esbuild.
+   * Returns null if code is valid, or an error string if invalid.
+   * Catches obvious syntax errors before code reaches the client.
+   */
+  private async quickSyntaxCheck(code: string): Promise<string | null> {
+    try {
+      const esbuild = await import('esbuild');
+      await esbuild.transform(code, {
+        loader: 'tsx',
+        target: 'es2020',
+        jsx: 'automatic',
+      });
+      return null; // Valid syntax
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        // Extract just the first error message
+        const firstLine = e.message.split('\n')[0];
+        return firstLine || e.message;
+      }
+      return 'Unknown syntax error';
+    }
+  }
+
+  /**
+   * Save a successfully solved + validated solution to the skill library.
+   * Runs asynchronously so it doesn't block the response to the user.
+   */
+  private async saveToSkillLibrary(
+    goal: AutonomyGoal,
+    result: AgentTaskResult
+  ): Promise<void> {
+    const skillLibrary = getSkillLibraryService();
+
+    const tags = skillLibrary.extractTags(goal.description);
+
+    await skillLibrary.saveSkill({
+      goalDescription: goal.description,
+      reasoningSummary: result.reasoning_summary || `Solved via autonomy swarm. Context: ${goal.context.slice(0, 500)}`,
+      tags,
+      solutionCode: result.output,
+      solutionFiles: [{ path: '/src/App.tsx', content: result.output }],
+    });
+
+    console.log(`[AutonomyCore] Skill saved to library for: "${goal.description.slice(0, 80)}"`);
   }
 }
 

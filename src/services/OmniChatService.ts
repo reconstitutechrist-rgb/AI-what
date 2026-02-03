@@ -22,6 +22,8 @@ import type {
   OmniConversationMessage,
   AppContext,
 } from '@/types/titanPipeline';
+import { getSkillLibraryService } from './SkillLibraryService';
+import type { SkillMatch } from '@/types/skillLibrary';
 
 // ============================================================================
 // CONFIGURATION
@@ -182,7 +184,25 @@ class OmniChatServiceInstance {
     const apiKey = getAnthropicApiKey();
     const anthropic = new Anthropic({ apiKey });
 
-    const systemPrompt = buildSystemPrompt(request.currentCode, request.appContext);
+    // Query skill library for cached solutions before calling Claude
+    let skillContext = '';
+    let cachedSkillMatch: SkillMatch | null = null;
+
+    try {
+      cachedSkillMatch = await this.querySkillLibrary(request.message);
+      if (cachedSkillMatch) {
+        skillContext = this.buildSkillContext(cachedSkillMatch);
+        console.log(
+          `[OmniChat] Skill match found: "${cachedSkillMatch.skill.goal_description}" ` +
+          `(similarity: ${cachedSkillMatch.similarity.toFixed(3)})`
+        );
+      }
+    } catch (err) {
+      // Skill library query is non-critical — proceed without it
+      console.warn('[OmniChat] Skill library query failed:', err);
+    }
+
+    const systemPrompt = buildSystemPrompt(request.currentCode, request.appContext) + skillContext;
     const messages = buildMessages(request.conversationHistory, request.message);
 
     const msg = await anthropic.messages.create({
@@ -193,7 +213,66 @@ class OmniChatServiceInstance {
     });
 
     const text = msg.content[0].type === 'text' ? msg.content[0].text : '';
-    return parseResponse(text);
+    const response = parseResponse(text);
+
+    // If the AI chose to use a cached skill's solution, inject skillId and increment usage
+    if (cachedSkillMatch && response.action !== 'none') {
+      if (response.actionPayload) {
+        response.actionPayload.cachedSkillId = cachedSkillMatch.skill.id;
+      }
+      this.incrementSkillUsage(cachedSkillMatch.skill.id).catch(() => {});
+    }
+
+    return response;
+  }
+
+  /**
+   * Query the skill library for a cached solution matching the user's message.
+   * Returns the best match above threshold, or null.
+   */
+  private async querySkillLibrary(message: string): Promise<SkillMatch | null> {
+    const skillLibrary = getSkillLibraryService();
+    const matches = await skillLibrary.findSimilarSkills({
+      query: message,
+      similarityThreshold: 0.78,
+      limit: 1,
+      minQualityScore: 0.4,
+    });
+
+    return matches.length > 0 ? matches[0] : null;
+  }
+
+  /**
+   * Build a system prompt section with cached skill context.
+   * This gives Claude knowledge of the cached solution so it can
+   * decide whether to reuse it or generate fresh.
+   */
+  private buildSkillContext(match: SkillMatch): string {
+    const { skill, similarity } = match;
+    const preview = skill.solution_code.slice(0, 2000);
+
+    return `\n\n### Cached Solution (Skill Library Match)
+A similar problem was solved before with ${(similarity * 100).toFixed(0)}% similarity.
+
+**Previous Goal:** ${skill.goal_description}
+**Approach:** ${skill.reasoning_summary.slice(0, 500)}
+**Quality Score:** ${(skill.quality_score * 10).toFixed(1)}/10
+**Times Reused:** ${skill.usage_count}
+
+**Cached Code Preview:**
+\`\`\`tsx
+${preview}${skill.solution_code.length > 2000 ? '\n// ... (truncated)' : ''}
+\`\`\`
+
+If this cached solution matches the user's intent, you should use action "pipeline" and include in your instructions: "USE_CACHED_SKILL:${skill.id}" so the pipeline can reuse the validated code directly. If the user's request differs significantly, ignore this cache and generate fresh.`;
+  }
+
+  /**
+   * Increment usage count for a matched skill (fire-and-forget).
+   */
+  private async incrementSkillUsage(skillId: string): Promise<void> {
+    const skillLibrary = getSkillLibraryService();
+    await skillLibrary.incrementUsage(skillId);
   }
 }
 

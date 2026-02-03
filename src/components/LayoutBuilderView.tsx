@@ -65,6 +65,13 @@ export const LayoutBuilderView: React.FC = () => {
     clearErrors,
     canUndo,
     canRedo,
+    isValidating,
+    validationStatus,
+    validationErrors,
+    repairAttempts,
+    critiqueScore,
+    isCritiquing,
+    critiqueIssues,
   } = useLayoutBuilder();
 
   // --- Handle media uploads (always pipeline) ---
@@ -101,13 +108,13 @@ export const LayoutBuilderView: React.FC = () => {
 
   // --- Execute an action returned by the chat AI ---
   const executeAction = useCallback(
-    async (action: OmniChatAction, instructions: string, selectedDataId?: string) => {
+    async (action: OmniChatAction, instructions: string, selectedDataId?: string, cachedSkillId?: string) => {
       setActiveAction(action);
 
       try {
         switch (action) {
           case 'pipeline':
-            await runPipeline([], instructions, appContext);
+            await runPipeline([], instructions, appContext, cachedSkillId);
             addMessage({
               role: 'system',
               content: 'Layout updated. Check the preview.',
@@ -123,7 +130,7 @@ export const LayoutBuilderView: React.FC = () => {
               content: 'Activating autonomy system — researching, fabricating agents, and building...',
               metadata: { context: 'Autonomy Core' },
             });
-            await runPipeline([], instructions, appContext);
+            await runPipeline([], instructions, appContext, cachedSkillId);
             addMessage({
               role: 'system',
               content: 'Autonomy complete. Check the preview.',
@@ -211,7 +218,8 @@ export const LayoutBuilderView: React.FC = () => {
           await executeAction(
             chatResponse.action,
             chatResponse.actionPayload.instructions,
-            chatResponse.actionPayload.selectedDataId
+            chatResponse.actionPayload.selectedDataId,
+            chatResponse.actionPayload.cachedSkillId
           );
         }
       } catch (error) {
@@ -287,6 +295,13 @@ export const LayoutBuilderView: React.FC = () => {
           onClearErrors={clearErrors}
           canUndo={canUndo}
           canRedo={canRedo}
+          isValidating={isValidating}
+          validationStatus={validationStatus}
+          validationErrors={validationErrors}
+          repairAttempts={repairAttempts}
+          critiqueScore={critiqueScore}
+          isCritiquing={isCritiquing}
+          critiqueIssues={critiqueIssues}
         />
       </div>
     </div>

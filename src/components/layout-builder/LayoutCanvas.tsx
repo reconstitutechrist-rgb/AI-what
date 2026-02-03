@@ -18,6 +18,7 @@ import { extractDependencies } from '@/utils/extractDependencies';
 import type { AppFile } from '@/types/railway';
 import type { PipelineProgress, PipelineStepName, PipelineStepStatus } from '@/types/titanPipeline';
 import { PIPELINE_STEP_LABELS } from '@/types/titanPipeline';
+import type { SandboxError, WebContainerStatus } from '@/types/sandbox';
 
 // ============================================================================
 // SANDPACK CONFIGURATION
@@ -80,6 +81,20 @@ export interface LayoutCanvasProps {
   canUndo: boolean;
   /** Whether redo is available */
   canRedo: boolean;
+  /** Whether WebContainer validation is running */
+  isValidating?: boolean;
+  /** Current WebContainer validation status */
+  validationStatus?: WebContainerStatus;
+  /** Errors from sandbox validation */
+  validationErrors?: SandboxError[];
+  /** Number of auto-repair attempts made */
+  repairAttempts?: number;
+  /** Quality score from visual critic (1-10, null if not evaluated) */
+  critiqueScore?: number | null;
+  /** Whether the visual critique is currently running */
+  isCritiquing?: boolean;
+  /** Issues found by the visual critic */
+  critiqueIssues?: string[];
 }
 
 // ============================================================================
@@ -174,6 +189,13 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
   onClearErrors,
   canUndo,
   canRedo,
+  isValidating = false,
+  validationStatus = 'idle',
+  validationErrors = [],
+  repairAttempts = 0,
+  critiqueScore = null,
+  isCritiquing = false,
+  critiqueIssues = [],
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const previewContainerRef = useRef<HTMLDivElement>(null);
@@ -262,6 +284,62 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
             <span className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
               {warnings.length} warning{warnings.length > 1 ? 's' : ''}
+            </span>
+          )}
+
+          {/* Validation status badge */}
+          {isValidating && (
+            <span className="flex items-center gap-2 text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-full animate-pulse">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-600" />
+              {validationStatus === 'installing'
+                ? 'Installing deps...'
+                : validationStatus === 'building'
+                  ? 'Validating code...'
+                  : validationStatus === 'booting'
+                    ? 'Starting sandbox...'
+                    : 'Validating...'}
+              {repairAttempts > 0 && ` (repair #${repairAttempts})`}
+            </span>
+          )}
+
+          {/* Validation errors badge (shown after validation completes with errors) */}
+          {!isValidating && !isProcessing && validationErrors.length > 0 && (
+            <span className="flex items-center gap-2 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-600" />
+              {validationErrors.length} validation issue{validationErrors.length > 1 ? 's' : ''}
+            </span>
+          )}
+
+          {/* Visual critique - evaluating */}
+          {isCritiquing && (
+            <span className="flex items-center gap-2 text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full animate-pulse">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+              Evaluating quality...
+            </span>
+          )}
+
+          {/* Visual critique score badge */}
+          {!isCritiquing && critiqueScore !== null && (
+            <span
+              className={`flex items-center gap-2 text-xs px-2 py-1 rounded-full ${
+                critiqueScore >= 7
+                  ? 'text-green-700 bg-green-50'
+                  : critiqueScore >= 4
+                    ? 'text-yellow-700 bg-yellow-50'
+                    : 'text-red-700 bg-red-50'
+              }`}
+              title={critiqueIssues.length > 0 ? critiqueIssues.join('\n') : 'Visual quality score'}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  critiqueScore >= 7
+                    ? 'bg-green-600'
+                    : critiqueScore >= 4
+                      ? 'bg-yellow-600'
+                      : 'bg-red-600'
+                }`}
+              />
+              Quality: {critiqueScore}/10
             </span>
           )}
         </div>

@@ -4,6 +4,7 @@
  */
 
 import type { AppFile } from '@/types/railway';
+import type { CritiqueResult } from '@/types/visualCritic';
 
 // ============================================================================
 // UI & STATE MANAGEMENT TYPES
@@ -186,6 +187,8 @@ export interface PipelineResult {
   physics: MotionPhysics | null;
   warnings: string[];
   stepTimings: Record<string, number>;
+  /** Visual critique result (if evaluated) */
+  critique?: CritiqueResult;
 }
 
 export interface LiveEditResult {
@@ -223,5 +226,7 @@ export interface OmniChatResponse {
   actionPayload?: {
     instructions: string;
     selectedDataId?: string;
+    /** Skill ID from cache hit — used to update quality score after critique */
+    cachedSkillId?: string;
   };
 }

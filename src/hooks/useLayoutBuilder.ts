@@ -23,6 +23,8 @@ import type {
   OmniChatResponse,
 } from '@/types/titanPipeline';
 import { createInitialProgress } from '@/types/titanPipeline';
+import { getWebContainerService } from '@/services/WebContainerService';
+import type { ValidationResult, SandboxError, WebContainerStatus } from '@/types/sandbox';
 
 // ============================================================================
 // RETURN TYPE
@@ -45,7 +47,7 @@ export interface UseLayoutBuilderReturn {
    * Automatically includes currentCode if generated files exist, enabling
    * the Router to detect EDIT mode without caller intervention.
    */
-  runPipeline: (files: File[], instructions: string, appContext?: AppContext) => Promise<void>;
+  runPipeline: (files: File[], instructions: string, appContext?: AppContext, cachedSkillId?: string) => Promise<void>;
 
   /**
    * Apply a quick edit to a specific component via the Live Editor.
@@ -74,6 +76,24 @@ export interface UseLayoutBuilderReturn {
     conversationHistory: OmniConversationMessage[],
     appContext?: AppContext
   ) => Promise<OmniChatResponse>;
+
+  // --- Sandbox Validation ---
+  /** Whether WebContainer validation is running */
+  isValidating: boolean;
+  /** Current WebContainer status */
+  validationStatus: WebContainerStatus;
+  /** Errors from the most recent validation */
+  validationErrors: SandboxError[];
+  /** Number of auto-repair attempts made for current generation */
+  repairAttempts: number;
+
+  // --- Visual Critic ---
+  /** Quality score from the visual critic (1-10, null if not evaluated) */
+  critiqueScore: number | null;
+  /** Whether the visual critique is currently running */
+  isCritiquing: boolean;
+  /** Issues found by the visual critic */
+  critiqueIssues: string[];
 }
 
 // ============================================================================
@@ -146,6 +166,18 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
   // --- Chat State ---
   const [isChatting, setIsChatting] = useState(false);
 
+  // --- Sandbox Validation State ---
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationStatus, setValidationStatus] = useState<WebContainerStatus>('idle');
+  const [validationErrors, setValidationErrors] = useState<SandboxError[]>([]);
+  const [repairAttempts, setRepairAttempts] = useState(0);
+  const MAX_REPAIR_ATTEMPTS = 2;
+
+  // --- Visual Critic State ---
+  const [critiqueScore, setCritiqueScore] = useState<number | null>(null);
+  const [isCritiquing, setIsCritiquing] = useState(false);
+  const [critiqueIssues, setCritiqueIssues] = useState<string[]>([]);
+
   // --- History (undo/redo on AppFile[] snapshots) ---
   const [history, setHistory] = useState<AppFile[][]>([]);
   const [future, setFuture] = useState<AppFile[][]>([]);
@@ -193,7 +225,155 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
   const clearErrors = useCallback(() => {
     setErrors([]);
     setWarnings([]);
+    setValidationErrors([]);
+    setCritiqueScore(null);
+    setCritiqueIssues([]);
   }, []);
+
+  /**
+   * Validate generated files via WebContainer sandbox and auto-repair if needed.
+   * Returns the (possibly repaired) files, or the original files if validation
+   * is unavailable or repair fails.
+   */
+  const validateAndRepair = useCallback(
+    async (files: AppFile[], instructions: string): Promise<AppFile[]> => {
+      const webContainer = getWebContainerService();
+
+      // Skip validation if WebContainer not supported (no SharedArrayBuffer)
+      if (!webContainer.isSupported()) {
+        console.log('[useLayoutBuilder] WebContainer not supported, skipping validation');
+        return files;
+      }
+
+      setIsValidating(true);
+      setRepairAttempts(0);
+      setValidationErrors([]);
+      let currentFiles = files;
+
+      try {
+        for (let attempt = 0; attempt <= MAX_REPAIR_ATTEMPTS; attempt++) {
+          setValidationStatus(webContainer.status);
+          const result: ValidationResult = await webContainer.validate(currentFiles);
+          setValidationStatus(webContainer.status);
+
+          if (result.valid) {
+            console.log(`[useLayoutBuilder] Validation passed${attempt > 0 ? ` after ${attempt} repair(s)` : ''}`);
+            setValidationErrors([]);
+            return currentFiles;
+          }
+
+          // Validation failed
+          console.warn(`[useLayoutBuilder] Validation failed with ${result.errors.length} errors`);
+          setValidationErrors(result.errors);
+
+          if (attempt >= MAX_REPAIR_ATTEMPTS) {
+            // Max repairs reached — return files anyway, show errors to user
+            setWarnings((prev) => [
+              ...prev,
+              `Code has ${result.errors.length} validation error(s) that could not be auto-repaired.`,
+            ]);
+            return currentFiles;
+          }
+
+          // Attempt auto-repair via the repair API
+          setRepairAttempts(attempt + 1);
+          try {
+            const repairResponse = await fetch('/api/layout/repair', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                files: currentFiles,
+                errors: result.errors,
+                originalInstructions: instructions,
+                attempt: attempt + 1,
+              }),
+            });
+
+            if (!repairResponse.ok) {
+              console.warn('[useLayoutBuilder] Repair API failed, using unrepaired code');
+              return currentFiles;
+            }
+
+            const repairResult = await repairResponse.json();
+            if (repairResult.attempted && repairResult.files?.length > 0) {
+              currentFiles = repairResult.files;
+              console.log(`[useLayoutBuilder] Repair attempt ${attempt + 1}: ${repairResult.fixes?.join(', ')}`);
+            } else {
+              // Repair couldn't fix anything
+              return currentFiles;
+            }
+          } catch (repairError) {
+            console.error('[useLayoutBuilder] Repair error:', repairError);
+            return currentFiles;
+          }
+        }
+
+        return currentFiles;
+      } finally {
+        setIsValidating(false);
+      }
+    },
+    [] // No dependencies — uses only service singletons and setState
+  );
+
+  /**
+   * Run visual critique asynchronously after code is rendered.
+   * Non-blocking — the user sees the preview immediately while this runs.
+   * Results update UI state when complete.
+   */
+  const runVisualCritique = useCallback(
+    async (files: AppFile[], instructions: string, cachedSkillId?: string): Promise<void> => {
+      setIsCritiquing(true);
+      setCritiqueScore(null);
+      setCritiqueIssues([]);
+
+      try {
+        const response = await fetch('/api/layout/critique', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            files,
+            originalInstructions: instructions,
+          }),
+        });
+
+        if (!response.ok) {
+          console.warn('[useLayoutBuilder] Critique API returned', response.status);
+          return;
+        }
+
+        const data = await response.json();
+        if (data.success && data.critique) {
+          const score = data.critique.overallScore;
+          setCritiqueScore(score);
+          setCritiqueIssues(
+            (data.critique.issues || []).map(
+              (issue: { description: string }) => issue.description
+            )
+          );
+          console.log(
+            `[useLayoutBuilder] Visual critique: ${score}/10 — ${data.critique.verdict}`
+          );
+
+          // Feed quality score back to Skill Library (fire-and-forget)
+          if (cachedSkillId && score > 0) {
+            fetch('/api/skills/update-quality', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ skillId: cachedSkillId, qualityScore: score }),
+            }).catch((err) => {
+              console.warn('[useLayoutBuilder] Skill quality update failed (non-critical):', err);
+            });
+          }
+        }
+      } catch (error) {
+        console.warn('[useLayoutBuilder] Visual critique error:', error);
+      } finally {
+        setIsCritiquing(false);
+      }
+    },
+    []
+  );
 
   /**
    * Run the full Titan pipeline.
@@ -209,11 +389,12 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
    * the presence/absence of files[] and currentCode.
    */
   const runPipeline = useCallback(
-    async (files: File[], instructions: string, appContext?: AppContext) => {
+    async (files: File[], instructions: string, appContext?: AppContext, cachedSkillId?: string) => {
       if (isProcessing) return;
 
       setIsProcessing(true);
       clearErrors();
+      setIsCritiquing(false);
 
       let progress = createInitialProgress();
       setPipelineProgress(progress);
@@ -272,9 +453,10 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
         const hasVideos = fileInputs.some((f) => f.mimeType.startsWith('video/'));
         setPipelineProgress(buildFinalProgress(hasImages, hasVideos));
 
-        // 6. Store generated files
+        // 6. Validate generated files via WebContainer sandbox
         if (result.files && result.files.length > 0) {
-          updateFilesWithHistory(result.files);
+          const validatedFiles = await validateAndRepair(result.files, instructions);
+          updateFilesWithHistory(validatedFiles);
         } else {
           setErrors((prev) => [...prev, 'Pipeline completed but returned no files']);
         }
@@ -282,6 +464,13 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
         // 7. Collect warnings
         if (result.warnings && result.warnings.length > 0) {
           setWarnings(result.warnings);
+        }
+
+        // 8. Run visual critique asynchronously (non-blocking)
+        if (result.files && result.files.length > 0) {
+          runVisualCritique(result.files, instructions, cachedSkillId).catch((err) => {
+            console.warn('[useLayoutBuilder] Visual critique failed (non-critical):', err);
+          });
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Pipeline failed';
@@ -293,7 +482,7 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
         setTimeout(() => setPipelineProgress(null), 2000);
       }
     },
-    [isProcessing, generatedFiles, clearErrors, updateFilesWithHistory]
+    [isProcessing, generatedFiles, clearErrors, updateFilesWithHistory, validateAndRepair, runVisualCritique]
   );
 
   /**
@@ -465,5 +654,16 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
 
     isChatting,
     sendChatMessage,
+
+    // Sandbox Validation
+    isValidating,
+    validationStatus,
+    validationErrors,
+    repairAttempts,
+
+    // Visual Critic
+    critiqueScore,
+    isCritiquing,
+    critiqueIssues,
   };
 }

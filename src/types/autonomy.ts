@@ -70,6 +70,8 @@ export interface AgentTaskResult {
   artifacts?: any[]; // Code blocks, links found, etc.
   error?: string;
   retry_suggestion?: string;
+  /** Summary of the architect's reasoning (captured for Skill Library) */
+  reasoning_summary?: string;
 }
 
 // ============================================================================

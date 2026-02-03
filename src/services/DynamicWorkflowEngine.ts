@@ -66,6 +66,7 @@ export class DynamicWorkflowEngine {
     // Phase 2: Architecture / Planning
     const architects = swarm.agents.filter((a) => a.role === 'ARCHITECT');
     let plan = initialInput;
+    let architectReasoning = '';
     for (const agent of architects) {
       const result = await this.executeAgentStep(agent, model, plan, 'PLANNING');
       if (!result.success) {
@@ -79,6 +80,8 @@ export class DynamicWorkflowEngine {
         };
       }
       plan += `\n\nArchitecture Plan:\n${result.output}`;
+      // Capture architect reasoning for the Skill Library
+      architectReasoning += result.output + '\n';
     }
 
     // Phase 3: Coding (critical — failures are returned for retry)
@@ -118,6 +121,7 @@ export class DynamicWorkflowEngine {
       success: true,
       output: finalCode,
       artifacts: [this.context.global_files],
+      reasoning_summary: architectReasoning.trim() || undefined,
     };
   }
 
