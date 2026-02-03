@@ -1,6 +1,8 @@
 // Settings Type Definitions
 // Comprehensive types for app builder settings
 
+import type { DreamSettings } from './dream';
+
 export type Theme = 'light' | 'dark' | 'system';
 export type UITheme = 'light' | 'dark' | 'system';
 export type UIDensity = 'compact' | 'comfortable' | 'spacious';
@@ -82,6 +84,7 @@ export interface AppSettings {
   appearance: ThemeSettings;
   shortcuts: KeyboardShortcut[];
   account: AccountSettings;
+  dream: DreamSettings;
   version: number;
   lastUpdated: string;
 }
@@ -96,7 +99,8 @@ export type SettingsSection =
   | 'appearance'
   | 'shortcuts'
   | 'storage'
-  | 'account';
+  | 'account'
+  | 'dream';
 
 // Default settings
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -191,6 +195,14 @@ export const DEFAULT_SETTINGS: AppSettings = {
   account: {
     apiKeyConfigured: false,
     showUsageStats: true,
+  },
+  dream: {
+    enabled: false,
+    repoUrl: '',
+    githubToken: '',
+    chaosProfile: 'REM',
+    autoCommit: false,
+    goalQueue: [],
   },
   version: 1,
   lastUpdated: new Date().toISOString(),

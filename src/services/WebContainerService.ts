@@ -25,6 +25,7 @@ import type {
   WebContainerStatus,
 } from '@/types/sandbox';
 import { extractDependencies } from '@/utils/extractDependencies';
+import { getRepoLoaderService } from './RepoLoaderService';
 
 // ============================================================================
 // CONFIGURATION
@@ -449,6 +450,74 @@ class WebContainerServiceInstance {
           const err = e instanceof Error ? e.message : String(e);
           return { output: `Execution failed: ${err}`, exitCode: 1 };
       }
+  }
+
+  /**
+   * Mount a GitHub repository into the WebContainer.
+   * Downloads the repo as a ZIP, extracts it, mounts the file tree,
+   * and runs npm install.
+   *
+   * Used by Dream Mode to ingest external repositories for analysis
+   * and autonomous maintenance.
+   *
+   * @param repoOwnerAndName - Repository in "owner/repo" format
+   * @param token - GitHub PAT for private repos (optional)
+   * @param branch - Branch to download (default: main)
+   * @returns The extracted files as AppFile[] for use with other services
+   */
+  async mountGitHubRepo(
+    repoOwnerAndName: string,
+    token?: string,
+    branch: string = 'main'
+  ): Promise<AppFile[]> {
+    const repoLoader = getRepoLoaderService();
+
+    console.log(`[WebContainerService] Mounting repo: ${repoOwnerAndName}`);
+    this._status = 'installing';
+
+    // 1. Download and extract repo to FileSystemTree
+    const tree = await repoLoader.loadRepo(repoOwnerAndName, token, branch);
+
+    // 2. Boot container if needed and mount the tree
+    const container = await this.boot();
+    await container.mount(tree);
+
+    // 3. Install dependencies
+    console.log('[WebContainerService] Repo mounted. Installing dependencies...');
+    const installResult = await this.runCommand(
+      container,
+      'npm',
+      ['install', '--no-audit', '--no-fund'],
+      INSTALL_TIMEOUT
+    );
+
+    if (installResult.exitCode !== 0) {
+      console.warn(
+        '[WebContainerService] npm install had issues:',
+        installResult.stderr.slice(0, 300)
+      );
+    }
+
+    this._status = 'ready';
+
+    // 4. Convert tree to AppFile[] for downstream services
+    const files = repoLoader.treeToAppFiles(tree);
+    console.log(`[WebContainerService] Repo ready with ${files.length} files`);
+
+    return files;
+  }
+
+  /**
+   * Write a file to the WebContainer filesystem.
+   * Creates parent directories as needed.
+   */
+  async writeFile(path: string, content: string): Promise<void> {
+    const container = this.container ?? await this.boot();
+    const dir = path.substring(0, path.lastIndexOf('/'));
+    if (dir && dir !== '/') {
+      await container.fs.mkdir(dir, { recursive: true });
+    }
+    await container.fs.writeFile(path, content);
   }
 
   /**

@@ -22,6 +22,7 @@ import {
   ColorPicker,
   SectionHeader,
 } from './ui/form';
+import { DreamToggle } from './dream/DreamToggle';
 
 // Section navigation items
 const SECTIONS: { id: SettingsSection; label: string; icon: string }[] = [
@@ -33,6 +34,7 @@ const SECTIONS: { id: SettingsSection; label: string; icon: string }[] = [
   { id: 'shortcuts', label: 'Shortcuts', icon: '⌨️' },
   { id: 'storage', label: 'Storage & Data', icon: '💾' },
   { id: 'account', label: 'Account', icon: '👤' },
+  { id: 'dream', label: 'Dream Mode', icon: '🌙' },
 ];
 
 // Settings Page Component
@@ -543,6 +545,9 @@ export function SettingsPage({ isOpen, onClose, initialSection = 'general' }: Se
             />
           </div>
         );
+
+      case 'dream':
+        return <DreamToggle />;
 
       default:
         return null;

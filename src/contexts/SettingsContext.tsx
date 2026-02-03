@@ -12,6 +12,7 @@ import type {
   ThemeSettings,
   AccountSettings,
 } from '../types/settings';
+import type { DreamSettings } from '../types/dream';
 import { DEFAULT_SETTINGS } from '../types/settings';
 import {
   loadSettings,
@@ -35,6 +36,7 @@ interface SettingsContextType {
   updateAppearanceSettings: (updates: Partial<ThemeSettings>) => void;
   updateShortcut: (shortcutId: string, keys: string) => void;
   updateAccountSettings: (updates: Partial<AccountSettings>) => void;
+  updateDreamSettings: (updates: Partial<DreamSettings>) => void;
 
   // Bulk operations
   resetSettings: () => void;
@@ -129,6 +131,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  // Update dream settings
+  const updateDreamSettings = useCallback((updates: Partial<DreamSettings>) => {
+    setSettings((prev) => ({
+      ...prev,
+      dream: { ...prev.dream, ...updates },
+    }));
+  }, []);
+
   // Reset all settings to defaults
   const resetSettings = useCallback(() => {
     const defaults = clearSettings();
@@ -155,6 +165,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           return { ...prev, shortcuts: DEFAULT_SETTINGS.shortcuts };
         case 'account':
           return { ...prev, account: DEFAULT_SETTINGS.account };
+        case 'dream':
+          return { ...prev, dream: DEFAULT_SETTINGS.dream };
         default:
           return prev;
       }
@@ -193,6 +205,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       updateAppearanceSettings,
       updateShortcut,
       updateAccountSettings,
+      updateDreamSettings,
       resetSettings,
       resetSection,
       exportSettingsToJson,
@@ -210,6 +223,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       updateAppearanceSettings,
       updateShortcut,
       updateAccountSettings,
+      updateDreamSettings,
       resetSettings,
       resetSection,
       exportSettingsToJson,

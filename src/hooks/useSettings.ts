@@ -12,6 +12,7 @@ import type {
   ThemeSettings,
   AccountSettings,
 } from '@/types/settings';
+import type { DreamSettings } from '@/types/dream';
 
 export interface UseSettings {
   settings: AppSettings;
@@ -26,6 +27,7 @@ export interface UseSettings {
   updateAppearanceSettings: (updates: Partial<ThemeSettings>) => void;
   updateShortcut: (shortcutId: string, keys: string) => void;
   updateAccountSettings: (updates: Partial<AccountSettings>) => void;
+  updateDreamSettings: (updates: Partial<DreamSettings>) => void;
 
   // Bulk operations
   resetSettings: () => void;

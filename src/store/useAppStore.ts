@@ -52,6 +52,7 @@ import type { ProjectDocumentation } from '@/types/projectDocumentation';
 import type { PreviewMode } from '@/types/railway';
 import type { DesignSpec } from '@/types/designSpec';
 import type { BuildSettings, LayoutThumbnail } from '@/types/reviewTypes';
+import type { DreamLog, DreamGoal, DiscoveryReport, DreamStats } from '@/types/dream';
 
 // ============================================================================
 // STORE STATE INTERFACE
@@ -311,6 +312,28 @@ interface FileStorageSlice {
 }
 
 /**
+ * Dream Mode slice state
+ */
+interface DreamSlice {
+  dreamLogs: DreamLog[];
+  isDreaming: boolean;
+  dreamGoalQueue: DreamGoal[];
+  discoveryReport: DiscoveryReport | null;
+  dreamStats: DreamStats | null;
+  // Actions
+  addDreamLog: (log: DreamLog) => void;
+  setIsDreaming: (value: boolean) => void;
+  clearDreamLogs: () => void;
+  addDreamGoal: (goal: DreamGoal) => void;
+  removeDreamGoal: (goalId: string) => void;
+  updateDreamGoalStatus: (goalId: string, status: DreamGoal['status'], errorMessage?: string) => void;
+  setDreamGoalQueue: (goals: DreamGoal[]) => void;
+  reorderDreamGoals: (goalIds: string[]) => void;
+  setDiscoveryReport: (report: DiscoveryReport | null) => void;
+  setDreamStats: (stats: DreamStats | null) => void;
+}
+
+/**
  * Complete store state combining all slices
  */
 export interface AppState
@@ -322,7 +345,8 @@ export interface AppState
     UISlice,
     DataSlice,
     DocumentationSlice,
-    FileStorageSlice {}
+    FileStorageSlice,
+    DreamSlice {}
 
 // ============================================================================
 // STORE IMPLEMENTATION
@@ -615,10 +639,64 @@ export const useAppStore = create<AppState>()(
             return { selectedFiles: newSelection };
           }),
         clearFileSelection: () => set({ selectedFiles: new Set<string>() }),
+
+        // ========================================================================
+        // DREAM MODE SLICE
+        // ========================================================================
+        dreamLogs: [] as DreamLog[],
+        isDreaming: false,
+        dreamGoalQueue: [] as DreamGoal[],
+        discoveryReport: null as DiscoveryReport | null,
+        dreamStats: null as DreamStats | null,
+
+        addDreamLog: (log) =>
+          set((state) => ({
+            dreamLogs: [...state.dreamLogs, log],
+          })),
+        setIsDreaming: (value) => set({ isDreaming: value }),
+        clearDreamLogs: () => set({ dreamLogs: [] }),
+        addDreamGoal: (goal) =>
+          set((state) => ({
+            dreamGoalQueue: [...state.dreamGoalQueue, goal],
+          })),
+        removeDreamGoal: (goalId) =>
+          set((state) => ({
+            dreamGoalQueue: state.dreamGoalQueue.filter((g) => g.id !== goalId),
+          })),
+        updateDreamGoalStatus: (goalId, status, errorMessage) =>
+          set((state) => ({
+            dreamGoalQueue: state.dreamGoalQueue.map((g) =>
+              g.id === goalId
+                ? {
+                    ...g,
+                    status,
+                    ...(status === 'COMPLETED' ? { completedAt: Date.now() } : {}),
+                    ...(errorMessage ? { errorMessage } : {}),
+                  }
+                : g
+            ),
+          })),
+        setDreamGoalQueue: (goals) => set({ dreamGoalQueue: goals }),
+        reorderDreamGoals: (goalIds) =>
+          set((state) => {
+            const goalMap = new Map(state.dreamGoalQueue.map((g) => [g.id, g]));
+            const reordered = goalIds
+              .map((id) => goalMap.get(id))
+              .filter(Boolean) as DreamGoal[];
+            // Append any goals not in the provided order
+            for (const goal of state.dreamGoalQueue) {
+              if (!goalIds.includes(goal.id)) {
+                reordered.push(goal);
+              }
+            }
+            return { dreamGoalQueue: reordered };
+          }),
+        setDiscoveryReport: (report) => set({ discoveryReport: report }),
+        setDreamStats: (stats) => set({ dreamStats: stats }),
       })),
       {
         name: 'ai-app-builder-storage',
-        version: 3, // v3: added generatedFiles persistence
+        version: 4, // v4: added dream mode persistence
         // Migration function to preserve data when version changes
         migrate: (persistedState: unknown, version: number) => {
           const state = persistedState as Record<string, unknown>;
@@ -628,12 +706,26 @@ export const useAppStore = create<AppState>()(
               components: state.components ?? [],
               currentComponent: state.currentComponent ?? null,
               generatedFiles: [],
+              dreamLogs: [],
+              isDreaming: false,
+              dreamGoalQueue: [],
             };
           }
           if (version === 2) {
             return {
               ...state,
               generatedFiles: [],
+              dreamLogs: [],
+              isDreaming: false,
+              dreamGoalQueue: [],
+            };
+          }
+          if (version === 3) {
+            return {
+              ...state,
+              dreamLogs: [],
+              isDreaming: false,
+              dreamGoalQueue: [],
             };
           }
           return state;
@@ -655,6 +747,10 @@ export const useAppStore = create<AppState>()(
           buildSettings: state.buildSettings,
           layoutThumbnail: state.layoutThumbnail,
           phasePlanGeneratedAt: state.phasePlanGeneratedAt,
+          // Dream Mode state
+          dreamLogs: state.dreamLogs,
+          isDreaming: state.isDreaming,
+          dreamGoalQueue: state.dreamGoalQueue,
         }),
       }
     ),
@@ -799,6 +895,20 @@ export const useConceptPanelState = () =>
       isConceptPanelCollapsed: state.isConceptPanelCollapsed,
       conceptPanelEditMode: state.conceptPanelEditMode,
       currentMode: state.currentMode,
+    }))
+  );
+
+/**
+ * Select dream mode state
+ */
+export const useDreamState = () =>
+  useAppStore(
+    useShallow((state) => ({
+      dreamLogs: state.dreamLogs,
+      isDreaming: state.isDreaming,
+      dreamGoalQueue: state.dreamGoalQueue,
+      discoveryReport: state.discoveryReport,
+      dreamStats: state.dreamStats,
     }))
   );
 
