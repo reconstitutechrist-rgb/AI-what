@@ -17,7 +17,6 @@ Two test environments configured:
 
 - **Tests:** `tests/**/*.test.ts`, `src/services/__tests__/**`
 - **Use for:** Services, utilities, API logic
-- **Mocks:** js-tiktoken, tree-sitter
 
 ### JSDOM Environment (React & Hooks)
 
@@ -29,22 +28,14 @@ Two test environments configured:
 
 ```
 tests/
-├── code-validator.test.ts     # Validator tests
-├── retry-logic.test.ts        # Retry utility tests
-├── integration-modify-route.test.ts  # API integration
+├── api/
+│   └── full-app-stream.test.ts  # SSE streaming tests (legacy, references old endpoint)
 ├── setup.ts                   # Common setup
 ├── setup-react.ts             # React-specific setup
 └── __mocks__/                 # Dependency mocks
-    ├── js-tiktoken.js
-    └── web-tree-sitter.js
-
-src/
-├── hooks/__tests__/           # Hook tests
-│   ├── useLayoutBuilder.test.ts
-│   └── useStreamingGeneration.test.ts
-└── services/__tests__/        # Service tests
-    ├── CodeParser.test.ts
-    └── DynamicPhaseGenerator.test.ts
+    ├── js-tiktoken.ts
+    ├── tree-sitter.ts
+    └── tree-sitter-typescript.ts
 ```
 
 ## Test Commands
@@ -54,8 +45,6 @@ src/
 npm test
 
 # Specific test suites
-npm run test:validator      # Code validator
-npm run test:retry          # Retry logic
 npm run test:hooks          # Hook tests (JSDOM)
 npm run test:services       # Service tests (Node)
 npm run test:unit           # All unit tests
@@ -71,7 +60,7 @@ npm run test:coverage       # Coverage report
 ### Mocking External Dependencies
 
 ```typescript
-// tests/__mocks__/js-tiktoken.js
+// tests/__mocks__/js-tiktoken.ts
 module.exports = {
   getEncoding: jest.fn(() => ({
     encode: jest.fn((text) => text.split('')),
@@ -156,8 +145,6 @@ describe('MyService', () => {
 
 ## Critical Test Files
 
-| File                               | Tests                       |
-| ---------------------------------- | --------------------------- |
-| `code-validator.test.ts`           | Syntax validation, auto-fix |
-| `retry-logic.test.ts`              | Exponential backoff         |
-| `integration-modify-route.test.ts` | Code modification API       |
+| File                          | Tests                                          |
+| ----------------------------- | ---------------------------------------------- |
+| `full-app-stream.test.ts`    | SSE streaming patterns (legacy, needs updating) |

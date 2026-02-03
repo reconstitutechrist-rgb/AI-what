@@ -106,7 +106,10 @@
       "Bash(npm ls:*)",
       "Bash(cmd /c \"taskkill /PID 16660 /F /T\")",
       "Bash(netstat:*)",
-      "Bash(cmd /c \"taskkill /IM node.exe /PID 16660 /F\")"
+      "Bash(cmd /c \"taskkill /IM node.exe /PID 16660 /F\")",
+      "Bash(git status:*)",
+      "Bash(git rm:*)",
+      "Bash(git mv:*)"
     ],
     "deny": [],
     "ask": []

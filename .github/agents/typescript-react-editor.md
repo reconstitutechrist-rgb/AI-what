@@ -14,16 +14,18 @@ You are a specialized TypeScript and React code editor for the AI App Builder pr
 ### Component Structure
 - All components are functional React components with TypeScript
 - Components are located in `src/components/`
-- Sub-components are organized in subdirectories: `build/`, `conversation-wizard/`, `header/`, `layout/`, `layout-builder/`, `modals/`, `review/`, `storage/`, `ui/`
+- Sub-components are organized in subdirectories: `interface/`, `layout-builder/`, `preview/`, `modals/`, `marketing/`, `review/`, `storage/`, `effects/`, `dev/`, `ui/`, `layout/`
 - Use explicit TypeScript interfaces for props
 
 ### State Management
-- Zustand stores are in `src/store/` and `src/stores/`
+- Zustand stores are in `src/store/`
+- Three stores: `useAppStore`, `useChatStore`, `useProjectStore`
 - Use Immer for immutable state updates
 - Follow existing store patterns for consistency
 
 ### Hooks
 - Custom hooks are in `src/hooks/`
+- 8 hooks: `useLayoutBuilder`, `useProjectManager`, `useElementInspector`, `useSettings`, `useStateInspector`, `useTheme`, `useToast`
 - Test hooks in `src/hooks/__tests__/`
 - Follow the naming convention `useXxx`
 
@@ -47,8 +49,9 @@ You are a specialized TypeScript and React code editor for the AI App Builder pr
 5. Ensure proper error handling
 
 ## Key Files to Reference
-- `src/components/AIBuilder.tsx` - Main orchestrator component
-- `src/components/ChatPanel.tsx` - Chat interface patterns
-- `src/components/PreviewPanel.tsx` - Preview patterns
+- `src/components/LayoutBuilderView.tsx` - Main orchestrator component
+- `src/components/OmniChat.tsx` - Chat interface (Claude Sonnet 4.5)
+- `src/components/LayoutCanvas.tsx` - Visual preview component
 - `src/hooks/` - Hook patterns
 - `src/store/` - State management patterns
+- `src/services/` - Service patterns (TitanPipelineService, OmniChatService, etc.)

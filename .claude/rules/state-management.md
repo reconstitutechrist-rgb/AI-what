@@ -1,7 +1,6 @@
 ---
 paths:
   - src/store/**
-  - src/stores/**
   - src/hooks/**
   - src/contexts/**
 ---
@@ -12,17 +11,20 @@ paths:
 
 ### Main Store: useAppStore
 
-**Location:** `src/store/useAppStore.ts` (~500 lines)
+**Location:** `src/store/useAppStore.ts`
 
-Central store with 8 slices using Immer middleware:
+Central store with persist + Immer middleware and 8 slices:
 
 ```typescript
 // Store creation with middleware
 const useAppStore = create<AppState>()(
   devtools(
-    immer((set, get) => ({
-      // Slices combined here
-    }))
+    persist(
+      immer((set, get) => ({
+        // Slices combined here
+      })),
+      { name: 'app-store' }
+    )
   )
 );
 ```
@@ -41,7 +43,7 @@ const useAppStore = create<AppState>()(
 }
 ```
 
-2. **ModeSlice** - PLAN vs ACT mode
+2. **ModeSlice** - Builder mode (legacy field)
 
 ```typescript
 {
@@ -49,6 +51,8 @@ const useAppStore = create<AppState>()(
   setBuilderMode(mode): void
 }
 ```
+
+> **Note:** The PLAN/ACT mode switching field still exists in the store for backward compatibility, but it is not actively used by the current OmniChat architecture. The OmniChat system handles its own conversational flow without switching between plan and act modes.
 
 3. **ComponentsSlice** - Generated components
 
@@ -112,6 +116,40 @@ const useAppStore = create<AppState>()(
 }
 ```
 
+## Additional Stores
+
+### useChatStore
+
+**Location:** `src/store/useChatStore.ts`
+
+Manages OmniChat message history and conversational state, separate from the main app store:
+
+```typescript
+{
+  messages: ChatMessage[]
+  isStreaming: boolean
+  addMessage(msg): void
+  clearMessages(): void
+  // ... OmniChat-specific state
+}
+```
+
+### useProjectStore
+
+**Location:** `src/store/useProjectStore.ts`
+
+Manages the project list for save/load/switch functionality:
+
+```typescript
+{
+  projects: Project[]
+  activeProjectId: string | null
+  setActiveProject(id): void
+  addProject(project): void
+  // ... project management state
+}
+```
+
 ## Selector Patterns
 
 **IMPORTANT:** Always use shallow comparison for performance:
@@ -133,23 +171,6 @@ const { messages, isGenerating } = useAppStore(
 const data = useAppStore((state) => ({
   messages: state.messages,
 }));
-```
-
-## Secondary Store
-
-### useLayoutPanelStore
-
-**Location:** `src/stores/useLayoutPanelStore.ts`
-
-Manages layout builder panel visibility:
-
-```typescript
-{
-  designPanelOpen: boolean
-  animationPanelOpen: boolean
-  // ... panel states
-  togglePanel(name): void
-}
 ```
 
 ## React Context Providers
@@ -201,20 +222,24 @@ export function useFeature(options?: UseFeatureOptions): UseFeatureReturn {
 }
 ```
 
-### Common Hooks
+### Current Hooks (8 files in src/hooks/)
 
-| Hook                     | Purpose                 |
-| ------------------------ | ----------------------- |
-| `useLayoutBuilder`       | Layout design state     |
-| `useChatSystem`          | Chat message management |
-| `useDatabaseSync`        | Supabase sync           |
-| `useVersionControl`      | Version history         |
-| `useStreamingGeneration` | SSE handling            |
-| `useSmartContext`        | Context compression     |
+| Hook                  | Purpose                                    |
+| --------------------- | ------------------------------------------ |
+| `useLayoutBuilder`    | Main pipeline orchestration and layout state |
+| `useProjectManager`   | Project save/load/switch management        |
+| `useElementInspector` | Element inspection in layout canvas        |
+| `useSettings`         | User settings access                       |
+| `useStateInspector`   | State debugging and inspection             |
+| `useTheme`            | Theme management                           |
+| `useToast`            | Toast notification system                  |
 
 ## Critical Dependencies
 
-- `useAppStore` ← Central state, many components depend on it
-- Zustand shallow ← Always use for selectors
-- Immer middleware ← Enables mutable-style updates
-- Context providers ← Must wrap app in layout.tsx
+- `useAppStore` - Central state, many components depend on it
+- `useChatStore` - OmniChat messages, used by OmniChat component
+- `useProjectStore` - Project list, used by project manager
+- Zustand shallow - Always use for selectors
+- Immer middleware - Enables mutable-style updates
+- Persist middleware - Persists store state to localStorage
+- Context providers - Must wrap app in layout.tsx

@@ -4,7 +4,7 @@ You are a specialized documentation agent for the AI App Builder project.
 
 ## Documentation Locations
 - `README.md` - Project overview, setup, and usage
-- `docs/USER_GUIDE.md` - User-facing documentation
+- `MASTER_CONTEXT_VERIFIED.md` - Verified codebase stats and dependency hierarchy
 - `docs/TODO.md` - Development roadmap
 - `docs/DEPLOYMENT-PLAN.md` - Deployment documentation
 
@@ -102,14 +102,15 @@ npm run dev
 ```
 
 ## Key Features to Document
-- Dual-Mode AI System (PLAN/ACT modes)
-- App Concept Wizard (6-step flow)
-- Layout Builder with vision capabilities
-- Dynamic Phase Building
-- Surgical Code Modifications (AST-based)
-- Version Control & Rollback
-- Real-Time Preview (Sandpack)
-- DALL-E 3 Image Generation
+- OmniChat (Claude Sonnet 4.5 intent classification and conversation)
+- Titan Pipeline (Gemini 3 Pro multi-stage code generation)
+- Visual Critic (Gemini Flash quality scoring)
+- Skill Library (pgvector cached solutions)
+- WebContainer Sandbox (in-browser code validation)
+- Code Repair (automated fix for validation failures)
+- Layout Builder with visual design tools
+- Project Management (save, load, switch projects)
+- Gemini Image Generation
 
 ## Environment Variables Documentation
 Always document:

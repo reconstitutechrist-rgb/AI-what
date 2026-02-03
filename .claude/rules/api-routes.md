@@ -8,35 +8,26 @@ paths:
 
 ## Route Structure
 
-All routes in `src/app/api/` follow Next.js 15 App Router patterns.
+All routes in `src/app/api/` follow Next.js 15 App Router patterns. There are 9 API routes total.
 
-### AI Builder Routes (Core)
+### Layout & Pipeline Routes (Core)
 
-| Route                             | Method | Purpose                  |
-| --------------------------------- | ------ | ------------------------ |
-| `/api/ai-builder/full-app`        | POST   | Generate complete app    |
-| `/api/ai-builder/full-app-stream` | POST   | Streaming app generation |
-| `/api/ai-builder/modify`          | POST   | Modify existing app      |
-| `/api/ai-builder/apply-diff`      | POST   | Apply code diff          |
-| `/api/ai-builder/plan-phases`     | POST   | Generate phase plan      |
-| `/api/ai-builder/review`          | POST   | Code quality review      |
+| Route                    | Method | Purpose                                           |
+| ------------------------ | ------ | ------------------------------------------------- |
+| `/api/layout/pipeline`   | POST   | Titan Pipeline code generation                    |
+| `/api/layout/chat`       | POST   | OmniChat conversational AI (Claude Sonnet 4.5)    |
+| `/api/layout/critique`   | POST   | Visual Critic analysis (Gemini Flash screenshots) |
+| `/api/layout/repair`     | POST   | WebContainer code repair (Gemini Pro)             |
+| `/api/layout/analyze`    | POST   | Media analysis                                    |
+| `/api/layout/screenshot` | POST   | Puppeteer screenshot capture                      |
 
-### Chat Routes
+### Skills Routes
 
-| Route                       | Method | Purpose                         |
-| --------------------------- | ------ | ------------------------------- |
-| `/api/builder/chat`         | POST   | Planning conversation           |
-| `/api/layout/chat`          | POST   | Layout builder AI (with vision) |
-| `/api/layout/video-analyze` | POST   | Video analysis                  |
-
-### Utility Routes
-
-| Route                  | Method | Purpose            |
-| ---------------------- | ------ | ------------------ |
-| `/api/generate`        | POST   | Generic generation |
-| `/api/images/generate` | POST   | DALL-E image gen   |
-| `/api/screenshot`      | POST   | Screenshot capture |
-| `/api/health`          | GET    | Health check       |
+| Route                        | Method | Purpose                             |
+| ---------------------------- | ------ | ----------------------------------- |
+| `/api/skills`                | POST   | Search skills (pgvector similarity) |
+| `/api/skills/save`           | POST   | Save new skill                      |
+| `/api/skills/update-quality` | POST   | Quality score feedback              |
 
 ## SSE Streaming Pattern
 
@@ -57,7 +48,7 @@ export async function POST(request: Request) {
 
       // Send progress updates
       const send = (data: object) => {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+        controller.enqueue(encoder.encode(\`data: \${JSON.stringify(data)}\n\n\`));
       };
 
       try {
@@ -92,7 +83,7 @@ Protects routes using Supabase session:
 
 ```typescript
 // Routes requiring auth
-const protectedPaths = ['/api/ai-builder', '/api/builder', '/api/layout'];
+const protectedPaths = ['/api/layout', '/api/skills'];
 
 // Middleware checks session and redirects if needed
 ```
@@ -119,7 +110,7 @@ All routes use Zod for validation:
 import { z } from 'zod';
 
 const RequestSchema = z.object({
-  appConcept: AppConceptSchema,
+  prompt: z.string(),
   options: z
     .object({
       streaming: z.boolean().default(true),
@@ -133,14 +124,13 @@ const body = RequestSchema.parse(await request.json());
 
 ## Rate Limiting
 
-Image generation routes have built-in rate limiting:
+Screenshot routes have built-in rate limiting:
 
-- DALL-E: 5 requests per minute
 - Screenshots: 10 requests per minute
 
 ## Critical Dependencies
 
-- `middleware.ts` ← All protected routes depend on this
-- Supabase client ← Auth session management
-- Anthropic SDK ← Claude API calls
-- OpenAI SDK ← DALL-E calls
+- `middleware.ts` - All protected routes depend on this
+- Supabase client - Auth session management
+- Anthropic SDK - Claude API calls (OmniChat, Pipeline)
+- Google AI SDK - Gemini API calls (Critique, Repair, Image analysis)

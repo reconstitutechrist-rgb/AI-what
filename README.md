@@ -1,103 +1,75 @@
 # AI App Builder
 
-> Build complete web applications through natural conversation with AI. Plan, design, and generate production-ready React apps powered by Claude and Gemini AI.
+> Build React components and apps using an omnipotent creation engine powered by Claude, Gemini, and a self-teaching autonomy system.
 
 [![Next.js](https://img.shields.io/badge/Next.js-15.5-black)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-blue)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.2-blue)](https://www.typescriptlang.org/)
 [![Claude](https://img.shields.io/badge/Claude-Sonnet_4.5-orange)](https://anthropic.com/)
-[![Gemini](https://img.shields.io/badge/Gemini-2.0_Flash-blue)](https://ai.google.dev/)
-[![Supabase](https://img.shields.io/badge/Supabase-Backend-green)](https://supabase.com/)
-[![Lines of Code](https://img.shields.io/badge/Lines-71K+-brightgreen)]()
+[![Gemini](https://img.shields.io/badge/Gemini-3_Pro-blue)](https://ai.google.dev/)
+[![Supabase](https://img.shields.io/badge/Supabase-pgvector-green)](https://supabase.com/)
+[![WebContainers](https://img.shields.io/badge/WebContainers-Sandbox-purple)](https://webcontainers.io/)
 
 ---
 
 ## Overview
 
-AI App Builder is a sophisticated platform that combines **two AI systems** to build full-stack React applications:
+AI App Builder is a full-stack platform for building React applications through conversational AI. The system combines three AI providers into a unified creation pipeline:
 
-- **Claude Sonnet 4.5** - Code generation, architectural reasoning, and semantic analysis
-- **Gemini 2.0 Flash** - Visual design analysis, layout extraction from images/videos
+- **Claude Sonnet 4.5** powers OmniChat, the conversational interface that classifies user intent and orchestrates actions
+- **Gemini 3 Pro** drives the Titan Pipeline, a three-stage code generation engine (Router, Architect, Assembler)
+- **OpenAI Embeddings** back the Skill Library, a pgvector-powered long-term memory that caches and retrieves validated solutions
 
-The platform features a **dual-mode system** (PLAN for discussion, ACT for generation), **dynamic phase planning** (2-25+ phases based on complexity), **visual layout building** from reference images, and **multi-platform deployment** (web, mobile, desktop).
+Generated code is validated in an in-browser WebContainer sandbox before reaching the live Sandpack preview. A Visual Critic (Gemini Flash) scores the output and feeds quality data back into the Skill Library, creating a self-improving feedback loop.
 
 ---
 
-## Features
+## Core Systems
 
-### AI-Powered Planning (PLAN Mode)
+### OmniChat
 
-- **Natural Conversation Wizard** - Chat with Claude to plan your app through natural dialogue
-- **Progressive Concept Building** - Iteratively refine requirements, features, and technical specs
-- **Image Reference Upload** - Attach design references for context
-- **Draft Persistence** - Auto-save with crash recovery
-- **Backend Architecture Generation** - AI generates database schemas, API routes, and auth setup
-- **Dynamic Phase Planning** - Generates 2-25+ optimal build phases based on complexity
+Conversational interface powered by Claude Sonnet 4.5. Classifies every user message into one of four intents:
 
-### Visual Layout Builder (Gemini 3)
+| Intent        | Action                                                   |
+| ------------- | -------------------------------------------------------- |
+| `pipeline`    | Triggers Titan Pipeline for full code generation         |
+| `autonomy`    | Engages dynamic workflow engine for multi-step reasoning |
+| `live-edit`   | Applies targeted code modifications in-place             |
+| `none`        | Pure conversation, no code action                        |
 
-- **Multi-Media Reference Upload** - Up to 4 images + 1 video for design reference
-- **Client-Side Color Extraction** - Accurate palette detection (not AI guessing)
-- **AI Layout Manifest Generation** - Gemini analyzes images and generates component structure
-- **"Vibe Coding"** - Refine designs with natural language ("make it more playful")
-- **Undo/Redo System** - Full history with keyboard shortcuts (Ctrl+Z/Y)
-- **Element Selection** - Click to select and refine individual UI elements
-- **Design Token Export** - CSS Variables, Tailwind Config, Style Dictionary
+### Titan Pipeline
 
-### Code Generation (ACT Mode)
+Three-stage code generation via Gemini 3 Pro:
 
-- **Claude Sonnet 4.5** - Extended thinking for intelligent code generation
-- **SSE Streaming** - Real-time progress with file-by-file updates
-- **Dynamic 2-25+ Phases** - AI determines optimal phase count based on requirements
-- **Smart Context Selection** - CodeContextService selects most relevant files per phase (up to 100K tokens)
-- **Phase Integrity System (P1-P9)** - File conflict detection, type checking, regression testing
-- **AST-Based Modifications** - Tree-sitter for surgical code edits that preserve formatting
-- **Full-Stack Support** - Frontend-only or full-stack with Prisma, NextAuth, API routes
+1. **Router** -- Analyzes the request, determines component structure, queries Skill Library for cached solutions
+2. **Architect** -- Designs the component architecture, layout, and data flow
+3. **Assembler** -- Generates production-ready React + Tailwind CSS code
 
-### Code Quality & Review
+### WebContainer Sandbox
 
-- **Light Review** - Syntax analysis, React patterns, security scanning
-- **Comprehensive Review** - Semantic analysis with Claude AI
-- **Auto-Fix** - Automatic fixing of common issues (unclosed strings, missing imports)
-- **Impact Analysis** - Risk assessment and breaking change detection
-- **Quality Metrics** - Scores for maintainability, security, performance, accessibility
+In-browser Node.js runtime (WebContainer API) that validates generated code before it reaches the preview. Catches syntax errors, missing imports, and runtime failures. Paired with a Code Repair Service that auto-fixes common issues using Gemini.
 
-### Version Control
+### Sandpack Preview
 
-- **Phase Snapshots** - Automatic snapshots at each phase
-- **One-Click Rollback** - Revert to any previous state
-- **Git-Like Branching** - Create, switch, merge branches
-- **Side-by-Side Diff** - Compare any two versions
-- **Fork Versions** - Branch from any point without losing originals
+Live code execution with hot reload, device frame simulation (mobile/tablet/desktop), console panel, and touch simulation.
 
-### Multi-Platform Deployment
+### Skill Library
 
-| Platform     | Options                           |
-| ------------ | --------------------------------- |
-| **Web**      | Vercel, Railway, Cloudflare Pages |
-| **Mobile**   | React Native → Expo (iOS/Android) |
-| **Desktop**  | Electron (Windows/macOS/Linux)    |
-| **Database** | Neon, Turso, Supabase             |
+Long-term memory backed by Supabase pgvector:
 
-- **Custom Domains** - Purchase and configure domains directly
-- **Environment Variables** - Manage secrets per deployment
-- **Database Migrations** - Automated schema deployment
-- **Deployment Logs** - Real-time build progress
+- **Embeddings** -- OpenAI `text-embedding-3-small` (1536 dimensions)
+- **Search** -- Cosine similarity retrieval of validated solutions
+- **Quality Tracking** -- Scores updated by Visual Critic feedback
+- **Caching** -- Successful generations are stored for future reuse
 
-### Preview & Testing
+### Visual Critic
 
-- **Sandpack Integration** - Live code execution with instant feedback
-- **Device Frames** - Mobile, tablet, desktop device simulations
-- **Touch Simulator** - Mobile gesture simulation
-- **Console Panel** - View logs and errors
-- **Error Boundaries** - Graceful error handling
+Automated quality assessment using Gemini Flash:
 
-### DALL-E 3 Image Generation
-
-- **Context-Aware Images** - Hero images, card thumbnails, backgrounds
-- **Batch Processing** - Rate-limited parallel generation
-- **Design Integration** - Images matched to your color palette
-- **Caching** - Avoid regenerating identical images
+- Takes screenshots of rendered output via Puppeteer
+- Scores visual quality on a 1-10 scale
+- Provides structured feedback on layout, spacing, typography, and color
+- Feeds quality scores back to Skill Library entries
 
 ---
 
@@ -106,89 +78,55 @@ The platform features a **dual-mode system** (PLAN for discussion, ACT for gener
 ### Data Flow
 
 ```
-┌─────────────────────────────────────────────────┐
-│  NaturalConversationWizard (PLAN Mode)          │
-│  - Chat with Claude AI                          │
-│  - Upload reference images                      │
-│  - Extract roles, workflows, requirements       │
-└──────────────────┬──────────────────────────────┘
-                   │ creates
-                   ▼
-         ┌─────────────────────┐
-         │     AppConcept      │
-         │  - name, description│
-         │  - features         │
-         │  - technical reqs   │
-         │  - layoutManifest   │
-         │  - architectureSpec │
-         └──────────┬──────────┘
-                    │ feeds
-                    ▼
-      ┌──────────────────────────────┐
-      │   DynamicPhaseGenerator      │
-      │  - Classify features         │
-      │  - Build dependency graph    │
-      │  - Generate 2-25+ phases     │
-      └──────────┬───────────────────┘
-                 │ produces
-                 ▼
-       ┌──────────────────────┐
-       │   DynamicPhasePlan   │
-       │  - phases[]          │
-       │  - dependencies      │
-       │  - test criteria     │
-       └──────────┬───────────┘
-                  │ executes via
-                  ▼
-    ┌──────────────────────────────────┐
-    │  PhaseExecutionManager (ACT Mode)│
-    │  - Build context for each phase  │
-    │  - Stream from Claude API        │
-    │  - Validate & auto-fix code      │
-    │  - Run quality reviews           │
-    └──────────┬───────────────────────┘
-               │ generates
-               ▼
-     ┌──────────────────────┐
-     │   Generated Code     │
-     │  - React components  │
-     │  - API routes        │
-     │  - Database schema   │
-     │  - Config files      │
-     └──────────┬───────────┘
-                │ previews in
-                ▼
-      ┌─────────────────────┐
-      │   Sandpack Preview  │
-      │  - Live preview     │
-      │  - Hot reload       │
-      │  - Error display    │
-      └─────────────────────┘
+User Message (OmniChat)
+    |
+    v
+OmniChatService (Claude Sonnet 4.5)
+    |-- intent classification
+    v
+LayoutBuilderView.executeAction
+    |
+    v
+useLayoutBuilder.runPipeline
+    |
+    v
+TitanPipelineService (Gemini 3 Pro)
+    |-- Router -> Architect -> Assembler
+    |-- Skill Library query (pgvector)
+    v
+WebContainerService (validation)
+    |-- CodeRepairService (auto-fix if needed)
+    v
+Sandpack Preview (live render)
+    |
+    v
+VisualCriticService (Gemini Flash)
+    |-- screenshot analysis
+    |-- quality score (1-10)
+    v
+Skill Library (feedback + cache)
 ```
 
 ### AI Model Routing
 
-The system intelligently routes requests to the optimal AI:
-
-| Task Type       | Model             | Reason                       |
-| --------------- | ----------------- | ---------------------------- |
-| Code generation | Claude Sonnet 4.5 | Best reasoning, code quality |
-| Visual analysis | Gemini 2.0 Flash  | Multi-image/video support    |
-| Quick edits     | Claude Haiku 3.5  | Fast, cost-effective         |
-| Semantic review | Claude Sonnet 4.5 | Deep understanding           |
+| Task                 | Model                          | Purpose                                   |
+| -------------------- | ------------------------------ | ----------------------------------------- |
+| Conversation + Intent| Claude Sonnet 4.5              | Intent classification, orchestration      |
+| Code Generation      | Gemini 3 Pro                   | Titan Pipeline (Router/Architect/Assembler)|
+| Visual Critique      | Gemini Flash                   | Screenshot analysis, quality scoring      |
+| Code Repair          | Gemini 3 Pro                   | WebContainer error auto-fix               |
+| Media Analysis       | Gemini 3 Pro                   | Image/video reference analysis            |
+| Embeddings           | OpenAI text-embedding-3-small  | Skill Library vector search               |
 
 ### State Management
 
-Central Zustand store with 8 slices:
+Three Zustand stores with Immer and Persist middleware:
 
-- **ChatSlice** - Messages, input, generation progress
-- **ModeSlice** - PLAN/ACT mode, user requests
-- **ComponentsSlice** - Generated components, loading states
-- **VersionControlSlice** - Undo/redo, version history
-- **UISlice** - Tabs, modals, search, preview mode
-- **DataSlice** - Phase plans, layout manifests, diffs
-- **DocumentationSlice** - Project docs
-- **FileStorageSlice** - File browser, storage stats
+| Store              | Purpose                                          |
+| ------------------ | ------------------------------------------------ |
+| `useAppStore`      | Central application state (layout, UI, settings) |
+| `useChatStore`     | OmniChat message history and streaming state     |
+| `useProjectStore`  | Project list, active project, persistence        |
 
 ---
 
@@ -196,60 +134,71 @@ Central Zustand store with 8 slices:
 
 ### Frontend
 
-- **Next.js 15.5** - App Router with streaming SSR
-- **React 19** - Server Components, new hooks
-- **TypeScript 5.2** - Full type safety
-- **Tailwind CSS 3.3** - Utility-first styling
-- **Zustand 4.5** - Lightweight state management with Immer
-- **Framer Motion** - Animations
+- **Next.js 15.5** -- App Router
+- **React 19** -- Latest features and hooks
+- **TypeScript 5.2** -- Full type safety
+- **Tailwind CSS 3.3** -- Utility-first styling
+- **Zustand 4.5** -- State management with Immer + Persist
+- **Framer Motion** -- Animations and transitions
+- **Sandpack** -- Live code preview
+- **dnd-kit** -- Drag and drop interactions
 
 ### Backend
 
-- **Next.js API Routes** - Serverless endpoints with SSE streaming
-- **Supabase** - PostgreSQL, Auth, File Storage
-- **Inngest** - Background job processing
+- **Next.js API Routes** -- Serverless endpoints
+- **Supabase** -- PostgreSQL, Auth, File Storage, pgvector
+- **Puppeteer** -- Server-side screenshot generation
 
 ### AI Integration
 
-- **Anthropic Claude SDK** - Sonnet 4.5 with extended thinking
-- **Google Generative AI SDK** - Gemini 2.0 Flash for vision
-- **OpenAI SDK** - DALL-E 3 for image generation
-- **js-tiktoken** - Token counting and budget management
-- **Model Router** - Intelligent AI selection per task
+- **Anthropic Claude SDK** -- Sonnet 4.5 for OmniChat
+- **Google Generative AI SDK** -- Gemini 3 Pro (pipeline, repair, analysis), Gemini Flash (critic)
+- **OpenAI SDK** -- `text-embedding-3-small` for Skill Library embeddings
 
-### Developer Tools
+### Runtime
 
-- **Tree-sitter** - AST parsing for surgical code edits
-- **Sandpack** - Live code preview
-- **Puppeteer** - Screenshot generation
-- **Jest** - Testing framework
-- **ESLint + Prettier** - Code quality
-- **Husky** - Pre-commit hooks
+- **WebContainer API** -- In-browser Node.js sandbox for code validation
+- **esbuild / esbuild-wasm** -- Fast bundling for validation
 
 ---
 
-## Codebase Statistics
+## API Routes
 
-| Metric                | Count         |
-| --------------------- | ------------- |
-| **Lines of Code**     | 71,137        |
-| **Components**        | 168 files     |
-| **Services**          | 75 files      |
-| **Custom Hooks**      | 39 files      |
-| **Utility Functions** | 67 files      |
-| **API Routes**        | 30+ endpoints |
-| **Type Definitions**  | 30+ files     |
+9 endpoints serving the core systems:
 
-### Major Files
+### Titan Pipeline
 
-| File                            | Lines  | Purpose                      |
-| ------------------------------- | ------ | ---------------------------- |
-| `astModifier.ts`                | 1,988  | AST-based code modifications |
-| `PhaseExecutionManager.ts`      | 2,096  | Phase orchestration          |
-| `DynamicPhaseGenerator.ts`      | 2,000+ | Phase planning               |
-| `layoutDesign.ts`               | 1,000+ | Design system types          |
-| `NaturalConversationWizard.tsx` | 776    | Planning wizard              |
-| `useAppStore.ts`                | 717    | Central state store          |
+| Endpoint                  | Method | Description                    |
+| ------------------------- | ------ | ------------------------------ |
+| `/api/layout/pipeline`    | POST   | Full Titan Pipeline generation |
+| `/api/layout/repair`      | POST   | WebContainer code repair       |
+
+### OmniChat
+
+| Endpoint                  | Method | Description                    |
+| ------------------------- | ------ | ------------------------------ |
+| `/api/layout/chat`        | POST   | Conversational AI (Claude)     |
+
+### Visual Critic
+
+| Endpoint                  | Method | Description                    |
+| ------------------------- | ------ | ------------------------------ |
+| `/api/layout/critique`    | POST   | Screenshot quality analysis    |
+| `/api/layout/screenshot`  | POST   | Puppeteer screenshot capture   |
+
+### Media
+
+| Endpoint                  | Method | Description                    |
+| ------------------------- | ------ | ------------------------------ |
+| `/api/layout/analyze`     | POST   | Image/video media analysis     |
+
+### Skill Library
+
+| Endpoint                      | Method | Description                    |
+| ----------------------------- | ------ | ------------------------------ |
+| `/api/skills`                 | POST   | Search skills by embedding     |
+| `/api/skills/save`            | POST   | Save validated skill           |
+| `/api/skills/update-quality`  | POST   | Update quality score feedback  |
 
 ---
 
@@ -257,197 +206,153 @@ Central Zustand store with 8 slices:
 
 ```
 src/
-├── app/                          # Next.js App Router
+├── app/                              # Next.js App Router
 │   ├── api/
-│   │   ├── ai-builder/          # Code generation endpoints
-│   │   ├── architect/           # Gemini layout generation
-│   │   ├── builder/             # Builder chat
-│   │   ├── wizard/              # Planning & phases
-│   │   ├── deploy/              # Deployment endpoints
-│   │   ├── railway/             # Railway integration
-│   │   ├── domains/             # Domain management
-│   │   ├── images/              # DALL-E generation
-│   │   ├── integrations/        # Third-party auth
-│   │   └── proxy/               # API proxies
-│   ├── login/, signup/          # Auth pages
+│   │   ├── layout/                   # Core API routes
+│   │   │   ├── pipeline/             # Titan Pipeline generation
+│   │   │   ├── chat/                 # OmniChat (Claude)
+│   │   │   ├── critique/             # Visual Critic
+│   │   │   ├── repair/               # Code repair
+│   │   │   ├── analyze/              # Media analysis
+│   │   │   └── screenshot/           # Puppeteer screenshots
+│   │   └── skills/                   # Skill Library CRUD
+│   │       ├── save/                 # Save new skills
+│   │       └── update-quality/       # Quality score updates
+│   ├── (protected)/                  # Auth-gated pages
 │   └── layout.tsx, page.tsx
 │
-├── components/                   # React components (168 files)
-│   ├── NaturalConversationWizard.tsx  # PLAN mode wizard
-│   ├── LayoutBuilderWizard.tsx        # Visual design mode
-│   ├── MainBuilderView.tsx            # ACT mode main view
-│   ├── layout-builder/          # Layout sub-components
-│   ├── conversation-wizard/     # Planning sub-components
-│   ├── build/                   # Build UI (phase controls, progress)
-│   ├── preview/                 # Preview components
-│   ├── review/                  # Code review UI
-│   ├── deployment/              # Deployment UI
-│   ├── dashboard/               # Dashboard views
-│   ├── modals/                  # Modal dialogs
-│   ├── storage/                 # File storage UI
-│   ├── documentation/           # Project docs UI
-│   ├── dev/                     # Developer tools
-│   └── ui/                      # Base UI components
+├── components/                       # React components (59 files)
+│   ├── LayoutBuilderView.tsx         # Main view orchestrator
+│   ├── interface/
+│   │   └── OmniChat.tsx              # Conversational AI interface
+│   ├── layout-builder/               # Canvas, renderers, chat panel
+│   │   ├── LayoutCanvas.tsx
+│   │   ├── DynamicLayoutRenderer.tsx
+│   │   ├── FloatingEditBubble.tsx
+│   │   └── ...
+│   ├── preview/                      # Device frames, console, touch sim
+│   ├── modals/                       # Project list, dialogs
+│   ├── marketing/                    # Landing page sections
+│   ├── review/                       # Diff viewer, review panels
+│   ├── storage/                      # File management UI
+│   ├── effects/                      # Visual effects, particles
+│   ├── dev/                          # Debug panel, element inspector
+│   ├── ui/                           # Base form components
+│   └── layout/                       # Drag-drop canvas
 │
-├── services/                    # Business logic (75 files)
-│   ├── DynamicPhaseGenerator.ts # Phase planning
-│   ├── PhaseExecutionManager.ts # Phase execution
-│   ├── CodeContextService.ts    # Smart context selection
-│   ├── CodeParser.ts            # AST analysis
-│   ├── CodeReviewService.ts     # Quality review
-│   ├── ArchitectService.ts      # Gemini layout generation
-│   ├── BuilderService.ts        # Layout refinement
-│   ├── DeploymentOrchestrator.ts# Multi-platform deployment
-│   └── analyzers/               # Code analyzers
+├── services/                         # Business logic (14 services)
+│   ├── TitanPipelineService.ts       # Router → Architect → Assembler
+│   ├── OmniChatService.ts            # Claude intent classification
+│   ├── WebContainerService.ts        # In-browser Node.js sandbox
+│   ├── SkillLibraryService.ts        # pgvector skill search/save
+│   ├── VisualCriticService.ts        # Screenshot quality scoring
+│   ├── EmbeddingService.ts           # OpenAI embedding generation
+│   ├── CodeRepairService.ts          # Auto-fix validation errors
+│   ├── ReactToHtmlService.ts         # React-to-HTML conversion
+│   ├── GeminiImageService.ts         # Gemini image analysis
+│   ├── GeminiLayoutService.ts        # Gemini layout generation
+│   ├── GoogleSearchService.ts        # Web search integration
+│   ├── DynamicWorkflowEngine.ts      # Autonomy workflow engine
+│   ├── MotionMapper.ts               # Animation mapping
+│   └── ProjectDatabase.ts            # Project persistence
 │
-├── hooks/                       # Custom hooks (39 files)
-│   ├── useDynamicBuildPhases.ts # Phase execution
-│   ├── useLayoutBuilder.ts      # Layout state
-│   ├── useGeminiLayoutState.ts  # Undo/redo, drafts
-│   ├── useCodeContext.ts        # Context integration
-│   ├── useVersionControl.ts     # Version history
-│   ├── useDeployment.ts         # Deployment workflows
-│   └── __tests__/               # Hook tests
+├── hooks/                            # Custom hooks (8)
+│   ├── useLayoutBuilder.ts           # Main pipeline orchestration
+│   ├── useProjectManager.ts          # Project save/load/switch
+│   ├── useElementInspector.ts        # Dev element inspection
+│   ├── useSettings.ts                # App settings
+│   ├── useStateInspector.ts          # Debug state exposure
+│   ├── useTheme.ts                   # Theme management
+│   ├── useToast.ts                   # Toast notifications
+│   └── index.ts                      # Barrel exports
 │
-├── store/                       # Zustand state
-│   └── useAppStore.ts           # Central store (8 slices)
+├── store/                            # Zustand stores (3)
+│   ├── useAppStore.ts                # Central application state
+│   ├── useChatStore.ts               # OmniChat messages
+│   └── useProjectStore.ts            # Project list
 │
-├── types/                       # TypeScript types (30+ files)
-│   ├── appConcept.ts            # App planning types
-│   ├── dynamicPhases.ts         # Phase system types
-│   ├── layoutDesign.ts          # Design system (41KB)
-│   ├── schema.ts                # Layout manifest
-│   └── architectureSpec.ts      # Backend architecture
+├── types/                            # TypeScript type definitions
+│   ├── titanPipeline.ts              # Pipeline types
+│   ├── skillLibrary.ts               # Skill Library types
+│   ├── visualCritic.ts               # Critic types
+│   ├── sandbox.ts                    # WebContainer types
+│   ├── autonomy.ts                   # Autonomy system types
+│   ├── layoutDesign.ts               # Design system types
+│   ├── project.ts                    # Project types
+│   └── ...                           # 36 type definition files
 │
-├── utils/                       # Utilities (67 files)
-│   ├── astModifier.ts           # AST code editing (61KB)
-│   ├── codeValidator.ts         # Syntax validation
-│   ├── contextCompression.ts    # Token compression
-│   ├── colorExtraction.ts       # Palette extraction
-│   └── applyDiff.ts             # Diff application
+├── utils/                            # Utility functions (13 files)
+│   ├── extractCode.ts                # Code extraction from AI output
+│   ├── extractDependencies.ts        # Dependency detection
+│   ├── geminiRetry.ts                # Gemini API retry logic
+│   ├── layoutConverter.ts            # Layout format conversion
+│   ├── layoutValidation.ts           # Layout validation
+│   └── ...
 │
-├── prompts/                     # AI system prompts
-│   ├── builder.ts               # Prompt composer
-│   ├── quality-standards.ts     # Quality rules
-│   └── full-app/                # Full-stack prompts
-│
-├── data/                        # Templates and presets
-├── contexts/                    # React Context providers
-├── agents/                      # AI agent implementations
-└── inngest/                     # Background job functions
+├── prompts/                          # AI system prompts
+├── data/                             # Templates and presets
+└── contexts/                         # React Context providers
 ```
 
 ---
 
-## API Endpoints
+## Services
 
-### AI Builder
+### TitanPipelineService
 
-| Endpoint                          | Method | Description                 |
-| --------------------------------- | ------ | --------------------------- |
-| `/api/ai-builder`                 | POST   | Single component generation |
-| `/api/ai-builder/full-app-stream` | POST   | Full app with SSE streaming |
-| `/api/ai-builder/modify`          | POST   | Surgical code modifications |
-| `/api/ai-builder/apply-diff`      | POST   | Apply diff changes          |
-| `/api/ai-builder/review`          | POST   | Code quality review         |
+Three-stage code generation engine:
 
-### Wizard & Planning
+- **Router** -- Analyzes request complexity, queries Skill Library for cached solutions, determines generation strategy
+- **Architect** -- Designs component structure, layout hierarchy, and responsive behavior
+- **Assembler** -- Produces final React + Tailwind CSS code with proper imports and exports
 
-| Endpoint                            | Method | Description            |
-| ----------------------------------- | ------ | ---------------------- |
-| `/api/wizard/chat`                  | POST   | Planning conversation  |
-| `/api/wizard/generate-phases`       | POST   | Dynamic phase planning |
-| `/api/wizard/generate-architecture` | POST   | Backend architecture   |
+### OmniChatService
 
-### Layout Builder
+Conversational AI powered by Claude Sonnet 4.5:
 
-| Endpoint                           | Method | Description              |
-| ---------------------------------- | ------ | ------------------------ |
-| `/api/architect/generate-manifest` | POST   | Gemini layout generation |
-| `/api/builder/chat`                | POST   | Layout refinement chat   |
-| `/api/builder/vibe`                | POST   | Vibe transformations     |
+- Intent classification (pipeline, autonomy, live-edit, none)
+- Context-aware responses with project state
+- Action dispatch to appropriate system
 
-### Deployment
+### WebContainerService
 
-| Endpoint                   | Method | Description         |
-| -------------------------- | ------ | ------------------- |
-| `/api/deploy/web`          | POST   | Web deployment      |
-| `/api/deploy/mobile`       | POST   | Mobile deployment   |
-| `/api/deploy/desktop`      | POST   | Desktop deployment  |
-| `/api/deploy/database`     | POST   | Database deployment |
-| `/api/railway/deploy`      | POST   | Railway deployment  |
-| `/api/railway/status/[id]` | GET    | Deployment status   |
+In-browser Node.js runtime for pre-preview validation:
 
-### Domains
+- Boots a WebContainer instance with package.json and dependencies
+- Runs esbuild to validate syntax and imports
+- Reports errors back for auto-repair via CodeRepairService
 
-| Endpoint                 | Method | Description        |
-| ------------------------ | ------ | ------------------ |
-| `/api/domains/search`    | GET    | Domain search      |
-| `/api/domains/check`     | GET    | Availability check |
-| `/api/domains/purchase`  | POST   | Domain purchase    |
-| `/api/domains/configure` | POST   | DNS configuration  |
+### SkillLibraryService
 
-### Images
+Long-term memory with pgvector semantic search:
 
-| Endpoint                          | Method | Description         |
-| --------------------------------- | ------ | ------------------- |
-| `/api/images/generate`            | POST   | DALL-E 3 generation |
-| `/api/images/generate-background` | POST   | Background patterns |
+- Generates embeddings via OpenAI `text-embedding-3-small` (1536 dimensions)
+- Cosine similarity search for relevant cached solutions
+- Quality score tracking updated by Visual Critic feedback
+- Stores validated code patterns for reuse
+
+### VisualCriticService
+
+Automated visual quality assessment:
+
+- Captures rendered output via Puppeteer screenshots
+- Gemini Flash analyzes layout, spacing, typography, color harmony
+- Returns structured quality score (1-10) with feedback
+- Updates Skill Library entries with quality data
 
 ---
 
-## Key Services
+## Hooks
 
-### DynamicPhaseGenerator
-
-Converts AppConcept into 2-25+ build phases:
-
-- **Feature Classification** - Assigns features to 19 domains (auth, database, ui-component, etc.)
-- **Complexity Scoring** - Simple/moderate/complex per feature
-- **Dependency Detection** - Builds dependency graph between phases
-- **Token Budget Management** - 16K-32K tokens per phase
-
-### PhaseExecutionManager
-
-Orchestrates phase execution with quality controls:
-
-- **Context Building** - Assembles code context, design tokens, architecture spec
-- **Streaming Execution** - Real-time SSE updates during generation
-- **Phase Integrity (P1-P9)** - File conflicts, type checking, snapshots, testing
-- **Quality Review** - Light (static) + comprehensive (AI) reviews
-
-### CodeContextService
-
-Intelligent file selection for AI context:
-
-- **Importance Scoring** - Prioritizes files by reusability and dependencies
-- **Multiple Representations** - Full code, signatures, types-only, summary
-- **Token Budgeting** - Stays within context window limits
-- **Dependency Hints** - Provides import relationships to AI
-
-### CodeParser (Tree-sitter)
-
-AST analysis for TypeScript/TSX:
-
-- **Export Extraction** - Functions, classes, types, interfaces
-- **Import Analysis** - Named, default, namespace imports
-- **Component Detection** - React components, hooks, props
-- **API Route Detection** - Next.js route handlers
-
----
-
-## Key Hooks
-
-| Hook                    | Purpose                       |
-| ----------------------- | ----------------------------- |
-| `useDynamicBuildPhases` | Phase execution orchestration |
-| `useLayoutBuilder`      | Layout design state           |
-| `useGeminiLayoutState`  | Undo/redo, draft management   |
-| `useCodeContext`        | Code context integration      |
-| `useVersionControl`     | Version history management    |
-| `useDeployment`         | Deployment workflows          |
-| `useChatSystem`         | Chat message handling         |
-| `useDraftPersistence`   | Auto-save & recovery          |
+| Hook                   | Purpose                                             |
+| ---------------------- | --------------------------------------------------- |
+| `useLayoutBuilder`     | Main pipeline orchestration -- triggers generation, manages state |
+| `useProjectManager`    | Project CRUD -- save, load, switch, create projects  |
+| `useElementInspector`  | Dev tool for inspecting rendered elements            |
+| `useSettings`          | Application settings management                     |
+| `useStateInspector`    | Debug state exposure to `window.__APP_STATE__`       |
+| `useTheme`             | Theme switching (light/dark)                         |
+| `useToast`             | Toast notification management                        |
 
 ---
 
@@ -456,10 +361,10 @@ AST analysis for TypeScript/TSX:
 ### Prerequisites
 
 - Node.js 18+
-- Anthropic API key (Claude)
-- Google AI API key (Gemini)
-- Supabase account
-- OpenAI API key (optional, for DALL-E)
+- Anthropic API key (Claude Sonnet 4.5)
+- Google AI API key (Gemini 3 Pro / Flash)
+- OpenAI API key (embeddings for Skill Library)
+- Supabase account with pgvector extension enabled
 
 ### Installation
 
@@ -477,22 +382,18 @@ npm install
 Create `.env.local`:
 
 ```env
-# Anthropic API (required)
+# Anthropic (required -- powers OmniChat)
 ANTHROPIC_API_KEY=your_anthropic_api_key
 
-# Google AI (required for layout builder)
+# Google AI (required -- powers Titan Pipeline, Visual Critic, Code Repair)
 GOOGLE_AI_API_KEY=your_google_ai_api_key
 
-# Supabase (required)
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-
-# OpenAI (optional - for DALL-E image generation)
+# OpenAI (required -- powers Skill Library embeddings)
 OPENAI_API_KEY=your_openai_api_key
 
-# App URL
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+# Supabase (required -- database, auth, storage, pgvector)
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 ### Run Development Server
@@ -503,84 +404,31 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000)
 
----
-
-## Configuration
-
-### Environment Variables
-
-| Variable                        | Required | Description                     |
-| ------------------------------- | -------- | ------------------------------- |
-| `ANTHROPIC_API_KEY`             | Yes      | Claude API key                  |
-| `GOOGLE_AI_API_KEY`             | Yes      | Gemini API key                  |
-| `NEXT_PUBLIC_SUPABASE_URL`      | Yes      | Supabase project URL            |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes      | Supabase anon key               |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Yes      | Supabase service role           |
-| `OPENAI_API_KEY`                | No       | For DALL-E images               |
-| `NEXT_PUBLIC_APP_URL`           | No       | App URL (defaults to localhost) |
-
 ### Debug Mode
 
 ```bash
-# Run with debug panels
+# Run with debug panels visible
 npm run dev:debug
 
 # Run with mock AI (no API calls)
 npm run dev:mock
 ```
 
-### Developer Tools
-
-When `NODE_ENV=development`:
-
-- **Element Inspector** - Click to select elements, generate Claude prompts
-- **State Inspector** - Expose app state to `window.__APP_STATE__`
-- **Debug Panel** - View API logs, token usage
-
 ---
 
-## Deployment
-
-### Railway
-
-1. Push to GitHub
-2. Create Railway project → Deploy from GitHub
-3. Add environment variables
-4. Update Supabase auth redirect URLs
-
-### Vercel
-
-1. Import repository to Vercel
-2. Add environment variables
-3. Deploy
-
-### Cloudflare Pages
-
-1. Connect repository to Cloudflare Pages
-2. Configure build settings:
-   - Build command: `npm run build`
-   - Output directory: `.next`
-3. Add environment variables
-
----
-
-## Testing
+## Development Commands
 
 ```bash
-# Run all tests
-npm run test:all
-
-# Unit tests
-npm run test:unit
-
-# Hook tests (JSDOM)
-npm run test:hooks
-
-# Service tests (Node)
-npm run test:services
-
-# Watch mode
-npm run test:watch
+npm run dev          # Start dev server (localhost:3000)
+npm run build        # Production build
+npm run lint         # ESLint check
+npm run lint:fix     # Auto-fix lint issues
+npm run format       # Prettier format
+npm run typecheck    # TypeScript type check
+npm test             # Run all tests
+npm run test:hooks   # Hook tests (JSDOM)
+npm run test:services # Service tests (Node)
+npm run test:watch   # Watch mode
 ```
 
 ---
@@ -603,14 +451,13 @@ Private repository. Contact the owner for licensing information.
 
 ## Acknowledgments
 
-- [Anthropic](https://anthropic.com/) - Claude AI
-- [Google AI](https://ai.google.dev/) - Gemini AI
-- [OpenAI](https://openai.com/) - DALL-E 3
-- [Supabase](https://supabase.com/) - Backend infrastructure
-- [Railway](https://railway.app/) - Deployment platform
-- [Vercel](https://vercel.com/) - Next.js framework
-- [CodeSandbox](https://codesandbox.io/) - Sandpack preview
+- [Anthropic](https://anthropic.com/) -- Claude AI
+- [Google AI](https://ai.google.dev/) -- Gemini AI
+- [OpenAI](https://openai.com/) -- Embeddings
+- [Supabase](https://supabase.com/) -- Database, Auth, pgvector
+- [StackBlitz](https://stackblitz.com/) -- WebContainer API
+- [CodeSandbox](https://codesandbox.io/) -- Sandpack preview
 
 ---
 
-**Built with Next.js, React, Claude AI, and Gemini AI**
+**Built with Next.js, React, Claude, Gemini, and a self-teaching Skill Library**

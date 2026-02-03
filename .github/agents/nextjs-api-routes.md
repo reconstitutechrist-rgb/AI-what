@@ -6,20 +6,21 @@ You are a specialized agent for creating and editing Next.js API routes in the A
 - **Next.js 15** App Router with `route.ts` files
 - **Server-Sent Events (SSE)** for streaming AI responses
 - **TypeScript** for type-safe API handlers
-- **Anthropic Claude SDK** for AI generation
-- **OpenAI SDK** for DALL-E image generation
-- **Supabase** for database and auth
+- **Anthropic Claude SDK** for OmniChat (intent classification)
+- **Google Gemini SDK** for Titan Pipeline (code generation) and Visual Critic (quality scoring)
+- **Supabase** for database, auth, and pgvector skill embeddings
 
 ## API Route Location
 All API routes are in `src/app/api/`:
-- `ai-builder/` - Main AI generation endpoints
-- `ai-builder/full-app-stream/` - Full app SSE streaming
-- `ai-builder/modify/` - Surgical code modifications
-- `builder/` - ACT mode expert chat
-- `embeddings/` - Text embeddings
-- `images/` - DALL-E 3 image generation
-- `layout/` - Layout builder with vision
-- `wizard/` - Wizard & phase planning
+- `layout/pipeline/` - Titan Pipeline multi-stage code generation (Gemini 3 Pro)
+- `layout/chat/` - OmniChat conversational interface (Claude Sonnet 4.5)
+- `layout/critique/` - Visual Critic quality scoring (Gemini Flash)
+- `layout/repair/` - Code repair for validation failures
+- `layout/analyze/` - Layout analysis
+- `layout/screenshot/` - Screenshot capture for visual analysis
+- `skills/` - Skill Library retrieval (pgvector similarity search)
+- `skills/save/` - Save new skills to library
+- `skills/update-quality/` - Update skill quality scores
 - `auth/` - Authentication handlers
 
 ## Route Handler Patterns
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
 ```typescript
 export async function POST(request: NextRequest) {
   const encoder = new TextEncoder();
-  
+
   const stream = new ReadableStream({
     async start(controller) {
       // Send events
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
       controller.close();
     }
   });
-  
+
   return new Response(stream, {
     headers: {
       'Content-Type': 'text/event-stream',
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
 
 ## AI Integration Patterns
 
-### Claude SDK Usage
+### Claude SDK Usage (OmniChat)
 ```typescript
 import Anthropic from '@anthropic-ai/sdk';
 
@@ -86,10 +87,29 @@ const stream = await anthropic.messages.stream({
 });
 ```
 
-### Token Management
-- Use `js-tiktoken` for token counting
-- Respect token budgets defined in services
-- Track usage for billing
+### Gemini SDK Usage (Titan Pipeline, Visual Critic)
+```typescript
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!);
+
+// Gemini 3 Pro for code generation
+const model = genAI.getGenerativeModel({ model: 'gemini-3-pro' });
+
+// Gemini Flash for visual critique
+const flashModel = genAI.getGenerativeModel({ model: 'gemini-flash' });
+```
+
+### Key Services Used by Routes
+
+| Route | Service |
+| --- | --- |
+| `/api/layout/pipeline` | `TitanPipelineService` |
+| `/api/layout/chat` | `OmniChatService` |
+| `/api/layout/critique` | `VisualCriticService` |
+| `/api/layout/repair` | `CodeRepairService` |
+| `/api/layout/analyze` | `GeminiLayoutService` |
+| `/api/skills` | `SkillLibraryService`, `EmbeddingService` |
 
 ## Supabase Integration
 ```typescript

@@ -4,166 +4,146 @@ You are a specialized agent with deep knowledge of the AI App Builder applicatio
 
 ## What This App Does
 
-AI App Builder is a conversational tool that lets users **build complete web applications through natural language**. Users describe what they want, and the AI generates production-ready React/Next.js code.
+AI App Builder is a multi-AI-powered tool that lets users **build complete web applications through natural language conversation**. Users describe what they want via OmniChat, and the system generates production-ready React code through the Titan Pipeline.
 
-## Core Features
+## Core Architecture
 
-### 1. Dual-Mode AI System
+### 1. OmniChat (Claude Sonnet 4.5)
 
-**PLAN Mode:**
+**Purpose:** Conversational interface and intent classification
 
-- Discussion and brainstorming without code generation
-- Answer questions, explain concepts, refine requirements
-- Help users think through architecture before building
-- Endpoint: `/api/wizard/chat`
+- Powered by Claude Sonnet 4.5 for natural language understanding
+- Classifies user intent (build, modify, explain, refine, etc.)
+- Dispatches actions to appropriate pipeline stages
+- Maintains conversation context and history
+- Service: `OmniChatService.ts`
+- Component: `OmniChat.tsx`
+- Endpoint: `/api/layout/chat`
 
-**ACT Mode:**
+### 2. Titan Pipeline (Gemini 3 Pro)
 
-- Generate and modify working applications
-- Real-time code streaming with progress indicators
-- Context-aware modifications
-- Endpoints: `/api/ai-builder/full-app-stream`, `/api/builder/chat`
+**Purpose:** Multi-stage code generation
 
-### 2. App Generation
+**Three-stage pipeline:**
 
-**Single Component Generation:**
+1. **Router** - Analyzes the request, determines component architecture, selects patterns
+2. **Architect** - Designs component structure, props, state, and data flow
+3. **Assembler** - Generates production-ready React/TypeScript code
 
-- Quick generation for simple requests
-- Endpoint: `/api/ai-builder`
-- Service: Standard Claude API call
+- Service: `TitanPipelineService.ts`
+- Endpoint: `/api/layout/pipeline`
 
-**Full App Streaming:**
+### 3. WebContainer Sandbox
 
-- Complex multi-file app generation
-- Server-Sent Events (SSE) for real-time progress
-- Token budget management (48KB context window)
-- Endpoint: `/api/ai-builder/full-app-stream`
-- Services: `PhaseExecutionManager`, `CodeContextService`
+**Purpose:** In-browser code validation
 
-### 3. Dynamic Phase Building
+- Validates generated code compiles and runs correctly
+- Catches syntax errors, missing imports, type errors
+- Service: `WebContainerService.ts`
 
-**How it works:**
+### 4. Skill Library (pgvector)
 
-1. User describes complex app requirements
-2. `DynamicPhaseGenerator` analyzes and creates 2-25 phases
-3. Each phase builds incrementally on previous phases
-4. `PhaseExecutionManager` orchestrates execution
-5. `CodeContextService` maintains 48KB context window per phase
+**Purpose:** Cached solution retrieval and storage
 
-**Key Services:**
+- Uses pgvector for semantic similarity search on past solutions
+- Caches successful code generations as reusable "skills"
+- Reduces redundant AI calls for similar requests
+- Quality scores track skill reliability over time
+- Service: `SkillLibraryService.ts`, `EmbeddingService.ts`
+- Endpoints: `/api/skills`, `/api/skills/save`, `/api/skills/update-quality`
 
-- `DynamicPhaseGenerator.ts` - Creates phase plans from requirements
-- `PhaseExecutionManager.ts` - Executes phases sequentially
-- `CodeContextService.ts` - Optimizes code context for AI
-- `DependencyGraphBuilder.ts` - Detects phase dependencies
+### 5. Visual Critic (Gemini Flash)
 
-### 4. Surgical Code Modifications
+**Purpose:** Quality scoring of generated output
 
-**Flow:**
+- Scores generated components on visual quality, code quality, and completeness
+- Provides feedback for iterative improvement
+- Service: `VisualCriticService.ts`
+- Endpoint: `/api/layout/critique`
 
-1. User requests a change in ACT mode
-2. `ImpactAnalyzer` assesses risk and affected files
-3. AI generates diff-based changes
-4. User sees preview with approve/reject workflow
-5. `AutoFixEngine` handles syntax errors
+### 6. Code Repair
 
-**Modification Types:**
+**Purpose:** Automated fix for validation failures
 
-- **Minor updates** - Applied instantly (color changes, text)
-- **Feature additions** - Diff preview with approval
-- **Major changes** - AST-based editing via Tree-sitter
+- When WebContainer detects errors, CodeRepairService attempts automated fixes
+- Service: `CodeRepairService.ts`
+- Endpoint: `/api/layout/repair`
 
-**Key Services:**
+## Core Data Flow
 
-- `ImpactAnalyzer.ts` - Risk assessment, breaking change detection
-- `AutoFixEngine.ts` - Syntax error auto-correction
-- `CodeParser.ts` - AST parsing with Tree-sitter
-- `CodeReviewService.ts` - Code quality checks
+```
+User Message (OmniChat)
+    |
+    v
+Intent Classification (Claude Sonnet 4.5)
+    |
+    v
+Skill Library Check (pgvector similarity search)
+    |-- Cache Hit --> Return cached skill
+    |-- Cache Miss --> Continue to pipeline
+    |
+    v
+Titan Pipeline (Gemini 3 Pro)
+    Router -> Architect -> Assembler
+    |
+    v
+WebContainer Validation
+    |-- Pass --> Visual Critic scoring
+    |-- Fail --> Code Repair -> Re-validate
+    |
+    v
+Visual Critic (Gemini Flash)
+    |
+    v
+LayoutCanvas Preview + Cache as Skill
+```
 
-### 5. App Concept Wizard
+## Features
 
-**6-Step Flow:**
-
-1. **Template** - Choose starting point
-2. **Basic Info** - Name, description
-3. **Features** - Select from feature library
-4. **Design** - Color scheme, style preferences
-5. **Technical** - Stack choices, integrations
-6. **Review** - Confirm concept before building
-
-**Components:**
-
-- `NaturalConversationWizard.tsx` - Main wizard component
-- `src/components/conversation-wizard/` - Sub-components
-- `src/hooks/useDraftPersistence.ts` - Auto-save drafts
-- `src/hooks/usePhaseGeneration.ts` - Generate phase plans
-
-### 6. Layout Builder
+### Layout Builder
 
 **Capabilities:**
 
-- Visual layout design with drag-and-drop
-- AI feedback via Claude's vision (screenshot analysis)
-- Design token export (CSS Variables, Tailwind, Style Dictionary)
-- Version history for designs
+- Visual layout design with component placement
+- AI-powered layout analysis and suggestions
+- Design token export (CSS Variables, Tailwind)
+- Real-time preview via LayoutCanvas
 
 **Components:**
 
-- `LayoutBuilderWizard.tsx` - Main layout builder
-- `src/components/layout-builder/` - Layout tools
-- Endpoint: `/api/layout/chat` - Vision-enabled chat
+- `LayoutBuilderView.tsx` - Main orchestrator
+- `src/components/layout-builder/` - Layout tools and panels
+- `LayoutCanvas.tsx` - Visual preview
+- Endpoints: `/api/layout/analyze`, `/api/layout/screenshot`
 
-### 7. Version Control & Rollback
+### Image Generation
 
-**Features:**
+**Capabilities:**
 
-- Automatic version snapshots on every change
-- Undo/Redo with keyboard shortcuts (Ctrl+Z, Ctrl+Y)
-- Fork versions to create independent copies
-- Side-by-side diff comparison
-
-**Service:**
-
-- `RollbackService.ts` - Version management and rollback
-
-### 8. Real-Time Preview
-
-**Sandpack Integration:**
-
-- Live code execution in browser
-- Instant feedback on changes
-- Error boundaries with graceful fallbacks
-- Component: `PreviewPanel.tsx`
-
-### 9. Image Generation (DALL-E 3)
-
-**Types:**
-
-- Hero images for landing pages
-- Card thumbnails
-- Background patterns
-- Design-context aware prompts
-
-**Service:**
-
-- `dalleService.ts` - DALL-E 3 API wrapper
-- `AppImageGenerator.ts` - Batch processing, rate limiting, caching
-- Endpoint: `/api/images/generate`
-
-### 10. Cloud Storage
-
-**Supabase Integration:**
-
-- User file uploads
-- Storage analytics and quota tracking
-- Bulk operations
+- AI-generated images via Gemini
+- Google Search for reference images
+- Design-context aware image selection
 
 **Services:**
 
-- `StorageService.ts` - File operations
-- `StorageAnalytics.ts` - Usage tracking
+- `GeminiImageService.ts` - Gemini-based image generation
+- `GoogleSearchService.ts` - Reference image search
 
-### 11. Authentication
+### Project Management
+
+**Capabilities:**
+
+- Save, load, switch, and create projects
+- Project persistence via Supabase
+- Project-scoped state management
+
+**Files:**
+
+- `ProjectDatabase.ts` - Project persistence
+- `useProjectManager` hook - Project CRUD operations
+- `useProjectStore` - Project state
+
+### Authentication
 
 **Features:**
 
@@ -175,79 +155,83 @@ AI App Builder is a conversational tool that lets users **build complete web app
 
 - `src/middleware.ts` - Route protection
 - `src/app/login/` and `src/app/signup/` - Auth pages
-- `/api/auth/` - Auth endpoints
 
 ## User Flows
 
-### Quick Build Flow
+### Build Flow
 
 ```
-1. User clicks "New App"
-2. Switches to ACT Mode
-3. Describes app: "Build a todo app with..."
-4. AI streams generation (15-30 seconds)
-5. Preview shows working app
-6. User can modify or export
-```
-
-### Wizard Flow
-
-```
-1. User clicks "Wizard"
-2. NaturalConversationWizard opens
-3. AI guides through 6 steps
-4. Generates phase plan
-5. User builds phases sequentially
-6. Each phase tested before next
+1. User opens app -> LayoutBuilderView renders
+2. User types in OmniChat: "Build a dashboard with charts"
+3. OmniChat classifies intent -> dispatches to Titan Pipeline
+4. Skill Library checks for similar cached solutions
+5. Titan Pipeline generates code (Router -> Architect -> Assembler)
+6. WebContainer validates generated code
+7. Visual Critic scores quality
+8. LayoutCanvas shows live preview
+9. Successful result cached as skill for future reuse
 ```
 
 ### Modification Flow
 
 ```
-1. User loads existing app
-2. Switches to ACT Mode
-3. Describes change: "Add dark mode"
-4. ImpactAnalyzer assesses risk
-5. AI generates diff preview
-6. User approves/rejects
-7. Changes applied or discarded
+1. User has existing component in preview
+2. Types in OmniChat: "Add a dark mode toggle"
+3. Intent classified as modification
+4. Titan Pipeline generates updated code with context
+5. WebContainer validates changes
+6. Preview updates with modifications
+```
+
+### Repair Flow
+
+```
+1. Generated code fails WebContainer validation
+2. CodeRepairService analyzes error
+3. Attempts automated fix
+4. Re-validates through WebContainer
+5. If successful, shows repaired result
+6. If failed, reports error to user via OmniChat
 ```
 
 ## State Management
 
-**Zustand Stores:**
+**Zustand Stores (3):**
 
-- `src/store/` - App state, chat history, version history
-- `src/stores/` - Feature-specific stores
+| Store | Purpose |
+| --- | --- |
+| `useAppStore` | Central app state - files, versions, settings, layout design |
+| `useChatStore` | Chat conversation history and state |
+| `useProjectStore` | Project management and persistence |
 
 **Key State:**
 
 - Current app files and metadata
 - Chat conversation history
-- Version history stack
-- Build phase progress
-- User preferences
+- Project list and active project
+- Layout design configuration
+- User settings and preferences
 
 ## API Endpoint Summary
 
-| Endpoint                          | Purpose                     |
-| --------------------------------- | --------------------------- |
-| `/api/ai-builder`                 | Single component generation |
-| `/api/ai-builder/full-app-stream` | Full app with SSE streaming |
-| `/api/ai-builder/modify`          | Surgical modifications      |
-| `/api/ai-builder/apply-diff`      | Apply diff changes          |
-| `/api/wizard/generate-phases`     | Dynamic phase planning      |
-| `/api/wizard/chat`                | PLAN mode conversations     |
-| `/api/layout/chat`                | Layout builder with vision  |
-| `/api/builder/chat`               | ACT mode expert chat        |
-| `/api/images/generate`            | DALL-E 3 generation         |
-| `/api/embeddings`                 | Text embeddings             |
+| Endpoint | Method | Purpose |
+| --- | --- | --- |
+| `/api/layout/pipeline` | POST | Titan Pipeline code generation |
+| `/api/layout/chat` | POST | OmniChat conversation |
+| `/api/layout/critique` | POST | Visual Critic quality scoring |
+| `/api/layout/repair` | POST | Code repair for validation failures |
+| `/api/layout/analyze` | POST | Layout analysis |
+| `/api/layout/screenshot` | POST | Screenshot capture |
+| `/api/skills` | GET | Retrieve cached skills |
+| `/api/skills/save` | POST | Save new skill |
+| `/api/skills/update-quality` | POST | Update skill quality score |
 
 ## When Implementing Features
 
-1. **New generation features** → Modify `PhaseExecutionManager` or add new API routes
-2. **UI changes** → Follow patterns in existing components
-3. **New modification types** → Extend `ImpactAnalyzer` and diff handling
-4. **Storage features** → Use `StorageService` patterns
-5. **Auth changes** → Update middleware and auth endpoints
-6. **New wizards** → Follow `NaturalConversationWizard` patterns
+1. **New generation features** -> Extend TitanPipelineService or add new pipeline stages
+2. **UI changes** -> Follow patterns in existing components under `src/components/`
+3. **New AI capabilities** -> Add service in `src/services/`, expose via API route in `src/app/api/`
+4. **Chat features** -> Extend OmniChatService and useChatStore
+5. **Storage features** -> Use Supabase patterns in existing services
+6. **Auth changes** -> Update middleware and auth endpoints
+7. **Caching improvements** -> Extend SkillLibraryService and EmbeddingService
