@@ -487,9 +487,18 @@ export function parseAutonomyOutput(output: string): AppFile[] {
   // Split output by file markers
   const files: AppFile[] = [];
   for (let i = 0; i < matches.length; i++) {
-    const path = matches[i][1];
-    const startIndex = matches[i].index! + matches[i][0].length;
-    const endIndex = i < matches.length - 1 ? matches[i + 1].index! : output.length;
+    const match = matches[i];
+    const path = match[1];
+    const matchIndex = match.index;
+    
+    if (matchIndex === undefined) {
+      console.warn('[TitanPipeline] Regex match missing index, skipping file');
+      continue;
+    }
+    
+    const startIndex = matchIndex + match[0].length;
+    const nextMatchIndex = i < matches.length - 1 ? matches[i + 1].index : undefined;
+    const endIndex = nextMatchIndex !== undefined ? nextMatchIndex : output.length;
     const content = extractCode(output.slice(startIndex, endIndex));
 
     if (content.length > 0) {

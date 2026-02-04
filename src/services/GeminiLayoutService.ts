@@ -15,7 +15,7 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { withGeminiRetry } from '@/utils/geminiRetry';
-import { DetectedComponentEnhanced, PageAnalysis, LayoutStructure } from '@/types/layoutDesign';
+import { DetectedComponentEnhanced } from '@/types/layoutDesign';
 import {
   sanitizeComponents,
   inferContainerLayouts,

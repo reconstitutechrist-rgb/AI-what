@@ -436,11 +436,16 @@ class WebContainerServiceInstance {
           return { output: 'WebContainer not supported in this environment', exitCode: 1 };
         }
         await this.boot();
+        
+        // Verify container is now available after boot
+        if (!this.container) {
+          return { output: 'WebContainer failed to boot', exitCode: 1 };
+        }
       }
 
       this._status = 'running';
       try {
-          const result = await this.runCommand(this.container!, cmd, args, timeout);
+          const result = await this.runCommand(this.container, cmd, args, timeout);
           const output = result.stdout + (result.stderr ? `\nERR: ${result.stderr}` : '');
 
           this._status = 'ready';

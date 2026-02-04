@@ -79,7 +79,11 @@ class DependencyGraphServiceInstance {
       if (!this.isCodeFile(file.path)) continue;
 
       const importSources = this.extractImports(file.content);
-      const node = nodes.get(file.path)!;
+      const node = nodes.get(file.path);
+      if (!node) {
+        console.warn(`[DependencyGraph] Node not found for file: ${file.path}`);
+        continue;
+      }
 
       for (const source of importSources) {
         // Resolve the import source to an actual file path
@@ -121,8 +125,8 @@ class DependencyGraphServiceInstance {
     const impacted: string[] = [];
 
     while (queue.length > 0) {
-      const current = queue.shift()!;
-      if (visited.has(current)) continue;
+      const current = queue.shift();
+      if (!current || visited.has(current)) continue;
       visited.add(current);
 
       const node = nodes.get(current);
@@ -153,8 +157,8 @@ class DependencyGraphServiceInstance {
     const queue = [...entryPoints];
 
     while (queue.length > 0) {
-      const current = queue.shift()!;
-      if (visited.has(current)) continue;
+      const current = queue.shift();
+      if (!current || visited.has(current)) continue;
       visited.add(current);
 
       const node = graph.nodes.get(current);

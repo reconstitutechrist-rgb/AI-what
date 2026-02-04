@@ -353,9 +353,9 @@ export function domTreeToComponents(
 
     // Process children
     const childIds: string[] = [];
-    if (hasChildren) {
-      const childCount = node.children!.length;
-      node.children!.forEach((child, childIndex) => {
+    if (hasChildren && node.children) {
+      const childCount = node.children.length;
+      node.children.forEach((child, childIndex) => {
         // Re-estimate with correct sibling count
         const childBounds = estimateChildBounds(
           bounds,
