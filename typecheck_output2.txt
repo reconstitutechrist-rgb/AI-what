@@ -1,0 +1,27 @@
+
+> personal-ai-app-builder@0.1.0 typecheck
+> tsc --noEmit
+
+src/components/effects/CSSParticleEffect.tsx(13,15): error TS2305: Module '"@/types/layoutDesign"' has no exported member 'VisualEffect'.
+src/components/effects/VisualEffectRenderer.tsx(17,15): error TS2305: Module '"@/types/layoutDesign"' has no exported member 'VisualEffect'.
+src/components/layout-builder/DynamicLayoutRenderer.tsx(15,10): error TS2305: Module '"@/types/layoutDesign"' has no exported member 'DetectedComponentEnhanced'.
+src/components/layout-builder/GenericComponentRenderer.tsx(17,10): error TS2305: Module '"@/types/layoutDesign"' has no exported member 'DetectedComponentEnhanced'.
+src/components/layout-builder/GenericComponentRenderer.tsx(457,26): error TS7006: Parameter 'childId' implicitly has an 'any' type.
+src/components/layout-builder/KeyframeInjector.tsx(14,10): error TS2305: Module '"@/types/layoutDesign"' has no exported member 'DetectedComponentEnhanced'.
+src/services/GeminiLayoutService.ts(18,10): error TS2305: Module '"@/types/layoutDesign"' has no exported member 'DetectedComponentEnhanced'.
+src/services/LayoutAutoFixEngine.ts(9,15): error TS2305: Module '"@/types/layoutDesign"' has no exported member 'DetectedComponentEnhanced'.
+src/services/MotionMapper.ts(15,15): error TS2305: Module '"@/types/layoutDesign"' has no exported member 'DetectedComponentEnhanced'.
+src/services/MotionMapper.ts(15,42): error TS2305: Module '"@/types/layoutDesign"' has no exported member 'VisualEffect'.
+src/services/TitanPipelineService.ts(640,57): error TS2694: Namespace '"C:/Users/willi/OneDrive/Apps/This/AI-what/src/types/layoutDesign"' has no exported member 'DetectedComponentEnhanced'.
+src/services/VisionLoopEngine.ts(18,15): error TS2305: Module '"@/types/layoutDesign"' has no exported member 'DetectedComponentEnhanced'.
+src/types/appConcept.ts(5,15): error TS2305: Module '"./layoutDesign"' has no exported member 'LayoutDesign'.
+src/types/layoutAnalysis.ts(9,15): error TS2305: Module '"./layoutDesign"' has no exported member 'DetectedComponentEnhanced'.
+src/types/layoutDesign/detectedComponent.ts(225,10): error TS1205: Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.
+src/types/mediaSource.ts(10,15): error TS2305: Module '"@/types/layoutDesign"' has no exported member 'DetectedComponentEnhanced'.
+src/utils/componentsToReactCode.ts(9,15): error TS2305: Module '"@/types/layoutDesign"' has no exported member 'DetectedComponentEnhanced'.
+src/utils/domTreeToComponents.ts(10,15): error TS2305: Module '"@/types/layoutDesign"' has no exported member 'DetectedComponentEnhanced'.
+src/utils/layoutConverter.ts(1,10): error TS2305: Module '"@/types/layoutDesign"' has no exported member 'DetectedComponentEnhanced'.
+src/utils/layoutConverter.ts(73,33): error TS7006: Parameter 'childId' implicitly has an 'any' type.
+src/utils/layoutValidation.ts(14,15): error TS2305: Module '"@/types/layoutDesign"' has no exported member 'DetectedComponentEnhanced'.
+src/utils/layoutValidation.ts(823,15): error TS7006: Parameter 'id' implicitly has an 'any' type.
+src/utils/layoutValidation.ts(824,18): error TS7006: Parameter 'c' implicitly has an 'any' type.

@@ -1,0 +1,9 @@
+
+> personal-ai-app-builder@0.1.0 typecheck
+> tsc --noEmit
+
+src/services/MotionMapper.ts(282,13): error TS2353: Object literal may only specify known properties, and 'trigger' does not exist in type 'VisualEffect'.
+src/services/MotionMapper.ts(299,13): error TS2353: Object literal may only specify known properties, and 'trigger' does not exist in type 'VisualEffect'.
+src/services/MotionMapper.ts(312,13): error TS2353: Object literal may only specify known properties, and 'trigger' does not exist in type 'VisualEffect'.
+src/services/MotionMapper.ts(325,13): error TS2353: Object literal may only specify known properties, and 'trigger' does not exist in type 'VisualEffect'.
+src/services/MotionMapper.ts(338,13): error TS2353: Object literal may only specify known properties, and 'trigger' does not exist in type 'VisualEffect'.

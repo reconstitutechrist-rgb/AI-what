@@ -1,0 +1,18 @@
+
+> personal-ai-app-builder@0.1.0 typecheck
+> tsc --noEmit
+
+src/components/effects/VisualEffectRenderer.tsx(39,12): error TS2367: This comparison appears to be unintentional because the types '"particles" | "canvas" | "lottie" | "custom" | "css-animation"' and '"particle-system"' have no overlap.
+src/components/effects/VisualEffectRenderer.tsx(39,44): error TS2367: This comparison appears to be unintentional because the types '"particles" | "canvas" | "lottie" | "custom" | "css-animation"' and '"canvas-effect"' have no overlap.
+src/components/effects/VisualEffectRenderer.tsx(54,13): error TS2367: This comparison appears to be unintentional because the types '"particles" | "canvas" | "lottie" | "custom" | "css-animation"' and '"particle-system"' have no overlap.
+src/components/effects/VisualEffectRenderer.tsx(59,45): error TS2339: Property 'colors' does not exist on type '{ count?: number | undefined; size?: { min: number; max: number; } | undefined; opacity?: { start: number; end: number; } | undefined; speed?: "slow" | "medium" | "fast" | undefined; direction?: "left" | ... 5 more ... | undefined; shape?: "circle" | ... 2 more ... | undefined; }'.
+src/components/effects/VisualEffectRenderer.tsx(66,13): error TS2367: This comparison appears to be unintentional because the types '"particles" | "canvas" | "lottie" | "custom" | "css-animation"' and '"canvas-effect"' have no overlap.
+src/components/layout-builder/KeyframeInjector.tsx(165,22): error TS2339: Property 'cssKeyframes' does not exist on type 'VisualEffect'.
+src/components/layout-builder/KeyframeInjector.tsx(167,65): error TS2339: Property 'description' does not exist on type 'VisualEffect'.
+src/components/layout-builder/KeyframeInjector.tsx(170,71): error TS2339: Property 'cssKeyframes' does not exist on type 'VisualEffect'.
+src/services/MotionMapper.ts(281,13): error TS2322: Type '"particle-system"' is not assignable to type '"particles" | "canvas" | "lottie" | "custom" | "css-animation"'.
+src/services/MotionMapper.ts(286,15): error TS2353: Object literal may only specify known properties, and 'colors' does not exist in type '{ count?: number | undefined; size?: { min: number; max: number; } | undefined; opacity?: { start: number; end: number; } | undefined; speed?: "slow" | "medium" | "fast" | undefined; direction?: "left" | ... 5 more ... | undefined; shape?: "circle" | ... 2 more ... | undefined; }'.
+src/services/MotionMapper.ts(297,13): error TS2353: Object literal may only specify known properties, and 'description' does not exist in type 'VisualEffect'.
+src/services/MotionMapper.ts(310,13): error TS2353: Object literal may only specify known properties, and 'description' does not exist in type 'VisualEffect'.
+src/services/MotionMapper.ts(323,13): error TS2353: Object literal may only specify known properties, and 'description' does not exist in type 'VisualEffect'.
+src/services/MotionMapper.ts(336,13): error TS2353: Object literal may only specify known properties, and 'description' does not exist in type 'VisualEffect'.

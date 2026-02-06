@@ -1,0 +1,8 @@
+src/services/geminiLayout/critique.ts(213,7): error TS2353: Object literal may only specify known properties, and 'overallFidelityScore' does not exist in type 'LayoutCritiqueEnhanced'.
+src/services/geminiLayout/critique.ts(213,38): error TS2339: Property 'overallFidelityScore' does not exist on type 'LayoutCritiqueEnhanced'.
+src/services/geminiLayout/critique.ts(215,32): error TS2339: Property 'criticalIssues' does not exist on type 'LayoutCritiqueEnhanced'.
+src/services/geminiLayout/critique.ts(216,29): error TS2339: Property 'minorIssues' does not exist on type 'LayoutCritiqueEnhanced'.
+src/services/geminiLayout/critique.ts(217,29): error TS2339: Property 'autoFixable' does not exist on type 'LayoutCritiqueEnhanced'.
+src/services/geminiLayout/critique.ts(218,38): error TS2339: Property 'requiresManualReview' does not exist on type 'LayoutCritiqueEnhanced'.
+src/services/geminiLayout/critique.ts(219,25): error TS2339: Property 'summary' does not exist on type 'LayoutCritiqueEnhanced'.
+src/services/geminiLayout/critique.ts(224,7): error TS2353: Object literal may only specify known properties, and 'overallFidelityScore' does not exist in type 'LayoutCritiqueEnhanced'.
