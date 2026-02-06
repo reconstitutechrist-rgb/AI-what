@@ -14,6 +14,8 @@
 import JSZip from 'jszip';
 import type { FileSystemTree, DirectoryNode, FileNode } from '@webcontainer/api';
 import type { AppFile } from '@/types/railway';
+import type { RepoContext } from '@/types/titanPipeline';
+import { getRepoAnalyst } from '@/services/titanPipeline';
 
 // ============================================================================
 // CONFIGURATION
@@ -176,6 +178,98 @@ class RepoLoaderServiceInstance {
     }
 
     return files;
+  }
+
+  // ==========================================================================
+  // EAGER ANALYSIS (Ultimate Developer Mode)
+  // ==========================================================================
+
+  /** Cached analysis results by repo URL */
+  private analysisCache = new Map<string, RepoContext>();
+  /** In-progress analysis promises by repo URL */
+  private analysisInProgress = new Map<string, Promise<RepoContext>>();
+
+  /**
+   * Load a repo AND trigger background analysis for "Ultimate Developer" mode.
+   * Analysis runs in the background and caches the result.
+   *
+   * @returns FileSystemTree immediately; analysis continues in background
+   */
+  async loadRepoWithAnalysis(
+    repoUrl: string,
+    token?: string,
+    branch: string = 'main'
+  ): Promise<{ tree: FileSystemTree; analysisPromise: Promise<RepoContext> }> {
+    // Load the repo first (blocking)
+    const tree = await this.loadRepo(repoUrl, token, branch);
+
+    // Start analysis in background (non-blocking)
+    const cacheKey = `${repoUrl}@${branch}`;
+    const analysisPromise = this.analyzeInBackground(tree, cacheKey);
+
+    return { tree, analysisPromise };
+  }
+
+  /**
+   * Run analysis in the background and cache the result.
+   */
+  private async analyzeInBackground(tree: FileSystemTree, cacheKey: string): Promise<RepoContext> {
+    // Check cache first
+    const cached = this.analysisCache.get(cacheKey);
+    if (cached) {
+      console.log(`[RepoLoader] Using cached analysis for ${cacheKey}`);
+      return cached;
+    }
+
+    // Check if analysis is already in progress
+    const inProgress = this.analysisInProgress.get(cacheKey);
+    if (inProgress) {
+      console.log(`[RepoLoader] Analysis already in progress for ${cacheKey}`);
+      return inProgress;
+    }
+
+    // Start new analysis
+    console.log(`[RepoLoader] Starting background analysis for ${cacheKey}...`);
+    const analysisPromise = (async () => {
+      try {
+        const files = this.treeToAppFiles(tree);
+        const analyst = getRepoAnalyst();
+        const context = await analyst.analyzeRepo(files);
+
+        // Cache the result
+        this.analysisCache.set(cacheKey, context);
+        console.log(`[RepoLoader] Analysis complete for ${cacheKey}`);
+
+        return context;
+      } finally {
+        // Clean up in-progress tracker
+        this.analysisInProgress.delete(cacheKey);
+      }
+    })();
+
+    this.analysisInProgress.set(cacheKey, analysisPromise);
+    return analysisPromise;
+  }
+
+  /**
+   * Get cached analysis result if available.
+   */
+  getCachedAnalysis(repoUrl: string, branch: string = 'main'): RepoContext | undefined {
+    return this.analysisCache.get(`${repoUrl}@${branch}`);
+  }
+
+  /**
+   * Check if analysis is currently running for a repo.
+   */
+  isAnalyzing(repoUrl: string, branch: string = 'main'): boolean {
+    return this.analysisInProgress.has(`${repoUrl}@${branch}`);
+  }
+
+  /**
+   * Clear cached analysis for a repo (e.g., after changes are pushed).
+   */
+  invalidateAnalysis(repoUrl: string, branch: string = 'main'): void {
+    this.analysisCache.delete(`${repoUrl}@${branch}`);
   }
 
   /**

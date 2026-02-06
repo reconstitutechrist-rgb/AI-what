@@ -34,7 +34,9 @@ export async function POST(request: NextRequest) {
     const critique = await critic.evaluate(
       body.files,
       body.originalInstructions,
-      body.appContext
+      body.appContext,
+      undefined,
+      body.is3D
     );
 
     const response: CritiqueResponse = {

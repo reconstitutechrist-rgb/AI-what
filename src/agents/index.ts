@@ -44,3 +44,7 @@ export type {
 // Agents
 export { DeploymentAgent, createDeploymentAgent } from './DeploymentAgent';
 export { CodeTransformAgent, createCodeTransformAgent } from './CodeTransformAgent';
+
+// Verified Autonomy Agents
+export { getClarificationAgent } from './ClarificationAgent';
+export type { ClarificationAnalysis, ClarificationQuestion, ClarificationResponse } from './ClarificationAgent';

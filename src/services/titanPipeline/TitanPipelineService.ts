@@ -100,6 +100,11 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     (async () => {
       if (strategy.execution_plan.generate_assets) {
         for (const asset of strategy.execution_plan.generate_assets) {
+          // Skip HDRI/environment assets — not supported by image generator yet
+          // Builder uses drei Environment presets instead
+          if (asset.type === 'hdri' || asset.type === 'environment') {
+            continue;
+          }
           try {
             const result = await geminiImageService.generateBackgroundFromReference({
               vibe: asset.vibe || 'photorealistic',
@@ -155,7 +160,8 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     strategy,
     input.currentCode,
     input.instructions,
-    generatedAssets
+    generatedAssets,
+    input.repoContext
   );
   stepTimings.builder = Date.now() - buildStart;
 
@@ -209,7 +215,8 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
             strategy,
             input.currentCode,
             `${input.instructions}\n\n${critiqueContext}`,
-            generatedAssets
+            generatedAssets,
+            input.repoContext
           );
         },
       });

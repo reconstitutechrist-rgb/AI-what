@@ -53,6 +53,8 @@ export const CURATED_VERSIONS = {
   '@react-three/fiber': '^8.17.0',
   '@react-three/drei': '^9.117.0',
   '@react-three/postprocessing': '^2.16.0',
+  '@react-three/rapier': '^2.0.0',
+  '@dimforge/rapier3d-compat': '^0.14.0',
 
   // Animation
   'framer-motion': '^11.11.0',

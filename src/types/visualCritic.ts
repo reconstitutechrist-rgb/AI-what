@@ -32,7 +32,21 @@ export type CritiqueVerdict = 'accept' | 'needs_improvement' | 'regenerate';
 /** A specific visual issue identified by the critic */
 export interface VisualIssue {
   /** Category of the issue */
-  category: 'layout' | 'styling' | 'content' | 'responsiveness' | 'completeness' | 'accessibility';
+  category:
+    | 'layout'
+    | 'styling'
+    | 'content'
+    | 'responsiveness'
+    | 'completeness'
+    | 'accessibility'
+    | 'lighting'
+    | 'materials'
+    | 'geometry'
+    | 'camera'
+    | 'performance'
+    | 'physics'
+    | 'terrain'
+    | 'environment';
   /** Severity level */
   severity: 'minor' | 'moderate' | 'major';
   /** Human-readable description */
@@ -74,6 +88,8 @@ export interface CritiqueRequest {
     colorScheme?: string;
     style?: string;
   };
+  /** Whether the output contains 3D content (auto-detected from imports) */
+  is3D?: boolean;
 }
 
 /** Response from POST /api/layout/critique */

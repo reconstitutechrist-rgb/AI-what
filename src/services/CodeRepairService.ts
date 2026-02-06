@@ -25,7 +25,13 @@ const REPAIR_SYSTEM_INSTRUCTION =
   'You are a code repair specialist. You receive broken TypeScript/React code ' +
   'along with specific error messages. Your ONLY job is to fix the errors ' +
   'while preserving as much of the original code as possible. ' +
-  'Output ONLY the complete, fixed code file. No explanations, no markdown fences.';
+  '\n\nCommon React Three Fiber / 3D errors:\n' +
+  '- Missing imports: Add @react-three/fiber, @react-three/drei, @react-three/rapier as needed\n' +
+  '- THREE namespace: Import * as THREE from "three" for THREE.Mesh, THREE.Vector3, etc.\n' +
+  '- Physics errors: Wrap physics objects in <Physics> component, RigidBody must have mesh children\n' +
+  '- useGLTF errors: Import from @react-three/drei, use useGLTF.preload for static URLs\n' +
+  '- PointerLockControls: Import from @react-three/drei, must be inside <Canvas> but outside <Physics>\n' +
+  '\nOutput ONLY the complete, fixed code file. No explanations, no markdown fences.';
 
 function getApiKey(): string {
   const key = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;

@@ -29,6 +29,7 @@ export { buildStructure } from './architect';
 export { extractPhysics } from './physicist';
 export { assembleCode } from './builder';
 export { liveEdit } from './liveEditor';
+export { getRepoAnalyst } from './analyst';
 
 // Import the class to create the singleton
 import { TitanPipelineServiceInstance } from './TitanPipelineService';

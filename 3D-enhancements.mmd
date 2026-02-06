@@ -1,0 +1,207 @@
+# Plan: High-Quality 3D Graphics Support
+
+## Goal
+Enable the AI app builder to produce high-quality 3D visuals via React Three Fiber, starting with product visualization and extending to interactive virtual worlds. 3D requests continue routing through **autonomy mode** (no routing changes), but we enhance the system with 3D-specific knowledge, types, quality evaluation, and infrastructure so autonomy produces better results.
+
+## Strategy
+- **No routing changes** — 3D stays in autonomy mode (OmniChat + Router unchanged)
+- **Enhance autonomy's 3D knowledge** via prompts, types, and examples
+- **Add 3D quality evaluation** so the Visual Critic can properly score 3D output
+- **Increase timeouts** for Three.js bundle compilation
+- **Phase 1**: Product visualization (PBR, studio lighting, orbit controls)
+- **Phase 2** (follow-up): Interactive worlds (physics, terrain, first-person controls)
+
+---
+
+## Changes (6 files modified, 1 new file)
+
+### 1. NEW: `src/types/layoutDesign/scene3d.ts` (~120 lines)
+
+3D scene type definitions for use across the system. Even though autonomy generates freeform code, having these types documented helps the AI understand what good 3D output looks like when referenced in prompts.
+
+```
+Scene3DConfig       - renderer, camera, controls config
+Light3D             - ambient, directional, point, spot, hemisphere
+Material3D          - PBR properties (metalness, roughness, envMap, maps)
+Object3D            - mesh geometry + material + transform
+PostProcessing3D    - bloom, SSAO, DOF, chromatic aberration
+Scene3DDefinition   - top-level scene combining all above
+```
+
+**Risk**: NONE (new file, zero dependencies)
+
+---
+
+### 2. MODIFY: `src/types/titanPipeline.ts` (~10 lines added)
+
+Add optional `enable_3d` flag and `type` to asset generation so the pipeline can signal 3D context even from autonomy mode.
+
+- Line 190: Add `| 'hdri' | 'environment'` to `generate_assets[].type`
+- Line 192: Add `enable_3d?: boolean` to `execution_plan`
+
+**Risk**: VERY LOW (optional fields, no breaking changes)
+
+---
+
+### 3. MODIFY: `src/types/visualCritic.ts` (~5 lines added)
+
+Extend `VisualIssue.category` union type with 3D categories.
+
+- Line 35: Add `| 'lighting' | 'materials' | 'geometry' | 'camera' | 'performance'`
+
+And add `is3D?: boolean` to `CritiqueRequest` interface so the API can pass the flag.
+
+**Risk**: VERY LOW (union extension, backward compatible)
+
+---
+
+### 4. MODIFY: `src/services/VisualCriticService.ts` (~50 lines added)
+
+Add 3D-aware evaluation criteria to `buildCritiquePrompt()`.
+
+- Add `is3D?: boolean` parameter to `buildCritiquePrompt()` (line 50)
+- When `is3D`, use 3D-specific criteria:
+  - **Lighting Quality** — Three-point lighting, shadows, HDRI presence
+  - **Material Realism** — PBR accuracy, reflections, metalness/roughness
+  - **Camera & Composition** — Framing, viewing angle, distance
+  - **Scene Completeness** — All requested objects present, proper geometry
+  - **Overall Quality** — Post-processing, ground shadows, environment
+- Add `is3D` parameter to `evaluate()` method (line 107) and `runVisionCritique()` (pass-through)
+- Update `normalizeCategory()` to accept new 3D categories
+
+**Risk**: MEDIUM (quality logic, but changes are conditional/additive)
+
+---
+
+### 5. MODIFY: `src/app/api/layout/critique/route.ts` (~10 lines added)
+
+Auto-detect 3D content from file imports and pass `is3D` flag to critic.
+
+- After line 31: Add detection logic:
+  ```typescript
+  const is3D = body.files.some(f =>
+    f.content.includes('@react-three/fiber') ||
+    f.content.includes("from 'three'") ||
+    f.content.includes('from "three"')
+  );
+  ```
+- Pass `is3D` to `critic.evaluate()` call (line 34)
+
+**Risk**: LOW (simple detection, additive change)
+
+---
+
+### 6. MODIFY: `src/services/WebContainerService.ts` (1 line changed)
+
+Increase build timeout for Three.js bundles.
+
+- Line 41: Change `BUILD_TIMEOUT = 20_000` to `BUILD_TIMEOUT = 45_000`
+
+Three.js + R3F + Drei is a large bundle. 20s is often insufficient in WebContainer. 45s provides safe margin without impacting 2D builds (they still finish in <10s).
+
+**Risk**: VERY LOW (single constant)
+
+---
+
+### 7. MODIFY: `src/services/titanPipeline/builder.ts` (~150 lines added)
+
+Add a 3D-specific prompt section to `BUILDER_PROMPT` that activates when autonomy-generated code comes back through the builder for refinement, or when the builder is called with 3D context.
+
+Add after the existing `BUILDER_PROMPT` string (line 59):
+
+```typescript
+const BUILDER_3D_SUPPLEMENT = `...`;
+```
+
+This supplement contains:
+- **Mandatory scene structure**: Canvas + Camera + Lights + Controls pattern
+- **Three-point lighting rules**: ambient + key + fill, with correct intensities
+- **PBR material presets**: metal, plastic, wood, glass, ceramic
+- **Geometry types**: box, sphere, cylinder, cone, torus, plane with proper args
+- **Camera & controls**: PerspectiveCamera + OrbitControls with damping
+- **Post-processing**: Bloom, SSAO (optional, only if requested)
+- **Performance guidelines**: <100k triangles, instancedMesh for repeats
+- **Complete example**: Product visualization with studio lighting
+
+In `assembleCode()` function:
+- Check `strategy.execution_plan.enable_3d` OR detect 3D keywords in instructions
+- If 3D detected, append `BUILDER_3D_SUPPLEMENT` to the prompt
+- Adjust asset context for HDRI vs texture
+
+**Risk**: MEDIUM (critical codegen, but conditional — 2D path unchanged)
+
+---
+
+## Files Summary
+
+| File | Action | Lines | Risk |
+|------|--------|-------|------|
+| `src/types/layoutDesign/scene3d.ts` | NEW | ~120 | None |
+| `src/types/titanPipeline.ts` | EXTEND | +10 | Very Low |
+| `src/types/visualCritic.ts` | EXTEND | +5 | Very Low |
+| `src/services/VisualCriticService.ts` | ENHANCE | +50 | Medium |
+| `src/app/api/layout/critique/route.ts` | ENHANCE | +10 | Low |
+| `src/services/WebContainerService.ts` | TIMEOUT | +1 | Very Low |
+| `src/services/titanPipeline/builder.ts` | ENHANCE | +150 | Medium |
+
+**Total**: ~346 lines added/modified, 1 new file, 6 modified files
+
+---
+
+## What This Enables
+
+After implementation, asking the app to create 3D content will:
+
+1. **Route through autonomy** (unchanged) which researches and generates R3F code
+2. **Builder has 3D knowledge** for refinement passes — knows proper lighting, PBR materials, scene structure
+3. **Visual Critic evaluates 3D quality** — lighting, materials, camera, composition (not just 2D layout metrics)
+4. **WebContainer doesn't timeout** on Three.js bundles (45s vs 20s)
+5. **Curated dependency versions** already handle `three`, `@react-three/fiber`, `@react-three/drei`, `@react-three/postprocessing`
+
+### Example prompts that will work well:
+- "Create a metallic sphere with studio lighting I can rotate"
+- "Build a product visualization of a modern chair"
+- "Design a 3D scene with geometric shapes and bloom effects"
+- "Create an interactive 3D product showcase with PBR materials"
+
+---
+
+## Verification
+
+1. `npm run typecheck` — verify new types compile
+2. `npm run lint` — no lint errors
+3. `npm test` — existing tests still pass
+4. Manual test: Send "create a rotating metallic cube" through OmniChat
+   - Verify it routes to autonomy
+   - Verify builder supplement activates if builder is called
+   - Verify Sandpack renders a 3D scene (not blank)
+   - Verify Visual Critic uses 3D criteria
+5. Manual test: Send "create a landing page" (2D) — verify unchanged behavior
+
+---
+
+## Phase 2: Interactive Worlds (IMPLEMENTED)
+
+All Phase 2 features implemented:
+- Physics via `@react-three/rapier` (added to curated-versions, builder supplement, types)
+- Terrain generation (procedural PlaneGeometry with noise, trimesh colliders)
+- First-person controls (`PointerLockControls` + `KeyboardControls` + physics capsule)
+- Model loading (GLTF/GLB via `useGLTF`, auto-collider modes)
+- Skybox/environment (`<Sky>`, `<Environment background />`, color backgrounds)
+- Multi-scene navigation (useState switching, portal pattern)
+
+### Files Modified (Phase 2)
+| File | Change |
+|------|--------|
+| `src/config/curated-versions.ts` | +`@react-three/rapier`, `@dimforge/rapier3d-compat` |
+| `src/types/layoutDesign/scene3d.ts` | +Physics, FPC, terrain, skybox, multi-scene types |
+| `src/services/titanPipeline/builder.ts` | +6 Phase 2 prompt sections, extended keywords |
+| `src/types/visualCritic.ts` | +`physics`, `terrain`, `environment` categories |
+| `src/services/VisualCriticService.ts` | +Phase 2 evaluation criteria, blank canvas handling |
+| `src/services/CodeRepairService.ts` | +R3F/Rapier error repair hints |
+| `src/services/WebContainerService.ts` | INSTALL_TIMEOUT 30s → 45s |
+
+### Known Limitations
+- ReactToHtmlService cannot render 3D Canvas (screenshots show blank)
+- VisionLoopEngine healing loop returns early for 3D (screenshot_failed)
+- Proper fix: capture screenshots from Sandpack iframe via Puppeteer (future)

@@ -59,3 +59,6 @@ export * from './aiEnhancements';
 
 // Defaults and helpers
 export * from './defaults';
+
+// 3D scene types
+export * from './scene3d';

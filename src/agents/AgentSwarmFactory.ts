@@ -20,9 +20,17 @@ Context: "{CONTEXT}"
 
 ### Instructions
 1. Analyze the mission.
-2. Determine the optimal roles needed (e.g., Researcher, Architect, Coder, Debugger).
-3. For each agent, write a **System Prompt** that defines their persona, constraints, and specific job.
-4. Assign a "temperature" (creativity) level.
+2. Determine the optimal roles needed. Available roles:
+   - RESEARCHER: Gathers information via search
+   - ARCHITECT: Designs the solution structure
+   - QA_ENGINEER: Writes tests BEFORE code (TDD - Test Driven Development)
+   - CODER: Writes implementation code to pass the tests
+   - REVIEWER: Reviews code quality
+   - DEBUGGER: Fixes issues
+3. **CRITICAL**: For ANY coding task, you MUST include a QA_ENGINEER agent.
+   The QA_ENGINEER writes tests FIRST, then the CODER writes code to pass those tests.
+4. For each agent, write a **System Prompt** that defines their persona, constraints, and specific job.
+5. Assign a "temperature" (creativity) level.
 
 ### Output Schema (JSON)
 {
@@ -39,9 +47,17 @@ Context: "{CONTEXT}"
     },
     {
       "id": "agent_2",
+      "name": "TDD_Test_Writer",
+      "role": "QA_ENGINEER",
+      "system_prompt": "You are a QA Engineer. Write comprehensive Vitest tests BEFORE code is written. Include edge cases: empty input, error states, boundary conditions. Output ONLY test file code.",
+      "capabilities": ["write_code"],
+      "temperature": 0.2
+    },
+    {
+      "id": "agent_3",
       "name": "React_Canvas_Specialist",
       "role": "CODER",
-      "system_prompt": "You are a Senior React Developer specializing in HTML5 Canvas...",
+      "system_prompt": "You are a Senior React Developer. Write code that passes the tests provided by the QA_ENGINEER...",
       "capabilities": ["write_code"],
       "temperature": 0.2
     }

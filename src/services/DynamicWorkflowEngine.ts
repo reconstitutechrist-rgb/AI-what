@@ -20,6 +20,7 @@ import type {
   AgentTaskResult,
   AgentFeedback
 } from '@/types/autonomy';
+import type { RepoContext } from '@/types/titanPipeline';
 import { googleSearchService } from '@/services/GoogleSearchService';
 
 const MODEL_NAME = 'gemini-3-pro-preview';
@@ -46,8 +47,16 @@ export class DynamicWorkflowEngine {
    * Executes a Swarm's mission step-by-step.
    * Phases run sequentially: RESEARCHERS → ARCHITECTS → CODERS.
    * If any critical phase fails, returns a structured error for the retry loop.
+   *
+   * @param swarm - The agent swarm to execute
+   * @param initialInput - Initial task description
+   * @param repoContext - Optional repo context for style matching and TDD enforcement
    */
-  async runSwarm(swarm: AgentSwarm, initialInput: string): Promise<AgentTaskResult> {
+  async runSwarm(
+    swarm: AgentSwarm,
+    initialInput: string,
+    repoContext?: RepoContext
+  ): Promise<AgentTaskResult> {
     // Reset context for each run
     this.context = { memory: {}, global_files: {}, logs: [] };
 
@@ -58,6 +67,20 @@ export class DynamicWorkflowEngine {
       model: MODEL_NAME,
       systemInstruction: CODE_ONLY_SYSTEM_INSTRUCTION,
     });
+
+    // Zero-Bug Integration: Check if task involves critical files
+    let requiresTDD = false;
+    if (repoContext?.criticalFilesRequireTests && repoContext.criticalFiles.length > 0) {
+      // Check if any critical file is mentioned in the task
+      const taskLower = initialInput.toLowerCase();
+      requiresTDD = repoContext.criticalFiles.some((file) => {
+        const fileName = file.split('/').pop()?.toLowerCase() || '';
+        return taskLower.includes(fileName) || taskLower.includes(file.toLowerCase());
+      });
+      if (requiresTDD) {
+        this.log('[ZERO-BUG] Critical files detected in task — TDD enforcement enabled');
+      }
+    }
 
     // Phase 1: Research (non-critical — failures are warnings, not blockers)
     const researchers = swarm.agents.filter((a) => a.role === 'RESEARCHER');
@@ -88,6 +111,52 @@ export class DynamicWorkflowEngine {
       plan += `\n\nArchitecture Plan:\n${result.output}`;
       // Capture architect reasoning for the Skill Library
       architectReasoning += result.output + '\n';
+    }
+
+    // Phase 2.5: QA Engineering (TDD - Tests Written BEFORE Code)
+    // The QA_ENGINEER writes test files based on the architecture plan.
+    // These tests MUST fail initially (Red phase of TDD).
+    // When requiresTDD is true (critical files involved), this phase is MANDATORY.
+    const qaEngineers = swarm.agents.filter((a) => a.role === 'QA_ENGINEER');
+    let testCode = '';
+    for (const agent of qaEngineers) {
+      const qaInput = `${plan}\n\n### INSTRUCTION\nWrite comprehensive tests for the above plan. Include edge cases. Output ONLY test file code.`;
+      const result = await this.executeAgentStep(agent, codeModel, qaInput, 'QA_ENGINEERING');
+      if (!result.success) {
+        if (requiresTDD) {
+          // Zero-Bug: TDD is mandatory for critical files — fail the task
+          this.log(`[ZERO-BUG] QA_ENGINEERING failed and TDD is required: ${result.error}`);
+          return {
+            success: false,
+            output: '',
+            error: `[ZERO-BUG] Tests must be written before modifying critical files. QA failed: ${result.error}`,
+            retry_suggestion: 'Ensure QA_ENGINEER agent can generate tests. Task involves critical files that require TDD.',
+          };
+        }
+        this.log(`[QA_ENGINEERING] Agent ${agent.name} failed (non-critical): ${result.error}`);
+        // QA failure is non-critical — we can still code without tests (fallback)
+        continue;
+      }
+      const cleanedTests = extractCode(result.output);
+      this.context.memory[`${agent.name}_tests`] = cleanedTests;
+      testCode = cleanedTests;
+      this.log(`[QA_ENGINEERING] Agent ${agent.name} generated tests: ${cleanedTests.length} chars`);
+    }
+
+    // Zero-Bug: If TDD is required but no tests were generated, fail
+    if (requiresTDD && !testCode) {
+      this.log('[ZERO-BUG] No tests generated but TDD is required for critical files');
+      return {
+        success: false,
+        output: '',
+        error: '[ZERO-BUG] No tests were generated, but this task modifies critical files. TDD is mandatory.',
+        retry_suggestion: 'Add a QA_ENGINEER agent to the swarm or ensure it can generate tests.',
+      };
+    }
+
+    // Inject test context into plan for coders to reference
+    if (testCode) {
+      plan += `\n\n### TESTS TO PASS (Your code MUST make these pass)\n\`\`\`typescript\n${testCode.slice(0, 3000)}\n\`\`\``;
     }
 
     // Phase 3: Coding (critical — failures are returned for retry)

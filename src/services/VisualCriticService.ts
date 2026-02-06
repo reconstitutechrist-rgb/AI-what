@@ -47,10 +47,71 @@ function getApiKey(): string {
 // VISION PROMPT
 // ============================================================================
 
-function buildCritiquePrompt(originalInstructions: string, appContext?: { name?: string; colorScheme?: string; style?: string }): string {
+function buildCritiquePrompt(
+  originalInstructions: string,
+  appContext?: { name?: string; colorScheme?: string; style?: string },
+  is3D?: boolean
+): string {
   const contextInfo = appContext?.name
     ? `\nApp: ${appContext.name}. Color scheme: ${appContext.colorScheme || 'default'}. Style: ${appContext.style || 'modern'}.`
     : '';
+
+  if (is3D) {
+    return `You are a Visual Art Director and 3D Quality Critic evaluating a rendered 3D scene screenshot.
+
+### Original Request
+"${originalInstructions}"${contextInfo}
+
+### 3D Scene Evaluation Criteria (score each 1-10)
+
+#### Core Visual Quality
+1. **Lighting Quality** — Is the scene properly lit? Three-point lighting visible (ambient + key + fill)? Shadows present and realistic? No pitch-black areas or overblown highlights?
+2. **Material Realism** — Do materials look physically accurate? Metallic surfaces reflect environment? Roughness/smoothness appropriate? PBR materials used correctly?
+3. **Camera & Composition** — Camera positioned well? Objects fully in frame? Good viewing angle? Appropriate field of view? Not too close or too far?
+
+#### Advanced Features (evaluate only if applicable to the request)
+4. **Physics Behavior** — Are physics objects visible? Do dynamic objects appear grounded or in natural motion? No objects floating unrealistically? Ground plane present for physics scenes?
+5. **Model Loading** — Are GLTF/GLB models loaded and visible? Properly scaled and positioned? Textures applied?
+6. **Terrain Quality** — Is procedural terrain visible with natural height variation? Ground material applied? Appropriate detail level?
+7. **Environment/Skybox** — Is skybox or environment visible? Sky renders correctly (not black or pure white)? HDRI reflections visible on metallic materials?
+8. **First-Person Setup** — Scene structured for first-person perspective? Player-centric camera?
+
+#### Overall Assessment
+9. **Scene Completeness** — All requested 3D objects/features present? Correct geometry types? Environment appropriate?
+10. **Professional Quality** — Professional appearance? Post-processing if requested? Ground shadows? Environment lighting?
+
+### Output Format
+Respond with valid JSON only. No markdown fences.
+{
+  "overall_score": <number 1-10>,
+  "layout_accuracy": <number 1-10>,
+  "visual_polish": <number 1-10>,
+  "completeness": <number 1-10>,
+  "issues": [
+    {
+      "category": "lighting" | "materials" | "geometry" | "camera" | "performance" | "completeness" | "physics" | "terrain" | "environment",
+      "severity": "minor" | "moderate" | "major",
+      "description": "What's wrong and where"
+    }
+  ],
+  "suggestions": ["Specific actionable improvement suggestions"],
+  "verdict": "accept" | "needs_improvement" | "regenerate"
+}
+
+Rules:
+- Score >= 7: verdict = "accept"
+- Score 4-6: verdict = "needs_improvement"
+- Score < 4: verdict = "regenerate"
+- For 3D: Check the scene actually renders (not blank/black canvas)
+- Check that lighting creates depth and dimension
+- Check that objects are visible, properly positioned, and in frame
+- Check that materials have visual depth (not flat colored)
+- For physics: Check objects appear grounded or in natural motion
+- For terrain: Check visible height variation and natural appearance
+- For skybox: Check sky is visible (not default black background)
+- **IMPORTANT**: Screenshots may show blank canvas due to rendering limitations. If canvas is blank but code structure appears correct, give moderate score (5-6) with verdict "needs_improvement"
+- If the screenshot shows an error, blank page, or pure black canvas, score it 1`;
+  }
 
   return `You are a Visual Art Director and Quality Critic evaluating a rendered web application screenshot.
 
@@ -108,7 +169,8 @@ class VisualCriticServiceInstance {
     files: AppFile[],
     originalInstructions: string,
     appContext?: { name?: string; colorScheme?: string; style?: string },
-    screenshotApiUrl?: string
+    screenshotApiUrl?: string,
+    is3D?: boolean
   ): Promise<CritiqueResult> {
     const startTime = Date.now();
 
@@ -133,11 +195,19 @@ class VisualCriticServiceInstance {
         };
       }
 
+      // Auto-detect 3D from file contents if not explicitly set
+      const detect3D = is3D ?? files.some((f) =>
+        f.content.includes('@react-three/fiber') ||
+        f.content.includes("from 'three'") ||
+        f.content.includes('from "three"')
+      );
+
       // 3. Send to vision model for evaluation
       const assessment = await this.runVisionCritique(
         screenshotDataUri,
         originalInstructions,
-        appContext
+        appContext,
+        detect3D
       );
 
       // 4. Parse into CritiqueResult
@@ -202,7 +272,8 @@ class VisualCriticServiceInstance {
   private async runVisionCritique(
     screenshotDataUri: string,
     originalInstructions: string,
-    appContext?: { name?: string; colorScheme?: string; style?: string }
+    appContext?: { name?: string; colorScheme?: string; style?: string },
+    is3D?: boolean
   ): Promise<QualityAssessment> {
     const apiKey = getApiKey();
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -219,7 +290,7 @@ class VisualCriticServiceInstance {
 
     const [, mimeSubtype, base64Data] = base64Match;
 
-    const prompt = buildCritiquePrompt(originalInstructions, appContext);
+    const prompt = buildCritiquePrompt(originalInstructions, appContext, is3D);
 
     const result = await withGeminiRetry(() =>
       model.generateContent([
@@ -308,7 +379,11 @@ class VisualCriticServiceInstance {
    * Normalize issue category to known values.
    */
   private normalizeCategory(cat: string): VisualIssue['category'] {
-    const valid: VisualIssue['category'][] = ['layout', 'styling', 'content', 'responsiveness', 'completeness', 'accessibility'];
+    const valid: VisualIssue['category'][] = [
+      'layout', 'styling', 'content', 'responsiveness', 'completeness', 'accessibility',
+      'lighting', 'materials', 'geometry', 'camera', 'performance',
+      'physics', 'terrain', 'environment',
+    ];
     return valid.includes(cat as VisualIssue['category'])
       ? (cat as VisualIssue['category'])
       : 'layout';

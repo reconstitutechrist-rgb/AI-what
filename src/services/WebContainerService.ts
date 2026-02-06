@@ -35,10 +35,10 @@ import { getRepoLoaderService } from './RepoLoaderService';
 const BOOT_TIMEOUT = 15_000;
 
 /** Max time to wait for npm install (ms) */
-const INSTALL_TIMEOUT = 30_000;
+const INSTALL_TIMEOUT = 45_000; // Increased for Rapier WASM (~2MB)
 
 /** Max time to wait for build (ms) */
-const BUILD_TIMEOUT = 20_000;
+const BUILD_TIMEOUT = 45_000;
 
 // ============================================================================
 // PACKAGE.JSON TEMPLATE
