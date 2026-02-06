@@ -21,7 +21,7 @@ import type {
   AgentFeedback
 } from '@/types/autonomy';
 import type { RepoContext } from '@/types/titanPipeline';
-import { googleSearchService } from '@/services/GoogleSearchService';
+import { tavilySearchService } from '@/services/TavilySearchService';
 
 const MODEL_NAME = 'gemini-3-pro-preview';
 
@@ -398,8 +398,8 @@ You may also issue ANOTHER command if needed.
 
         if (query !== 'SKIP' && !query.includes('SKIP')) {
           this.log(`[${phase}] Searching: "${query}"`);
-          const results = await googleSearchService.search(query);
-          searchContext = `\n\n### Search Results\n${results.map((r) => `- [${r.title}](${r.link}): ${r.snippet}`).join('\n')}`;
+          const results = await tavilySearchService.search(query);
+          searchContext = `\n\n### Search Results\n${results.map((r: { title: string; link: string; snippet: string }) => `- [${r.title}](${r.link}): ${r.snippet}`).join('\n')}`;
         }
       }
 
