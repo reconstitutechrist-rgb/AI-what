@@ -6,6 +6,14 @@
  * Last updated: 2025-12-16
  */
 export const CURATED_VERSIONS = {
+  // Sandbox Core (WebContainerService uses these for validation builds)
+  react: '^19.0.0',
+  'react-dom': '^19.0.0',
+  '@types/react': '^19.0.0',
+  '@types/react-dom': '^19.0.0',
+  typescript: '^5.6.0',
+  esbuild: '^0.24.0',
+
   // Database
   prisma: '^5.22.0',
   '@prisma/client': '^5.22.0',

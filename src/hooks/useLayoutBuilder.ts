@@ -341,7 +341,7 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
    * Results update UI state when complete.
    */
   const runVisualCritique = useCallback(
-    async (files: AppFile[], instructions: string, cachedSkillId?: string): Promise<void> => {
+    async (files: AppFile[], instructions: string, cachedSkillId?: string, appContext?: AppContext): Promise<void> => {
       setIsCritiquing(true);
       setCritiqueScore(null);
       setCritiqueIssues([]);
@@ -353,6 +353,7 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
           body: JSON.stringify({
             files,
             originalInstructions: instructions,
+            appContext,
           }),
         });
 
@@ -636,8 +637,8 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
             const validatedFiles = await validateAndRepair(result.files, instructions);
             updateFilesWithHistory(validatedFiles);
 
-            // Run critique
-            runVisualCritique(result.files, instructions, cachedSkillId).catch((err) => {
+            // Run critique on the validated (post-repair) files, not the originals
+            runVisualCritique(validatedFiles, instructions, cachedSkillId, appContext).catch((err) => {
                 console.warn('[useLayoutBuilder] Visual critique failed (non-critical):', err);
             });
         } else {

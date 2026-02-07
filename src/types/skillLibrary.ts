@@ -74,7 +74,7 @@ export interface SaveSkillInput {
   solutionCode: string;
   /** All solution files (for multi-file projects) */
   solutionFiles: SkillFile[];
-  /** Quality score from Visual Critic (0-10, normalized to 0-1) */
+  /** Quality score (0-1 scale). If from Visual Critic (0-10), caller must divide by 10 first. */
   qualityScore?: number;
 }
 

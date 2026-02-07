@@ -135,11 +135,13 @@ function parseResponse(text: string): OmniChatResponse {
     const parsed = JSON.parse(text);
     return validateResponse(parsed);
   } catch {
-    // Try extracting JSON from the response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
+    // Try extracting the first balanced JSON object from the response.
+    // The previous greedy regex /\{[\s\S]*\}/ would match from the first {
+    // to the LAST }, potentially capturing invalid JSON across multiple objects.
+    const extracted = extractFirstJsonObject(text);
+    if (extracted) {
       try {
-        const parsed = JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(extracted);
         return validateResponse(parsed);
       } catch {
         // Fall through
@@ -151,6 +153,51 @@ function parseResponse(text: string): OmniChatResponse {
       action: 'none',
     };
   }
+}
+
+/**
+ * Extract the first balanced JSON object from a string.
+ * Tracks brace depth to find the matching closing brace,
+ * correctly handling strings (which may contain braces).
+ */
+function extractFirstJsonObject(text: string): string | null {
+  const start = text.indexOf('{');
+  if (start === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+
+    if (escape) {
+      escape = false;
+      continue;
+    }
+
+    if (ch === '\\' && inString) {
+      escape = true;
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) continue;
+
+    if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) {
+        return text.slice(start, i + 1);
+      }
+    }
+  }
+
+  return null;
 }
 
 function validateResponse(parsed: Record<string, unknown>): OmniChatResponse {
@@ -180,9 +227,17 @@ function validateResponse(parsed: Record<string, unknown>): OmniChatResponse {
 // ============================================================================
 
 class OmniChatServiceInstance {
+  private anthropicClient: Anthropic | null = null;
+
+  private getClient(): Anthropic {
+    if (!this.anthropicClient) {
+      this.anthropicClient = new Anthropic({ apiKey: getAnthropicApiKey() });
+    }
+    return this.anthropicClient;
+  }
+
   async chat(request: OmniChatRequest): Promise<OmniChatResponse> {
-    const apiKey = getAnthropicApiKey();
-    const anthropic = new Anthropic({ apiKey });
+    const anthropic = this.getClient();
 
     // Query skill library for cached solutions before calling Claude
     let skillContext = '';
@@ -212,15 +267,18 @@ class OmniChatServiceInstance {
       messages,
     });
 
-    const text = msg.content[0].type === 'text' ? msg.content[0].text : '';
+    const firstBlock = msg.content[0];
+    const text = firstBlock && firstBlock.type === 'text' ? firstBlock.text : '';
     const response = parseResponse(text);
 
     // If the AI chose to use a cached skill's solution, inject skillId and increment usage
-    if (cachedSkillMatch && response.action !== 'none') {
-      if (response.actionPayload) {
+    // Only increment usage if the AI actually referenced the cached skill in its instructions
+    if (cachedSkillMatch && response.action !== 'none' && response.actionPayload) {
+      const usedCachedSkill = response.actionPayload.instructions?.includes(`USE_CACHED_SKILL:${cachedSkillMatch.skill.id}`);
+      if (usedCachedSkill) {
         response.actionPayload.cachedSkillId = cachedSkillMatch.skill.id;
+        this.incrementSkillUsage(cachedSkillMatch.skill.id).catch(() => {});
       }
-      this.incrementSkillUsage(cachedSkillMatch.skill.id).catch(() => {});
     }
 
     return response;

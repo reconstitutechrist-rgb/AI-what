@@ -21,6 +21,9 @@ import type { SandboxError, RepairRequest, RepairResult } from '@/types/sandbox'
 
 const REPAIR_MODEL = 'gemini-3-pro-preview';
 
+/** Maximum number of repair attempts before giving up */
+const MAX_REPAIR_ATTEMPTS = 5;
+
 const REPAIR_SYSTEM_INSTRUCTION =
   'You are a code repair specialist. You receive broken TypeScript/React code ' +
   'along with specific error messages. Your ONLY job is to fix the errors ' +
@@ -64,8 +67,13 @@ function buildRepairPrompt(
   code: string,
   filePath: string,
   errors: SandboxError[],
-  attempt: number
+  attempt: number,
+  originalInstructions?: string
 ): string {
+  const intentSection = originalInstructions
+    ? `\n### Original User Intent\n"${originalInstructions.slice(0, 500)}"\nKeep the repaired code aligned with this intent.\n`
+    : '';
+
   return `### Code File: ${filePath}
 \`\`\`tsx
 ${code}
@@ -76,7 +84,7 @@ ${formatErrors(errors)}
 
 ### Repair Attempt: ${attempt}
 ${attempt > 1 ? 'The previous repair attempt did not fully resolve the issues. Try a different approach.' : ''}
-
+${intentSection}
 ### Instructions
 1. Fix ALL listed errors
 2. Keep the original code structure and functionality intact
@@ -92,6 +100,15 @@ ${attempt > 1 ? 'The previous repair attempt did not fully resolve the issues. T
 // ============================================================================
 
 class CodeRepairServiceInstance {
+  private genAI: GoogleGenerativeAI | null = null;
+
+  private getGenAI(): GoogleGenerativeAI {
+    if (!this.genAI) {
+      this.genAI = new GoogleGenerativeAI(getApiKey());
+    }
+    return this.genAI;
+  }
+
   /**
    * Attempt to repair code files based on validation errors.
    *
@@ -99,15 +116,24 @@ class CodeRepairServiceInstance {
    * For multi-file projects, repairs each file that has errors.
    */
   async repair(request: RepairRequest): Promise<RepairResult> {
-    const { files, errors, attempt } = request;
+    const { files, errors, originalInstructions, attempt } = request;
 
     if (errors.length === 0) {
       return { attempted: false, files, fixes: [], remainingErrors: [] };
     }
 
-    const apiKey = getApiKey();
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
+    // Guard against infinite repair loops from buggy clients
+    if (attempt > MAX_REPAIR_ATTEMPTS) {
+      console.warn(`[CodeRepairService] Max repair attempts (${MAX_REPAIR_ATTEMPTS}) exceeded, giving up`);
+      return {
+        attempted: false,
+        files,
+        fixes: [],
+        remainingErrors: errors,
+      };
+    }
+
+    const model = this.getGenAI().getGenerativeModel({
       model: REPAIR_MODEL,
       systemInstruction: REPAIR_SYSTEM_INSTRUCTION,
       generationConfig: { temperature: 0.1, maxOutputTokens: 16384 },
@@ -130,13 +156,14 @@ class CodeRepairServiceInstance {
       }
 
       try {
-        const prompt = buildRepairPrompt(file.content, file.path, fileErrors, attempt);
+        const prompt = buildRepairPrompt(file.content, file.path, fileErrors, attempt, originalInstructions);
         const result = await withGeminiRetry(() => model.generateContent(prompt));
         const repairedCode = extractCode(result.response.text());
 
         if (repairedCode && repairedCode.length > 10 && repairedCode !== file.content) {
           repairedFiles.push({ path: file.path, content: repairedCode });
-          fixes.push(`Fixed ${fileErrors.length} error(s) in ${file.path}`);
+          // Be honest: code was changed, but we haven't verified the fixes
+          fixes.push(`Attempted repair of ${fileErrors.length} error(s) in ${file.path} (unverified)`);
         } else {
           // Repair produced empty or identical code
           repairedFiles.push(file);

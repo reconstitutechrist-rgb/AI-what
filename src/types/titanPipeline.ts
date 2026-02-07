@@ -260,7 +260,6 @@ export interface PipelineResult {
 
 export interface LiveEditResult {
   success: boolean;
-  modifiedCode?: string;
   error?: string;
   updatedCode?: string;
 }

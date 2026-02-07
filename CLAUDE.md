@@ -206,7 +206,7 @@ npm run test:services # Service tests (Node)
 NEXT_PUBLIC_SUPABASE_URL=     # Supabase project URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY= # Supabase anon key
 ANTHROPIC_API_KEY=            # Claude API key (OmniChat)
-GOOGLE_AI_API_KEY=            # Gemini API key (Pipeline, Critic, Repair)
+GOOGLE_API_KEY=               # Gemini API key (Pipeline, Critic, Repair) — also accepts GEMINI_API_KEY
 OPENAI_API_KEY=               # OpenAI API key (Embeddings for Skill Library)
 ```
 

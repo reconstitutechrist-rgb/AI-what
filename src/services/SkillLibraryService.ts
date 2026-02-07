@@ -157,7 +157,7 @@ class SkillLibraryServiceInstance {
         solution_code: input.solutionCode,
         solution_files: input.solutionFiles,
         embedding,
-        quality_score: input.qualityScore ?? 0.5,
+        quality_score: Math.max(0, Math.min(1, input.qualityScore ?? 0.5)),
       })
       .select('id')
       .single();

@@ -528,11 +528,11 @@ const THREE_D_KEYWORDS = /\b(3[dD]|three\.?js|webgl|mesh(?:es)?|geometry|orbit\s
  * and reuse patterns from the pattern library for consistent code generation.
  */
 export async function assembleCode(
-  _structure: ComponentStructure | null,
+  structure: ComponentStructure | null,
   manifests: VisualManifest[],
   physics: MotionPhysics | null,
   strategy: MergeStrategy,
-  _currentCode: string | null,
+  currentCode: string | null,
   instructions: string,
   assets: Record<string, string>,
   repoContext?: RepoContext
@@ -566,6 +566,26 @@ Apply them via backgroundImage on the matching elements. Combine with clip-path 
   // Build prompt: append 3D supplement when in 3D mode
   const basePrompt = is3D ? `${BUILDER_PROMPT}${BUILDER_3D_SUPPLEMENT}` : BUILDER_PROMPT;
 
+  // Build structure context from Architect output
+  const structureSection = structure
+    ? `\n\n### COMPONENT STRUCTURE (from Architect)
+Follow this structure closely. It defines the component hierarchy, data-ids, and semantic layout.
+\`\`\`json
+${JSON.stringify(structure, null, 2)}
+\`\`\``
+    : '';
+
+  // Build existing code context for EDIT mode
+  const currentCodeSection = currentCode
+    ? `\n\n### EXISTING CODE (EDIT MODE)
+The user already has working code. You are EDITING it, not replacing from scratch.
+Preserve existing functionality, structure, and styling unless the instructions specifically ask to change them.
+Apply the requested changes surgically — do NOT rewrite unrelated parts.
+\`\`\`tsx
+${currentCode}
+\`\`\``
+    : '';
+
   // Build RepoContext injection if provided (Ultimate Developer mode)
   let repoContextSection = '';
   if (repoContext) {
@@ -588,7 +608,7 @@ Apply them via backgroundImage on the matching elements. Combine with clip-path 
   }
 
   const prompt = `${basePrompt}
-${repoContextSection}
+${repoContextSection}${structureSection}${currentCodeSection}
   ### ASSETS (Use these URLs!)
   ${JSON.stringify(assets, null, 2)}
   ${assetContext}

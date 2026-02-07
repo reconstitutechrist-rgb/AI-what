@@ -156,6 +156,15 @@ Rules:
 // ============================================================================
 
 class VisualCriticServiceInstance {
+  private genAI: GoogleGenerativeAI | null = null;
+
+  private getGenAI(): GoogleGenerativeAI {
+    if (!this.genAI) {
+      this.genAI = new GoogleGenerativeAI(getApiKey());
+    }
+    return this.genAI;
+  }
+
   /**
    * Evaluate the visual quality of generated code.
    *
@@ -188,7 +197,7 @@ class VisualCriticServiceInstance {
       if (!screenshotDataUri) {
         return {
           overallScore: 0,
-          verdict: 'needs_improvement',
+          verdict: 'regenerate',
           issues: [{ category: 'completeness', severity: 'major', description: 'Screenshot capture failed — unable to evaluate visually' }],
           suggestions: ['Ensure Puppeteer is available for visual critique'],
           duration: Date.now() - startTime,
@@ -275,9 +284,7 @@ class VisualCriticServiceInstance {
     appContext?: { name?: string; colorScheme?: string; style?: string },
     is3D?: boolean
   ): Promise<QualityAssessment> {
-    const apiKey = getApiKey();
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
+    const model = this.getGenAI().getGenerativeModel({
       model: VISION_MODEL,
       generationConfig: { temperature: 0.2, maxOutputTokens: 4096 },
     });

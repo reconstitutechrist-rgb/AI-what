@@ -2,6 +2,7 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { useAppStore } from '@/store/useAppStore';
+import { useChatStore } from '@/store/useChatStore';
 import { logger } from '@/utils/logger';
 
 /**
@@ -114,10 +115,11 @@ class ErrorBoundary extends Component<Props, State> {
 
     try {
       const storeState = useAppStore.getState();
+      const chatState = useChatStore.getState();
       storeSnapshot = {
         currentMode: storeState.currentMode || 'unknown',
         isGenerating: storeState.isGenerating || false,
-        messagesCount: storeState.chatMessages?.length || 0,
+        messagesCount: chatState.messages?.length || 0,
         componentsCount: storeState.components?.length || 0,
         hasAppConcept: !!storeState.appConcept,
         hasPendingChange: !!storeState.pendingChange,

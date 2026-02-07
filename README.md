@@ -386,7 +386,7 @@ Create `.env.local`:
 ANTHROPIC_API_KEY=your_anthropic_api_key
 
 # Google AI (required -- powers Titan Pipeline, Visual Critic, Code Repair)
-GOOGLE_AI_API_KEY=your_google_ai_api_key
+GOOGLE_API_KEY=your_google_api_key
 
 # OpenAI (required -- powers Skill Library embeddings)
 OPENAI_API_KEY=your_openai_api_key

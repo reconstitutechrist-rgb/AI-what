@@ -25,6 +25,7 @@ import type {
   WebContainerStatus,
 } from '@/types/sandbox';
 import { extractDependencies } from '@/utils/extractDependencies';
+import { CURATED_VERSIONS } from '@/config/curated-versions';
 import { getRepoLoaderService } from './RepoLoaderService';
 
 // ============================================================================
@@ -52,15 +53,15 @@ function buildPackageJson(dependencies: Record<string, string>): string {
       version: '0.0.0',
       type: 'module',
       dependencies: {
-        react: '^19.0.0',
-        'react-dom': '^19.0.0',
+        react: CURATED_VERSIONS.react,
+        'react-dom': CURATED_VERSIONS['react-dom'],
         ...dependencies,
       },
       devDependencies: {
-        '@types/react': '^19.0.0',
-        '@types/react-dom': '^19.0.0',
-        typescript: '^5.6.0',
-        esbuild: '^0.24.0',
+        '@types/react': CURATED_VERSIONS['@types/react'],
+        '@types/react-dom': CURATED_VERSIONS['@types/react-dom'],
+        typescript: CURATED_VERSIONS.typescript,
+        esbuild: CURATED_VERSIONS.esbuild,
       },
     },
     null,
@@ -105,6 +106,8 @@ class WebContainerServiceInstance {
   private container: WebContainer | null = null;
   private bootPromise: Promise<WebContainer> | null = null;
   private _status: WebContainerStatus = 'idle';
+  /** Queue to serialize validate() calls and prevent concurrent filesystem writes */
+  private validationQueue: Promise<ValidationResult> = Promise.resolve({ valid: true, errors: [], warnings: [], duration: 0 });
 
   get status(): WebContainerStatus {
     return this._status;
@@ -162,8 +165,21 @@ class WebContainerServiceInstance {
    * 1. Writing files to the WebContainer filesystem
    * 2. Installing dependencies
    * 3. Running esbuild to check for syntax/import errors
+   *
+   * Calls are serialized through a queue to prevent concurrent filesystem
+   * writes from interleaving and corrupting results.
    */
   async validate(files: AppFile[]): Promise<ValidationResult> {
+    // Chain through the queue so concurrent calls run sequentially
+    const result = this.validationQueue.then(
+      () => this.validateImpl(files),
+      () => this.validateImpl(files) // Run even if previous validation failed
+    );
+    this.validationQueue = result;
+    return result;
+  }
+
+  private async validateImpl(files: AppFile[]): Promise<ValidationResult> {
     const startTime = Date.now();
 
     // If not supported, return a pass-through result
@@ -230,6 +246,8 @@ class WebContainerServiceInstance {
 
   /**
    * Write all project files to the WebContainer filesystem.
+   * Cleans the /src directory first to prevent stale files from previous
+   * validations from polluting the current run.
    */
   private async writeProjectFiles(
     container: WebContainer,
@@ -242,7 +260,14 @@ class WebContainerServiceInstance {
     // Write tsconfig.json
     await container.fs.writeFile('/tsconfig.json', TSCONFIG);
 
-    // Ensure /src directory exists
+    // Clean /src directory to remove stale files from previous validations
+    try {
+      await container.fs.rm('/src', { recursive: true });
+    } catch {
+      // Directory may not exist on first run — that's fine
+    }
+
+    // Recreate /src directory
     await container.fs.mkdir('/src', { recursive: true });
 
     // Write each generated file

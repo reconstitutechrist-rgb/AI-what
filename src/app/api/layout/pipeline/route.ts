@@ -65,15 +65,15 @@ export async function POST(req: NextRequest) {
 
     const result = await service.runPipeline(pipelineInput);
 
+    // Strip screenshotDataUri from critique (too large for API response)
+    const { critique, ...rest } = result;
+    const sanitizedCritique = critique
+      ? { ...critique, screenshotDataUri: undefined }
+      : undefined;
+
     return NextResponse.json({
-      files: result.files,
-      strategy: result.strategy,
-      manifests: result.manifests,
-      physics: result.physics,
-      warnings: result.warnings,
-      stepTimings: result.stepTimings,
-      command: result.command,
-      suspendedState: result.suspendedState,
+      ...rest,
+      ...(sanitizedCritique && { critique: sanitizedCritique }),
     });
   } catch (error) {
     console.error('[Titan Pipeline API] Error:', error);

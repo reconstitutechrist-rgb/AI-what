@@ -16,6 +16,7 @@
 'use client';
 
 import React, { useState, useCallback, useMemo } from 'react';
+import ErrorBoundary from './ErrorBoundary';
 import { OmniChat, type UploadedMedia } from './interface/OmniChat';
 import { LayoutCanvas } from './layout-builder/LayoutCanvas';
 import { useLayoutBuilder } from '@/hooks/useLayoutBuilder';
@@ -192,13 +193,18 @@ export const LayoutBuilderView: React.FC = () => {
       // Text-only path — chat first, then dispatch action
       try {
         // Build conversation history for the AI (last 20, exclude system)
-        const conversationHistory = messages
-          .filter((m) => m.role !== 'system')
-          .slice(-20)
-          .map((m) => ({
-            role: m.role as 'user' | 'assistant',
-            content: m.content,
-          }));
+        // Note: `messages` is from the previous render (stale closure after addMessage above),
+        // so we must append the current user message explicitly to avoid missing it.
+        const conversationHistory = [
+          ...messages
+            .filter((m) => m.role !== 'system')
+            .slice(-19)
+            .map((m) => ({
+              role: m.role as 'user' | 'assistant',
+              content: m.content,
+            })),
+          { role: 'user' as const, content: message },
+        ];
 
         // Get AI response with intent classification
         const chatResponse = await sendChatMessage(
@@ -267,44 +273,46 @@ export const LayoutBuilderView: React.FC = () => {
   );
 
   return (
-    <div className="flex h-full w-full">
-      {/* Left Panel: OmniChat */}
-      <div className="w-[400px] min-w-[320px] max-w-[500px] flex-shrink-0 h-full">
-        <OmniChat
-          onSendMessage={handleSendMessage}
-          isProcessing={isProcessing}
-          isChatting={isChatting}
-          pipelineProgress={pipelineProgress}
-          activeAction={activeAction}
-        />
-      </div>
+    <ErrorBoundary>
+      <div className="flex h-full w-full">
+        {/* Left Panel: OmniChat */}
+        <div className="w-[400px] min-w-[320px] max-w-[500px] flex-shrink-0 h-full">
+          <OmniChat
+            onSendMessage={handleSendMessage}
+            isProcessing={isProcessing}
+            isChatting={isChatting}
+            pipelineProgress={pipelineProgress}
+            activeAction={activeAction}
+          />
+        </div>
 
-      {/* Right Panel: Preview Canvas */}
-      <div className="flex-1 h-full overflow-hidden">
-        <LayoutCanvas
-          generatedFiles={generatedFiles}
-          isProcessing={isProcessing}
-          pipelineProgress={pipelineProgress}
-          errors={errors}
-          warnings={warnings}
-          onDropFiles={handleDropFiles}
-          onRefineComponent={refineComponent}
-          onUndo={undo}
-          onRedo={redo}
-          onExportCode={exportCode}
-          onClearErrors={clearErrors}
-          canUndo={canUndo}
-          canRedo={canRedo}
-          isValidating={isValidating}
-          validationStatus={validationStatus}
-          validationErrors={validationErrors}
-          repairAttempts={repairAttempts}
-          critiqueScore={critiqueScore}
-          isCritiquing={isCritiquing}
-          critiqueIssues={critiqueIssues}
-        />
+        {/* Right Panel: Preview Canvas */}
+        <div className="flex-1 h-full overflow-hidden">
+          <LayoutCanvas
+            generatedFiles={generatedFiles}
+            isProcessing={isProcessing}
+            pipelineProgress={pipelineProgress}
+            errors={errors}
+            warnings={warnings}
+            onDropFiles={handleDropFiles}
+            onRefineComponent={refineComponent}
+            onUndo={undo}
+            onRedo={redo}
+            onExportCode={exportCode}
+            onClearErrors={clearErrors}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            isValidating={isValidating}
+            validationStatus={validationStatus}
+            validationErrors={validationErrors}
+            repairAttempts={repairAttempts}
+            critiqueScore={critiqueScore}
+            isCritiquing={isCritiquing}
+            critiqueIssues={critiqueIssues}
+          />
+        </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 };
 

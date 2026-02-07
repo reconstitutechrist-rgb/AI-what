@@ -191,6 +191,8 @@ export class DynamicWorkflowEngine {
             // Check if agent requested a command execution (suspension)
             if (verificationResult.command) {
                 this.log(`[EXECUTION] Agent ${agent.name} requested command: ${verificationResult.command.type}`);
+                // Persist global_files inside memory so resumeSwarm can restore them
+                const memoryWithFiles = { ...this.context.memory, __global_files: this.context.global_files };
                 return {
                     success: false, // Not failures, just paused
                     output: finalCode,
@@ -207,7 +209,7 @@ export class DynamicWorkflowEngine {
                         command: verificationResult.command,
                         swarmId: swarm.id,
                         swarm: swarm,
-                        memory: this.context.memory
+                        memory: memoryWithFiles
                     }
                 };
             }
@@ -257,7 +259,7 @@ export class DynamicWorkflowEngine {
       // 1. Restore Context
       this.context = {
           memory: suspendedState.memory,
-          global_files: {}, // Re-hydrate if needed, or assume mostly stateless for now
+          global_files: suspendedState.memory.__global_files ?? {},
           logs: []
       };
       
@@ -373,10 +375,19 @@ You may also issue ANOTHER command if needed.
       }
 
       // All done!
+      // Recover architect reasoning from memory if available
+      const architects = swarm.agents.filter(a => a.role === 'ARCHITECT');
+      const architectReasoning = architects
+        .map(a => this.context.memory[a.name])
+        .filter(Boolean)
+        .join('\n')
+        .trim();
+
       return {
           success: true,
           output: finalCode,
-          artifacts: [this.context.global_files]
+          artifacts: [this.context.global_files],
+          reasoning_summary: architectReasoning || undefined,
       };
   }
 
@@ -413,7 +424,7 @@ You may also issue ANOTHER command if needed.
         executionPrompt = `${agent.system_prompt}
 
 ### Architecture & Context (reference only — DO NOT include in output)
-${JSON.stringify(this.context.memory)}
+${this.serializeMemoryForPrompt()}
 ${searchContext ? `\n### Research Results\n${searchContext}` : ''}
 
 ### Requirements
@@ -433,7 +444,7 @@ Do NOT include any explanation, markdown, or conversational text.`;
 
 ### Current Code to Verify
 \`\`\`tsx
-${input.slice(0, 5000)} // Truncated for token limit
+${input.slice(0, 5000)}
 \`\`\`
 
 ### Instructions
@@ -468,7 +479,7 @@ OR if verification fails and you want to fail the task:
         executionPrompt = `${agent.system_prompt}
 
 ### Context from Previous Steps
-${JSON.stringify(this.context.memory)}
+${this.serializeMemoryForPrompt()}
 
 ### Search Knowledge
 ${searchContext}
@@ -533,10 +544,33 @@ Perform your role. Return the output.`;
     }
   }
 
+  /**
+   * Serialize context.memory for prompt injection with a size cap.
+   * Each memory entry is truncated so the total stays under the limit.
+   * Prevents unbounded memory from exceeding the LLM context window.
+   */
+  private serializeMemoryForPrompt(maxChars: number = 8000): string {
+    const entries = Object.entries(this.context.memory).filter(
+      ([key]) => key !== '__global_files' // Don't leak internal bookkeeping
+    );
+    if (entries.length === 0) return '{}';
+
+    const perEntry = Math.floor(maxChars / entries.length);
+    const bounded: Record<string, string> = {};
+    for (const [key, value] of entries) {
+      const str = typeof value === 'string' ? value : JSON.stringify(value);
+      bounded[key] = str.length > perEntry ? str.slice(0, perEntry) + '...(truncated)' : str;
+    }
+    return JSON.stringify(bounded);
+  }
+
   private log(msg: string) {
     console.log(`[DynamicWorkflowEngine] ${msg}`);
     this.context.logs.push(msg);
   }
 }
 
-export const dynamicWorkflowEngine = new DynamicWorkflowEngine();
+// NOTE: Do NOT create a module-level singleton here.
+// DynamicWorkflowEngine has mutable instance state (context.memory, global_files, logs)
+// which would be corrupted by concurrent requests sharing the same instance.
+// Callers should create new instances per request (see AutonomyCore, feedback route).

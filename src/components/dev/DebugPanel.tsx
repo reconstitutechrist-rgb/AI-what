@@ -15,6 +15,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { DEBUG } from '@/utils/debug';
 import { useAppStore } from '@/store/useAppStore';
+import { useChatStore } from '@/store/useChatStore';
 
 // Types for tracking
 interface APIRequest {
@@ -124,6 +125,7 @@ export function DebugPanel(): React.ReactElement | null {
 
   // Get store state
   const storeState = useAppStore();
+  const chatMessages = useChatStore((s) => s.messages);
 
   // Force refresh every second when open - MUST be called before any conditional returns
   useEffect(() => {
@@ -164,7 +166,7 @@ export function DebugPanel(): React.ReactElement | null {
   const stateSnapshot = {
     mode: storeState.currentMode,
     isGenerating: storeState.isGenerating,
-    messagesCount: storeState.chatMessages?.length || 0,
+    messagesCount: chatMessages?.length || 0,
     componentsCount: storeState.components?.length || 0,
     undoStackSize: storeState.undoStack?.length || 0,
     redoStackSize: storeState.redoStack?.length || 0,
