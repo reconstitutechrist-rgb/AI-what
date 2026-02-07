@@ -10,33 +10,27 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getCodeRepairService } from '@/services/CodeRepairService';
-import type { RepairRequest } from '@/types/sandbox';
+import { RepairRequestSchema } from '@/types/api-schemas';
 
 export async function POST(req: NextRequest) {
   try {
-    const body: RepairRequest = await req.json();
-    const { files, errors, originalInstructions, attempt } = body;
+    const raw = await req.json();
+    const parsed = RepairRequestSchema.safeParse(raw);
 
-    if (!files || files.length === 0) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'files array is required' },
+        { error: 'Invalid request', details: parsed.error.message },
         { status: 400 }
       );
     }
 
-    if (!errors || errors.length === 0) {
-      return NextResponse.json(
-        { error: 'errors array is required (nothing to repair)' },
-        { status: 400 }
-      );
-    }
-
+    const body = parsed.data;
     const service = getCodeRepairService();
     const result = await service.repair({
-      files,
-      errors,
-      originalInstructions: originalInstructions || '',
-      attempt: attempt || 1,
+      files: body.files,
+      errors: body.errors,
+      originalInstructions: body.originalInstructions,
+      attempt: body.attempt,
     });
 
     return NextResponse.json(result);

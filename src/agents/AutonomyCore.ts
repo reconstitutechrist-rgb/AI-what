@@ -20,11 +20,9 @@ const MAX_RETRIES = 3;
 
 export class AutonomyCore {
   private factory: AgentSwarmFactory;
-  private engine: DynamicWorkflowEngine;
 
   constructor() {
     this.factory = new AgentSwarmFactory();
-    this.engine = new DynamicWorkflowEngine();
   }
 
   /**
@@ -40,6 +38,8 @@ export class AutonomyCore {
   async solveUnknown(goal: AutonomyGoal): Promise<AgentTaskResult> {
     console.log('[AutonomyCore] Solving Unknown:', goal.description);
 
+    // Fresh engine per request to prevent state bleed between concurrent calls
+    const engine = new DynamicWorkflowEngine();
     let lastResult: AgentTaskResult | null = null;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -72,7 +72,7 @@ export class AutonomyCore {
       );
 
       // 2. Execute the Swarm
-      const result = await this.engine.runSwarm(swarm, goal.description);
+      const result = await engine.runSwarm(swarm, goal.description);
 
       // 3. Check result
       

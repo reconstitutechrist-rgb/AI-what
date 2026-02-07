@@ -13,7 +13,7 @@
 
 'use client';
 
-import { useState, useCallback, useRef, type RefObject } from 'react';
+import { useState, useCallback, useRef, useEffect, type RefObject } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { useSettings } from '@/hooks/useSettings';
 import { MaintenanceCampaign } from '@/workflows/MaintenanceCampaign';
@@ -63,6 +63,18 @@ export function useDreamMode(options: UseDreamModeOptions = {}): UseDreamMode {
   const { iframeRef } = options;
   const { settings } = useSettings();
   const campaignRef = useRef<MaintenanceCampaign | null>(null);
+  const unmountedRef = useRef(false);
+
+  // Cleanup on unmount: abort any running campaign and prevent state updates
+  useEffect(() => {
+    return () => {
+      unmountedRef.current = true;
+      if (campaignRef.current) {
+        campaignRef.current.stop();
+        campaignRef.current = null;
+      }
+    };
+  }, []);
 
   // Local UI state (not persisted)
   const [currentPhase, setCurrentPhase] = useState<CampaignPhase>('IDLE');
@@ -145,14 +157,20 @@ export function useDreamMode(options: UseDreamModeOptions = {}): UseDreamMode {
         dream.githubToken || undefined,
       );
 
-      addDreamLog(log);
-      appendLog(`Dream cycle complete. ${log.goalsCompleted} goals, ${log.bugsFound} bugs found, ${log.bugsFixed} fixed.`);
+      if (!unmountedRef.current) {
+        addDreamLog(log);
+        appendLog(`Dream cycle complete. ${log.goalsCompleted} goals, ${log.bugsFound} bugs found, ${log.bugsFixed} fixed.`);
+      }
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      appendLog(`[ERROR] Dream cycle failed: ${message}`);
+      if (!unmountedRef.current) {
+        const message = error instanceof Error ? error.message : String(error);
+        appendLog(`[ERROR] Dream cycle failed: ${message}`);
+      }
     } finally {
-      setIsDreaming(false);
-      setCurrentPhase('DONE');
+      if (!unmountedRef.current) {
+        setIsDreaming(false);
+        setCurrentPhase('DONE');
+      }
       campaignRef.current = null;
     }
   }, [

@@ -24,6 +24,13 @@ const BABEL_STANDALONE_CDN = 'https://unpkg.com/@babel/standalone@7/babel.min.js
 const TAILWIND_CDN = 'https://cdn.tailwindcss.com';
 
 // ============================================================================
+// CONFIGURATION
+// ============================================================================
+
+/** Default viewport dimensions for screenshot rendering */
+const DEFAULT_SCREENSHOT_VIEWPORT = { width: 1280, height: 800 };
+
+// ============================================================================
 // SERVICE
 // ============================================================================
 
@@ -41,7 +48,7 @@ class ReactToHtmlServiceInstance {
    */
   buildStandaloneHtml(
     files: AppFile[],
-    viewport: { width: number; height: number } = { width: 1280, height: 800 }
+    viewport: { width: number; height: number } = DEFAULT_SCREENSHOT_VIEWPORT
   ): string {
     // Find the main App file
     const appFile = files.find(

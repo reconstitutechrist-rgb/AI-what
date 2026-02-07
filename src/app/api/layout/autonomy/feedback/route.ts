@@ -13,22 +13,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DynamicWorkflowEngine } from '@/services/DynamicWorkflowEngine';
 import { parseAutonomyOutput } from '@/services/TitanPipelineService';
-import type { AgentFeedback, SuspendedExecution } from '@/types/autonomy';
+import type { AgentSwarm, SuspendedExecution, AgentFeedback } from '@/types/autonomy';
+import { AutonomyFeedbackRequestSchema } from '@/types/api-schemas';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { feedback, suspendedState } = body as {
-      feedback: AgentFeedback;
-      suspendedState: SuspendedExecution
-    };
+    const raw = await req.json();
+    const parsed = AutonomyFeedbackRequestSchema.safeParse(raw);
 
-    if (!feedback || !suspendedState) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Missing feedback or suspendedState' },
+        { error: 'Invalid request', details: parsed.error.message },
         { status: 400 }
       );
     }
+
+    // Zod validates structure; cast to domain types for the engine
+    // (these are serialized objects from a previous server round-trip)
+    const feedback = parsed.data.feedback as AgentFeedback;
+    const suspendedState = parsed.data.suspendedState as unknown as SuspendedExecution;
 
     console.log(`[AvatarAPI] Received feedback for cmd ${feedback.commandId} (Exit: ${feedback.exitCode})`);
 
@@ -36,7 +39,7 @@ export async function POST(req: NextRequest) {
     const engine = new DynamicWorkflowEngine();
 
     const result = await engine.resumeSwarm(
-      suspendedState.swarm,
+      suspendedState.swarm as AgentSwarm,
       suspendedState,
       feedback
     );

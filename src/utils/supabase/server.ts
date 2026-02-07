@@ -4,10 +4,15 @@ import { cookies } from 'next/headers';
 export async function createClient() {
   const cookieStore = await cookies();
 
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL environment variable is required');
+  }
+  if (!supabaseAnonKey) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable is required');
+  }
 
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {

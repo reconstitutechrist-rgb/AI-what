@@ -161,7 +161,7 @@ export interface DreamLog {
 export type DreamGoalStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
 
 /** Source of a dream goal */
-export type DreamGoalSource = 'user' | 'discovery';
+export type DreamGoalSource = 'user' | 'discovery' | 'spec' | 'temporal';
 
 /** A goal/directive in the dream queue */
 export interface DreamGoal {

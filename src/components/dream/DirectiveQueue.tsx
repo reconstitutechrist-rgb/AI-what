@@ -52,6 +52,8 @@ const STATUS_STYLES: Record<DreamGoal['status'], { bg: string; text: string; lab
 const SOURCE_BADGE: Record<DreamGoal['source'], { bg: string; text: string; label: string; icon: string }> = {
   user: { bg: 'bg-purple-900/40', text: 'text-purple-300', label: 'User', icon: '👤' },
   discovery: { bg: 'bg-amber-900/40', text: 'text-amber-300', label: 'Discovery', icon: '🔍' },
+  spec: { bg: 'bg-indigo-900/40', text: 'text-indigo-300', label: 'Spec', icon: '📋' },
+  temporal: { bg: 'bg-teal-900/40', text: 'text-teal-300', label: 'Temporal', icon: '⏳' },
 };
 
 // ============================================================================

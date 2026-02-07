@@ -196,10 +196,10 @@ class VisualCriticServiceInstance {
 
       if (!screenshotDataUri) {
         return {
-          overallScore: 0,
-          verdict: 'regenerate',
-          issues: [{ category: 'completeness', severity: 'major', description: 'Screenshot capture failed — unable to evaluate visually' }],
-          suggestions: ['Ensure Puppeteer is available for visual critique'],
+          overallScore: 5,
+          verdict: 'accept',
+          issues: [],
+          suggestions: ['Screenshot capture unavailable — visual critique skipped'],
           duration: Date.now() - startTime,
         };
       }

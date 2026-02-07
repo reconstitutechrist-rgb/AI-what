@@ -246,26 +246,36 @@ class WebContainerServiceInstance {
 
   /**
    * Write all project files to the WebContainer filesystem.
-   * Cleans the /src directory first to prevent stale files from previous
-   * validations from polluting the current run.
+   * Cleans all root-level files/directories (except node_modules) to prevent
+   * stale configs from previous runs from polluting the current build.
    */
   private async writeProjectFiles(
     container: WebContainer,
     files: AppFile[],
     dependencies: Record<string, string>
   ): Promise<void> {
+    // Clean all root-level entries except node_modules (preserves install cache)
+    const PRESERVE = new Set(['node_modules']);
+    try {
+      const entries = await container.fs.readdir('/');
+      for (const entry of entries) {
+        if (!PRESERVE.has(entry)) {
+          try {
+            await container.fs.rm(`/${entry}`, { recursive: true });
+          } catch {
+            // Entry may already be gone — that's fine
+          }
+        }
+      }
+    } catch {
+      // readdir may fail on first run before any files exist
+    }
+
     // Write package.json
     await container.fs.writeFile('/package.json', buildPackageJson(dependencies));
 
     // Write tsconfig.json
     await container.fs.writeFile('/tsconfig.json', TSCONFIG);
-
-    // Clean /src directory to remove stale files from previous validations
-    try {
-      await container.fs.rm('/src', { recursive: true });
-    } catch {
-      // Directory may not exist on first run — that's fine
-    }
 
     // Recreate /src directory
     await container.fs.mkdir('/src', { recursive: true });
@@ -340,13 +350,21 @@ class WebContainerServiceInstance {
     let stdout = '';
     let stderr = '';
 
+    // AbortController lets us cleanly cancel stream pipes on timeout
+    const streamAbort = new AbortController();
+
     process.output.pipeTo(
       new WritableStream({
         write(chunk) {
           stdout += chunk;
         },
-      })
-    ).catch(() => { /* ignore pipe errors on timeout */ });
+      }),
+      { signal: streamAbort.signal }
+    ).catch((err) => {
+      if (err?.name !== 'AbortError') {
+        console.warn('[WebContainer] stdout pipe error:', err?.message);
+      }
+    });
 
     // WebContainer stderr is combined with stdout in many cases,
     // but we capture separately when available
@@ -356,14 +374,20 @@ class WebContainerServiceInstance {
           write(chunk) {
             stderr += chunk;
           },
-        })
-      ).catch(() => { /* ignore pipe errors on timeout */ });
+        }),
+        { signal: streamAbort.signal }
+      ).catch((err) => {
+        if (err?.name !== 'AbortError') {
+          console.warn('[WebContainer] stderr pipe error:', err?.message);
+        }
+      });
     }
 
     const exitCode = await Promise.race([
       process.exit,
       new Promise<number>((resolve) =>
         setTimeout(() => {
+          streamAbort.abort(); // Cancel stream pipes before killing process
           process.kill();
           resolve(124); // timeout exit code
         }, timeout)

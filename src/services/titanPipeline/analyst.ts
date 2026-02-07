@@ -187,12 +187,15 @@ ${pathSample}
 
 ${packageContent ? `package.json (partial):\n${packageContent}` : ''}`;
 
+    let rawText = '';
     try {
       const result = await withGeminiRetry(() => model.generateContent(prompt));
-      const text = result.response.text().trim();
-      const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      rawText = result.response.text().trim();
+      const cleaned = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
       return JSON.parse(cleaned);
-    } catch {
+    } catch (e) {
+      console.warn('[RepoAnalyst] Tech stack JSON parse failed:', e);
+      if (rawText) console.warn('[RepoAnalyst] Raw response (first 500 chars):', rawText.slice(0, 500));
       // Fallback: infer from file extensions and common patterns
       const stack: string[] = [];
       if (files.some((f) => f.path.includes('.tsx'))) stack.push('React', 'TypeScript');
@@ -229,7 +232,8 @@ ${fileContents}`;
     try {
       const result = await withGeminiRetry(() => model.generateContent(prompt));
       return result.response.text().trim();
-    } catch {
+    } catch (e) {
+      console.warn('[RepoAnalyst] Style guide extraction failed:', e);
       return 'Style analysis failed. Use standard TypeScript conventions.';
     }
   }

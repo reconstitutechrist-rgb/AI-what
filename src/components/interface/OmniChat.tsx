@@ -171,6 +171,8 @@ export const OmniChat: React.FC<OmniChatProps> = ({
   const handleSend = () => {
     if (!inputValue.trim() && uploadedMedia.length === 0) return;
     onSendMessage(inputValue, uploadedMedia);
+    // Revoke blob URLs before clearing to prevent memory leaks
+    uploadedMedia.forEach((m) => URL.revokeObjectURL(m.previewUrl));
     setInputValue('');
     setUploadedMedia([]);
   };

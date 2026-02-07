@@ -13,8 +13,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import type { ScreenshotRequest, ScreenshotResponse } from '@/types/layoutAnalysis';
+import type { ScreenshotResponse } from '@/types/layoutAnalysis';
 import { getReactToHtmlService } from '@/services/ReactToHtmlService';
+import { ScreenshotRequestSchema } from '@/types/api-schemas';
 
 // Lazy-load puppeteer to avoid issues in environments where it's not available
 let puppeteerModule: typeof import('puppeteer') | null = null;
@@ -33,10 +34,21 @@ async function getPuppeteer() {
 
 export async function POST(req: NextRequest) {
   try {
-    const body: ScreenshotRequest = await req.json();
-    const { css, viewport = { width: 1280, height: 800 } } = body;
+    const raw = await req.json();
+    const parsed = ScreenshotRequestSchema.safeParse(raw);
 
-    // Support both raw HTML and AppFile[] input (Avatar Protocol uses files)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: parsed.error.message } as ScreenshotResponse,
+        { status: 400 }
+      );
+    }
+
+    const body = parsed.data;
+    const { css, viewport } = body;
+
+    // Trust boundary: HTML comes from our own ReactToHtmlService pipeline, not direct user input.
+    // If direct user HTML is ever accepted, add DOMPurify sanitization here.
     let html = body.html;
     if (!html && body.files && body.files.length > 0) {
       const htmlService = getReactToHtmlService();

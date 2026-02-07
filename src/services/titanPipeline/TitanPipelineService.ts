@@ -37,6 +37,13 @@ import { assembleCode } from './builder';
 import { liveEdit } from './liveEditor';
 
 // ============================================================================
+// CONFIGURATION
+// ============================================================================
+
+/** Maximum wall-clock time for the entire pipeline before aborting (ms) */
+const PIPELINE_TIMEOUT_MS = 120_000; // 2 minutes
+
+// ============================================================================
 // MAIN ORCHESTRATOR
 // ============================================================================
 
@@ -46,6 +53,18 @@ import { liveEdit } from './liveEditor';
 export async function runPipeline(input: PipelineInput): Promise<PipelineResult> {
   const warnings: string[] = [];
   const stepTimings: Record<string, number> = {};
+  const pipelineStart = Date.now();
+
+  /** Throws if the cumulative pipeline time exceeds PIPELINE_TIMEOUT_MS */
+  const checkTimeout = (stepName: string) => {
+    const elapsed = Date.now() - pipelineStart;
+    if (elapsed > PIPELINE_TIMEOUT_MS) {
+      throw new Error(
+        `Pipeline timeout: ${stepName} aborted after ${Math.round(elapsed / 1000)}s ` +
+        `(limit ${Math.round(PIPELINE_TIMEOUT_MS / 1000)}s)`
+      );
+    }
+  };
 
   const routeStart = Date.now();
   const strategy = await routeIntent(input);
@@ -56,7 +75,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     console.log('[TitanPipeline] Triggering Autonomy Core for Unknown Task...');
     const autonomyStart = Date.now();
     const result = await autonomyCore.solveUnknown({
-      id: `auto_${Date.now()}`,
+      id: `auto_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       description: input.instructions,
       context: `Files: ${input.files.length}${input.currentCode ? '\nExisting code present.' : ''}`,
       technical_constraints: [],
@@ -82,7 +101,11 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   let physics: MotionPhysics | null = null;
   const generatedAssets: Record<string, string> = {};
 
-  await Promise.all([
+  checkTimeout('parallel stages');
+
+  // Run parallel stages with error isolation — one stage failing shouldn't kill others
+  const parallelStart = Date.now();
+  const parallelResults = await Promise.allSettled([
     // Surveyor
     (async () => {
       if (strategy.execution_plan.measure_pixels.length && input.files.length > 0) {
@@ -121,6 +144,19 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     })(),
   ]);
 
+  stepTimings.parallel = Date.now() - parallelStart;
+
+  // Log any stage failures without aborting the pipeline
+  const stageNames = ['Surveyor', 'Physicist', 'Photographer'];
+  parallelResults.forEach((result, i) => {
+    if (result.status === 'rejected') {
+      console.error(`[TitanPipeline] ${stageNames[i]} stage failed:`, result.reason);
+      warnings.push(`${stageNames[i]} stage failed: ${result.reason instanceof Error ? result.reason.message : String(result.reason)}`);
+    }
+  });
+
+  checkTimeout('asset extraction');
+
   // Asset Extraction: crop custom visuals from original image
   // Extracted assets override generated ones (fidelity > hallucination)
   if (manifests.length > 0 && input.files.length > 0) {
@@ -148,9 +184,13 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     stepTimings.extraction = Date.now() - extractStart;
   }
 
+  checkTimeout('architect');
+
   const structStart = Date.now();
   const structure = await buildStructure(manifests, strategy, input.instructions);
   stepTimings.architect = Date.now() - structStart;
+
+  checkTimeout('builder');
 
   const buildStart = Date.now();
   let files = await assembleCode(
@@ -187,6 +227,8 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       warnings.push('dom_tree conversion failed, healing loop will use regeneration only');
     }
   }
+
+  checkTimeout('healing loop');
 
   // Vision Healing Loop: screenshot → critique → patch/regenerate
   // Only runs when we have a reference image to compare against

@@ -113,7 +113,11 @@ class SkillLibraryServiceInstance {
     // Get the current user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      console.error('[SkillLibrary] No authenticated user, cannot save skill');
+      console.error('[SkillLibrary] saveSkill failed — no authenticated user:', {
+        error: authError?.message,
+        code: authError?.code,
+        goal: input.goalDescription.slice(0, 100),
+      });
       return null;
     }
 
@@ -125,11 +129,13 @@ class SkillLibraryServiceInstance {
     );
     const embedding = await embeddingService.embed(embeddingText);
 
-    // Check for near-duplicate (same user, very high similarity)
+    // Check for near-duplicate (same user, high semantic similarity)
+    // Threshold 0.88 catches synonym variations ("Build X" vs "Create X" ~0.89)
+    // without false-positive merging of genuinely different requests
     const duplicateCheck = await this.findSimilarSkills({
       query: input.goalDescription,
       embedding,
-      similarityThreshold: 0.95,
+      similarityThreshold: 0.88,
       limit: 1,
     });
 

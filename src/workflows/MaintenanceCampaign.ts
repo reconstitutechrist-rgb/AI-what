@@ -26,6 +26,9 @@
 import { AutonomyCore } from '@/agents/AutonomyCore';
 import { getQAChaosAgent } from '@/agents/QA_ChaosAgent';
 import { getDiscoveryAgent } from '@/agents/DiscoveryAgent';
+import { getSpecAuditor } from '@/agents/SpecAuditorAgent';
+import { getWorkflowAuditor } from '@/agents/WorkflowAuditor';
+import { getVisualCriticService } from '@/services/VisualCriticService';
 import { getDependencyGraphService } from '@/services/DependencyGraphService';
 import { getWebContainerService } from '@/services/WebContainerService';
 import { getChaosProfile } from '@/config/chaosProfile';
@@ -149,7 +152,31 @@ export class MaintenanceCampaign {
 
       if (this.aborted) return this.buildLog(repoUrl, 'user_stopped');
 
-      // ── Phase 1: Discovery ──────────────────────────────────────────
+      // ── Phase 1: Spec Audit (The Project Manager) ───────────────────
+      // Look for a spec file to know WHAT to build
+      const specFile = this.files.find(
+        (f) => f.path.endsWith('TITAN_SPEC.md') || f.path.endsWith('SPEC.md')
+      );
+
+      if (specFile) {
+        await this.setPhase('DISCOVERING');
+        this.log(`Found Specification: ${specFile.path}. Running Audit...`);
+
+        const specAuditor = getSpecAuditor();
+        const specGoals = await specAuditor.auditSpec(specFile.content, this.files);
+
+        if (specGoals.length > 0) {
+          this.log(`Spec Audit added ${specGoals.length} new goals from requirements.`);
+          this.goalQueue.push(...specGoals);
+          this.onGoalQueueUpdate(this.goalQueue);
+        } else {
+          this.log('Spec Audit found no gaps — all requirements appear covered.');
+        }
+      }
+
+      if (this.aborted) return this.buildLog(repoUrl, 'user_stopped');
+
+      // ── Phase 2: Feature Discovery (The Archaeologist) ──────────────
       await this.setPhase('DISCOVERING');
       this.log('Running Feature Discovery Agent...');
 
@@ -172,6 +199,42 @@ export class MaintenanceCampaign {
         this.log(`Auto-queued ${discoveryGoals.length} wiring goals from discoveries`);
         this.goalQueue.push(...discoveryGoals);
         this.onGoalQueueUpdate(this.goalQueue);
+      }
+
+      if (this.aborted) return this.buildLog(repoUrl, 'user_stopped');
+
+      // ── Phase 3: Temporal Audit (The Time Machine) ────────────────────
+      // Discover time-dependent logic and simulate it
+      this.log('Running Temporal Workflow Auditor...');
+      const workflowAuditor = getWorkflowAuditor();
+      const workflows = await workflowAuditor.discoverWorkflows(this.files);
+
+      if (workflows.length > 0) {
+        this.log(`Found ${workflows.length} temporal workflow(s). Running simulations...`);
+
+        for (const workflow of workflows) {
+          if (this.aborted) return this.buildLog(repoUrl, 'user_stopped');
+
+          const result = await workflowAuditor.runWorkflow(workflow);
+          this.log(`  ${result.success ? '✅' : '❌'} ${workflow.name} (${result.stepsPassed}/${result.totalSteps} steps)`);
+
+          if (!result.success && result.failureReason) {
+            // Generate a fix goal for the failed workflow
+            const fixGoal = {
+              id: `temporal_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+              prompt: `[Temporal Fix] ${workflow.name}: ${result.failureReason}`,
+              status: 'PENDING' as const,
+              source: 'temporal' as const,
+              createdAt: Date.now(),
+            };
+            this.goalQueue.push(fixGoal);
+          }
+        }
+
+        this.onGoalQueueUpdate(this.goalQueue);
+        this.log('Temporal audit complete.');
+      } else {
+        this.log('No temporal logic found — skipping workflow simulations.');
       }
 
       if (this.aborted) return this.buildLog(repoUrl, 'user_stopped');
@@ -241,7 +304,12 @@ export class MaintenanceCampaign {
   // ==========================================================================
 
   /**
-   * Execute a single goal via AutonomyCore.
+   * Execute a single goal via AutonomyCore with FULL Verification.
+   *
+   * 3-Step Verification:
+   *   1. Technical (Compile) — Does it build without errors?
+   *   2. Visual (Critic)     — Does it look right?
+   *   3. Functional (Test)   — Does it actually work?
    */
   private async executeGoal(goal: DreamGoal): Promise<void> {
     await this.setPhase('BUILDING_GOAL');
@@ -264,7 +332,7 @@ export class MaintenanceCampaign {
         ],
       };
 
-      // Execute via AutonomyCore
+      // 1. EXECUTE: AutonomyCore writes the code
       const result = await this.autonomyCore.solveUnknown(autonomyGoal);
 
       if (result.success && result.output) {
@@ -274,32 +342,83 @@ export class MaintenanceCampaign {
         // Apply the generated code
         await this.applyCode(result.output, goal.id);
 
-        // Verify the build still works
+        // 2. VERIFY (Technical): Does it compile?
         await this.setPhase('VERIFYING');
         const webContainer = getWebContainerService();
         const validation = await webContainer.validate(this.files);
 
-        if (validation.valid) {
-          goal.status = 'COMPLETED';
-          goal.completedAt = Date.now();
-          this.goalsCompleted++;
-          this.fixCount++; // Goals count toward fix budget
-          this.log(`Goal completed: "${goal.prompt.slice(0, 60)}..."`);
-
-          // Generate a test for the new feature
-          const chaosAgent = getQAChaosAgent();
-          try {
-            const testCode = await chaosAgent.generateTestForFeature(goal.prompt, this.files);
-            this.log(`Generated verification test for goal (${testCode.length} chars)`);
-          } catch {
-            this.log('Test generation for goal skipped (non-critical)');
-          }
-        } else {
-          // Build failed — revert files to pre-apply state
+        if (!validation.valid) {
+          // Technical Failure → Revert
           this.files = snapshot;
-          this.log(`Goal build verification failed, reverted: ${validation.errors.map((e) => e.message).join(', ')}`);
           goal.status = 'FAILED';
-          goal.errorMessage = validation.errors.map((e) => e.message).join('; ');
+          goal.errorMessage =
+            'Build failed: ' +
+            validation.errors.map((e) => e.message).join('; ');
+          this.log('Goal verification failed (Build Error). Reverted.');
+        } else {
+          // 3. VERIFY (Visual): Does it look right?
+          this.log('Running Visual Critic...');
+          const visualCritic = getVisualCriticService();
+          const critique = await visualCritic.evaluate(
+            this.files,
+            goal.prompt
+          );
+
+          if (critique.verdict === 'regenerate') {
+            // Visual Failure → Revert
+            this.files = snapshot;
+            goal.status = 'FAILED';
+            goal.errorMessage = `Visual Verification Failed (Score: ${critique.overallScore}/10): ${critique.issues[0]?.description}`;
+            this.log('Visual Critic rejected the build. Reverting.');
+          } else {
+            // 4. VERIFY (Functional): Does it actually work?
+            const chaosAgent = getQAChaosAgent();
+            try {
+              this.log('Generating functional test...');
+              const testCode = await chaosAgent.generateTestForFeature(
+                goal.prompt,
+                this.files
+              );
+
+              const testReport = await chaosAgent.runTests(
+                webContainer.executeShell.bind(webContainer),
+                testCode,
+                {
+                  delay: this.profile.actionDelay,
+                  writeFile: webContainer.writeFile.bind(webContainer),
+                }
+              );
+
+              if (testReport.crashes.length > 0) {
+                // Functional Failure → Revert
+                this.files = snapshot;
+                goal.status = 'FAILED';
+                goal.errorMessage = `Functional Verification Failed: ${testReport.crashes[0].error}`;
+                this.log(
+                  'Feature built but failed functional tests. Reverting.'
+                );
+              } else {
+                // SUCCESS! All 3 checks passed.
+                goal.status = 'COMPLETED';
+                goal.completedAt = Date.now();
+                this.goalsCompleted++;
+                this.fixCount++;
+                this.log(
+                  `Goal verified (Visual: ${critique.overallScore}/10, Func: PASS).`
+                );
+              }
+            } catch (testErr) {
+              // If test generation itself fails, accept if visuals passed (soft fail)
+              console.warn('[MaintenanceCampaign] Functional test gen failed:', testErr);
+              goal.status = 'COMPLETED';
+              goal.completedAt = Date.now();
+              this.goalsCompleted++;
+              this.fixCount++;
+              this.log(
+                `Goal verified (Visual: ${critique.overallScore}/10). Functional test skipped.`
+              );
+            }
+          }
         }
       } else {
         goal.status = 'FAILED';

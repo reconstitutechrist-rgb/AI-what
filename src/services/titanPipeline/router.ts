@@ -55,7 +55,10 @@ export async function routeIntent(input: PipelineInput): Promise<MergeStrategy> 
 
   const prompt = `${ROUTER_PROMPT}
 
-  User Request: "${input.instructions}"
+  User Request:
+\`\`\`
+${input.instructions}
+\`\`\`
   Files: ${input.files.length}
   Code Exists: ${!!input.currentCode}
   `;
@@ -65,7 +68,9 @@ export async function routeIntent(input: PipelineInput): Promise<MergeStrategy> 
 
   try {
     return JSON.parse(text);
-  } catch {
+  } catch (e) {
+    console.warn('[Router] JSON parse failed, using fallback strategy:', e);
+    console.warn('[Router] Raw response (first 500 chars):', text.slice(0, 500));
     return {
       mode: input.currentCode ? 'EDIT' : 'CREATE',
       base_source: input.currentCode ? 'codebase' : null,

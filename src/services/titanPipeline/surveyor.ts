@@ -91,6 +91,16 @@ export async function surveyLayout(file: FileInput, fileIndex: number): Promise<
 
     const data = JSON.parse(jsonMatch[0]);
 
+    if (!data.canvas || typeof data.canvas.width !== 'number' || typeof data.canvas.height !== 'number') {
+      console.error('[Surveyor] Invalid response structure: missing or malformed canvas', Object.keys(data));
+      throw new Error('Surveyor returned invalid structure: missing canvas dimensions');
+    }
+
+    if (!data.dom_tree || typeof data.dom_tree !== 'object') {
+      console.error('[Surveyor] Invalid response structure: missing dom_tree', Object.keys(data));
+      throw new Error('Surveyor returned invalid structure: missing dom_tree');
+    }
+
     return {
       file_index: fileIndex,
       canvas: data.canvas,
@@ -98,7 +108,10 @@ export async function surveyLayout(file: FileInput, fileIndex: number): Promise<
       measured_components: [],
     };
   } catch (e) {
-    console.error('Surveyor Failed:', e);
+    console.error('[Surveyor] Failed:', e);
+    try {
+      console.error('[Surveyor] Raw response (first 500 chars):', result.response.text().slice(0, 500));
+    } catch { /* response may not be available */ }
     return {
       file_index: fileIndex,
       measured_components: [],

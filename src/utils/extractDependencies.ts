@@ -40,6 +40,9 @@ const BARE_IMPORT_REGEX = /^\s*import\s+['"]([^'"./][^'"]*)['"]/gm;
 /** Matches CommonJS: `require('pkg')` */
 const REQUIRE_REGEX = /require\s*\(\s*['"]([^'"./][^'"]*)['"]\s*\)/g;
 
+/** Matches dynamic imports: `import('pkg')` or `await import('pkg')` */
+const DYNAMIC_IMPORT_REGEX = /\bimport\s*\(\s*['"]([^'"./][^'"]*)['"]\s*\)/g;
+
 /**
  * Extract the npm package name from an import specifier.
  *
@@ -74,6 +77,9 @@ export function extractDependencies(
       packages.add(toPackageName(match[1]));
     }
     for (const match of content.matchAll(REQUIRE_REGEX)) {
+      packages.add(toPackageName(match[1]));
+    }
+    for (const match of content.matchAll(DYNAMIC_IMPORT_REGEX)) {
       packages.add(toPackageName(match[1]));
     }
   }

@@ -516,7 +516,7 @@ Return ONLY the full App.tsx code. No markdown. No explanations.`;
 // NOTE: Avoid overly generic words (scene, shadows, lighting, camera, etc.)
 // that also appear in 2D CSS/UI contexts. Only match unambiguous 3D terms
 // or compound phrases that clearly indicate 3D intent.
-const THREE_D_KEYWORDS = /\b(3[dD]|three\.?js|webgl|mesh(?:es)?|geometry|orbit\s*controls|metalness|roughness|PBR|HDRI|environment\s*map|product\s*visual|R3F|react[\s-]*three|torus|cast\s*shadow|ray\s*cast|normal\s*map|useFrame|Canvas\s*shadows|post[\s-]*process|bloom|ssao|depth\s*of\s*field|physics|rigid\s*body|collider|rapier|first[\s-]?person|FPC|pointer[\s-]?lock|terrain|heightmap|procedural\s*terrain|skybox|cubemap|gltf|glb|useGLTF|multi[\s-]?scene)\b/i;
+const THREE_D_KEYWORDS = /\b(3[dD]|three\.?js|webgl|mesh(?:es)?|geometry|orbit\s*controls|metalness|roughness|PBR|HDRI|environment\s*map|product\s*visual|R3F|react[\s-]*three|torus|cast\s*shadow|ray\s*cast|normal\s*map|useFrame|Canvas\s*shadows|post[\s-]*process|bloom|ssao|depth\s*of\s*field|physics|rigid\s*body|collider|rapier|first[\s-]?person|FPC|pointer[\s-]?lock|terrain|heightmap|procedural\s*terrain|skybox|cubemap|gltf|glb|useGLTF|multi[\s-]?scene|[AVX]R\b|augmented\s*reality|virtual\s*reality|WebXR|immersive|metaverse|spatial\s*(?:audio|computing)|particle\s*system|volumetric|point\s*cloud|holographic|360|panorama(?:ic)?|equirectangular)\b/i;
 
 // ============================================================================
 // BUILDER FUNCTION
@@ -547,6 +547,9 @@ export async function assembleCode(
   // Detect 3D mode from strategy flag or instruction keywords
   const is3D = strategy.execution_plan.enable_3d || THREE_D_KEYWORDS.test(instructions);
 
+  /** Strip control characters and newlines from URLs to prevent prompt injection */
+  const sanitizeUrl = (url: string): string => url.replace(/[\r\n\t`${}\\]/g, '').trim();
+
   const hasAssets = Object.keys(assets).length > 0;
   const assetContext = hasAssets
     ? is3D
@@ -554,12 +557,12 @@ export async function assembleCode(
 These assets were generated for the 3D scene:
 ${Object.entries(assets).map(([name, url]) => {
   const isHdri = name.includes('hdri') || name.includes('environment');
-  return `  - "${name}" (${isHdri ? 'HDRI Environment' : 'Texture'}): ${url}`;
+  return `  - "${name}" (${isHdri ? 'HDRI Environment' : 'Texture'}): ${sanitizeUrl(url)}`;
 }).join('\n')}
 Use HDRI assets via <Environment files={url} />. Use texture assets via useTexture() or map property.`
       : `\n\n  ### ASSET CONTEXT
 These texture/material images were generated for the user's request:
-${Object.entries(assets).map(([name, url]) => `  - "${name}" -> ${url}`).join('\n')}
+${Object.entries(assets).map(([name, url]) => `  - "${name}" -> ${sanitizeUrl(url)}`).join('\n')}
 Apply them via backgroundImage on the matching elements. Combine with clip-path for shaped elements.`
     : '';
 

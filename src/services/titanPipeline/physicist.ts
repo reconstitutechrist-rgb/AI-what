@@ -42,10 +42,13 @@ export async function extractPhysics(
   if (files.length === 0) return { component_motions: [] };
 
   const result = await withGeminiRetry(() => model.generateContent(parts as Parameters<typeof model.generateContent>[0]));
+  const text = result.response.text();
   try {
-    const jsonMatch = result.response.text().match(/\{[\s\S]*\}/);
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
     return jsonMatch ? JSON.parse(jsonMatch[0]) : { component_motions: [] };
-  } catch {
+  } catch (e) {
+    console.warn('[Physicist] JSON parse failed:', e);
+    console.warn('[Physicist] Raw response (first 500 chars):', text.slice(0, 500));
     return { component_motions: [] };
   }
 }

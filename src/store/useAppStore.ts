@@ -700,35 +700,36 @@ export const useAppStore = create<AppState>()(
         // Migration function to preserve data when version changes
         migrate: (persistedState: unknown, version: number) => {
           const state = persistedState as Record<string, unknown>;
+
+          // Defaults for all persisted fields — ensures fields added after
+          // the user's stored version get proper initial values.
+          const DEFAULTS: Record<string, unknown> = {
+            components: [],
+            currentComponent: null,
+            generatedFiles: [],
+            dreamLogs: [],
+            isDreaming: false,
+            dreamGoalQueue: [],
+            currentDesignSpec: null,
+            isReviewed: false,
+            buildSettings: { autoAdvance: true },
+            layoutThumbnail: null,
+            phasePlanGeneratedAt: null,
+          };
+
+          // Version-specific overrides (reset certain fields on major changes)
           if (version === 1) {
-            return {
-              ...state,
-              components: state.components ?? [],
-              currentComponent: state.currentComponent ?? null,
-              generatedFiles: [],
-              dreamLogs: [],
-              isDreaming: false,
-              dreamGoalQueue: [],
-            };
+            return { ...DEFAULTS, ...state, generatedFiles: [], dreamLogs: [], isDreaming: false, dreamGoalQueue: [] };
           }
           if (version === 2) {
-            return {
-              ...state,
-              generatedFiles: [],
-              dreamLogs: [],
-              isDreaming: false,
-              dreamGoalQueue: [],
-            };
+            return { ...DEFAULTS, ...state, generatedFiles: [], dreamLogs: [], isDreaming: false, dreamGoalQueue: [] };
           }
           if (version === 3) {
-            return {
-              ...state,
-              dreamLogs: [],
-              isDreaming: false,
-              dreamGoalQueue: [],
-            };
+            return { ...DEFAULTS, ...state, dreamLogs: [], isDreaming: false, dreamGoalQueue: [] };
           }
-          return state;
+
+          // v4+ or unknown: apply defaults, let existing values win
+          return { ...DEFAULTS, ...state };
         },
         partialize: (state) => ({
           // Only persist workflow-critical data (not UI state, chat, etc.)

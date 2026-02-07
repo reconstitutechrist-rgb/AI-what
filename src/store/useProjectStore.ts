@@ -55,6 +55,14 @@ export const useProjectStore = create<ProjectStoreState>()(
     }),
     {
       name: 'project-store',
+      version: 1,
+      migrate: (persistedState: unknown) => {
+        const state = persistedState as Record<string, unknown>;
+        return {
+          activeProjectId: null,
+          ...state,
+        };
+      },
       // Only persist the activeProjectId (tiny, just a string)
       // projectList is loaded from IndexedDB on demand
       partialize: (state) => ({

@@ -276,6 +276,7 @@ export const LayoutBuilderView: React.FC = () => {
     <ErrorBoundary>
       <div className="flex h-full w-full">
         {/* Left Panel: OmniChat */}
+        <ErrorBoundary>
         <div className="w-[400px] min-w-[320px] max-w-[500px] flex-shrink-0 h-full">
           <OmniChat
             onSendMessage={handleSendMessage}
@@ -285,8 +286,10 @@ export const LayoutBuilderView: React.FC = () => {
             activeAction={activeAction}
           />
         </div>
+        </ErrorBoundary>
 
         {/* Right Panel: Preview Canvas */}
+        <ErrorBoundary>
         <div className="flex-1 h-full overflow-hidden">
           <LayoutCanvas
             generatedFiles={generatedFiles}
@@ -311,6 +314,7 @@ export const LayoutBuilderView: React.FC = () => {
             critiqueIssues={critiqueIssues}
           />
         </div>
+        </ErrorBoundary>
       </div>
     </ErrorBoundary>
   );

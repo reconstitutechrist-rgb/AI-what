@@ -21,6 +21,7 @@ export interface Skill {
   solution_code: string;
   solution_files: SkillFile[];
   embedding: number[];
+  /** Quality score stored as 0.0-1.0 (normalized from Visual Critic's 1-10 scale via /10) */
   quality_score: number;
   usage_count: number;
   created_at: string;

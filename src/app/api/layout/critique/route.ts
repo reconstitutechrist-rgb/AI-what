@@ -9,26 +9,22 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getVisualCriticService } from '@/services/VisualCriticService';
-import type { CritiqueRequest, CritiqueResponse } from '@/types/visualCritic';
+import type { CritiqueResponse } from '@/types/visualCritic';
+import { CritiqueRequestSchema } from '@/types/api-schemas';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as CritiqueRequest;
+    const raw = await request.json();
+    const parsed = CritiqueRequestSchema.safeParse(raw);
 
-    // Validate required fields
-    if (!body.files || !Array.isArray(body.files) || body.files.length === 0) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: 'Missing or empty "files" array' } satisfies CritiqueResponse,
-        { status: 400 }
-      );
-    }
-    if (!body.originalInstructions || typeof body.originalInstructions !== 'string') {
-      return NextResponse.json(
-        { success: false, error: 'Missing or invalid "originalInstructions"' } satisfies CritiqueResponse,
+        { success: false, error: parsed.error.message } satisfies CritiqueResponse,
         { status: 400 }
       );
     }
 
+    const body = parsed.data;
     const critic = getVisualCriticService();
 
     const critique = await critic.evaluate(

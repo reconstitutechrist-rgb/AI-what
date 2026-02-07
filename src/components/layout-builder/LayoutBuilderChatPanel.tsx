@@ -192,6 +192,8 @@ export const LayoutBuilderChatPanel: React.FC<LayoutBuilderChatPanelProps> = ({
     if (!inputValue.trim() && uploadedMedia.length === 0) return;
 
     onSendMessage(inputValue, uploadedMedia);
+    // Revoke blob URLs before clearing to prevent memory leaks
+    uploadedMedia.forEach((m) => URL.revokeObjectURL(m.previewUrl));
     setInputValue('');
     setUploadedMedia([]);
   };
@@ -202,6 +204,8 @@ export const LayoutBuilderChatPanel: React.FC<LayoutBuilderChatPanelProps> = ({
 
     if (onAnalyzeMedia) {
       await onAnalyzeMedia(uploadedMedia, inputValue.trim() || undefined);
+      // Revoke blob URLs before clearing to prevent memory leaks
+      uploadedMedia.forEach((m) => URL.revokeObjectURL(m.previewUrl));
       setInputValue('');
       setUploadedMedia([]);
     }

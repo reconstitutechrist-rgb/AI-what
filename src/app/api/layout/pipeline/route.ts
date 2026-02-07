@@ -12,11 +12,22 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getTitanPipelineService } from '@/services/TitanPipelineService';
-import type { PipelineInput, FileInput } from '@/types/titanPipeline';
+import type { PipelineInput } from '@/types/titanPipeline';
+import { PipelineRequestSchema } from '@/types/api-schemas';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const raw = await req.json();
+    const parsed = PipelineRequestSchema.safeParse(raw);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid request', details: parsed.error.message },
+        { status: 400 }
+      );
+    }
+
+    const body = parsed.data;
     const { action } = body;
 
     const service = getTitanPipelineService();
@@ -47,14 +58,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Normalize files input
-    const normalizedFiles: FileInput[] = Array.isArray(files)
-      ? files.map((f: Record<string, string>) => ({
-          base64: f.base64 || '',
-          mimeType: f.mimeType || 'image/png',
-          filename: f.filename || 'unnamed',
-        }))
-      : [];
+    const normalizedFiles = files ?? [];
 
     const pipelineInput: PipelineInput = {
       files: normalizedFiles,

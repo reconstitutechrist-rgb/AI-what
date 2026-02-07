@@ -177,7 +177,7 @@ export function toImplementationPlanSnapshot(
   if (tech.needsRealtime) technicalDecisions.push('Realtime features');
 
   return {
-    id: `impl-${plan.concept.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
+    id: `impl-${plan.concept.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     appName: plan.concept.name,
     approach: plan.concept.description || plan.concept.purpose || '',
     phases: plan.phases.map((phase) => ({

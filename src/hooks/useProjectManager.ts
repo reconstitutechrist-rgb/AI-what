@@ -8,7 +8,7 @@
  * All operations are async since IndexedDB is async.
  */
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { useChatStore } from '@/store/useChatStore';
 import { useProjectStore } from '@/store/useProjectStore';
@@ -53,6 +53,9 @@ export function useProjectManager(): UseProjectManagerReturn {
     useAppStore.getState().generatedFiles.length > 0 ||
     useAppStore.getState().appConcept !== null;
 
+  /** Atomic guard against concurrent save operations */
+  const savingRef = useRef(false);
+
   /**
    * Save the current project state to IndexedDB.
    * If an activeProjectId exists, updates the existing project.
@@ -61,6 +64,13 @@ export function useProjectManager(): UseProjectManagerReturn {
    */
   const saveCurrentProject = useCallback(
     async (name?: string): Promise<string> => {
+      if (savingRef.current) {
+        console.warn('[useProjectManager] Save already in progress, skipping');
+        return useProjectStore.getState().activeProjectId ?? '';
+      }
+      savingRef.current = true;
+
+      try {
       const appState = useAppStore.getState();
       const chatState = useChatStore.getState();
       const projectStore = useProjectStore.getState();
@@ -112,6 +122,9 @@ export function useProjectManager(): UseProjectManagerReturn {
       await refreshProjectList();
 
       return projectId;
+      } finally {
+        savingRef.current = false;
+      }
     },
     [setActiveProjectId, refreshProjectList]
   );
@@ -163,7 +176,13 @@ export function useProjectManager(): UseProjectManagerReturn {
       appState.currentComponent !== null;
 
     if (hasContent && useProjectStore.getState().activeProjectId !== null) {
-      await saveCurrentProject();
+      try {
+        await saveCurrentProject();
+      } catch (err) {
+        console.error('[useProjectManager] Auto-save failed before starting new project:', err);
+        // Don't proceed with clearing state — user would lose unsaved work
+        return;
+      }
     }
 
     // Clear all project state (new system + legacy fields)

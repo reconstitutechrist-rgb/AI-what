@@ -31,6 +31,13 @@ import type { SkillMatch } from '@/types/skillLibrary';
 
 const CLAUDE_SONNET_MODEL = 'claude-sonnet-4-5-20250929';
 const MAX_CODE_PREVIEW_LINES = 200;
+/**
+ * Maximum number of history messages to include in the LLM context.
+ * 20 messages ≈ 8-12K tokens at average message length, leaving room
+ * for system prompt + skill context + current user message within
+ * Claude's context window budget. The first user message is always
+ * pinned (see buildMessages) so original intent is preserved.
+ */
 const MAX_HISTORY_MESSAGES = 20;
 
 function getAnthropicApiKey(): string {
@@ -115,18 +122,52 @@ function truncateCode(code: string): string {
   return lines.slice(0, MAX_CODE_PREVIEW_LINES).join('\n') + `\n// ... (${lines.length - MAX_CODE_PREVIEW_LINES} more lines)`;
 }
 
+/**
+ * Truncate code at a clean boundary (closing brace, blank line, or statement end)
+ * rather than cutting mid-function. Used for skill context previews in prompts.
+ */
+function truncateCodeSmart(code: string, maxChars = 2000): string {
+  if (code.length <= maxChars) return code;
+  const lines = code.slice(0, maxChars).split('\n');
+  // Scan backwards (up to 20 lines) for a clean boundary
+  for (let i = lines.length - 1; i >= Math.max(0, lines.length - 20); i--) {
+    const trimmed = lines[i].trim();
+    if (trimmed === '}' || trimmed === '' || trimmed.endsWith(';')) {
+      return lines.slice(0, i + 1).join('\n');
+    }
+  }
+  // Fallback: last complete line
+  return lines.slice(0, -1).join('\n');
+}
+
 function buildMessages(
   history: OmniConversationMessage[],
   currentMessage: string
 ): Array<{ role: 'user' | 'assistant'; content: string }> {
-  const trimmed = history.slice(-MAX_HISTORY_MESSAGES);
-  return [
-    ...trimmed.map((m) => ({
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
-    })),
-    { role: 'user' as const, content: currentMessage },
-  ];
+  const toMsg = (m: OmniConversationMessage) => ({
+    role: m.role as 'user' | 'assistant',
+    content: m.content,
+  });
+
+  // Short history: include everything
+  if (history.length <= MAX_HISTORY_MESSAGES) {
+    return [...history.map(toMsg), { role: 'user' as const, content: currentMessage }];
+  }
+
+  // Long history: pin the first user message (original intent) + recent tail
+  const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+
+  if (history[0]?.role === 'user') {
+    messages.push(toMsg(history[0]));
+  }
+
+  // Take recent messages, deducting 1 for the pinned first message
+  const tailSize = history[0]?.role === 'user' ? MAX_HISTORY_MESSAGES - 1 : MAX_HISTORY_MESSAGES;
+  const tail = history.slice(-tailSize);
+  messages.push(...tail.map(toMsg));
+  messages.push({ role: 'user' as const, content: currentMessage });
+
+  return messages;
 }
 
 function parseResponse(text: string): OmniChatResponse {
@@ -277,7 +318,9 @@ class OmniChatServiceInstance {
       const usedCachedSkill = response.actionPayload.instructions?.includes(`USE_CACHED_SKILL:${cachedSkillMatch.skill.id}`);
       if (usedCachedSkill) {
         response.actionPayload.cachedSkillId = cachedSkillMatch.skill.id;
-        this.incrementSkillUsage(cachedSkillMatch.skill.id).catch(() => {});
+        this.incrementSkillUsage(cachedSkillMatch.skill.id).catch((err) => {
+          console.warn(`[OmniChat] Skill usage increment failed for ${cachedSkillMatch.skill.id}:`, err?.message);
+        });
       }
     }
 
@@ -307,7 +350,8 @@ class OmniChatServiceInstance {
    */
   private buildSkillContext(match: SkillMatch): string {
     const { skill, similarity } = match;
-    const preview = skill.solution_code.slice(0, 2000);
+    const preview = truncateCodeSmart(skill.solution_code, 2000);
+    const isTruncated = preview.length < skill.solution_code.length;
 
     return `\n\n### Cached Solution (Skill Library Match)
 A similar problem was solved before with ${(similarity * 100).toFixed(0)}% similarity.
@@ -319,7 +363,7 @@ A similar problem was solved before with ${(similarity * 100).toFixed(0)}% simil
 
 **Cached Code Preview:**
 \`\`\`tsx
-${preview}${skill.solution_code.length > 2000 ? '\n// ... (truncated)' : ''}
+${preview}${isTruncated ? '\n// ... (truncated at function boundary)' : ''}
 \`\`\`
 
 If this cached solution matches the user's intent, you should use action "pipeline" and include in your instructions: "USE_CACHED_SKILL:${skill.id}" so the pipeline can reuse the validated code directly. If the user's request differs significantly, ignore this cache and generate fresh.`;

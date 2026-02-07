@@ -7,32 +7,22 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSkillLibraryService } from '@/services/SkillLibraryService';
-import type { SkillSaveRequest, SkillSaveResponse } from '@/types/skillLibrary';
+import type { SkillSaveResponse } from '@/types/skillLibrary';
+import { SkillSaveRequestSchema } from '@/types/api-schemas';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as SkillSaveRequest;
+    const raw = await request.json();
+    const parsed = SkillSaveRequestSchema.safeParse(raw);
 
-    // Validate required fields
-    if (!body.goalDescription || typeof body.goalDescription !== 'string') {
+    if (!parsed.success) {
       return NextResponse.json(
-        { saved: false, error: 'Missing or invalid "goalDescription"' },
-        { status: 400 }
-      );
-    }
-    if (!body.solutionCode || typeof body.solutionCode !== 'string') {
-      return NextResponse.json(
-        { saved: false, error: 'Missing or invalid "solutionCode"' },
-        { status: 400 }
-      );
-    }
-    if (!body.reasoningSummary || typeof body.reasoningSummary !== 'string') {
-      return NextResponse.json(
-        { saved: false, error: 'Missing or invalid "reasoningSummary"' },
+        { saved: false, error: parsed.error.message },
         { status: 400 }
       );
     }
 
+    const body = parsed.data;
     const skillLibrary = getSkillLibraryService();
 
     // Auto-extract tags if not provided
@@ -45,7 +35,7 @@ export async function POST(request: NextRequest) {
       reasoningSummary: body.reasoningSummary,
       tags,
       solutionCode: body.solutionCode,
-      solutionFiles: body.solutionFiles || [],
+      solutionFiles: body.solutionFiles,
       qualityScore: body.qualityScore,
     });
 

@@ -46,8 +46,22 @@ export async function buildStructure(
   const text = msg.content[0].type === 'text' ? msg.content[0].text : '';
   try {
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    return jsonMatch ? JSON.parse(jsonMatch[0]) : { tree: [], layout_strategy: 'flex' };
-  } catch {
+    if (!jsonMatch) {
+      console.error('[Architect] No JSON found in response');
+      return { tree: [], layout_strategy: 'flex' };
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    if (!parsed.tree || !Array.isArray(parsed.tree)) {
+      console.error('[Architect] Invalid response structure: missing or non-array tree', Object.keys(parsed));
+      return { tree: [], layout_strategy: parsed.layout_strategy || 'flex' };
+    }
+
+    return parsed;
+  } catch (e) {
+    console.error('[Architect] JSON parse failed:', e);
+    console.error('[Architect] Raw response (first 500 chars):', text.slice(0, 500));
     return { tree: [], layout_strategy: 'flex' };
   }
 }

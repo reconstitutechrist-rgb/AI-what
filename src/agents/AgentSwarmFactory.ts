@@ -84,7 +84,7 @@ export class AgentSwarmFactory {
       const data = JSON.parse(text);
       
       return {
-        id: data.swarm_id || `swarm_${Date.now()}`,
+        id: data.swarm_id || `swarm_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         mission: data.mission || mission,
         agents: data.agents.map((a: any) => ({
             id: a.id,
@@ -99,7 +99,7 @@ export class AgentSwarmFactory {
       console.error('Swarm Fabrication Failed:', error);
       // Fallback: Return a single generic agent
       return {
-        id: `swarm_fallback_${Date.now()}`,
+        id: `swarm_fallback_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         mission,
         agents: [
           {

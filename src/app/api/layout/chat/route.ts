@@ -8,26 +8,26 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getOmniChatService } from '@/services/OmniChatService';
-import type { OmniChatRequest } from '@/types/titanPipeline';
+import { ChatRequestSchema } from '@/types/api-schemas';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as Partial<OmniChatRequest>;
+    const raw = await req.json();
+    const parsed = ChatRequestSchema.safeParse(raw);
 
-    if (!body.message || typeof body.message !== 'string') {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'message is required and must be a string' },
+        { error: 'Invalid request', details: parsed.error.message },
         { status: 400 }
       );
     }
 
+    const body = parsed.data;
     const service = getOmniChatService();
 
     const result = await service.chat({
       message: body.message,
-      conversationHistory: Array.isArray(body.conversationHistory)
-        ? body.conversationHistory
-        : [],
+      conversationHistory: body.conversationHistory,
       currentCode: body.currentCode ?? null,
       appContext: body.appContext,
     });

@@ -8,12 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSkillLibraryService } from '@/services/SkillLibraryService';
-
-interface UpdateQualityRequest {
-  skillId: string;
-  /** Quality score from Visual Critic (1-10 scale) */
-  qualityScore: number;
-}
+import { UpdateQualityRequestSchema } from '@/types/api-schemas';
 
 interface UpdateQualityResponse {
   success: boolean;
@@ -22,22 +17,17 @@ interface UpdateQualityResponse {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as UpdateQualityRequest;
+    const raw = await request.json();
+    const parsed = UpdateQualityRequestSchema.safeParse(raw);
 
-    if (!body.skillId || typeof body.skillId !== 'string') {
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: 'Missing or invalid "skillId"' } satisfies UpdateQualityResponse,
+        { success: false, error: parsed.error.message } satisfies UpdateQualityResponse,
         { status: 400 }
       );
     }
 
-    if (typeof body.qualityScore !== 'number' || body.qualityScore < 1 || body.qualityScore > 10) {
-      return NextResponse.json(
-        { success: false, error: '"qualityScore" must be a number between 1 and 10' } satisfies UpdateQualityResponse,
-        { status: 400 }
-      );
-    }
-
+    const body = parsed.data;
     const skillLibrary = getSkillLibraryService();
     await skillLibrary.updateQualityScore(body.skillId, body.qualityScore);
 

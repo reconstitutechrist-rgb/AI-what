@@ -73,6 +73,7 @@ data-id="${selectedDataId}"
 
     return { updatedCode, success: true };
   } catch (error) {
+    console.error('[LiveEditor] Edit failed:', error instanceof Error ? error.message : error);
     return {
       updatedCode: currentCode,
       success: false,

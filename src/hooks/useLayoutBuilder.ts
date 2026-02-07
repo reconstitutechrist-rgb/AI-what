@@ -175,6 +175,8 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
   // --- Core State (initialized from persisted store) ---
   const [generatedFiles, setGeneratedFiles] = useState<AppFile[]>(storedFiles);
   const [isProcessing, setIsProcessing] = useState(false);
+  /** Atomic guard against concurrent pipeline runs (useRef is synchronous, unlike useState) */
+  const processingRef = useRef(false);
   const [pipelineProgress, setPipelineProgress] = useState<PipelineProgress | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -196,6 +198,14 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
   const [critiqueScore, setCritiqueScore] = useState<number | null>(null);
   const [isCritiquing, setIsCritiquing] = useState(false);
   const [critiqueIssues, setCritiqueIssues] = useState<string[]>([]);
+
+  // --- Abort Controller for fetch cleanup on unmount ---
+  const abortRef = useRef<AbortController | null>(null);
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
 
   // --- History (undo/redo on AppFile[] snapshots) ---
   const [history, setHistory] = useState<AppFile[][]>([]);
@@ -297,9 +307,11 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
           // Attempt auto-repair via the repair API
           setRepairAttempts(attempt + 1);
           try {
+            abortRef.current = new AbortController();
             const repairResponse = await fetch('/api/layout/repair', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
+              signal: abortRef.current.signal,
               body: JSON.stringify({
                 files: currentFiles,
                 errors: result.errors,
@@ -347,9 +359,11 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
       setCritiqueIssues([]);
 
       try {
+        abortRef.current = new AbortController();
         const response = await fetch('/api/layout/critique', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: abortRef.current.signal,
           body: JSON.stringify({
             files,
             originalInstructions: instructions,
@@ -562,8 +576,9 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
    */
   const runPipeline = useCallback(
     async (files: File[], instructions: string, appContext?: AppContext, cachedSkillId?: string) => {
-      if (isProcessing) return;
-
+      // Atomic guard: useRef is synchronous, preventing two rapid calls from both proceeding
+      if (processingRef.current) return;
+      processingRef.current = true;
       setIsProcessing(true);
       clearErrors();
       setIsCritiquing(false);
@@ -600,9 +615,11 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
         setPipelineProgress(progress);
 
         // 4. Call the Titan Pipeline API
+        abortRef.current = new AbortController();
         const response = await fetch('/api/layout/pipeline', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: abortRef.current.signal,
           body: JSON.stringify({
             files: fileInputs,
             currentCode,
@@ -654,12 +671,13 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
         setErrors((prev) => [...prev, message]);
         console.error('[useLayoutBuilder] Pipeline error:', error);
       } finally {
+        processingRef.current = false;
         setIsProcessing(false);
         // Keep progress visible briefly before clearing
         setTimeout(() => setPipelineProgress(null), 2000);
       }
     },
-    [isProcessing, generatedFiles, clearErrors, updateFilesWithHistory, validateAndRepair, runVisualCritique, handleAvatarCommand]
+    [generatedFiles, clearErrors, updateFilesWithHistory, validateAndRepair, runVisualCritique, handleAvatarCommand]
   );
 
   /**

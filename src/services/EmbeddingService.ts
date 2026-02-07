@@ -31,6 +31,7 @@ function getOpenAIClient(): OpenAI {
 
 class EmbeddingServiceInstance {
   private client: OpenAI | null = null;
+  private static readonly MAX_RETRIES = 3;
 
   private getClient(): OpenAI {
     if (!this.client) {
@@ -40,17 +41,39 @@ class EmbeddingServiceInstance {
   }
 
   /**
+   * Retry wrapper for OpenAI API calls with exponential backoff.
+   * Retries on 429 (rate limit) and 5xx (server) errors only.
+   */
+  private async withRetry<T>(fn: () => Promise<T>): Promise<T> {
+    for (let attempt = 1; attempt <= EmbeddingServiceInstance.MAX_RETRIES; attempt++) {
+      try {
+        return await fn();
+      } catch (err: unknown) {
+        const status = (err as { status?: number }).status;
+        const isRetryable = status === 429 || (status !== undefined && status >= 500);
+        if (!isRetryable || attempt === EmbeddingServiceInstance.MAX_RETRIES) throw err;
+        const delay = 1000 * Math.pow(2, attempt - 1);
+        console.warn(`[EmbeddingService] Attempt ${attempt} failed (status ${status}), retrying in ${delay}ms`);
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+    throw new Error('Unreachable');
+  }
+
+  /**
    * Generate a vector embedding for a single text input.
    * Returns a 1536-dimensional float array.
    */
   async embed(text: string): Promise<number[]> {
     const client = this.getClient();
 
-    const response = await client.embeddings.create({
-      model: EMBEDDING_MODEL,
-      input: text.slice(0, 8192), // Model max is 8191 tokens, truncate as safety
-      dimensions: EMBEDDING_DIMENSIONS,
-    });
+    const response = await this.withRetry(() =>
+      client.embeddings.create({
+        model: EMBEDDING_MODEL,
+        input: text.slice(0, 8192),
+        dimensions: EMBEDDING_DIMENSIONS,
+      })
+    );
 
     return response.data[0].embedding;
   }
@@ -64,11 +87,13 @@ class EmbeddingServiceInstance {
 
     const client = this.getClient();
 
-    const response = await client.embeddings.create({
-      model: EMBEDDING_MODEL,
-      input: texts.map((t) => t.slice(0, 8192)),
-      dimensions: EMBEDDING_DIMENSIONS,
-    });
+    const response = await this.withRetry(() =>
+      client.embeddings.create({
+        model: EMBEDDING_MODEL,
+        input: texts.map((t) => t.slice(0, 8192)),
+        dimensions: EMBEDDING_DIMENSIONS,
+      })
+    );
 
     // Sort by index to maintain order
     return response.data

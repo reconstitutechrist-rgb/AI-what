@@ -70,6 +70,21 @@ export const useChatStore = create<ChatState>()(
     }),
     {
       name: 'omni-chat-storage',
+      version: 1,
+      migrate: (persistedState: unknown) => {
+        const state = persistedState as Record<string, unknown>;
+        return {
+          messages: [
+            {
+              id: 'welcome',
+              role: 'assistant',
+              content: 'Hello! I am your Autopoietic Assistant. I can help you build, edit, or even learn new skills. How can I help?',
+              timestamp: Date.now(),
+            },
+          ],
+          ...state,
+        };
+      },
       partialize: (state) => ({ messages: state.messages }), // Persist only messages
     }
   )

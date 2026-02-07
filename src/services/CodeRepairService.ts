@@ -160,12 +160,15 @@ class CodeRepairServiceInstance {
         const result = await withGeminiRetry(() => model.generateContent(prompt));
         const repairedCode = extractCode(result.response.text());
 
-        if (repairedCode && repairedCode.length > 10 && repairedCode !== file.content) {
+        const normalize = (s: string) => s.replace(/\s+/g, ' ').trim();
+        if (repairedCode && repairedCode.length > 10 && normalize(repairedCode) !== normalize(file.content)) {
           repairedFiles.push({ path: file.path, content: repairedCode });
-          // Be honest: code was changed, but we haven't verified the fixes
           fixes.push(`Attempted repair of ${fileErrors.length} error(s) in ${file.path} (unverified)`);
         } else {
-          // Repair produced empty or identical code
+          // Repair produced empty, identical, or whitespace-only-changed code
+          if (repairedCode && normalize(repairedCode) === normalize(file.content)) {
+            console.warn(`[CodeRepair] Repair returned unchanged code for ${file.path}`);
+          }
           repairedFiles.push(file);
           remainingErrors.push(...fileErrors);
         }
