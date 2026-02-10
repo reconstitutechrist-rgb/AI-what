@@ -189,7 +189,7 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
   const [validationStatus, setValidationStatus] = useState<WebContainerStatus>('idle');
   const [validationErrors, setValidationErrors] = useState<SandboxError[]>([]);
   const [repairAttempts, setRepairAttempts] = useState(0);
-  const MAX_REPAIR_ATTEMPTS = 2;
+  const MAX_REPAIR_ATTEMPTS = 5; // Increased for robust repair strategies
   /** Ref for validation errors — used by Avatar Protocol to avoid stale closures */
   const validationErrorsRef = useRef<SandboxError[]>([]);
   useEffect(() => { validationErrorsRef.current = validationErrors; }, [validationErrors]);
@@ -328,9 +328,19 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
             const repairResult = await repairResponse.json();
             if (repairResult.attempted && repairResult.files?.length > 0) {
               currentFiles = repairResult.files;
-              console.log(`[useLayoutBuilder] Repair attempt ${attempt + 1}: ${repairResult.fixes?.join(', ')}`);
+              const fixSummary = repairResult.fixes?.join(', ') || 'Fixed errors';
+              console.log(`[useLayoutBuilder] Repair attempt ${attempt + 1}: ${fixSummary}`);
+              
+              // If we are deep in the loop, warn the user we are still trying
+              if (attempt > 2) {
+                setWarnings(prev => {
+                  const filtered = prev.filter(w => !w.startsWith('Repairing'));
+                  return [...filtered, `Repairing... attempt ${attempt + 1}/5`];
+                });
+              }
             } else {
               // Repair couldn't fix anything
+              console.warn('[useLayoutBuilder] Repair returned no changes, stopping loop.');
               return currentFiles;
             }
           } catch (repairError) {

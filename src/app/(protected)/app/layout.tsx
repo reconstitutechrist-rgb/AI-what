@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { AppNavigation } from '@/components/AppNavigation';
 import { SideDrawer } from '@/components/SideDrawer';
 import { ProjectListModal } from '@/components/modals/ProjectListModal';
+import { SettingsPage } from '@/components/SettingsPage';
 import { ToastProvider } from '@/components/Toast';
 import { useAppStore } from '@/store/useAppStore';
 import { useProjectStore } from '@/store/useProjectStore';
@@ -22,6 +23,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const showVersionHistory = useAppStore((state) => state.showVersionHistory);
   const setShowLibrary = useAppStore((state) => state.setShowLibrary);
   const showLibrary = useAppStore((state) => state.showLibrary);
+  const showSettings = useAppStore((state) => state.showSettings);
   const setShowSettings = useAppStore((state) => state.setShowSettings);
 
   // Project management
@@ -155,6 +157,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           onShowLibrary={handleShowLibrary}
           versionCount={currentComponent?.versions?.length || 0}
           appCount={components.length}
+        />
+
+        {/* Settings Modal */}
+        <SettingsPage
+          isOpen={showSettings}
+          onClose={() => setShowSettings(false)}
         />
 
         {/* Project List Modal */}

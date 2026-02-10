@@ -30,6 +30,7 @@ export { extractPhysics } from './physicist';
 export { assembleCode } from './builder';
 export { liveEdit } from './liveEditor';
 export { getRepoAnalyst } from './analyst';
+export { buildWorldManifest } from './worldArchitect';
 
 // Import the class to create the singleton
 import { TitanPipelineServiceInstance } from './TitanPipelineService';

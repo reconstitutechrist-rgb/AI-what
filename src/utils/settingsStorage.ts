@@ -28,6 +28,8 @@ function isValidSettings(settings: unknown): settings is AppSettings {
     'appearance',
     'shortcuts',
     'account',
+    // Note: 'dream' intentionally omitted — older saved settings won't have it.
+    // migrateSettings() adds the dream field from DEFAULT_SETTINGS.
   ];
   for (const key of requiredKeys) {
     if (!(key in obj)) return false;
@@ -54,6 +56,7 @@ function migrateSettings(settings: Partial<AppSettings>): AppSettings {
     appearance: { ...DEFAULT_SETTINGS.appearance, ...settings.appearance },
     shortcuts: settings.shortcuts || DEFAULT_SETTINGS.shortcuts,
     account: { ...DEFAULT_SETTINGS.account, ...settings.account },
+    dream: { ...DEFAULT_SETTINGS.dream, ...settings.dream },
     version: SETTINGS_VERSION,
     lastUpdated: new Date().toISOString(),
   };
@@ -85,14 +88,15 @@ export function loadSettings(): AppSettings {
       return DEFAULT_SETTINGS;
     }
 
-    // Migrate if needed
-    if (!parsed.version || parsed.version < SETTINGS_VERSION) {
-      const migrated = migrateSettings(parsed);
-      saveSettings(migrated); // Save migrated settings
-      return migrated;
+    // Always run migration to ensure all fields exist (e.g. new sections like 'dream')
+    const migrated = migrateSettings(parsed);
+
+    // Persist if migration added missing fields
+    if (JSON.stringify(migrated) !== JSON.stringify(parsed)) {
+      saveSettings(migrated);
     }
 
-    return parsed;
+    return migrated;
   } catch (error) {
     console.error('Failed to load settings:', error);
     return DEFAULT_SETTINGS;
@@ -259,6 +263,7 @@ export function updateSetting<T>(settings: AppSettings, path: string, value: T):
     'appearance',
     'shortcuts',
     'account',
+    'dream',
     'version',
     'lastUpdated',
   ];

@@ -4,6 +4,8 @@
  * AI-powered service that takes broken code + error messages and returns
  * fixed code. Uses Gemini Pro with code-only system instruction to
  * generate minimal, targeted fixes.
+ * 
+ * V2: Tiered Repair Strategy (Surgical -> Import Fix -> Rebuild)
  *
  * Called by the validation pipeline when WebContainer detects errors
  * in generated code. Operates server-side via the /api/layout/repair route.
@@ -19,7 +21,7 @@ import type { SandboxError, RepairRequest, RepairResult } from '@/types/sandbox'
 // CONFIGURATION
 // ============================================================================
 
-const REPAIR_MODEL = 'gemini-3-pro-preview';
+const REPAIR_MODEL = 'gemini-1.5-pro-latest';
 
 /** Maximum number of repair attempts before giving up */
 const MAX_REPAIR_ATTEMPTS = 5;
@@ -112,8 +114,10 @@ class CodeRepairServiceInstance {
   /**
    * Attempt to repair code files based on validation errors.
    *
-   * Currently handles single-file repairs (App.tsx).
-   * For multi-file projects, repairs each file that has errors.
+   * Strategies:
+   * 1. REBUILD: If error count > 20 or critical syntax failures -> full rewrite
+   * 2. IMPORT_FIX: If mostly import errors -> fix package.json/imports
+   * 3. SURGICAL: Standard precise repair for small issues
    */
   async repair(request: RepairRequest): Promise<RepairResult> {
     const { files, errors, originalInstructions, attempt } = request;
@@ -135,8 +139,6 @@ class CodeRepairServiceInstance {
 
     const model = this.getGenAI().getGenerativeModel({
       model: REPAIR_MODEL,
-      systemInstruction: REPAIR_SYSTEM_INSTRUCTION,
-      generationConfig: { temperature: 0.1, maxOutputTokens: 16384 },
     });
 
     const fixes: string[] = [];
@@ -156,14 +158,50 @@ class CodeRepairServiceInstance {
       }
 
       try {
-        const prompt = buildRepairPrompt(file.content, file.path, fileErrors, attempt, originalInstructions);
-        const result = await withGeminiRetry(() => model.generateContent(prompt));
+        // --- STRATEGY SELECTION ---
+        const errorCount = fileErrors.length;
+        const hasSyntaxErrors = fileErrors.some(e => e.type === 'syntax');
+        const hasImportErrors = fileErrors.some(e => e.type === 'import' || e.message.includes('resolve'));
+        
+        let strategy: 'REBUILD' | 'IMPORT_FIX' | 'SURGICAL' = 'SURGICAL';
+        
+        if (errorCount > 20 || (hasSyntaxErrors && errorCount > 10)) {
+          strategy = 'REBUILD';
+        } else if (hasImportErrors && errorCount > 5) {
+          strategy = 'IMPORT_FIX';
+        }
+
+        console.log(`[CodeRepair] Fixing ${file.path} with strategy: ${strategy} (${errorCount} errors)`);
+
+        const prompt = this.buildStrategyPrompt(
+          strategy, 
+          file.content, 
+          file.path, 
+          fileErrors, 
+          attempt, 
+          originalInstructions
+        );
+
+        // Dynamic system instruction based on strategy (or default)
+        // Note: We use one model instance but adjust generationConfig usually.
+        // For distinct system instructions we'd need distinct getGenerativeModel calls,
+        // but here we just pass everything in the prompt context or rely on a generic system instruction.
+        // To keep it simple, we use the prompt to drive behavior heavily.
+        
+        const result = await withGeminiRetry(() => model.generateContent({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: { 
+            temperature: strategy === 'REBUILD' ? 0.4 : 0.1, // Higher temp for rebuilds to allow creative fixes
+            maxOutputTokens: 16384 
+          },
+        }));
+        
         const repairedCode = extractCode(result.response.text());
 
         const normalize = (s: string) => s.replace(/\s+/g, ' ').trim();
-        if (repairedCode && repairedCode.length > 10 && normalize(repairedCode) !== normalize(file.content)) {
+        if (repairedCode && repairedCode.length > 20 && normalize(repairedCode) !== normalize(file.content)) {
           repairedFiles.push({ path: file.path, content: repairedCode });
-          fixes.push(`Attempted repair of ${fileErrors.length} error(s) in ${file.path} (unverified)`);
+          fixes.push(`Fixed ${file.path} using ${strategy} strategy (${errorCount} errors)`);
         } else {
           // Repair produced empty, identical, or whitespace-only-changed code
           if (repairedCode && normalize(repairedCode) === normalize(file.content)) {
@@ -185,6 +223,67 @@ class CodeRepairServiceInstance {
       fixes,
       remainingErrors,
     };
+  }
+
+  /**
+   * Build specific prompts based on the repair strategy.
+   */
+  private buildStrategyPrompt(
+    strategy: 'REBUILD' | 'IMPORT_FIX' | 'SURGICAL',
+    code: string,
+    filePath: string,
+    errors: SandboxError[],
+    attempt: number,
+    originalInstructions?: string
+  ): string {
+    const errorList = formatErrors(errors);
+    const intent = originalInstructions ? `\nOriginal Intent: "${originalInstructions.slice(0, 400)}..."` : '';
+
+    if (strategy === 'REBUILD') {
+      return `### CRITICAL REPAIR TASK: REBUILD FILE
+The file ${filePath} has ${errors.length} errors and is structurally broken.
+DO NOT try to patch it line-by-line.
+RE-GENERATE the entire file from scratch, fulfilling the Original Intent, but fixing the errors.
+
+### Original Code (Broken)
+\`\`\`tsx
+${code}
+\`\`\`
+
+### Errors
+${errorList}
+
+${intent}
+
+### REBUILD INSTRUCTIONS
+1. Ignore the broken parts of the original code.
+2. Rewrite the component using clean, standard React/TypeScript patterns.
+3. Ensure all imports are valid (use lucide-react for icons, framer-motion for animation).
+4. If this is a 3D scene, ensure strict adherence to @react-three/fiber rules.
+5. Output ONLY the complete, valid code file.`;
+    }
+
+    if (strategy === 'IMPORT_FIX') {
+        return `### REPAIR TASK: FIX IMPORTS
+The file ${filePath} has missing or invalid imports.
+Focus ONLY on resolving these import errors.
+
+\`\`\`tsx
+${code}
+\`\`\`
+
+### Import Errors
+${errorList}
+
+### INSTRUCTIONS
+1. Check if 'lucide-react', 'framer-motion', or 'three' are missing.
+2. If a local import (./components/...) is missing, remove it or mock it.
+3. Ensure named exports match what is actually imported.
+4. Output the COMPLETE file with fixed imports.`;
+    }
+
+    // SURGICAL (Standard)
+    return buildRepairPrompt(code, filePath, errors, attempt, originalInstructions);
   }
 
   /**

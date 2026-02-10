@@ -71,6 +71,15 @@ module.exports = {
       });
     }
 
+    // esbuild is Node-only but gets pulled into client bundles via
+    // dynamic imports (MaintenanceCampaign → AutonomyCore → esbuild).
+    // Replace it with an empty module on the client side.
+    if (!isServer) {
+      config.resolve = config.resolve || {};
+      config.resolve.alias = config.resolve.alias || {};
+      config.resolve.alias['esbuild'] = false;
+    }
+
     return config;
   },
 }

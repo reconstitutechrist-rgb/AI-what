@@ -26,7 +26,6 @@ import type {
 } from '@/types/sandbox';
 import { extractDependencies } from '@/utils/extractDependencies';
 import { CURATED_VERSIONS } from '@/config/curated-versions';
-import { getRepoLoaderService } from './RepoLoaderService';
 
 // ============================================================================
 // CONFIGURATION
@@ -522,15 +521,17 @@ class WebContainerServiceInstance {
   async mountGitHubRepo(
     repoOwnerAndName: string,
     token?: string,
-    branch: string = 'main'
+    branch: string = 'main',
+    signal?: AbortSignal
   ): Promise<AppFile[]> {
+    const { getRepoLoaderService } = await import('./RepoLoaderService');
     const repoLoader = getRepoLoaderService();
 
     console.log(`[WebContainerService] Mounting repo: ${repoOwnerAndName}`);
     this._status = 'installing';
 
     // 1. Download and extract repo to FileSystemTree
-    const tree = await repoLoader.loadRepo(repoOwnerAndName, token, branch);
+    const tree = await repoLoader.loadRepo(repoOwnerAndName, token, branch, signal);
 
     // 2. Boot container if needed and mount the tree
     const container = await this.boot();

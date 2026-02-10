@@ -165,6 +165,15 @@ export function SideDrawer({
           toggle: true,
         },
         {
+          icon: <MoonIcon size={18} />,
+          label: 'Dream Room',
+          description: 'Autonomous maintenance',
+          onClick: () => {
+            router.push('/app/dream');
+            onClose();
+          },
+        },
+        {
           icon: <SettingsIcon size={18} />,
           label: 'Settings',
           description: 'App preferences',

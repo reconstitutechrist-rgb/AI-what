@@ -35,6 +35,7 @@ import { buildStructure } from './architect';
 import { extractPhysics } from './physicist';
 import { assembleCode } from './builder';
 import { liveEdit } from './liveEditor';
+import { buildWorldManifest } from './worldArchitect';
 
 // ============================================================================
 // CONFIGURATION
@@ -94,6 +95,70 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       stepTimings,
       command: result.command,
       suspendedState: result.suspendedState,
+    };
+  }
+
+  // WORLD BUILD PATH — structured 3D scene generation via SceneManifest
+  if (strategy.mode === 'WORLD_BUILD') {
+    console.log('[TitanPipeline] Triggering World Architect for 3D World Build...');
+
+    // Force 3D mode in the strategy so the Builder uses R3F prompts
+    strategy.execution_plan.enable_3d = true;
+
+    const worldAssets: Record<string, string> = {};
+
+    // Run WorldArchitect + asset generation in parallel
+    const worldStart = Date.now();
+    const [manifest] = await Promise.all([
+      buildWorldManifest(input.instructions),
+      // Generate assets if the router identified textures to create
+      (async () => {
+        if (strategy.execution_plan.generate_assets) {
+          for (const asset of strategy.execution_plan.generate_assets) {
+            if (asset.type === 'hdri' || asset.type === 'environment') continue;
+            try {
+              const assetResult = await geminiImageService.generateBackgroundFromReference({
+                vibe: asset.vibe || 'photorealistic',
+                vibeKeywords: [asset.description],
+                referenceImage: '',
+                targetElement: asset.name,
+              });
+              if (assetResult.imageUrl) worldAssets[asset.name] = assetResult.imageUrl;
+            } catch (e) {
+              console.error('[TitanPipeline] World asset generation failed:', e);
+            }
+          }
+        }
+      })(),
+    ]);
+    stepTimings.worldArchitect = Date.now() - worldStart;
+
+    checkTimeout('world builder');
+
+    // Build code from the manifest — pass it as the last argument
+    const buildStart = Date.now();
+    const worldFiles = await assembleCode(
+      null,           // no 2D structure
+      [],             // no 2D manifests
+      null,           // no 2D physics
+      strategy,
+      input.currentCode,
+      input.instructions,
+      worldAssets,
+      input.repoContext,
+      manifest        // 3D SceneManifest — new optional parameter
+    );
+    stepTimings.builder = Date.now() - buildStart;
+
+    return {
+      files: worldFiles,
+      strategy,
+      manifests: [],
+      physics: null,
+      warnings: [
+        `World Architect: Generated "${manifest.name}" with ${manifest.entities.length} entities`,
+      ],
+      stepTimings,
     };
   }
 

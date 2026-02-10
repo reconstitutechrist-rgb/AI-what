@@ -64,6 +64,7 @@ const STATS_INTERVAL = 2000;
 export class MaintenanceCampaign {
   private phase: CampaignPhase = 'IDLE';
   private aborted = false;
+  private abortController: AbortController | null = null;
   private startTime = 0;
   private fixCount = 0;
   private profile: ChaosProfile;
@@ -130,6 +131,7 @@ export class MaintenanceCampaign {
   ): Promise<DreamLog> {
     this.startTime = Date.now();
     this.aborted = false;
+    this.abortController = new AbortController();
     this.fixCount = 0;
     this.goalsCompleted = 0;
     this.bugsFound = 0;
@@ -147,7 +149,7 @@ export class MaintenanceCampaign {
       this.log(`Loading repository: ${repoUrl} (branch: ${branch})`);
 
       const webContainer = getWebContainerService();
-      this.files = await webContainer.mountGitHubRepo(repoUrl, token, branch);
+      this.files = await webContainer.mountGitHubRepo(repoUrl, token, branch, this.abortController?.signal);
       this.log(`Repository loaded: ${this.files.length} files mounted`);
 
       if (this.aborted) return this.buildLog(repoUrl, 'user_stopped');
@@ -273,10 +275,15 @@ export class MaintenanceCampaign {
       this.log(`Campaign ending: ${stopReason}`);
       return this.buildLog(repoUrl, stopReason);
     } catch (error) {
+      if (this.aborted) {
+        this.log('Campaign aborted by user.');
+        return this.buildLog(repoUrl, 'user_stopped');
+      }
       const message = error instanceof Error ? error.message : String(error);
       this.log(`Campaign error: ${message}`);
       return this.buildLog(repoUrl, 'error');
     } finally {
+      this.abortController = null;
       clearInterval(statsInterval);
       await this.setPhase('DONE');
     }
@@ -287,6 +294,7 @@ export class MaintenanceCampaign {
    */
   stop(): void {
     this.aborted = true;
+    this.abortController?.abort();
     this.log('Campaign stop requested');
   }
 

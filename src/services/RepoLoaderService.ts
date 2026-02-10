@@ -15,7 +15,7 @@ import JSZip from 'jszip';
 import type { FileSystemTree, DirectoryNode, FileNode } from '@webcontainer/api';
 import type { AppFile } from '@/types/railway';
 import type { RepoContext } from '@/types/titanPipeline';
-import { getRepoAnalyst } from '@/services/titanPipeline';
+import { getRepoAnalyst } from '@/services/titanPipeline/analyst';
 
 // ============================================================================
 // CONFIGURATION
@@ -65,28 +65,55 @@ class RepoLoaderServiceInstance {
   async loadRepo(
     repoUrl: string,
     token?: string,
-    branch: string = 'main'
+    branch: string = 'main',
+    signal?: AbortSignal
   ): Promise<FileSystemTree> {
-    console.log(`[RepoLoader] Fetching repo: ${repoUrl} (branch: ${branch})`);
+    // Normalize: accept full GitHub URLs or owner/repo format
+    const slug = repoUrl
+      .replace(/^https?:\/\/(www\.)?github\.com\//, '')
+      .replace(/\.git$/, '')
+      .replace(/\/+$/, '');
 
-    // 1. Fetch the ZIP archive via GitHub API
-    const headers: Record<string, string> = {
-      Accept: 'application/vnd.github.v3+json',
-    };
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
+    console.log(`[RepoLoader] Fetching repo: ${slug} (branch: ${branch})`);
 
-    const response = await fetch(
-      `https://api.github.com/repos/${repoUrl}/zipball/${branch}`,
-      { headers }
-    );
+    // In the browser, use our server-side proxy to avoid COEP/CORS issues.
+    // On the server (SSR / API routes), fetch GitHub directly.
+    const isBrowser = typeof window !== 'undefined';
+    let response: Response;
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
-      throw new Error(
-        `Failed to fetch repo ${repoUrl}: ${response.status} ${response.statusText}. ${errorText}`
+    if (isBrowser) {
+      response = await fetch('/api/dream/repo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repoUrl: slug, token, branch }),
+        signal,
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(
+          `Failed to fetch repo ${slug}: ${response.status}. ${errorBody.error || errorBody.details || ''}`
+        );
+      }
+    } else {
+      const headers: Record<string, string> = {
+        Accept: 'application/vnd.github.v3+json',
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      response = await fetch(
+        `https://api.github.com/repos/${slug}/zipball/${branch}`,
+        { headers, signal }
       );
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(
+          `Failed to fetch repo ${slug}: ${response.status} ${response.statusText}. ${errorText}`
+        );
+      }
     }
 
     // 2. Unzip in memory

@@ -14,7 +14,6 @@
 import { AgentSwarmFactory } from './AgentSwarmFactory';
 import { DynamicWorkflowEngine } from '@/services/DynamicWorkflowEngine';
 import type { AutonomyGoal, AgentTaskResult } from '@/types/autonomy';
-import { getSkillLibraryService } from '@/services/SkillLibraryService';
 
 const MAX_RETRIES = 3;
 
@@ -164,17 +163,24 @@ export class AutonomyCore {
     goal: AutonomyGoal,
     result: AgentTaskResult
   ): Promise<void> {
-    const skillLibrary = getSkillLibraryService();
-
-    const tags = skillLibrary.extractTags(goal.description);
-
-    await skillLibrary.saveSkill({
-      goalDescription: goal.description,
-      reasoningSummary: result.reasoning_summary || `Solved via autonomy swarm. Context: ${goal.context.slice(0, 500)}`,
-      tags,
-      solutionCode: result.output,
-      solutionFiles: [{ path: '/src/App.tsx', content: result.output }],
+    // SkillLibraryService is server-only (imports next/headers via supabase/server).
+    // Call the existing API route instead of importing directly, so this file
+    // can be bundled for the client (Dream Mode runs in the browser).
+    const res = await fetch('/api/skills/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        goalDescription: goal.description,
+        reasoningSummary: result.reasoning_summary || `Solved via autonomy swarm. Context: ${goal.context.slice(0, 500)}`,
+        tags: goal.description.toLowerCase().split(/\s+/).filter((w) => w.length > 3).slice(0, 10),
+        solutionCode: result.output,
+        solutionFiles: [{ path: '/src/App.tsx', content: result.output }],
+      }),
     });
+
+    if (!res.ok) {
+      throw new Error(`Skill save API returned ${res.status}`);
+    }
 
     console.log(`[AutonomyCore] Skill saved to library for: "${goal.description.slice(0, 80)}"`);
   }

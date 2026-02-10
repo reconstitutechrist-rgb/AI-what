@@ -16,7 +16,7 @@
 import { useState, useCallback, useRef, useEffect, type RefObject } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { useSettings } from '@/hooks/useSettings';
-import { MaintenanceCampaign } from '@/workflows/MaintenanceCampaign';
+import type { MaintenanceCampaign as MaintenanceCampaignType } from '@/workflows/MaintenanceCampaign';
 import { getQAChaosAgent } from '@/agents/QA_ChaosAgent';
 import type {
   CampaignPhase,
@@ -62,7 +62,7 @@ export interface UseDreamMode {
 export function useDreamMode(options: UseDreamModeOptions = {}): UseDreamMode {
   const { iframeRef } = options;
   const { settings } = useSettings();
-  const campaignRef = useRef<MaintenanceCampaign | null>(null);
+  const campaignRef = useRef<MaintenanceCampaignType | null>(null);
   const unmountedRef = useRef(false);
 
   // Cleanup on unmount: abort any running campaign and prevent state updates
@@ -138,6 +138,7 @@ export function useDreamMode(options: UseDreamModeOptions = {}): UseDreamMode {
     // Use the merged store queue (updated by addDreamGoal above)
     const mergedQueue = [...goalQueue, ...settingsGoals.filter((sg) => !storeGoalIds.has(sg.id))];
 
+    const { MaintenanceCampaign } = await import('@/workflows/MaintenanceCampaign');
     const campaign = new MaintenanceCampaign({
       profileName: dream.chaosProfile,
       goalQueue: mergedQueue,

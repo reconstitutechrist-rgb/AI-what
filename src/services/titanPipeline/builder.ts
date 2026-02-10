@@ -1,7 +1,10 @@
 /**
- * Builder Step (Step 4)
+ * Builder Step — Code Synthesis
  *
- * Code synthesis - generates final React code from manifests, physics, and assets.
+ * Generates React + Tailwind code from manifests, physics, and a merge strategy.
+ * When in 3D mode, it appends the R3F supplement for Three.js/Fiber/Drei guidance.
+ * Supports Ultimate Developer mode via RepoContext injection.
+ * Supports World Build mode via SceneManifest injection.
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -13,6 +16,7 @@ import type {
   MergeStrategy,
   RepoContext,
 } from '@/types/titanPipeline';
+import type { SceneManifest } from '@/types/world';
 import { withGeminiRetry } from '@/utils/geminiRetry';
 import { extractCode } from '@/utils/extractCode';
 import { getGeminiApiKey, GEMINI_PRO_MODEL, CODE_ONLY_SYSTEM_INSTRUCTION } from './config';
@@ -535,7 +539,8 @@ export async function assembleCode(
   currentCode: string | null,
   instructions: string,
   assets: Record<string, string>,
-  repoContext?: RepoContext
+  repoContext?: RepoContext,
+  sceneManifest?: SceneManifest
 ): Promise<AppFile[]> {
   const apiKey = getGeminiApiKey();
   const genAI = new GoogleGenerativeAI(apiKey);
@@ -610,8 +615,47 @@ ${currentCode}
   `;
   }
 
+  // Build SceneManifest context for WORLD_BUILD mode
+  const sceneManifestSection = sceneManifest
+    ? `\n\n### 3D SCENE MANIFEST (CRITICAL — Follow this layout exactly!)
+This structured manifest defines every object, its position, material, and the environment.
+Generate React Three Fiber code that renders this manifest precisely.
+
+**Scene:** ${sceneManifest.name} — ${sceneManifest.description}
+
+**Environment:**
+- Sky preset: ${sceneManifest.environment.skyPreset || 'park'}
+- Background visible: ${sceneManifest.environment.skyBackground ?? true}
+${sceneManifest.environment.fog ? `- Fog: color=${sceneManifest.environment.fog.color}, near=${sceneManifest.environment.fog.near}, far=${sceneManifest.environment.fog.far}` : ''}
+
+**Lights:**
+${sceneManifest.environment.lights.map(l => `- ${l.type}: intensity=${l.intensity}${l.position ? `, position=[${l.position}]` : ''}${l.castShadow ? ', castShadow' : ''}${l.color ? `, color=${l.color}` : ''}`).join('\n')}
+
+**Ground:** ${sceneManifest.ground ? `type=${sceneManifest.ground.type}, size=[${sceneManifest.ground.size}], color=${sceneManifest.ground.material.color}` : 'none'}
+
+**Camera:** position=[${sceneManifest.camera.position}], controls=${sceneManifest.camera.controls}, fov=${sceneManifest.camera.fov || 50}
+
+**Physics:** ${sceneManifest.physics?.enabled ? `enabled, gravity=[${sceneManifest.physics.gravity}]` : 'disabled'}
+
+**Entities (${sceneManifest.entities.length} objects):**
+\`\`\`json
+${JSON.stringify(sceneManifest.entities, null, 2)}
+\`\`\`
+
+**IMPORTANT WORLD BUILD RULES:**
+1. Render EVERY entity from the manifest — do not skip any.
+2. For entities with children, render children as nested groups relative to the parent position.
+3. Use composite primitives: a "tree" entity with children should be a group with Cylinder trunk + Cone/Sphere canopy.
+4. Wrap the entire scene in <Physics> with <RigidBody> for entities that have physics config.
+5. Use InstancedMesh for entities that repeat (e.g. multiple trees of the same shape).
+6. Apply material properties exactly as specified (color, metalness, roughness, emissive).
+7. Set up ContactShadows on the ground for visual quality.
+8. Include OrbitControls or the specified controls type.
+`
+    : '';
+
   const prompt = `${basePrompt}
-${repoContextSection}${structureSection}${currentCodeSection}
+${repoContextSection}${structureSection}${currentCodeSection}${sceneManifestSection}
   ### ASSETS (Use these URLs!)
   ${JSON.stringify(assets, null, 2)}
   ${assetContext}
