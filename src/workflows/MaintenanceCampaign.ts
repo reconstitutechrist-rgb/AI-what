@@ -21,19 +21,20 @@
  *   - maxFixesPerCycle from ChaosProfile
  *   - sessionDuration from ChaosProfile
  *   - Manual stop via abort signal
+ *
+ * NOTE: AI agent calls (Gemini) go through /api/dream/agent server-side proxy
+ * because process.env API keys are not available in the browser.
+ * Non-AI calls (WebContainer, DependencyGraph, QAChaosAgent.analyzeUI/runTests)
+ * remain direct since they don't need API keys.
  */
 
-import { AutonomyCore } from '@/agents/AutonomyCore';
 import { getQAChaosAgent } from '@/agents/QA_ChaosAgent';
-import { getDiscoveryAgent } from '@/agents/DiscoveryAgent';
-import { getSpecAuditor } from '@/agents/SpecAuditorAgent';
-import { getWorkflowAuditor } from '@/agents/WorkflowAuditor';
-import { getVisualCriticService } from '@/services/VisualCriticService';
 import { getDependencyGraphService } from '@/services/DependencyGraphService';
 import { getWebContainerService } from '@/services/WebContainerService';
 import { getChaosProfile } from '@/config/chaosProfile';
 import type { AppFile } from '@/types/railway';
 import type { AutonomyGoal } from '@/types/autonomy';
+import type { WorkflowDefinition } from '@/types/temporalWorkflow';
 import type {
   ChaosProfile,
   ChaosProfileName,
@@ -56,6 +57,31 @@ import type {
 
 /** How often to update stats (ms) */
 const STATS_INTERVAL = 2000;
+
+// ============================================================================
+// AGENT PROXY — routes AI calls through the server
+// ============================================================================
+
+/**
+ * Call a Dream Mode agent via the server-side proxy.
+ * All Gemini API calls must go through this proxy because
+ * process.env.GOOGLE_API_KEY is not available in the browser.
+ */
+async function callAgent<T>(action: string, payload: Record<string, unknown>): Promise<T> {
+  const res = await fetch('/api/dream/agent', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, payload }),
+  });
+
+  if (!res.ok) {
+    const errorBody = await res.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(`Agent proxy error (${action}): ${errorBody.error || res.statusText}`);
+  }
+
+  const data = await res.json();
+  return data.result as T;
+}
 
 // ============================================================================
 // CAMPAIGN
@@ -91,9 +117,6 @@ export class MaintenanceCampaign {
   private onDiscoveryReport: (report: DiscoveryReport) => void;
   private onIframeTestRequest: IframeTestRequestCallback | null;
 
-  // Services
-  private autonomyCore: AutonomyCore;
-
   constructor(options: {
     profileName: ChaosProfileName;
     goalQueue: DreamGoal[];
@@ -113,7 +136,6 @@ export class MaintenanceCampaign {
     this.onGoalQueueUpdate = options.onGoalQueueUpdate;
     this.onDiscoveryReport = options.onDiscoveryReport;
     this.onIframeTestRequest = options.onIframeTestRequest ?? null;
-    this.autonomyCore = new AutonomyCore();
   }
 
   /**
@@ -164,8 +186,10 @@ export class MaintenanceCampaign {
         await this.setPhase('DISCOVERING');
         this.log(`Found Specification: ${specFile.path}. Running Audit...`);
 
-        const specAuditor = getSpecAuditor();
-        const specGoals = await specAuditor.auditSpec(specFile.content, this.files);
+        const specGoals = await callAgent<DreamGoal[]>('spec.audit', {
+          specContent: specFile.content,
+          files: this.files,
+        });
 
         if (specGoals.length > 0) {
           this.log(`Spec Audit added ${specGoals.length} new goals from requirements.`);
@@ -182,8 +206,9 @@ export class MaintenanceCampaign {
       await this.setPhase('DISCOVERING');
       this.log('Running Feature Discovery Agent...');
 
-      const discoveryAgent = getDiscoveryAgent();
-      this.discoveryReport = await discoveryAgent.scanRepository(this.files);
+      this.discoveryReport = await callAgent<DiscoveryReport>('discovery.scan', {
+        files: this.files,
+      });
       this.discoveries = this.discoveryReport.discoveries.filter(
         (d) => d.status !== 'ACTIVE'
       ).length;
@@ -196,7 +221,9 @@ export class MaintenanceCampaign {
       this.onDiscoveryReport(this.discoveryReport);
 
       // Auto-populate goal queue with discovery findings
-      const discoveryGoals = discoveryAgent.generateWiringGoals(this.discoveryReport);
+      const discoveryGoals = await callAgent<DreamGoal[]>('discovery.goals', {
+        report: this.discoveryReport,
+      });
       if (discoveryGoals.length > 0) {
         this.log(`Auto-queued ${discoveryGoals.length} wiring goals from discoveries`);
         this.goalQueue.push(...discoveryGoals);
@@ -208,8 +235,9 @@ export class MaintenanceCampaign {
       // ── Phase 3: Temporal Audit (The Time Machine) ────────────────────
       // Discover time-dependent logic and simulate it
       this.log('Running Temporal Workflow Auditor...');
-      const workflowAuditor = getWorkflowAuditor();
-      const workflows = await workflowAuditor.discoverWorkflows(this.files);
+      const workflows = await callAgent<WorkflowDefinition[]>('workflow.discover', {
+        files: this.files,
+      });
 
       if (workflows.length > 0) {
         this.log(`Found ${workflows.length} temporal workflow(s). Running simulations...`);
@@ -217,8 +245,11 @@ export class MaintenanceCampaign {
         for (const workflow of workflows) {
           if (this.aborted) return this.buildLog(repoUrl, 'user_stopped');
 
-          const result = await workflowAuditor.runWorkflow(workflow);
-          this.log(`  ${result.success ? '✅' : '❌'} ${workflow.name} (${result.stepsPassed}/${result.totalSteps} steps)`);
+          // runWorkflow uses WebContainer (browser-only) so it must stay client-side
+          const { getWorkflowAuditor } = await import('@/agents/WorkflowAuditor');
+          const auditor = getWorkflowAuditor();
+          const result = await auditor.runWorkflow(workflow);
+          this.log(`  ${result.success ? '\u2705' : '\u274C'} ${workflow.name} (${result.stepsPassed}/${result.totalSteps} steps)`);
 
           if (!result.success && result.failureReason) {
             // Generate a fix goal for the failed workflow
@@ -340,8 +371,13 @@ export class MaintenanceCampaign {
         ],
       };
 
-      // 1. EXECUTE: AutonomyCore writes the code
-      const result = await this.autonomyCore.solveUnknown(autonomyGoal);
+      // 1. EXECUTE: AutonomyCore writes the code (via server proxy)
+      const result = await callAgent<{
+        success: boolean;
+        output: string;
+        error?: string;
+        reasoning_summary?: string;
+      }>('autonomy.solve', { goal: autonomyGoal });
 
       if (result.success && result.output) {
         // Snapshot files before applying so we can revert on failure
@@ -364,13 +400,16 @@ export class MaintenanceCampaign {
             validation.errors.map((e) => e.message).join('; ');
           this.log('Goal verification failed (Build Error). Reverted.');
         } else {
-          // 3. VERIFY (Visual): Does it look right?
+          // 3. VERIFY (Visual): Does it look right? (via server proxy)
           this.log('Running Visual Critic...');
-          const visualCritic = getVisualCriticService();
-          const critique = await visualCritic.evaluate(
-            this.files,
-            goal.prompt
-          );
+          const critique = await callAgent<{
+            verdict: string;
+            overallScore: number;
+            issues: { description: string }[];
+          }>('critic.evaluate', {
+            files: this.files,
+            goalPrompt: goal.prompt,
+          });
 
           if (critique.verdict === 'regenerate') {
             // Visual Failure → Revert
@@ -383,11 +422,13 @@ export class MaintenanceCampaign {
             const chaosAgent = getQAChaosAgent();
             try {
               this.log('Generating functional test...');
-              const testCode = await chaosAgent.generateTestForFeature(
-                goal.prompt,
-                this.files
-              );
+              // Generate test via server proxy (needs Gemini)
+              const testCode = await callAgent<string>('chaos.generateTest', {
+                goalPrompt: goal.prompt,
+                files: this.files,
+              });
 
+              // Run test locally (no API key needed)
               const testReport = await chaosAgent.runTests(
                 webContainer.executeShell.bind(webContainer),
                 testCode,
@@ -456,7 +497,7 @@ export class MaintenanceCampaign {
 
     const chaosAgent = getQAChaosAgent();
 
-    // 1. Analyze UI elements
+    // 1. Analyze UI elements (pure regex — no API key needed)
     const elements = chaosAgent.analyzeUI(this.files);
     this.log(`Found ${elements.length} interactive elements to test`);
 
@@ -473,15 +514,15 @@ export class MaintenanceCampaign {
       };
     }
 
-    // 2. Generate test suite
-    const testCode = await chaosAgent.generateTestSuite(
+    // 2. Generate test suite (via server proxy — needs Gemini)
+    const testCode = await callAgent<string>('chaos.generateSuite', {
       elements,
-      this.files,
-      this.profile
-    );
+      files: this.files,
+      profile: this.profile,
+    });
     this.log(`Generated test suite (${testCode.length} chars)`);
 
-    // 3. Execute tests in WebContainer
+    // 3. Execute tests in WebContainer (no API key needed)
     const webContainer = getWebContainerService();
     const executeShell = webContainer.executeShell.bind(webContainer);
     const writeFile = webContainer.writeFile.bind(webContainer);
@@ -500,7 +541,11 @@ export class MaintenanceCampaign {
     if (this.onIframeTestRequest && !this.aborted) {
       try {
         this.log('Running iframe injection tests (Strategy B)...');
-        const iframeScript = await chaosAgent.generateIframeScript(elements, this.profile);
+        // Generate iframe script via server proxy (needs Gemini)
+        const iframeScript = await callAgent<string>('chaos.iframeScript', {
+          elements,
+          profile: this.profile,
+        });
 
         const iframeReport = await this.onIframeTestRequest(iframeScript);
         if (iframeReport) {
@@ -543,7 +588,7 @@ export class MaintenanceCampaign {
     await this.setPhase('DIAGNOSING');
     this.log(`Diagnosing crash: ${error.slice(0, 100)}`);
 
-    // Find impacted files using dependency graph
+    // Find impacted files using dependency graph (no API key needed)
     const graphService = getDependencyGraphService();
     const graph = graphService.buildGraph(this.files);
     let impactedFiles: string[] = [];
@@ -563,7 +608,7 @@ export class MaintenanceCampaign {
         : '',
     ].filter(Boolean).join('\n');
 
-    // Attempt patch via AutonomyCore
+    // Attempt patch via AutonomyCore (via server proxy)
     await this.setPhase('PATCHING');
     this.log('Generating patch...');
 
@@ -579,7 +624,11 @@ export class MaintenanceCampaign {
     };
 
     try {
-      const result = await this.autonomyCore.solveUnknown(patchGoal);
+      const result = await callAgent<{
+        success: boolean;
+        output: string;
+        error?: string;
+      }>('autonomy.solve', { goal: patchGoal });
 
       if (result.success && result.output) {
         // Store the patch context

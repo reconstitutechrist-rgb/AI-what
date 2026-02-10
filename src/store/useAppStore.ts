@@ -748,9 +748,9 @@ export const useAppStore = create<AppState>()(
           buildSettings: state.buildSettings,
           layoutThumbnail: state.layoutThumbnail,
           phasePlanGeneratedAt: state.phasePlanGeneratedAt,
-          // Dream Mode state
+          // Dream Mode state (isDreaming is NOT persisted — it's transient UI state
+          // that must always start as false on page load to avoid getting stuck)
           dreamLogs: state.dreamLogs,
-          isDreaming: state.isDreaming,
           dreamGoalQueue: state.dreamGoalQueue,
         }),
       }

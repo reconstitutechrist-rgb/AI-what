@@ -65,6 +65,15 @@ export function useDreamMode(options: UseDreamModeOptions = {}): UseDreamMode {
   const campaignRef = useRef<MaintenanceCampaignType | null>(null);
   const unmountedRef = useRef(false);
 
+  // On mount: reset isDreaming if no campaign is actually running
+  // (handles stale state from crashes, navigations, or page refreshes)
+  useEffect(() => {
+    if (isDreaming && !campaignRef.current) {
+      setIsDreaming(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount only
+
   // Cleanup on unmount: abort any running campaign and prevent state updates
   useEffect(() => {
     return () => {
@@ -73,7 +82,10 @@ export function useDreamMode(options: UseDreamModeOptions = {}): UseDreamMode {
         campaignRef.current.stop();
         campaignRef.current = null;
       }
+      // Always reset isDreaming on unmount so it never gets stuck
+      setIsDreaming(false);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Local UI state (not persisted)
@@ -192,9 +204,13 @@ export function useDreamMode(options: UseDreamModeOptions = {}): UseDreamMode {
   const stop = useCallback(() => {
     if (campaignRef.current) {
       campaignRef.current.stop();
-      appendLog('Stop requested — finishing current operation...');
+      campaignRef.current = null;
+      appendLog('Stop requested — aborting campaign.');
     }
-  }, [appendLog]);
+    // Immediately reset UI state so the button isn't stuck
+    setIsDreaming(false);
+    setCurrentPhase('DONE');
+  }, [appendLog, setIsDreaming]);
 
   const addGoal = useCallback((prompt: string) => {
     const goal: DreamGoal = {

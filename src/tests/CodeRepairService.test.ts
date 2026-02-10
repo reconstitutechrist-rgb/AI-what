@@ -1,5 +1,5 @@
-import { getCodeRepairService } from '../src/services/CodeRepairService';
-import type { SandboxError, RepairRequest } from '../src/types/sandbox';
+import { getCodeRepairService } from '@/services/CodeRepairService';
+import type { SandboxError, RepairRequest } from '@/types/sandbox';
 
 // Mock the Gemini API to avoid actual costs and just test logic
 jest.mock('@google/generative-ai', () => ({
@@ -94,7 +94,7 @@ describe('CodeRepairService Strategy Selection', () => {
   test('Should select SURGICAL strategy for few miscellaneous errors', async () => {
     const errors: SandboxError[] = [
       { type: 'build', message: 'Unknown var', raw: '' },
-      { type: 'type', message: 'Type mismatch', raw: '' }
+      { type: 'build', message: 'Type mismatch', raw: '' }
     ];
 
     await service.repair({

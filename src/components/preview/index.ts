@@ -11,8 +11,7 @@ export {
   type DeviceToolbarProps,
   type ResponsivePreviewState,
 } from './DeviceToolbar';
-export { TouchSimulator, type TouchSimulatorProps } from './TouchSimulator';
-export { ConsolePanel, type ConsolePanelProps } from './ConsolePanel';
+
 
 // Preview mode components
 export { PreviewModeSelector, type PreviewMode } from './PreviewModeSelector';

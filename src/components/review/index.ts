@@ -6,11 +6,8 @@
 
 export { default as EnhancedDiffViewer } from './EnhancedDiffViewer';
 export { default as HunkApprovalCard } from './HunkApprovalCard';
-export { default as ReviewSidebar } from './ReviewSidebar';
 export { default as ImpactAnalysisPanel } from './ImpactAnalysisPanel';
 export { default as CommentThread } from './CommentThread';
-export { default as RollbackHistory } from './RollbackHistory';
-export { default as ReviewSummary } from './ReviewSummary';
 
 // Re-export types for convenience
 export type {
@@ -28,9 +25,4 @@ export type {
 // App Review Page Components (for /app/review)
 // ============================================================================
 
-export { default as ConceptCard } from './ConceptCard';
 export { default as LayoutCard } from './LayoutCard';
-export { default as FeaturesCard } from './FeaturesCard';
-export { default as PhasesCard } from './PhasesCard';
-export { default as SettingsCard } from './SettingsCard';
-export { default as ReviewEmptyState } from './ReviewEmptyState';
