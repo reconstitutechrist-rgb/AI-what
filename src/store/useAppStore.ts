@@ -53,7 +53,7 @@ import type { PreviewMode } from '@/types/railway';
 import type { DesignSpec } from '@/types/designSpec';
 import type { BuildSettings, LayoutThumbnail } from '@/types/reviewTypes';
 import type { DreamLog, DreamGoal, DiscoveryReport, DreamStats } from '@/types/dream';
-import type { AppContext, ChatMode, VisionDocument } from '@/types/titanPipeline';
+import type { AppContext, ChatMode, VisionDocument, TechDossier, TechArchitectureDocument } from '@/types/titanPipeline';
 
 // ============================================================================
 // STORE STATE INTERFACE
@@ -84,11 +84,15 @@ interface ModeSlice {
   lastUserRequest: string;
   chatMode: ChatMode;
   visionDocument: VisionDocument | null;
+  techDossier: TechDossier | null;
+  techArchitectureDocument: TechArchitectureDocument | null;
   // Actions
   setCurrentMode: (mode: BuilderMode) => void;
   setLastUserRequest: (request: string) => void;
   setChatMode: (mode: ChatMode) => void;
   setVisionDocument: (doc: VisionDocument | null) => void;
+  setTechDossier: (dossier: TechDossier | null) => void;
+  setTechArchitectureDocument: (doc: TechArchitectureDocument | null) => void;
 }
 
 /**
@@ -392,11 +396,15 @@ export const useAppStore = create<AppState>()(
         lastUserRequest: '',
         chatMode: 'planning', // Default to planning mode for new/existing sessions
         visionDocument: null,
+        techDossier: null,
+        techArchitectureDocument: null,
 
         setCurrentMode: (mode) => set({ currentMode: mode }),
         setLastUserRequest: (request) => set({ lastUserRequest: request }),
         setChatMode: (mode) => set({ chatMode: mode }),
         setVisionDocument: (doc) => set({ visionDocument: doc }),
+        setTechDossier: (dossier) => set({ techDossier: dossier }),
+        setTechArchitectureDocument: (doc) => set({ techArchitectureDocument: doc }),
 
         // ========================================================================
         // COMPONENTS SLICE

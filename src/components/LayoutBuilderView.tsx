@@ -19,6 +19,7 @@ import React, { useState, useCallback, useMemo, useRef } from 'react';
 import ErrorBoundary from './ErrorBoundary';
 import { OmniChat, type UploadedMedia } from './interface/OmniChat';
 import { VisionPreview } from './interface/VisionPreview';
+import { TechArchitecturePreview } from './interface/TechArchitecturePreview';
 import { LayoutCanvas } from './layout-builder/LayoutCanvas';
 import { useLayoutBuilder } from '@/hooks/useLayoutBuilder';
 import { useAppStore } from '@/store/useAppStore';
@@ -26,7 +27,7 @@ import { useChatStore } from '@/store/useChatStore';
 import { useProjectManager } from '@/hooks/useProjectManager';
 import { ProjectList } from './projects/ProjectList';
 import { ProjectSaveModal } from './projects/ProjectSaveModal';
-import type { AppContext, OmniChatAction, VisionBoardResponse } from '@/types/titanPipeline';
+import type { AppContext, OmniChatAction, VisionBoardResponse, VisionDocument } from '@/types/titanPipeline';
 
 // ============================================================================
 // MAIN COMPONENT
@@ -41,6 +42,16 @@ export const LayoutBuilderView: React.FC = () => {
   const visionDocument = useAppStore((state) => state.visionDocument);
   const setChatMode = useAppStore((state) => state.setChatMode);
   const setVisionDocument = useAppStore((state) => state.setVisionDocument);
+
+  // --- Tech Architecture State ---
+  const techDossier = useAppStore((state) => state.techDossier);
+  const techArchitectureDocument = useAppStore((state) => state.techArchitectureDocument);
+  const setTechDossier = useAppStore((state) => state.setTechDossier);
+  const setTechArchitectureDocument = useAppStore((state) => state.setTechArchitectureDocument);
+
+  const [planningTab, setPlanningTab] = useState<'vision' | 'architecture'>('vision');
+  const [isTechResearching, setIsTechResearching] = useState(false);
+  const [techResearchError, setTechResearchError] = useState<string | null>(null);
 
   // --- Project Management ---
   const [showProjectsModal, setShowProjectsModal] = useState(false);
@@ -191,6 +202,60 @@ ${vision.pageBreakdown}
 ${vision.designSystem}`;
   }, []);
 
+  // --- Auto-trigger Tech Research when vision is sufficiently defined ---
+  const triggerTechResearch = useCallback(async (vision: VisionDocument) => {
+    if (isTechResearching) return;
+
+    setIsTechResearching(true);
+    setTechResearchError(null);
+
+    try {
+      // Step 1: Tech Scout (web research)
+      console.log('[TechResearch] Step 1/2: Running Tech Scout...');
+      const flattenedVision = serializeVisionForPipeline(vision);
+      const scoutRes = await fetch('/api/layout/tech-scout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ instructions: flattenedVision }),
+      });
+
+      if (!scoutRes.ok) {
+        const errData = await scoutRes.json().catch(() => ({ error: scoutRes.statusText }));
+        throw new Error(errData.error || `Tech Scout failed: ${scoutRes.status}`);
+      }
+
+      const { dossier } = await scoutRes.json();
+      setTechDossier(dossier);
+      console.log('[TechResearch] Tech Scout complete');
+
+      // Step 2: Tech Architecture (analysis)
+      console.log('[TechResearch] Step 2/2: Running Tech Architecture...');
+      const archRes = await fetch('/api/layout/tech-architecture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ techDossier: dossier, vision }),
+      });
+
+      if (!archRes.ok) {
+        const errData = await archRes.json().catch(() => ({ error: archRes.statusText }));
+        throw new Error(errData.error || `Tech Architecture failed: ${archRes.status}`);
+      }
+
+      const { architectureDocument } = await archRes.json();
+      setTechArchitectureDocument(architectureDocument);
+      console.log('[TechResearch] Tech Architecture complete');
+
+      // Auto-switch to architecture tab
+      setPlanningTab('architecture');
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setTechResearchError(errMsg);
+      console.error('[TechResearch] Failed:', err);
+    } finally {
+      setIsTechResearching(false);
+    }
+  }, [isTechResearching, serializeVisionForPipeline, setTechDossier, setTechArchitectureDocument]);
+
   // --- Handle "Start Building" from VisionPreview ---
   const handleStartBuilding = useCallback(() => {
     setChatMode('building');
@@ -202,9 +267,10 @@ ${vision.designSystem}`;
     if (visionDocument) {
       const fullConcept = serializeVisionForPipeline(visionDocument);
       setActiveAction('pipeline');
-      runPipeline([], fullConcept, appContext).finally(() => setActiveAction(null));
+      runPipeline([], fullConcept, appContext, undefined, techDossier ?? undefined, techArchitectureDocument ?? undefined)
+        .finally(() => setActiveAction(null));
     }
-  }, [setChatMode, addMessage, visionDocument, runPipeline, appContext, serializeVisionForPipeline]);
+  }, [setChatMode, addMessage, visionDocument, runPipeline, appContext, serializeVisionForPipeline, techDossier, techArchitectureDocument]);
 
   // --- Handle media uploads (always pipeline) ---
   const handleMediaPipeline = useCallback(
@@ -463,13 +529,61 @@ ${vision.designSystem}`;
             />
           </div>
 
-          {/* Right Panel: Vision Board (planning) or LayoutCanvas (building) */}
+          {/* Right Panel: Tabbed Planning (Vision + Architecture) or LayoutCanvas (building) */}
           <div className="flex-1 bg-[#0d1117] relative flex flex-col">
             {chatMode === 'planning' ? (
-              <VisionPreview
-                vision={visionDocument}
-                onStartBuilding={handleStartBuilding}
-              />
+              <>
+                {/* Tab Bar */}
+                <div className="flex border-b border-white/10 bg-black/30 shrink-0">
+                  <button
+                    onClick={() => setPlanningTab('vision')}
+                    className={`px-6 py-3 text-sm font-medium transition-colors ${
+                      planningTab === 'vision'
+                        ? 'text-emerald-400 border-b-2 border-emerald-400'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Vision Board
+                  </button>
+                  <button
+                    onClick={() => setPlanningTab('architecture')}
+                    className={`px-6 py-3 text-sm font-medium transition-colors flex items-center gap-2 ${
+                      planningTab === 'architecture'
+                        ? 'text-violet-400 border-b-2 border-violet-400'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Tech Architecture
+                    {isTechResearching && (
+                      <span className="inline-block w-3.5 h-3.5 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+                    )}
+                    {techArchitectureDocument && !isTechResearching && (
+                      <span className="w-2 h-2 rounded-full bg-violet-400" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Tab Content */}
+                <div className="flex-1 overflow-hidden">
+                  {planningTab === 'vision' ? (
+                    <VisionPreview
+                      vision={visionDocument}
+                      onStartBuilding={handleStartBuilding}
+                    />
+                  ) : (
+                    <TechArchitecturePreview
+                      document={techArchitectureDocument}
+                      isLoading={isTechResearching}
+                      error={techResearchError}
+                      onRetry={() => {
+                        if (visionDocument) {
+                          triggerTechResearch(visionDocument);
+                        }
+                      }}
+                    />
+                  )}
+                </div>
+              </>
             ) : (
               <LayoutCanvas
                 generatedFiles={generatedFiles}

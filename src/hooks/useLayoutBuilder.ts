@@ -22,6 +22,8 @@ import type {
   OmniConversationMessage,
   OmniChatResponse,
   OmniChatAction,
+  TechDossier,
+  TechArchitectureDocument,
 } from '@/types/titanPipeline';
 import type { AgentCommand, SuspendedExecution, AgentFeedback } from '@/types/autonomy';
 import { createInitialProgress } from '@/types/titanPipeline';
@@ -50,7 +52,7 @@ export interface UseLayoutBuilderReturn {
    * Automatically includes currentCode if generated files exist, enabling
    * the Router to detect EDIT mode without caller intervention.
    */
-  runPipeline: (files: File[], instructions: string, appContext?: AppContext, cachedSkillId?: string) => Promise<void>;
+  runPipeline: (files: File[], instructions: string, appContext?: AppContext, cachedSkillId?: string, techDossier?: TechDossier, techArchitectureDocument?: TechArchitectureDocument) => Promise<void>;
 
   /**
    * Apply a quick edit to a specific component via the Live Editor.
@@ -642,7 +644,7 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
    * the presence/absence of files[] and currentCode.
    */
   const runPipeline = useCallback(
-    async (files: File[], instructions: string, appContext?: AppContext, cachedSkillId?: string) => {
+    async (files: File[], instructions: string, appContext?: AppContext, cachedSkillId?: string, techDossier?: TechDossier, techArchitectureDocument?: TechArchitectureDocument) => {
       // Atomic guard: useRef is synchronous, preventing two rapid calls from both proceeding
       if (processingRef.current) return;
       processingRef.current = true;
@@ -692,6 +694,8 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
             currentCode,
             instructions,
             appContext,
+            techDossier,
+            techArchitectureDocument,
           }),
         });
 

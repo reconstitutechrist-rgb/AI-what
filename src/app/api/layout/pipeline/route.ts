@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTitanPipelineService } from '@/services/TitanPipelineService';
 import { getTechScoutService, serializeDossierForPrompt } from '@/services/TechScoutService';
+import { serializeArchitectureForPrompt } from '@/services/TechArchitectureService';
 import type { PipelineInput } from '@/types/titanPipeline';
 import { PipelineRequestSchema } from '@/types/api-schemas';
 
@@ -50,7 +51,10 @@ export async function POST(req: NextRequest) {
     }
 
     // --- Full Pipeline ---
-    const { files, currentCode, instructions, appContext } = body;
+    const {
+      files, currentCode, instructions, appContext,
+      techDossier: cachedDossier, techArchitectureDocument,
+    } = body;
 
     if (!instructions && (!files || files.length === 0) && !currentCode) {
       return NextResponse.json(
@@ -61,25 +65,36 @@ export async function POST(req: NextRequest) {
 
     const normalizedFiles = files ?? [];
 
-    // --- Tech Scout: Research optimal technology before building ---
+    // --- Tech Scout: Skip if cached dossier provided from Planning Mode ---
     let enrichedInstructions = instructions || '';
-    let techDossier;
+    let techDossier = cachedDossier;
 
-    if (enrichedInstructions.length > 0) {
+    if (!techDossier && enrichedInstructions.length > 0) {
+      // No cached dossier → run TechScout fresh (Building Mode without Planning)
       try {
-        console.log('[Pipeline API] Running Tech Scout...');
+        console.log('[Pipeline API] No cached TechDossier, running Tech Scout...');
         const scout = getTechScoutService();
         techDossier = await scout.scout(enrichedInstructions);
-
-        // Append the dossier as context for the builder
-        if (techDossier.aiModels.length > 0 || techDossier.frameworks.length > 0) {
-          const dossierText = serializeDossierForPrompt(techDossier);
-          enrichedInstructions = `${enrichedInstructions}\n\n${dossierText}`;
-          console.log('[Pipeline API] Tech Scout enriched instructions with dossier');
-        }
       } catch (error) {
         console.warn('[Pipeline API] Tech Scout failed (non-critical), continuing without:', error);
       }
+    } else if (techDossier) {
+      console.log('[Pipeline API] Using cached TechDossier from Planning Mode');
+    }
+
+    // Enrich instructions with dossier
+    if (techDossier && (techDossier.aiModels?.length > 0 || techDossier.frameworks?.length > 0)) {
+      const dossierText = serializeDossierForPrompt(techDossier);
+      enrichedInstructions = `${enrichedInstructions}\n\n${dossierText}`;
+      console.log('[Pipeline API] Enriched instructions with Tech Dossier');
+    }
+
+    // Enrich instructions with architecture (if available from Planning Mode)
+    if (techArchitectureDocument) {
+      console.log('[Pipeline API] Using cached TechArchitectureDocument from Planning Mode');
+      const archText = serializeArchitectureForPrompt(techArchitectureDocument);
+      enrichedInstructions = `${enrichedInstructions}\n\n${archText}`;
+      console.log('[Pipeline API] Enriched instructions with Tech Architecture');
     }
 
     const pipelineInput: PipelineInput = {

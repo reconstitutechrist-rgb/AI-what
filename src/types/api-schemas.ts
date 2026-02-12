@@ -30,6 +30,9 @@ export const PipelineRequestSchema = z.object({
   files: z.array(FileInputSchema).max(50, 'Maximum 50 files allowed').optional(),
   instructions: z.string().optional(),
   appContext: z.record(z.string(), z.unknown()).optional(),
+  // Cached tech research from Planning Mode (skips redundant TechScout call)
+  techDossier: z.any().optional(),
+  techArchitectureDocument: z.any().optional(),
 });
 
 // ============================================================================
