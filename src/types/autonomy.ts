@@ -46,7 +46,8 @@ export type AgentRole =
   // Verified Autonomy Roles (Zero-Bug Architecture)
   | 'QA_ENGINEER'        // Writes tests BEFORE code (TDD)
   | 'TEST_CRITIC'        // Reviews test quality/coverage
-  | 'CLARIFICATION_AGENT'; // Asks user to resolve ambiguity pre-build
+  | 'CLARIFICATION_AGENT' // Asks user to resolve ambiguity pre-build
+  | 'TECH_SCOUT';         // Researches optimal AI models, frameworks, and libraries
 
 export interface FabricatedAgent {
   id: string;

@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getTitanPipelineService } from '@/services/TitanPipelineService';
+import { getTechScoutService, serializeDossierForPrompt } from '@/services/TechScoutService';
 import type { PipelineInput } from '@/types/titanPipeline';
 import { PipelineRequestSchema } from '@/types/api-schemas';
 
@@ -60,11 +61,33 @@ export async function POST(req: NextRequest) {
 
     const normalizedFiles = files ?? [];
 
+    // --- Tech Scout: Research optimal technology before building ---
+    let enrichedInstructions = instructions || '';
+    let techDossier;
+
+    if (enrichedInstructions.length > 0) {
+      try {
+        console.log('[Pipeline API] Running Tech Scout...');
+        const scout = getTechScoutService();
+        techDossier = await scout.scout(enrichedInstructions);
+
+        // Append the dossier as context for the builder
+        if (techDossier.aiModels.length > 0 || techDossier.frameworks.length > 0) {
+          const dossierText = serializeDossierForPrompt(techDossier);
+          enrichedInstructions = `${enrichedInstructions}\n\n${dossierText}`;
+          console.log('[Pipeline API] Tech Scout enriched instructions with dossier');
+        }
+      } catch (error) {
+        console.warn('[Pipeline API] Tech Scout failed (non-critical), continuing without:', error);
+      }
+    }
+
     const pipelineInput: PipelineInput = {
       files: normalizedFiles,
       currentCode: currentCode || null,
-      instructions: instructions || '',
+      instructions: enrichedInstructions,
       appContext: appContext || undefined,
+      techDossier,
     };
 
     const result = await service.runPipeline(pipelineInput);

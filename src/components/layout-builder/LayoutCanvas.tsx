@@ -13,7 +13,7 @@
 import React, { useRef, useState, useCallback, useMemo } from 'react';
 import { SandpackProvider, SandpackPreview } from '@codesandbox/sandpack-react';
 import { FloatingEditBubble } from './FloatingEditBubble';
-import { useInspectorBridge, createInspectorFileContent } from '@/utils/inspectorBridge';
+import { useInspectorBridge, createInspectorFileContent, createConsoleCaptureContent } from '@/utils/inspectorBridge';
 import { extractDependencies } from '@/utils/extractDependencies';
 import type { AppFile } from '@/types/railway';
 import type { PipelineProgress, PipelineStepName, PipelineStepStatus } from '@/types/titanPipeline';
@@ -41,6 +41,7 @@ const DEFAULT_ENTRY_CODE = [
   "import { createRoot } from 'react-dom/client';",
   "import App from './App';",
   "import './inspector';",
+  "import './consoleCapture';",
   '',
   "const root = createRoot(document.getElementById('root')!);",
   'root.render(',
@@ -95,6 +96,8 @@ export interface LayoutCanvasProps {
   isCritiquing?: boolean;
   /** Issues found by the visual critic */
   critiqueIssues?: string[];
+  /** Called to retry a failed build (uses saved vision) */
+  onRetryBuild?: () => void;
 }
 
 // ============================================================================
@@ -128,6 +131,13 @@ function toSandpackFiles(files: AppFile[]): Record<string, { code: string; hidde
   // Inject inspector script (self-executing IIFE, imported by entry file)
   result['/inspector.ts'] = {
     code: createInspectorFileContent(),
+    hidden: true,
+  };
+
+  // Inject console capture script (patches console.log/warn/error/info
+  // to forward entries to the parent via postMessage for Avatar Protocol)
+  result['/consoleCapture.ts'] = {
+    code: createConsoleCaptureContent(),
     hidden: true,
   };
 
@@ -196,6 +206,7 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
   critiqueScore = null,
   isCritiquing = false,
   critiqueIssues = [],
+  onRetryBuild,
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const previewContainerRef = useRef<HTMLDivElement>(null);
@@ -453,16 +464,26 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
                 </div>
               )}
             </div>
-            {onClearErrors && (
-              <button
-                onClick={onClearErrors}
-                className={`ml-4 text-xs px-2 py-1 rounded ${
-                  hasErrors ? 'text-red-700 hover:bg-red-100' : 'text-amber-700 hover:bg-amber-100'
-                }`}
-              >
-                Dismiss
-              </button>
-            )}
+            <div className="flex items-center gap-2 ml-4">
+              {hasErrors && onRetryBuild && (
+                <button
+                  onClick={onRetryBuild}
+                  className="text-xs px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 font-medium"
+                >
+                  🔄 Retry Build
+                </button>
+              )}
+              {onClearErrors && (
+                <button
+                  onClick={onClearErrors}
+                  className={`text-xs px-2 py-1 rounded ${
+                    hasErrors ? 'text-red-700 hover:bg-red-100' : 'text-amber-700 hover:bg-amber-100'
+                  }`}
+                >
+                  Dismiss
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -543,10 +564,27 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
                   d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                 />
               </svg>
-              <p className="text-lg font-medium text-gray-900 mb-1">Drop an Image or Video</p>
-              <p className="text-sm text-gray-500">
-                Or use the chat to describe what you want to build
-              </p>
+              {onRetryBuild ? (
+                <>
+                  <p className="text-lg font-medium text-gray-900 mb-1">Ready to Build</p>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Your vision plan is ready. Start the build pipeline.
+                  </p>
+                  <button
+                    onClick={onRetryBuild}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
+                  >
+                    🚀 Build from Vision
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-lg font-medium text-gray-900 mb-1">Drop an Image or Video</p>
+                  <p className="text-sm text-gray-500">
+                    Or use the chat to describe what you want to build
+                  </p>
+                </>
+              )}
             </div>
           </div>
         )}

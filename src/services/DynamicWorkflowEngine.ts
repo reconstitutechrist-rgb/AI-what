@@ -25,6 +25,61 @@ import { tavilySearchService } from '@/services/TavilySearchService';
 
 const MODEL_NAME = 'gemini-3-pro-preview';
 
+/**
+ * Smart truncation for code and output strings.
+ * Preserves high-value lines (imports, exports, errors, function signatures)
+ * and summarizes the middle section instead of cutting arbitrarily.
+ */
+function smartTruncate(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+
+  const lines = text.split('\n');
+  // If very few lines, just slice characters
+  if (lines.length <= 10) return text.slice(0, maxChars) + '\n...(truncated)';
+
+  const isHighValue = (line: string): boolean => {
+    const trimmed = line.trimStart();
+    return (
+      trimmed.startsWith('import ') ||
+      trimmed.startsWith('export ') ||
+      trimmed.startsWith('from ') ||
+      /^(export\s+)?(default\s+)?(function|class|const|interface|type)\s/.test(trimmed) ||
+      /error/i.test(trimmed) ||
+      /failed/i.test(trimmed) ||
+      /Error:/.test(trimmed) ||
+      /at\s+\S+\s+\(/.test(trimmed) // stack trace lines
+    );
+  };
+
+  // Keep first N and last N lines, plus any high-value lines in between
+  const HEAD_LINES = Math.min(40, Math.floor(lines.length * 0.3));
+  const TAIL_LINES = Math.min(30, Math.floor(lines.length * 0.2));
+
+  const head = lines.slice(0, HEAD_LINES);
+  const tail = lines.slice(-TAIL_LINES);
+  const middle = lines.slice(HEAD_LINES, lines.length - TAIL_LINES);
+
+  const importantMiddle = middle.filter(isHighValue);
+  const omittedCount = middle.length - importantMiddle.length;
+
+  const parts = [
+    ...head,
+    '',
+    `// ... [${omittedCount} lines omitted — ${importantMiddle.length} key lines preserved] ...`,
+    ...importantMiddle,
+    '',
+    `// ... [resuming from line ${lines.length - TAIL_LINES}] ...`,
+    ...tail,
+  ];
+
+  let result = parts.join('\n');
+  // Final safety: if still too long, hard-cut with notice
+  if (result.length > maxChars) {
+    result = result.slice(0, maxChars) + '\n...(truncated)';
+  }
+  return result;
+}
+
 const CODE_ONLY_SYSTEM_INSTRUCTION =
   'You are a code generator. Output ONLY valid TypeScript/React code. ' +
   'Never include explanations, markdown fences (```), or conversational text. ' +
@@ -191,8 +246,17 @@ export class DynamicWorkflowEngine {
             // Check if agent requested a command execution (suspension)
             if (verificationResult.command) {
                 this.log(`[EXECUTION] Agent ${agent.name} requested command: ${verificationResult.command.type}`);
-                // Persist global_files inside memory so resumeSwarm can restore them
-                const memoryWithFiles = { ...this.context.memory, __global_files: this.context.global_files };
+                // Persist global_files inside memory so resumeSwarm can restore them.
+                // Prune large entries (>50KB) to prevent payload bloat from
+                // accumulated screenshots/base64 data across iterations.
+                const memoryWithFiles: Record<string, unknown> = { ...this.context.memory, __global_files: this.context.global_files };
+                const MAX_MEMORY_ENTRY_SIZE = 50_000;
+                for (const key of Object.keys(memoryWithFiles)) {
+                    const val = memoryWithFiles[key];
+                    if (typeof val === 'string' && val.length > MAX_MEMORY_ENTRY_SIZE) {
+                        memoryWithFiles[key] = val.slice(0, MAX_MEMORY_ENTRY_SIZE) + `\n...[TRUNCATED from ${val.length} chars]`;
+                    }
+                }
                 return {
                     success: false, // Not failures, just paused
                     output: finalCode,
@@ -278,7 +342,7 @@ export class DynamicWorkflowEngine {
       // 3. Construct Feedback Prompt (include code context so agent can reason about results)
       const lastCoderName = swarm.agents.filter(a => a.role === 'CODER').pop()?.name;
       const codeContext = lastCoderName && this.context.memory[lastCoderName]
-        ? `\n### GENERATED CODE (for reference)\n\`\`\`tsx\n${this.context.memory[lastCoderName].slice(0, 4000)}\n\`\`\`\n`
+        ? `\n### GENERATED CODE (for reference)\n\`\`\`tsx\n${smartTruncate(this.context.memory[lastCoderName], 6000)}\n\`\`\`\n`
         : '';
 
       const feedbackInput = `
@@ -290,7 +354,7 @@ Args: ${suspendedState.command.command}
 Exit Code: ${feedback.exitCode}
 Output:
 \`\`\`
-${feedback.output.slice(0, 5000)}
+${smartTruncate(feedback.output, 8000)}
 \`\`\`
 ${feedback.screenshot ? '\n(A screenshot was also captured and is available.)\n' : ''}${codeContext}
 ### INSTRUCTIONS
@@ -444,7 +508,7 @@ Do NOT include any explanation, markdown, or conversational text.`;
 
 ### Current Code to Verify
 \`\`\`tsx
-${input.slice(0, 5000)}
+${smartTruncate(input, 8000)}
 \`\`\`
 
 ### Instructions

@@ -21,11 +21,13 @@ import type {
   FileInput,
   OmniConversationMessage,
   OmniChatResponse,
+  OmniChatAction,
 } from '@/types/titanPipeline';
 import type { AgentCommand, SuspendedExecution, AgentFeedback } from '@/types/autonomy';
 import { createInitialProgress } from '@/types/titanPipeline';
 import { getWebContainerService } from '@/services/WebContainerService';
 import type { ValidationResult, SandboxError, WebContainerStatus } from '@/types/sandbox';
+import { CONSOLE_LOG_MESSAGE_TYPE } from '@/utils/inspectorBridge';
 
 // ============================================================================
 // RETURN TYPE
@@ -95,6 +97,14 @@ export interface UseLayoutBuilderReturn {
   isCritiquing: boolean;
   /** Issues found by the visual critic */
   critiqueIssues: string[];
+
+  /** Execute an OmniChat action (pipeline, autonomy, live-edit) */
+  executeAction: (
+    action: OmniChatAction,
+    instructions: string,
+    selectedDataId?: string,
+    cachedSkillId?: string
+  ) => Promise<void>;
 }
 
 // ============================================================================
@@ -153,12 +163,14 @@ function buildFinalProgress(hasImages: boolean, hasVideos: boolean): PipelinePro
     currentStep: 'assembling',
     status: 'completed',
     steps: {
+      scouting: { status: 'completed' },
       routing: { status: 'completed' },
       surveying: { status: hasImages ? 'completed' : 'idle' },
-      architecting: { status: 'completed' },
+      planning: { status: 'completed' },
       physicist: { status: hasVideos ? 'completed' : 'idle' },
       photographer: { status: 'completed' },
       assembling: { status: 'completed' },
+      polishing: { status: 'completed' },
     },
   };
 }
@@ -194,6 +206,27 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
   const validationErrorsRef = useRef<SandboxError[]>([]);
   useEffect(() => { validationErrorsRef.current = validationErrors; }, [validationErrors]);
 
+  // --- Console Log Capture (Sandpack → parent via postMessage) ---
+  // The console capture script injected into Sandpack forwards console entries here.
+  // Used by the Avatar Protocol `browser_log` command for runtime debugging.
+  const MAX_CONSOLE_BUFFER = 200;
+  const consoleLogsRef = useRef<Array<{ level: string; message: string; timestamp: number }>>([]);
+  useEffect(() => {
+    function handleConsoleMessage(event: MessageEvent) {
+      const data = event.data;
+      if (data && data.type === CONSOLE_LOG_MESSAGE_TYPE) {
+        const buf = consoleLogsRef.current;
+        buf.push({ level: data.level, message: data.message, timestamp: data.timestamp });
+        // Ring buffer — drop oldest entries when full
+        if (buf.length > MAX_CONSOLE_BUFFER) {
+          consoleLogsRef.current = buf.slice(-MAX_CONSOLE_BUFFER);
+        }
+      }
+    }
+    window.addEventListener('message', handleConsoleMessage);
+    return () => window.removeEventListener('message', handleConsoleMessage);
+  }, []);
+
   // --- Visual Critic State ---
   const [critiqueScore, setCritiqueScore] = useState<number | null>(null);
   const [isCritiquing, setIsCritiquing] = useState(false);
@@ -212,11 +245,18 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
   const [future, setFuture] = useState<AppFile[][]>([]);
 
   // --- Bidirectional sync with Zustand store ---
+  // Uses a version counter instead of a boolean flag to prevent race conditions.
+  // When local state writes to store (effect 1), it increments the counter.
+  // When store changes arrive (effect 2), it only applies if the counter hasn't
+  // been incremented — meaning the change came from outside (project switch,
+  // hydration), not from our own write.
+  const syncVersionRef = useRef(0);
+  const lastAppliedVersionRef = useRef(0);
+
   // 1. Write local generatedFiles → store whenever they change
-  const syncRef = useRef(false);
   useEffect(() => {
     if (generatedFiles !== storedFiles) {
-      syncRef.current = true;
+      syncVersionRef.current += 1;
       setStoredFiles(generatedFiles);
     }
   }, [generatedFiles, storedFiles, setStoredFiles]);
@@ -224,8 +264,9 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
   // 2. Hydrate from store when persisted data loads (Zustand hydrates async)
   //    Also handles project switching: store changes → update local state
   useEffect(() => {
-    if (syncRef.current) {
-      syncRef.current = false;
+    // If we caused this store update ourselves, skip it
+    if (syncVersionRef.current !== lastAppliedVersionRef.current) {
+      lastAppliedVersionRef.current = syncVersionRef.current;
       return;
     }
     if (storedFiles !== generatedFiles) {
@@ -501,15 +542,30 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
                }
 
            } else if (command.type === 'browser_log') {
-               // Provide validation errors as a proxy for browser console output
+               // Combine captured Sandpack console logs + WebContainer validation errors
+               const parts: string[] = [];
+
+               // Runtime console output (captured via postMessage bridge)
+               const consoleLogs = consoleLogsRef.current;
+               if (consoleLogs.length > 0) {
+                   parts.push('=== Runtime Console Output ===');
+                   for (const entry of consoleLogs) {
+                       parts.push(`[${entry.level.toUpperCase()}] ${entry.message}`);
+                   }
+               }
+
+               // WebContainer validation errors (build-time)
                const currentErrors = validationErrorsRef.current;
                if (currentErrors.length > 0) {
-                   output = currentErrors.map(e =>
-                       `[${e.type}] ${e.message}${e.file ? ` in ${e.file}:${e.line}` : ''}`
-                   ).join('\n');
-               } else {
-                   output = 'No validation errors detected. Console log capture from live preview is not yet available.';
+                   parts.push('=== Build Validation Errors ===');
+                   for (const e of currentErrors) {
+                       parts.push(`[${e.type}] ${e.message}${e.file ? ` in ${e.file}:${e.line}` : ''}`);
+                   }
                }
+
+               output = parts.length > 0
+                   ? parts.join('\n')
+                   : 'No console output or validation errors detected.';
                exitCode = 0;
 
            } else {
@@ -540,7 +596,8 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
            const response = await fetch('/api/layout/autonomy/feedback', {
                method: 'POST',
                headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({ feedback, suspendedState })
+               body: JSON.stringify({ feedback, suspendedState }),
+               signal: AbortSignal.timeout(60_000),
            });
 
            if (!response.ok) throw new Error(`Feedback API error: ${response.status}`);
@@ -838,6 +895,21 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
     [generatedFiles]
   );
 
+  // --- Execute OmniChat Action ---
+  const executeAction = useCallback(
+    async (
+      action: OmniChatAction,
+      instructions: string,
+      selectedDataId?: string,
+      cachedSkillId?: string
+    ) => {
+      if (action === 'none') return;
+      // For pipeline/autonomy actions, run the full pipeline
+      await runPipeline([], instructions, undefined, cachedSkillId);
+    },
+    [runPipeline]
+  );
+
   // --- Return ---
 
   return {
@@ -870,5 +942,8 @@ export function useLayoutBuilder(): UseLayoutBuilderReturn {
     critiqueScore,
     isCritiquing,
     critiqueIssues,
+
+    // Action dispatcher
+    executeAction,
   };
 }

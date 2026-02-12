@@ -1,8 +1,8 @@
-# AI App Builder - Copilot Instructions
+# Virtual World Engine - Copilot Instructions
 
 ## Project Overview
 
-Personal AI App Builder that generates complete React components and applications through a multi-AI pipeline combining Claude Sonnet 4.5 for intent classification and Gemini 3 Pro for code generation.
+Personal Virtual World Engine that generates complete React components and applications through a multi-AI pipeline combining Claude Sonnet 4.5 for intent classification and Gemini 3 Pro for code generation.
 
 ### Architecture Overview
 

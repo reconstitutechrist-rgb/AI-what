@@ -1,7 +1,7 @@
 /**
  * Preview Components
  *
- * Enhanced preview components for the AI App Builder.
+ * Enhanced preview components for the Virtual World Engine.
  * Includes device frames, responsive controls, touch simulation, and console panel.
  */
 

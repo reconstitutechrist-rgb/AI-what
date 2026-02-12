@@ -1,4 +1,4 @@
-# AI App Builder
+# Virtual World Engine
 
 > Build React components and apps using an omnipotent creation engine powered by Claude, Gemini, and a self-teaching autonomy system.
 
@@ -14,7 +14,7 @@
 
 ## Overview
 
-AI App Builder is a full-stack platform for building React applications through conversational AI. The system combines three AI providers into a unified creation pipeline:
+Virtual World Engine is a full-stack platform for building software and virtual processes through conversational AI. The system combines three AI providers into a unified creation pipeline:
 
 - **Claude Sonnet 4.5** powers OmniChat, the conversational interface that classifies user intent and orchestrates actions
 - **Gemini 3 Pro** drives the Titan Pipeline, a three-stage code generation engine (Router, Architect, Assembler)

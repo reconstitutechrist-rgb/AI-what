@@ -1,7 +1,7 @@
 /**
  * Code Context API Types
  * Comprehensive type definitions for semantic code analysis, dependency tracking,
- * and intelligent context selection for the AI App Builder.
+ * and intelligent context selection for the Virtual World Engine.
  */
 
 // ============================================================================

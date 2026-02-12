@@ -25,7 +25,6 @@ export { uploadFileToGemini, parseAutonomyOutput } from './helpers';
 // Re-export step functions for direct access if needed
 export { routeIntent } from './router';
 export { surveyLayout } from './surveyor';
-export { buildStructure } from './architect';
 export { extractPhysics } from './physicist';
 export { assembleCode } from './builder';
 export { liveEdit } from './liveEditor';

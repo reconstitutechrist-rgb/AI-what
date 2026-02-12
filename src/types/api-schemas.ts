@@ -98,6 +98,8 @@ export const ScreenshotRequestSchema = z.object({
   css: z.string().optional(),
   files: z.array(AppFileSchema).optional(),
   viewport: ViewportSchema.optional().default({ width: 1280, height: 800 }),
+  /** When true, uses esm.sh-based 3D renderer instead of ReactToHtmlService */
+  use3DRenderer: z.boolean().optional(),
 });
 
 // ============================================================================

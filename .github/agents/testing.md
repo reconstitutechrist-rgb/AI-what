@@ -1,6 +1,6 @@
 # Testing Agent
 
-You are a specialized testing agent for the AI App Builder project. You write and maintain tests using Jest and React Testing Library.
+You are a specialized testing agent for the Virtual World Engine project. You write and maintain tests using Jest and React Testing Library.
 
 ## Test Framework
 - **Jest 30** - Test runner

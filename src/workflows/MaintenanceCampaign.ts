@@ -116,6 +116,7 @@ export class MaintenanceCampaign {
   private onGoalQueueUpdate: (goals: DreamGoal[]) => void;
   private onDiscoveryReport: (report: DiscoveryReport) => void;
   private onIframeTestRequest: IframeTestRequestCallback | null;
+  private onFilesUpdate: ((files: AppFile[]) => void) | null;
 
   constructor(options: {
     profileName: ChaosProfileName;
@@ -126,16 +127,18 @@ export class MaintenanceCampaign {
     onGoalQueueUpdate: (goals: DreamGoal[]) => void;
     onDiscoveryReport: (report: DiscoveryReport) => void;
     onIframeTestRequest?: IframeTestRequestCallback;
+    onFilesUpdate?: (files: AppFile[]) => void;
   }) {
     this.profileName = options.profileName;
     this.profile = getChaosProfile(options.profileName);
-    this.goalQueue = [...options.goalQueue];
+    this.goalQueue = options.goalQueue.map(g => ({ ...g }));
     this.onLog = options.onLog;
     this.onPhaseChange = options.onPhaseChange;
     this.onStatsUpdate = options.onStatsUpdate;
     this.onGoalQueueUpdate = options.onGoalQueueUpdate;
     this.onDiscoveryReport = options.onDiscoveryReport;
     this.onIframeTestRequest = options.onIframeTestRequest ?? null;
+    this.onFilesUpdate = options.onFilesUpdate ?? null;
   }
 
   /**
@@ -173,6 +176,7 @@ export class MaintenanceCampaign {
       const webContainer = getWebContainerService();
       this.files = await webContainer.mountGitHubRepo(repoUrl, token, branch, this.abortController?.signal);
       this.log(`Repository loaded: ${this.files.length} files mounted`);
+      this.onFilesUpdate?.(this.files);
 
       if (this.aborted) return this.buildLog(repoUrl, 'user_stopped');
 
@@ -394,6 +398,7 @@ export class MaintenanceCampaign {
         if (!validation.valid) {
           // Technical Failure → Revert
           this.files = snapshot;
+          this.onFilesUpdate?.(this.files);
           goal.status = 'FAILED';
           goal.errorMessage =
             'Build failed: ' +
@@ -414,6 +419,7 @@ export class MaintenanceCampaign {
           if (critique.verdict === 'regenerate') {
             // Visual Failure → Revert
             this.files = snapshot;
+            this.onFilesUpdate?.(this.files);
             goal.status = 'FAILED';
             goal.errorMessage = `Visual Verification Failed (Score: ${critique.overallScore}/10): ${critique.issues[0]?.description}`;
             this.log('Visual Critic rejected the build. Reverting.');
@@ -441,6 +447,7 @@ export class MaintenanceCampaign {
               if (testReport.crashes.length > 0) {
                 // Functional Failure → Revert
                 this.files = snapshot;
+                this.onFilesUpdate?.(this.files);
                 goal.status = 'FAILED';
                 goal.errorMessage = `Functional Verification Failed: ${testReport.crashes[0].error}`;
                 this.log(
@@ -662,6 +669,7 @@ export class MaintenanceCampaign {
         } else {
           // Revert files to pre-patch state
           this.files = snapshot;
+          this.onFilesUpdate?.(this.files);
           this.log(`Patch verification failed, reverted: ${validation.errors.map((e) => e.message).join(', ')}`);
           this.patches.push({
             file: crashFile || 'unknown',
@@ -777,6 +785,7 @@ export class MaintenanceCampaign {
     }
 
     this.log(`Applied ${fileSegments.length} file(s): ${fileSegments.map((f) => f.path).join(', ')}`);
+    this.onFilesUpdate?.(this.files);
   }
 
   /**

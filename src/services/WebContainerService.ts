@@ -38,7 +38,7 @@ const BOOT_TIMEOUT = 15_000;
 const INSTALL_TIMEOUT = 45_000; // Increased for Rapier WASM (~2MB)
 
 /** Max time to wait for build (ms) */
-const BUILD_TIMEOUT = 45_000;
+const BUILD_TIMEOUT = 60_000;
 
 // ============================================================================
 // PACKAGE.JSON TEMPLATE
@@ -169,11 +169,13 @@ class WebContainerServiceInstance {
    * writes from interleaving and corrupting results.
    */
   async validate(files: AppFile[]): Promise<ValidationResult> {
-    // Chain through the queue so concurrent calls run sequentially
-    const result = this.validationQueue.then(
-      () => this.validateImpl(files),
-      () => this.validateImpl(files) // Run even if previous validation failed
-    );
+    // Chain through the queue so concurrent calls run sequentially.
+    // Wrap in Promise.resolve().then() to catch synchronous throws from
+    // validateImpl — a sync throw would break the queue chain permanently.
+    const safeValidate = () =>
+      Promise.resolve().then(() => this.validateImpl(files));
+
+    const result = this.validationQueue.then(safeValidate, safeValidate);
     this.validationQueue = result;
     return result;
   }

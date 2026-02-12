@@ -3,10 +3,10 @@
  *
  * Main orchestrator for the full agentic pipeline:
  * - Router (Traffic Control)
+ * - Blueprint Planner (Phased Build Planning)
  * - Surveyor (Vision Analysis)
- * - Architect (Structure via Claude)
  * - Physicist (Animation Math)
- * - Builder (Code Synthesis)
+ * - Builder (Code Synthesis + Claude Polish)
  * - Live Editor (Refinement)
  *
  * This is a thin orchestrator that delegates to specialized modules.
@@ -31,18 +31,21 @@ import { autonomyCore } from '@/agents/AutonomyCore';
 import { parseAutonomyOutput } from './helpers';
 import { routeIntent } from './router';
 import { surveyLayout } from './surveyor';
-import { buildStructure } from './architect';
 import { extractPhysics } from './physicist';
 import { assembleCode } from './builder';
 import { liveEdit } from './liveEditor';
 import { buildWorldManifest } from './worldArchitect';
+import { getBlueprintPlannerService } from '@/services/BlueprintPlannerService';
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
 /** Maximum wall-clock time for the entire pipeline before aborting (ms) */
-const PIPELINE_TIMEOUT_MS = 120_000; // 2 minutes
+const PIPELINE_TIMEOUT_MS = 120_000; // 2 minutes (standard)
+
+/** Extended timeout for complex modes (RESEARCH_AND_BUILD, WORLD_BUILD) */
+const PIPELINE_TIMEOUT_EXTENDED_MS = 300_000; // 5 minutes
 
 // ============================================================================
 // MAIN ORCHESTRATOR
@@ -56,20 +59,24 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   const stepTimings: Record<string, number> = {};
   const pipelineStart = Date.now();
 
-  /** Throws if the cumulative pipeline time exceeds PIPELINE_TIMEOUT_MS */
-  const checkTimeout = (stepName: string) => {
-    const elapsed = Date.now() - pipelineStart;
-    if (elapsed > PIPELINE_TIMEOUT_MS) {
-      throw new Error(
-        `Pipeline timeout: ${stepName} aborted after ${Math.round(elapsed / 1000)}s ` +
-        `(limit ${Math.round(PIPELINE_TIMEOUT_MS / 1000)}s)`
-      );
-    }
-  };
-
   const routeStart = Date.now();
   const strategy = await routeIntent(input);
   stepTimings.router = Date.now() - routeStart;
+
+  // Use extended timeout for complex modes that involve research or world-building
+  const isComplexMode = strategy.mode === 'RESEARCH_AND_BUILD' || strategy.mode === 'WORLD_BUILD';
+  const timeoutMs = isComplexMode ? PIPELINE_TIMEOUT_EXTENDED_MS : PIPELINE_TIMEOUT_MS;
+
+  /** Throws if the cumulative pipeline time exceeds the active timeout */
+  const checkTimeout = (stepName: string) => {
+    const elapsed = Date.now() - pipelineStart;
+    if (elapsed > timeoutMs) {
+      throw new Error(
+        `Pipeline timeout: ${stepName} aborted after ${Math.round(elapsed / 1000)}s ` +
+        `(limit ${Math.round(timeoutMs / 1000)}s)`
+      );
+    }
+  };
 
   // AUTOPOIETIC/LEARNING PATH
   if (strategy.mode === 'RESEARCH_AND_BUILD') {
@@ -249,24 +256,31 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     stepTimings.extraction = Date.now() - extractStart;
   }
 
-  checkTimeout('architect');
+  checkTimeout('blueprint planner');
 
-  const structStart = Date.now();
-  const structure = await buildStructure(manifests, strategy, input.instructions);
-  stepTimings.architect = Date.now() - structStart;
+  // Blueprint Planner: plan phased build from concept + tech dossier
+  const planStart = Date.now();
+  const blueprintPlanner = getBlueprintPlannerService();
+  const blueprintPlan = await blueprintPlanner.planBlueprint(
+    input.instructions,
+    input.techDossier
+  );
+  stepTimings.planner = Date.now() - planStart;
 
   checkTimeout('builder');
 
   const buildStart = Date.now();
   let files = await assembleCode(
-    structure,
+    null,
     manifests,
     physics,
     strategy,
     input.currentCode,
     input.instructions,
     generatedAssets,
-    input.repoContext
+    input.repoContext,
+    undefined,
+    blueprintPlan
   );
   stepTimings.builder = Date.now() - buildStart;
 
@@ -316,14 +330,16 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
         regenerate: async (critiqueContext: string) => {
           // Regenerate code with critique feedback appended to instructions
           return assembleCode(
-            structure,
+            null,
             manifests,
             physics,
             strategy,
             input.currentCode,
             `${input.instructions}\n\n${critiqueContext}`,
             generatedAssets,
-            input.repoContext
+            input.repoContext,
+            undefined,
+            blueprintPlan
           );
         },
       });

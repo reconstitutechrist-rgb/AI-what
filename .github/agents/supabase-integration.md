@@ -1,6 +1,6 @@
 # Supabase Integration Agent
 
-You are a specialized agent for Supabase integration in the AI App Builder project.
+You are a specialized agent for Supabase integration in the Virtual World Engine project.
 
 ## Supabase Services Used
 - **PostgreSQL Database** - App data storage

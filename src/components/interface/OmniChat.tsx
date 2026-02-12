@@ -120,12 +120,14 @@ export const OmniChat: React.FC<OmniChatProps> = ({
   // Persistent message store
   const messages = useChatStore((s) => s.messages);
 
-  // Auto-scroll on new messages
+  // Auto-scroll only when new messages arrive (not on processing state changes)
+  const prevMessageCountRef = useRef(messages.length);
   useEffect(() => {
-    if (chatContainerRef.current) {
+    if (messages.length > prevMessageCountRef.current && chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [messages, isProcessing, isChatting]);
+    prevMessageCountRef.current = messages.length;
+  }, [messages]);
 
   // Cleanup Object URLs on unmount
   const uploadedMediaRef = useRef<UploadedMedia[]>([]);
@@ -393,7 +395,7 @@ export const OmniChat: React.FC<OmniChatProps> = ({
                 : 'Describe anything to build...'
             }
             disabled={isBusy}
-            className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 text-sm"
+            className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 text-sm text-gray-900 placeholder:text-gray-400"
           />
 
           {/* Send Button */}

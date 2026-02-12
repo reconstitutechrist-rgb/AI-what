@@ -154,15 +154,16 @@ function buildMessages(
     return [...history.map(toMsg), { role: 'user' as const, content: currentMessage }];
   }
 
-  // Long history: pin the first user message (original intent) + recent tail
+  // Long history: pin the first USER message (original intent) + recent tail
   const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
 
-  if (history[0]?.role === 'user') {
-    messages.push(toMsg(history[0]));
+  const firstUserIdx = history.findIndex(m => m.role === 'user');
+  if (firstUserIdx !== -1) {
+    messages.push(toMsg(history[firstUserIdx]));
   }
 
   // Take recent messages, deducting 1 for the pinned first message
-  const tailSize = history[0]?.role === 'user' ? MAX_HISTORY_MESSAGES - 1 : MAX_HISTORY_MESSAGES;
+  const tailSize = firstUserIdx !== -1 ? MAX_HISTORY_MESSAGES - 1 : MAX_HISTORY_MESSAGES;
   const tail = history.slice(-tailSize);
   messages.push(...tail.map(toMsg));
   messages.push({ role: 'user' as const, content: currentMessage });
@@ -312,16 +313,14 @@ class OmniChatServiceInstance {
     const text = firstBlock && firstBlock.type === 'text' ? firstBlock.text : '';
     const response = parseResponse(text);
 
-    // If the AI chose to use a cached skill's solution, inject skillId and increment usage
-    // Only increment usage if the AI actually referenced the cached skill in its instructions
+    // If a cached skill was matched and the AI triggered an action, associate the skill.
+    // Usage is always incremented when a skill-matched request leads to an action —
+    // the real quality gate is the Visual Critic score feedback, not string matching.
     if (cachedSkillMatch && response.action !== 'none' && response.actionPayload) {
-      const usedCachedSkill = response.actionPayload.instructions?.includes(`USE_CACHED_SKILL:${cachedSkillMatch.skill.id}`);
-      if (usedCachedSkill) {
-        response.actionPayload.cachedSkillId = cachedSkillMatch.skill.id;
-        this.incrementSkillUsage(cachedSkillMatch.skill.id).catch((err) => {
-          console.warn(`[OmniChat] Skill usage increment failed for ${cachedSkillMatch.skill.id}:`, err?.message);
-        });
-      }
+      response.actionPayload.cachedSkillId = cachedSkillMatch.skill.id;
+      this.incrementSkillUsage(cachedSkillMatch.skill.id).catch((err) => {
+        console.warn(`[OmniChat] Skill usage increment failed for ${cachedSkillMatch.skill.id}:`, err?.message);
+      });
     }
 
     return response;

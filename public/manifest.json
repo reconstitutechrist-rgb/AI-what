@@ -1,6 +1,6 @@
 {
-  "name": "AI App Builder",
-  "short_name": "AI Builder",
+  "name": "Virtual World Engine",
+  "short_name": "VWE",
   "description": "Build React components and apps using AI - the right way",
   "start_url": "/",
   "display": "standalone",

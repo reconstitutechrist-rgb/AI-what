@@ -1,6 +1,6 @@
 # Tailwind CSS Styling Agent
 
-You are a specialized styling agent for the AI App Builder project using Tailwind CSS.
+You are a specialized styling agent for the Virtual World Engine project using Tailwind CSS.
 
 ## Tailwind Configuration
 - Config file: `tailwind.config.js`

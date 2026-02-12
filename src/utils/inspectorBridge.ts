@@ -25,6 +25,68 @@ export const INSPECTOR_FILE_PATH = '/src/inspector.ts';
 /** Message type used by the inspector script */
 export const INSPECTOR_MESSAGE_TYPE = 'COMPONENT_SELECTED';
 
+/** Message type used by the console capture script */
+export const CONSOLE_LOG_MESSAGE_TYPE = 'SANDPACK_CONSOLE_LOG';
+
+// ============================================================================
+// CONSOLE CAPTURE SCRIPT (injected into Sandpack alongside inspector)
+// ============================================================================
+
+/**
+ * Returns JS content that patches console.log/warn/error/info to send
+ * a copy of each log entry to the parent window via postMessage.
+ * The Avatar Protocol's `browser_log` command reads these captured entries.
+ *
+ * Max 200 entries are buffered to avoid memory growth in long-running previews.
+ */
+export function createConsoleCaptureContent(): string {
+  return `
+// Console capture — injected by layout builder for Avatar Protocol browser_log
+(function initConsoleCapture() {
+  var MAX_BUFFER = 200;
+  var methods = ['log', 'warn', 'error', 'info'];
+  methods.forEach(function(method) {
+    var original = console[method];
+    console[method] = function() {
+      // Call original so dev tools still work
+      original.apply(console, arguments);
+      try {
+        var args = Array.prototype.slice.call(arguments);
+        var message = args.map(function(a) {
+          if (typeof a === 'string') return a;
+          try { return JSON.stringify(a); } catch(e) { return String(a); }
+        }).join(' ');
+        window.parent.postMessage({
+          type: '${CONSOLE_LOG_MESSAGE_TYPE}',
+          level: method,
+          message: message,
+          timestamp: Date.now()
+        }, '*');
+      } catch(e) { /* ignore postMessage failures */ }
+    };
+  });
+
+  // Also capture unhandled errors and promise rejections
+  window.addEventListener('error', function(e) {
+    window.parent.postMessage({
+      type: '${CONSOLE_LOG_MESSAGE_TYPE}',
+      level: 'error',
+      message: (e.message || 'Unknown error') + (e.filename ? ' at ' + e.filename + ':' + e.lineno : ''),
+      timestamp: Date.now()
+    }, '*');
+  });
+  window.addEventListener('unhandledrejection', function(e) {
+    window.parent.postMessage({
+      type: '${CONSOLE_LOG_MESSAGE_TYPE}',
+      level: 'error',
+      message: 'Unhandled rejection: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)),
+      timestamp: Date.now()
+    }, '*');
+  });
+})();
+`;
+}
+
 // ============================================================================
 // INSPECTOR SCRIPT (injected into Sandpack)
 // ============================================================================

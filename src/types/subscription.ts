@@ -42,7 +42,7 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierLimits> = {
     maxCustomDomains: 0,
     spendLimitCents: 0,
     monthlyPriceCents: 0,
-    features: ['AI App Builder', 'Preview deployments', 'Export to ZIP'],
+    features: ['Virtual World Engine', 'Preview deployments', 'Export to ZIP'],
   },
   starter: {
     tier: 'starter',

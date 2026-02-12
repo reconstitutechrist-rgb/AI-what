@@ -7,14 +7,14 @@ import { SettingsProvider } from '../contexts/SettingsContext';
 import { DevTools } from '../components/dev/DevTools';
 
 export const metadata: Metadata = {
-  title: 'AI App Builder',
+  title: 'Virtual World Engine',
   description: 'Build React components and apps using AI - the right way',
   manifest: '/manifest.json',
   themeColor: '#2ECC71',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'AI Builder',
+    title: 'VWE',
   },
   icons: {
     icon: [

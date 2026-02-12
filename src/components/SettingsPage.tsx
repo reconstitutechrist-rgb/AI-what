@@ -28,7 +28,7 @@ import { DreamToggle } from './dream/DreamToggle';
 const SECTIONS: { id: SettingsSection; label: string; icon: string }[] = [
   { id: 'general', label: 'General', icon: '⚙️' },
   { id: 'editor', label: 'Editor', icon: '📝' },
-  { id: 'ai', label: 'AI', icon: '🤖' },
+
   { id: 'preview', label: 'Preview', icon: '👁️' },
   { id: 'build', label: 'Build', icon: '🔨' },
   { id: 'shortcuts', label: 'Shortcuts', icon: '⌨️' },
@@ -129,7 +129,7 @@ export function SettingsPage({ isOpen, onClose, initialSection = 'general' }: Se
               onChange={(value) => updateGeneralSettings({ appName: value })}
               label="App Name"
               description="Customize the app branding name"
-              placeholder="AI App Builder"
+              placeholder="Virtual World Engine"
             />
             <Select
               value={settings.general.language}
@@ -223,53 +223,7 @@ export function SettingsPage({ isOpen, onClose, initialSection = 'general' }: Se
           </div>
         );
 
-      case 'ai':
-        return (
-          <div>
-            <SectionHeader title="AI Settings" description="Configure AI model behavior" />
-            <Select
-              value={settings.ai.defaultModel}
-              onChange={(value) => updateAISettings({ defaultModel: value })}
-              options={[
-                { value: 'gpt-4', label: 'GPT-4' },
-                { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
-                { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
-                { value: 'claude-3-opus', label: 'Claude 3 Opus' },
-                { value: 'claude-3-sonnet', label: 'Claude 3 Sonnet' },
-              ]}
-              label="Default AI Model"
-              description="Select the default model for code generation"
-            />
-            <Slider
-              value={settings.ai.maxTokens}
-              onChange={(value) => updateAISettings({ maxTokens: value })}
-              min={1024}
-              max={16384}
-              step={512}
-              label="Max Tokens"
-              description="Maximum response length"
-              formatValue={(v) => v.toLocaleString()}
-            />
-            <TextArea
-              value={settings.ai.systemPrompt}
-              onChange={(value) => updateAISettings({ systemPrompt: value })}
-              label="Custom System Prompt"
-              description="Override the default system instructions (leave empty for default)"
-              placeholder="Enter custom instructions for the AI..."
-              rows={4}
-            />
-            <Select
-              value={settings.ai.responseFormat}
-              onChange={(value) => updateAISettings({ responseFormat: value })}
-              options={[
-                { value: 'markdown', label: 'Markdown' },
-                { value: 'plain', label: 'Plain Text' },
-                { value: 'code', label: 'Code Only' },
-              ]}
-              label="Response Format"
-            />
-          </div>
-        );
+
 
       case 'preview':
         return (

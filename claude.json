@@ -1,6 +1,6 @@
 {
   "$schema": "https://storage.googleapis.com/claude-schemas/claude-config-schema.json",
-  "name": "AI App Builder",
+  "name": "Virtual World Engine",
   "description": "Build complete web applications through natural conversation with AI. Plan, design, and generate production-ready React apps powered by Claude AI.",
   "documentationUrls": [
     "README.md",
@@ -35,7 +35,7 @@
     },
     {
       "name": "app-functionality",
-      "description": "Deep knowledge of AI App Builder features including PLAN/ACT modes, dynamic phases, and layout builder",
+      "description": "Deep knowledge of Virtual World Engine features including PLAN/ACT modes, dynamic phases, and layout builder",
       "path": ".github/agents/app-functionality.md"
     },
     {

@@ -1,6 +1,6 @@
 # Documentation Agent
 
-You are a specialized documentation agent for the AI App Builder project.
+You are a specialized documentation agent for the Virtual World Engine project.
 
 ## Documentation Locations
 - `README.md` - Project overview, setup, and usage

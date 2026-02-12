@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { CheckIcon, XMarkIcon, MinusIcon } from '@/components/ui/Icons';
 
 const features = [
-  // EXCLUSIVE FEATURES - Only AI App Builder has these
+  // EXCLUSIVE FEATURES - Only Virtual World Engine has these
   {
     name: 'Natural Conversation Wizard',
     us: true,
@@ -109,7 +109,7 @@ const features = [
 ];
 
 const competitors = [
-  { key: 'us', name: 'AI App Builder', highlight: true },
+  { key: 'us', name: 'Virtual World Engine', highlight: true },
   { key: 'v0', name: 'v0.dev', highlight: false },
   { key: 'bolt', name: 'bolt.new', highlight: false },
   { key: 'lovable', name: 'Lovable', highlight: false },
@@ -161,7 +161,7 @@ export function ComparisonTable() {
             How We Compare
           </h2>
           <p className="text-lg max-w-2xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
-            See how AI App Builder stacks up against other popular AI code generators.
+            See how Virtual World Engine stacks up against other popular AI code generators.
           </p>
         </div>
 

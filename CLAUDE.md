@@ -1,4 +1,4 @@
-# AI App Builder - Project Memory
+# Virtual World Engine - Project Memory
 
 ## CRITICAL: Read Master Context First
 
@@ -18,7 +18,7 @@
 
 ## Overview
 
-Personal AI App Builder — Build React components and apps using an omnipotent creation engine powered by Claude, Gemini, and a self-teaching autonomy system.
+Virtual World Engine — Build software and virtual processes using an omnipotent creation engine powered by Claude, Gemini, and a self-teaching autonomy system.
 
 **Core Architecture:**
 

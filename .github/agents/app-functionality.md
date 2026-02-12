@@ -1,10 +1,10 @@
 # App Functionality Agent
 
-You are a specialized agent with deep knowledge of the AI App Builder application's features and functionality. Use this knowledge when implementing new features or modifying existing ones.
+You are a specialized agent with deep knowledge of the Virtual World Engine application's features and functionality. Use this knowledge when implementing new features or modifying existing ones.
 
 ## What This App Does
 
-AI App Builder is a multi-AI-powered tool that lets users **build complete web applications through natural language conversation**. Users describe what they want via OmniChat, and the system generates production-ready React code through the Titan Pipeline.
+Virtual World Engine is a multi-AI-powered tool that lets users **build complete web applications through natural language conversation**. Users describe what they want via OmniChat, and the system generates production-ready React code through the Titan Pipeline.
 
 ## Core Architecture
 

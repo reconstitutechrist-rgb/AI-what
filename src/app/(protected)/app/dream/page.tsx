@@ -7,23 +7,27 @@
  *   - Stats dashboard (goals, bugs found/fixed, discoveries, elapsed time, cost)
  *   - Directive Queue panel with drag-to-reorder
  *   - Discovery Report panel
+ *   - Toggleable live preview (Sandpack) of the app being worked on
  *   - Pause/Stop controls
  *   - Wake Lock to prevent sleep
  */
 
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { SandpackProvider, SandpackPreview } from '@codesandbox/sandpack-react';
 import { useSettings } from '@/hooks/useSettings';
 import { useDreamMode } from '@/hooks/useDreamMode';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { DirectiveQueue } from '@/components/dream/DirectiveQueue';
+import { extractDependencies } from '@/utils/extractDependencies';
 import { CHAOS_PROFILE_META } from '@/config/chaosProfile';
 import type { CampaignPhase } from '@/types/dream';
+import type { AppFile } from '@/types/railway';
 
 // ============================================================================
-// PHASE DISPLAY
+// CONSTANTS
 // ============================================================================
 
 const PHASE_LABELS: Record<CampaignPhase, { label: string; color: string }> = {
@@ -39,6 +43,56 @@ const PHASE_LABELS: Record<CampaignPhase, { label: string; color: string }> = {
   DONE: { label: 'Complete', color: 'text-green-400' },
 };
 
+const SANDPACK_BASE_DEPS: Record<string, string> = {
+  'framer-motion': 'latest',
+  'lucide-react': 'latest',
+  clsx: 'latest',
+  'tailwind-merge': 'latest',
+};
+
+const TAILWIND_CDN = 'https://cdn.tailwindcss.com';
+
+const DEFAULT_ENTRY_CODE = [
+  "import React from 'react';",
+  "import { createRoot } from 'react-dom/client';",
+  "import App from './App';",
+  '',
+  "const root = createRoot(document.getElementById('root')!);",
+  'root.render(',
+  '  <React.StrictMode>',
+  '    <App />',
+  '  </React.StrictMode>',
+  ');',
+].join('\n');
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+/** Convert AppFile[] to Sandpack file format */
+function toSandpackFiles(files: AppFile[]): Record<string, { code: string }> {
+  const result: Record<string, { code: string }> = {};
+  let hasEntryFile = false;
+
+  for (const file of files) {
+    let path = file.path;
+    if (path.startsWith('/src/')) {
+      path = '/' + path.slice(5);
+    }
+    result[path] = { code: file.content };
+
+    if (path === '/index.tsx' || path === '/index.ts') {
+      hasEntryFile = true;
+    }
+  }
+
+  if (!hasEntryFile) {
+    result['/index.tsx'] = { code: DEFAULT_ENTRY_CODE };
+  }
+
+  return result;
+}
+
 // ============================================================================
 // PAGE
 // ============================================================================
@@ -50,6 +104,7 @@ export default function DreamPage() {
   const dream = useDreamMode({ iframeRef });
   const wakeLock = useWakeLock(dream.isDreaming);
   const terminalRef = useRef<HTMLDivElement>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   // Auto-scroll terminal
   useEffect(() => {
@@ -57,6 +112,18 @@ export default function DreamPage() {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
   }, [dream.logs]);
+
+  // Memoize Sandpack conversion
+  const hasPreviewFiles = dream.previewFiles.length > 0;
+  const sandpackFiles = useMemo(() => {
+    if (!hasPreviewFiles) return null;
+    return toSandpackFiles(dream.previewFiles);
+  }, [dream.previewFiles, hasPreviewFiles]);
+
+  const sandpackDeps = useMemo(() => {
+    if (!hasPreviewFiles) return SANDPACK_BASE_DEPS;
+    return { ...SANDPACK_BASE_DEPS, ...extractDependencies(dream.previewFiles) };
+  }, [dream.previewFiles, hasPreviewFiles]);
 
   // Redirect if dream mode not enabled
   if (!settings.dream.enabled) {
@@ -83,6 +150,7 @@ export default function DreamPage() {
   const minutes = Math.floor(elapsed / 60000);
   const seconds = Math.floor((elapsed % 60000) / 1000);
   const profileMeta = CHAOS_PROFILE_META[settings.dream.chaosProfile];
+  const previewAvailable = hasPreviewFiles && sandpackFiles;
 
   return (
     <div className="flex h-screen flex-col bg-zinc-950 text-zinc-100">
@@ -116,6 +184,22 @@ export default function DreamPage() {
               WakeLock
             </span>
           )}
+          {/* Preview toggle */}
+          <button
+            onClick={() => setShowPreview((p) => !p)}
+            className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+              showPreview
+                ? 'bg-indigo-600 text-white'
+                : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'
+            }`}
+            title={showPreview ? 'Hide live preview' : 'Show live preview'}
+          >
+            <svg className="mr-1 inline-block h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            Preview
+          </button>
           {/* Profile badge */}
           <span className="rounded bg-zinc-800 px-2 py-1 text-xs text-zinc-400">
             {profileMeta.label}
@@ -187,6 +271,49 @@ export default function DreamPage() {
           </div>
         </div>
 
+        {/* Center: Live Preview (toggleable) */}
+        {showPreview && (
+          <div className="flex w-1/2 flex-col border-l border-zinc-800">
+            <div className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900 px-4 py-2">
+              <span className="text-xs font-medium text-zinc-400">Live Preview</span>
+              {!previewAvailable && (
+                <span className="text-xs text-zinc-600">Waiting for files...</span>
+              )}
+            </div>
+            <div className="flex-1 overflow-hidden bg-white">
+              {previewAvailable ? (
+                <SandpackProvider
+                  template="react-ts"
+                  files={sandpackFiles}
+                  customSetup={{
+                    dependencies: sandpackDeps,
+                  }}
+                  options={{
+                    externalResources: [TAILWIND_CDN],
+                    classes: {
+                      'sp-wrapper': 'h-full w-full flex flex-col',
+                      'sp-layout': 'h-full w-full flex flex-col',
+                      'sp-stack': 'h-full w-full flex-1',
+                    },
+                  }}
+                >
+                  <SandpackPreview
+                    showNavigator={false}
+                    showRefreshButton
+                    style={{ height: '100%', width: '100%' }}
+                  />
+                </SandpackProvider>
+              ) : (
+                <div className="flex h-full items-center justify-center bg-zinc-900">
+                  <p className="text-sm text-zinc-600">
+                    Preview will appear once the repository is loaded.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Right sidebar: Queue + Discovery */}
         <div className="flex w-96 flex-col border-l border-zinc-800">
           {/* Directive Queue */}
@@ -240,7 +367,7 @@ export default function DreamPage() {
       {dream.isDreaming && (
         <iframe
           ref={iframeRef}
-          title="Dream Mode Preview"
+          title="Dream Mode Testing"
           sandbox="allow-scripts allow-same-origin"
           className="absolute h-0 w-0 overflow-hidden opacity-0"
           aria-hidden="true"

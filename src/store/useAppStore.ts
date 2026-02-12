@@ -53,6 +53,7 @@ import type { PreviewMode } from '@/types/railway';
 import type { DesignSpec } from '@/types/designSpec';
 import type { BuildSettings, LayoutThumbnail } from '@/types/reviewTypes';
 import type { DreamLog, DreamGoal, DiscoveryReport, DreamStats } from '@/types/dream';
+import type { AppContext, ChatMode, VisionDocument } from '@/types/titanPipeline';
 
 // ============================================================================
 // STORE STATE INTERFACE
@@ -81,9 +82,13 @@ interface ChatSlice {
 interface ModeSlice {
   currentMode: BuilderMode;
   lastUserRequest: string;
+  chatMode: ChatMode;
+  visionDocument: VisionDocument | null;
   // Actions
   setCurrentMode: (mode: BuilderMode) => void;
   setLastUserRequest: (request: string) => void;
+  setChatMode: (mode: ChatMode) => void;
+  setVisionDocument: (doc: VisionDocument | null) => void;
 }
 
 /**
@@ -385,9 +390,13 @@ export const useAppStore = create<AppState>()(
         // ========================================================================
         currentMode: 'PLAN',
         lastUserRequest: '',
+        chatMode: 'planning', // Default to planning mode for new/existing sessions
+        visionDocument: null,
 
         setCurrentMode: (mode) => set({ currentMode: mode }),
         setLastUserRequest: (request) => set({ lastUserRequest: request }),
+        setChatMode: (mode) => set({ chatMode: mode }),
+        setVisionDocument: (doc) => set({ visionDocument: doc }),
 
         // ========================================================================
         // COMPONENTS SLICE

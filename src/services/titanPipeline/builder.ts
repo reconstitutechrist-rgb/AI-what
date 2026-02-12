@@ -8,6 +8,7 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import Anthropic from '@anthropic-ai/sdk';
 import type { AppFile } from '@/types/railway';
 import type {
   VisualManifest,
@@ -15,11 +16,13 @@ import type {
   MotionPhysics,
   MergeStrategy,
   RepoContext,
+  BlueprintPlan,
 } from '@/types/titanPipeline';
 import type { SceneManifest } from '@/types/world';
 import { withGeminiRetry } from '@/utils/geminiRetry';
 import { extractCode } from '@/utils/extractCode';
-import { getGeminiApiKey, GEMINI_PRO_MODEL, CODE_ONLY_SYSTEM_INSTRUCTION } from './config';
+import { getGeminiApiKey, getAnthropicApiKey, GEMINI_PRO_MODEL, CLAUDE_OPUS_MODEL, CODE_ONLY_SYSTEM_INSTRUCTION } from './config';
+import { serializeBlueprintForPrompt } from '@/services/BlueprintPlannerService';
 
 // ============================================================================
 // BUILDER PROMPT
@@ -540,7 +543,8 @@ export async function assembleCode(
   instructions: string,
   assets: Record<string, string>,
   repoContext?: RepoContext,
-  sceneManifest?: SceneManifest
+  sceneManifest?: SceneManifest,
+  blueprintPlan?: BlueprintPlan
 ): Promise<AppFile[]> {
   const apiKey = getGeminiApiKey();
   const genAI = new GoogleGenerativeAI(apiKey);
@@ -549,67 +553,93 @@ export async function assembleCode(
     systemInstruction: CODE_ONLY_SYSTEM_INSTRUCTION,
   });
 
+  // --- TRUNCATION HELPERS ---
+  const truncate = (str: string, maxLength: number) => {
+    if (str.length <= maxLength) return str;
+    const half = Math.floor(maxLength / 2);
+    return str.slice(0, half) + `\n... [TRUNCATED ${str.length - maxLength} CHARS] ...\n` + str.slice(str.length - half);
+  };
+
+  const safeJson = (data: any, limit: number) => truncate(JSON.stringify(data, null, 2), limit);
+
   // Detect 3D mode from strategy flag or instruction keywords
   const is3D = strategy.execution_plan.enable_3d || THREE_D_KEYWORDS.test(instructions);
 
   /** Strip control characters and newlines from URLs to prevent prompt injection */
   const sanitizeUrl = (url: string): string => url.replace(/[\r\n\t`${}\\]/g, '').trim();
 
+  // Truncate Assets if massive (unlikely, but safe)
+  const assetsJson = safeJson(assets, 10000); 
   const hasAssets = Object.keys(assets).length > 0;
+  
   const assetContext = hasAssets
     ? is3D
       ? `\n\n  ### 3D ASSET CONTEXT
 These assets were generated for the 3D scene:
-${Object.entries(assets).map(([name, url]) => {
+${Object.entries(assets).slice(0, 50).map(([name, url]) => { // Limit to 50 assets in list
   const isHdri = name.includes('hdri') || name.includes('environment');
   return `  - "${name}" (${isHdri ? 'HDRI Environment' : 'Texture'}): ${sanitizeUrl(url)}`;
 }).join('\n')}
 Use HDRI assets via <Environment files={url} />. Use texture assets via useTexture() or map property.`
       : `\n\n  ### ASSET CONTEXT
 These texture/material images were generated for the user's request:
-${Object.entries(assets).map(([name, url]) => `  - "${name}" -> ${sanitizeUrl(url)}`).join('\n')}
+${Object.entries(assets).slice(0, 50).map(([name, url]) => `  - "${name}" -> ${sanitizeUrl(url)}`).join('\n')}
 Apply them via backgroundImage on the matching elements. Combine with clip-path for shaped elements.`
     : '';
 
   // Build prompt: append 3D supplement when in 3D mode
   const basePrompt = is3D ? `${BUILDER_PROMPT}${BUILDER_3D_SUPPLEMENT}` : BUILDER_PROMPT;
 
-  // Build structure context from Architect output
+  // Build blueprint context from Blueprint Planner output
+  const blueprintSection = blueprintPlan
+    ? `\n\n### BUILD BLUEPRINT (FOLLOW THIS PLAN)
+The Blueprint Planner has analyzed the full concept and planned the build in verified phases.
+Implement ALL phases below. Do not skip any feature, interaction, or component listed.
+${serializeBlueprintForPrompt(blueprintPlan)}`
+    : '';
+
+  // Legacy structure context (for backward compatibility with image replication)
   const structureSection = structure
-    ? `\n\n### COMPONENT STRUCTURE (from Architect)
+    ? `\n\n### COMPONENT STRUCTURE (from Surveyor)
 Follow this structure closely. It defines the component hierarchy, data-ids, and semantic layout.
 \`\`\`json
-${JSON.stringify(structure, null, 2)}
+${safeJson(structure, 50000)}
 \`\`\``
     : '';
 
   // Build existing code context for EDIT mode
+  // LIMIT: 40,000 chars (approx 10k tokens)
   const currentCodeSection = currentCode
     ? `\n\n### EXISTING CODE (EDIT MODE)
 The user already has working code. You are EDITING it, not replacing from scratch.
 Preserve existing functionality, structure, and styling unless the instructions specifically ask to change them.
 Apply the requested changes surgically — do NOT rewrite unrelated parts.
 \`\`\`tsx
-${currentCode}
+${truncate(currentCode, 40000)}
 \`\`\``
     : '';
 
   // Build RepoContext injection if provided (Ultimate Developer mode)
   let repoContextSection = '';
   if (repoContext) {
+    // Limit style guide and patterns
+    const styleGuide = truncate(repoContext.styleGuide, 10000);
+    const patternLib = repoContext.patternLibrary.length > 0
+    ? repoContext.patternLibrary
+        .slice(0, 10) // Limit to top 10 patterns
+        .map((p) => `- ${p.name} (from ${p.sourceFile}):\n\`\`\`\n${truncate(p.codeSnippet, 2000)}\n\`\`\``)
+        .join('\n')
+    : 'No patterns extracted.';
+
     repoContextSection = `
   ### REPO CONTEXT (CRITICAL - Follow These Rules!)
   You are generating code for an EXISTING repository. Match the existing style exactly.
 
   **Style Guide (Follow These Conventions):**
-  ${repoContext.styleGuide}
+  ${styleGuide}
 
   **Pattern Library (Reuse These Templates):**
-  ${repoContext.patternLibrary.length > 0
-    ? repoContext.patternLibrary
-        .map((p) => `- ${p.name} (from ${p.sourceFile}):\n\`\`\`\n${p.codeSnippet.slice(0, 500)}\n\`\`\``)
-        .join('\n')
-    : 'No patterns extracted.'}
+  ${patternLib}
 
   **Tech Stack:** ${repoContext.techStack.join(', ')}
   `;
@@ -617,6 +647,24 @@ ${currentCode}
 
   // Build SceneManifest context for WORLD_BUILD mode
   const sceneManifestSection = sceneManifest
+    ? `\n\n### 3D SCENE MANIFEST (CRITICAL — Follow this layout exactly!)
+This structured manifest defines every object, its position, material, and the environment.
+Generate React Three Fiber code that renders this manifest precisely.
+...
+**Entities (${sceneManifest.entities.length} objects):**
+\`\`\`json
+${safeJson(sceneManifest.entities, 50000)}
+\`\`\`
+...
+`
+    : '';
+    
+  // Note: I truncated the prompt construction part for sceneManifest above for brevity in this replacement block.
+  // I need to ensure I don't break the sceneManifest reconstruction logic. 
+  // Actually, rewriting the whole sceneManifestSection block is safer.
+  
+  // Re-implementing sceneManifestSection to ensure correctness with truncation
+    const sceneManifestSectionFull = sceneManifest
     ? `\n\n### 3D SCENE MANIFEST (CRITICAL — Follow this layout exactly!)
 This structured manifest defines every object, its position, material, and the environment.
 Generate React Three Fiber code that renders this manifest precisely.
@@ -639,7 +687,7 @@ ${sceneManifest.environment.lights.map(l => `- ${l.type}: intensity=${l.intensit
 
 **Entities (${sceneManifest.entities.length} objects):**
 \`\`\`json
-${JSON.stringify(sceneManifest.entities, null, 2)}
+${safeJson(sceneManifest.entities, 50000)}
 \`\`\`
 
 **IMPORTANT WORLD BUILD RULES:**
@@ -654,30 +702,139 @@ ${JSON.stringify(sceneManifest.entities, null, 2)}
 `
     : '';
 
+
   const prompt = `${basePrompt}
-${repoContextSection}${structureSection}${currentCodeSection}${sceneManifestSection}
+${repoContextSection}${blueprintSection}${structureSection}${currentCodeSection}${sceneManifestSectionFull}
   ### ASSETS (Use these URLs!)
-  ${JSON.stringify(assets, null, 2)}
+  ${assetsJson}
   ${assetContext}
 
   ### INSTRUCTIONS
   ${instructions}
 
   ### MANIFESTS (Look for dom_tree)
-  ${JSON.stringify(manifests, null, 2)}
+  ${safeJson(manifests, 50000)}
 
   ### PHYSICS
-  ${JSON.stringify(physics)}
+  ${safeJson(physics, 10000)}
   `;
 
   const result = await withGeminiRetry(() => model.generateContent(prompt));
-  const code = extractCode(result.response.text());
+  const draftCode = extractCode(result.response.text());
+
+  console.log(`[Builder] Pass 1 (Gemini draft) complete — ${draftCode.length} chars`);
+
+  // ========================================================================
+  // PASS 2: Claude Opus — Polish syntax, imports, types, formatting
+  // ========================================================================
+  const polishedCode = await polishWithClaude(draftCode);
 
   return [
-    { path: '/src/App.tsx', content: code },
+    { path: '/src/App.tsx', content: polishedCode },
     {
       path: '/src/index.tsx',
       content: `import React from 'react';\nimport { createRoot } from 'react-dom/client';\nimport App from './App';\nimport './inspector';\n\nconst root = createRoot(document.getElementById('root')!);\nroot.render(<React.StrictMode><App /></React.StrictMode>);`,
     },
   ];
+}
+
+// ============================================================================
+// PASS 2: CLAUDE POLISH
+// ============================================================================
+
+/** Timeout for the Claude polish pass (ms) */
+const POLISH_TIMEOUT_MS = 30_000;
+
+const POLISH_PROMPT = `### Role
+You are a **Code Polisher**. You receive React/TypeScript code and return an improved version.
+
+### RULES (READ CAREFULLY)
+You are ONLY allowed to make these changes:
+1. **Fix syntax errors** — missing semicolons, unclosed brackets, mismatched parens
+2. **Clean imports** — remove genuinely unused imports, sort them, fix incorrect paths
+3. **Fix TypeScript types** — replace \`any\` with proper types where obvious, add missing generics
+4. **Fix JSX issues** — missing \`key\` props on mapped elements, unclosed tags, incorrect attribute names
+5. **Standardize formatting** — consistent indentation (2 spaces), consistent spacing, trailing commas
+6. **Fix obvious bugs** — undefined variable references, wrong function call signatures
+
+You are FORBIDDEN from making these changes:
+- ❌ Do NOT change component names, hierarchy, or architecture
+- ❌ Do NOT add new components, hooks, utilities, or abstractions
+- ❌ Do NOT refactor or restructure — preserve the exact component tree
+- ❌ Do NOT add error boundaries, loading states, or "safety" patterns not in the original
+- ❌ Do NOT change styling approaches (if it uses inline styles, keep inline styles)
+- ❌ Do NOT add comments explaining the code
+- ❌ Do NOT change library choices or import different libraries
+- ❌ Do NOT "improve" the code by adding your own ideas
+- ❌ Do NOT wrap things in useMemo/useCallback unless they were already there
+- ❌ Do NOT change any hardcoded values, colors, dimensions, or text
+
+### Output
+Return ONLY the polished code. No markdown fences. No explanations. Start with the first import statement.`;
+
+/**
+ * Polish code with Claude Opus for syntax precision and structural consistency.
+ * Gracefully degrades: returns the draft unchanged if Claude is unavailable or slow.
+ */
+async function polishWithClaude(draftCode: string): Promise<string> {
+  // Skip if no Anthropic key configured
+  let apiKey: string;
+  try {
+    apiKey = getAnthropicApiKey();
+  } catch {
+    console.log('[Builder] Pass 2 skipped — no ANTHROPIC_API_KEY configured');
+    return draftCode;
+  }
+
+  console.log('[Builder] Pass 2 (Claude polish) starting...');
+
+  try {
+    const anthropic = new Anthropic({ apiKey });
+
+    // Race Claude against a timeout
+    const polished = await Promise.race([
+      (async () => {
+        const msg = await anthropic.messages.create({
+          model: CLAUDE_OPUS_MODEL,
+          max_tokens: 16384,
+          system: 'You are a code polisher. Output ONLY valid TypeScript/React code. No markdown fences, no explanations, no conversational text. Start directly with import statements.',
+          messages: [
+            {
+              role: 'user',
+              content: `${POLISH_PROMPT}\n\n### CODE TO POLISH\n${draftCode}`,
+            },
+          ],
+        });
+
+        const content = msg.content[0];
+        if (content.type === 'text' && content.text.trim().length > 0) {
+          return extractCode(content.text);
+        }
+        return null;
+      })(),
+      new Promise<null>((resolve) => {
+        setTimeout(() => {
+          console.warn(`[Builder] Pass 2 timed out after ${POLISH_TIMEOUT_MS}ms`);
+          resolve(null);
+        }, POLISH_TIMEOUT_MS);
+      }),
+    ]);
+
+    if (polished && polished.length > draftCode.length * 0.5) {
+      // Sanity check: polished code shouldn't be drastically shorter (would indicate truncation)
+      const delta = polished.length - draftCode.length;
+      const deltaPercent = ((delta / draftCode.length) * 100).toFixed(1);
+      console.log(
+        `[Builder] Pass 2 (Claude polish) complete — ` +
+        `${polished.length} chars (${delta >= 0 ? '+' : ''}${deltaPercent}%)`
+      );
+      return polished;
+    }
+
+    console.warn('[Builder] Pass 2 returned invalid/truncated output, using Gemini draft');
+    return draftCode;
+  } catch (error) {
+    console.warn('[Builder] Pass 2 (Claude polish) failed, using Gemini draft:', error);
+    return draftCode;
+  }
 }

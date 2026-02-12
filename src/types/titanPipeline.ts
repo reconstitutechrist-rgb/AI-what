@@ -44,26 +44,93 @@ export interface RepoContext {
 }
 
 // ============================================================================
+// TECH SCOUT TYPES
+// ============================================================================
+
+/** Output of the Tech Scout — research-backed technology recommendations */
+export interface TechDossier {
+  /** Recommended AI models for the project's needs, with rationale */
+  aiModels: TechRecommendation[];
+  /** Recommended frameworks and libraries (with verified latest versions) */
+  frameworks: TechRecommendation[];
+  /** New capabilities or APIs relevant to the project */
+  emergingCapabilities: string[];
+  /** Warnings about deprecated or outdated tech the user might be expecting */
+  deprecationWarnings: string[];
+  /** Raw search sources used (for transparency) */
+  sources: string[];
+  /** Timestamp of the research */
+  researchedAt: string;
+}
+
+export interface TechRecommendation {
+  name: string;
+  category: 'ai-model' | 'framework' | 'library' | 'api' | 'service';
+  recommendation: string;   // Why this is recommended
+  latestVersion?: string;   // Verified latest stable version
+  alternatives?: string[];  // Other options considered
+  confidence: 'high' | 'medium' | 'low';
+}
+
+// ============================================================================
+// BLUEPRINT PLANNER TYPES
+// ============================================================================
+
+/** Output of the Blueprint Planner — verified phased build instructions */
+export interface BlueprintPlan {
+  /** Ordered build phases, each covering a set of features */
+  phases: BlueprintPhase[];
+  /** Confirmed tech stack (from Tech Dossier + planner decisions) */
+  techStack: string[];
+  /** Self-review summary: how the planner verified coverage */
+  coverageReport: string;
+  /** Features from the original concept that were initially missed, then added */
+  missedItems: string[];
+  /** Overall complexity assessment */
+  totalEstimatedComplexity: 'low' | 'medium' | 'high';
+}
+
+/** A single build phase in the Blueprint */
+export interface BlueprintPhase {
+  /** Phase name, e.g. "Core Layout & Navigation" */
+  name: string;
+  /** Build priority (1 = first) */
+  priority: number;
+  /** Exact features from the concept assigned to this phase */
+  features: string[];
+  /** React components to create in this phase */
+  components: string[];
+  /** User interactions to implement */
+  interactions: string[];
+  /** Relevant tech recommendations from the dossier */
+  techNotes: string[];
+}
+
+// ============================================================================
 // UI & STATE MANAGEMENT TYPES
 // ============================================================================
 
 export type PipelineStepName =
+  | 'scouting'
   | 'routing'
   | 'surveying'
-  | 'architecting'
+  | 'planning'
   | 'physicist'
   | 'photographer'
-  | 'assembling';
+  | 'assembling'
+  | 'polishing';
 
 export type PipelineStepStatus = 'idle' | 'running' | 'completed' | 'error';
 
 export const PIPELINE_STEP_LABELS: Record<PipelineStepName, string> = {
+  scouting: 'Researching Technology Stack',
   routing: 'Analyzing Intent',
   surveying: 'Reverse Engineering UI',
-  architecting: 'Building Structure',
+  planning: 'Planning Build Phases',
   physicist: 'Extracting Motion',
   photographer: 'Generating Material Assets',
   assembling: 'Synthesizing Code',
+  polishing: 'Polishing Code Quality',
 };
 
 export interface PipelineProgress {
@@ -73,15 +140,17 @@ export interface PipelineProgress {
 }
 
 export const createInitialProgress = (): PipelineProgress => ({
-  currentStep: 'routing',
+  currentStep: 'scouting',
   status: 'idle',
   steps: {
+    scouting: { status: 'idle' },
     routing: { status: 'idle' },
     surveying: { status: 'idle' },
-    architecting: { status: 'idle' },
+    planning: { status: 'idle' },
     physicist: { status: 'idle' },
     photographer: { status: 'idle' },
     assembling: { status: 'idle' },
+    polishing: { status: 'idle' },
   },
 });
 
@@ -139,6 +208,41 @@ export interface FileInput {
   base64: string;
 }
 
+/** Mode of the OmniChat interface: 'planning' (brainstorming) or 'building' (executing) */
+export type ChatMode = 'planning' | 'building';
+
+/** A comprehensive Vision Document - The Product Requirements Document (PRD) */
+export interface VisionDocument {
+  name: string;
+  overview: string; // Rich, multi-paragraph summary of the entire product vision
+  corePurpose: string; // The "why" — what problem this solves and why it matters
+  targetAudience: string; // Detailed persona descriptions: who uses this, their needs, pain points
+  competitiveEdge: string; // What makes this different from alternatives, unique value proposition
+  features: VisionFeature[]; // Comprehensive feature specifications
+  userFlow: string; // Narrative, step-by-step user journey describing every screen and transition
+  pageBreakdown: string; // Detailed description of each page/screen: what it contains, how it looks, how it behaves
+  designSystem: string; // Visual language: palette, typography, spacing philosophy, mood, inspirations, component style
+  marketAnalysis?: string; // (Legacy) Combined market analysis — prefer corePurpose/targetAudience/competitiveEdge
+}
+
+export interface VisionFeature {
+  id: string;
+  title: string;
+  userStory: string; // "As a [user], I want to [action] so that [benefit]"
+  description: string; // Rich, multi-sentence explanation of what this feature does and how it works
+  behavior: string; // Detailed description of how the feature behaves: interactions, animations, states, responses
+  acceptanceCriteria: string[]; // Concrete, testable conditions that must be true for this feature to be "done"
+  edgeCases: string; // What happens in unusual scenarios: empty states, errors, edge conditions
+  uxNotes: string; // How this feature should feel: speed, feedback, transitions, microinteractions
+  complexityLevel: 'low' | 'medium' | 'high';
+}
+
+/** Response shape from the /api/layout/vision route */
+export interface VisionBoardResponse {
+  reply: string;
+  visionUpdate?: Partial<VisionDocument>;
+}
+
 export interface PipelineInput {
   files: FileInput[];
   instructions: string;
@@ -148,6 +252,10 @@ export interface PipelineInput {
   skipHealing?: boolean;
   /** Pre-analyzed repo context for style-consistent code generation (Ultimate Developer mode) */
   repoContext?: RepoContext;
+  /** Research-backed tech recommendations from the Tech Scout */
+  techDossier?: TechDossier;
+  /** Verified phased build plan from the Blueprint Planner */
+  blueprintPlan?: BlueprintPlan;
 }
 
 // ============================================================================

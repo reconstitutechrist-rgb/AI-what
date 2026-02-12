@@ -44,7 +44,7 @@ export function MarketingNav() {
               className="text-lg font-semibold group-hover:text-garden-400 transition-colors"
               style={{ color: 'var(--text-primary)' }}
             >
-              AI App Builder
+              Virtual World Engine
             </span>
           </Link>
 

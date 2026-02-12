@@ -67,7 +67,7 @@ export interface HealingLoopResult {
 // ============================================================================
 
 const DEFAULT_CONFIG: SelfHealingConfig = {
-  maxIterations: 2,
+  maxIterations: 5,
   targetFidelity: 90,
   minImprovementThreshold: 3,
   saveSnapshots: false,
@@ -291,18 +291,47 @@ class VisionLoopEngine {
   }
 
   /**
+   * Detect whether files contain 3D content (Three.js / R3F imports).
+   */
+  private detect3D(files: AppFile[]): boolean {
+    return files.some((f) =>
+      f.content.includes('@react-three/fiber') ||
+      f.content.includes("from 'three'") ||
+      f.content.includes('from "three"')
+    );
+  }
+
+  /**
    * Convert files to HTML and capture a screenshot via the screenshot API.
+   *
+   * For 3D content, sends files directly with `use3DRenderer: true` so
+   * the screenshot API uses the esm.sh-based renderer instead of
+   * ReactToHtmlService (which cannot load Three.js).
    */
   private async captureScreenshot(files: AppFile[]): Promise<string | null> {
     try {
-      const htmlService = getReactToHtmlService();
-      const html = htmlService.buildStandaloneHtml(files, SCREENSHOT_VIEWPORT);
-
+      const is3D = this.detect3D(files);
       const screenshotUrl = this.getScreenshotApiUrl();
+
+      let body: Record<string, unknown>;
+      if (is3D) {
+        // 3D path: send files directly — screenshot API builds HTML via esm.sh
+        body = {
+          files: files.map((f) => ({ path: f.path, content: f.content })),
+          viewport: SCREENSHOT_VIEWPORT,
+          use3DRenderer: true,
+        };
+      } else {
+        // 2D path: convert to HTML via ReactToHtmlService
+        const htmlService = getReactToHtmlService();
+        const html = htmlService.buildStandaloneHtml(files, SCREENSHOT_VIEWPORT);
+        body = { html, viewport: SCREENSHOT_VIEWPORT };
+      }
+
       const response = await fetch(screenshotUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ html, viewport: SCREENSHOT_VIEWPORT }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {

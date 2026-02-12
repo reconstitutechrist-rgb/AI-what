@@ -109,8 +109,7 @@ Rules:
 - For physics: Check objects appear grounded or in natural motion
 - For terrain: Check visible height variation and natural appearance
 - For skybox: Check sky is visible (not default black background)
-- **IMPORTANT**: Screenshots may show blank canvas due to rendering limitations. If canvas is blank but code structure appears correct, give moderate score (5-6) with verdict "needs_improvement"
-- If the screenshot shows an error, blank page, or pure black canvas, score it 1`;
+- If the screenshot shows an error, blank page, or pure black canvas with no visible objects, score it 1`;
   }
 
   return `You are a Visual Art Director and Quality Critic evaluating a rendered web application screenshot.
@@ -184,15 +183,24 @@ class VisualCriticServiceInstance {
     const startTime = Date.now();
 
     try {
-      // 1. Convert to standalone HTML
-      const htmlService = getReactToHtmlService();
-      const standaloneHtml = htmlService.buildStandaloneHtml(files, SCREENSHOT_VIEWPORT);
-
-      // 2. Capture screenshot via Puppeteer API
-      const screenshotDataUri = await this.captureScreenshot(
-        standaloneHtml,
-        screenshotApiUrl
+      // Auto-detect 3D from file contents if not explicitly set
+      const detect3D = is3D ?? files.some((f) =>
+        f.content.includes('@react-three/fiber') ||
+        f.content.includes("from 'three'") ||
+        f.content.includes('from "three"')
       );
+
+      // 1. Capture screenshot via Puppeteer API
+      // 3D path sends files directly with use3DRenderer flag (esm.sh renderer)
+      // 2D path converts to HTML via ReactToHtmlService first
+      let screenshotDataUri: string | null;
+      if (detect3D) {
+        screenshotDataUri = await this.capture3DScreenshot(files, screenshotApiUrl);
+      } else {
+        const htmlService = getReactToHtmlService();
+        const standaloneHtml = htmlService.buildStandaloneHtml(files, SCREENSHOT_VIEWPORT);
+        screenshotDataUri = await this.captureScreenshot(standaloneHtml, screenshotApiUrl);
+      }
 
       if (!screenshotDataUri) {
         return {
@@ -204,14 +212,7 @@ class VisualCriticServiceInstance {
         };
       }
 
-      // Auto-detect 3D from file contents if not explicitly set
-      const detect3D = is3D ?? files.some((f) =>
-        f.content.includes('@react-three/fiber') ||
-        f.content.includes("from 'three'") ||
-        f.content.includes('from "three"')
-      );
-
-      // 3. Send to vision model for evaluation
+      // 2. Send to vision model for evaluation
       const assessment = await this.runVisionCritique(
         screenshotDataUri,
         originalInstructions,
@@ -271,6 +272,46 @@ class VisualCriticServiceInstance {
       return null;
     } catch (error) {
       console.warn('[VisualCritic] Screenshot capture failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Capture a screenshot of 3D content by sending files directly to the
+   * screenshot API with `use3DRenderer: true`. The API uses esm.sh CDN
+   * to load Three.js/R3F — bypassing ReactToHtmlService entirely.
+   */
+  private async capture3DScreenshot(
+    files: AppFile[],
+    apiUrl?: string
+  ): Promise<string | null> {
+    const url = apiUrl || this.getScreenshotApiUrl();
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          files: files.map((f) => ({ path: f.path, content: f.content })),
+          viewport: SCREENSHOT_VIEWPORT,
+          use3DRenderer: true,
+        }),
+      });
+
+      if (!response.ok) {
+        console.warn(`[VisualCritic] 3D Screenshot API returned ${response.status}`);
+        return null;
+      }
+
+      const data = await response.json();
+      if (data.success && data.image) {
+        return data.image;
+      }
+
+      console.warn('[VisualCritic] 3D Screenshot API returned no image:', data.error);
+      return null;
+    } catch (error) {
+      console.warn('[VisualCritic] 3D screenshot capture failed:', error);
       return null;
     }
   }

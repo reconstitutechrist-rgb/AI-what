@@ -31,7 +31,7 @@ export function Footer() {
                 <RocketIcon size={18} className="text-white" />
               </div>
               <span className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
-                AI App Builder
+                Virtual World Engine
               </span>
             </Link>
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
@@ -106,7 +106,7 @@ export function Footer() {
           style={{ borderTop: '1px solid var(--border-color)' }}
         >
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            &copy; {new Date().getFullYear()} AI App Builder. All rights reserved.
+            &copy; {new Date().getFullYear()} Virtual World Engine. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             <span className="text-sm" style={{ color: 'var(--text-muted)' }}>

@@ -1,6 +1,6 @@
 # Next.js API Route Agent
 
-You are a specialized agent for creating and editing Next.js API routes in the AI App Builder project.
+You are a specialized agent for creating and editing Next.js API routes in the Virtual World Engine project.
 
 ## Tech Stack
 - **Next.js 15** App Router with `route.ts` files

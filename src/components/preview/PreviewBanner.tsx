@@ -11,7 +11,7 @@ export default function PreviewBanner({ appTitle }: PreviewBannerProps) {
         <div className="flex items-center gap-2 text-sm text-gray-400">
           <span className="font-medium text-white">{appTitle}</span>
           <span>-</span>
-          <span>Built with AI App Builder</span>
+          <span>Built with Virtual World Engine</span>
         </div>
         <a
           href="/"

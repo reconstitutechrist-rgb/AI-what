@@ -25,6 +25,7 @@ import type {
   DreamStats,
   DiscoveryReport,
 } from '@/types/dream';
+import type { AppFile } from '@/types/railway';
 
 export interface UseDreamModeOptions {
   /** Ref to the preview iframe for Strategy B chaos testing */
@@ -44,6 +45,8 @@ export interface UseDreamMode {
   goalQueue: DreamGoal[];
   /** Latest discovery report */
   discoveryReport: DiscoveryReport | null;
+  /** Current files from the campaign (for live preview) */
+  previewFiles: AppFile[];
 
   /** Start a dream cycle */
   start: () => Promise<void>;
@@ -91,6 +94,7 @@ export function useDreamMode(options: UseDreamModeOptions = {}): UseDreamMode {
   // Local UI state (not persisted)
   const [currentPhase, setCurrentPhase] = useState<CampaignPhase>('IDLE');
   const [logs, setLogs] = useState<string[]>([]);
+  const [previewFiles, setPreviewFiles] = useState<AppFile[]>([]);
 
   // Zustand store state (persisted)
   const isDreaming = useAppStore((s) => s.isDreaming);
@@ -160,6 +164,7 @@ export function useDreamMode(options: UseDreamModeOptions = {}): UseDreamMode {
       onGoalQueueUpdate: setDreamGoalQueue,
       onDiscoveryReport: setDiscoveryReport,
       onIframeTestRequest: iframeRef?.current ? handleIframeTestRequest : undefined,
+      onFilesUpdate: setPreviewFiles,
     });
 
     campaignRef.current = campaign;
@@ -210,6 +215,7 @@ export function useDreamMode(options: UseDreamModeOptions = {}): UseDreamMode {
     // Immediately reset UI state so the button isn't stuck
     setIsDreaming(false);
     setCurrentPhase('DONE');
+    setPreviewFiles([]);
   }, [appendLog, setIsDreaming]);
 
   const addGoal = useCallback((prompt: string) => {
@@ -247,6 +253,7 @@ export function useDreamMode(options: UseDreamModeOptions = {}): UseDreamMode {
     logs,
     goalQueue,
     discoveryReport,
+    previewFiles,
     start,
     stop,
     addGoal,

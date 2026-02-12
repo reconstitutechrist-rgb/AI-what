@@ -105,7 +105,7 @@ export type SettingsSection =
 // Default settings
 export const DEFAULT_SETTINGS: AppSettings = {
   general: {
-    appName: 'AI App Builder',
+    appName: 'Virtual World Engine',
     language: 'en',
   },
   editor: {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { AppNavigation } from '@/components/AppNavigation';
+
 import { SideDrawer } from '@/components/SideDrawer';
 import { ProjectListModal } from '@/components/modals/ProjectListModal';
 import { SettingsPage } from '@/components/SettingsPage';
@@ -29,7 +29,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // Project management
   const activeProjectId = useProjectStore((state) => state.activeProjectId);
   const refreshProjectList = useProjectStore((state) => state.refreshProjectList);
-  const { saveCurrentProject } = useProjectManager();
+  const { saveProject } = useProjectManager();
 
   // Load project list on mount
   useEffect(() => {
@@ -57,23 +57,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       if (fingerprint !== lastSaveRef.current) {
         lastSaveRef.current = fingerprint;
-        saveCurrentProject().catch(console.error);
+        saveProject().catch(console.error);
       }
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [activeProjectId, saveCurrentProject]);
+  }, [activeProjectId, saveProject]);
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
-      await saveCurrentProject();
+      await saveProject();
     } catch (error) {
       console.error('[AppLayout] Save failed:', error);
     } finally {
       setIsSaving(false);
     }
-  }, [saveCurrentProject]);
+  }, [saveProject]);
 
   const handleShowHistory = () => {
     setShowVersionHistory(!showVersionHistory);
@@ -137,16 +137,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           />
         </div>
 
-        {/* Navigation */}
-        <AppNavigation
-          projectName={projectName}
-          onSave={handleSave}
-          isSaving={isSaving}
-          onMenuClick={() => setDrawerOpen(true)}
-        />
-
         {/* Main Content */}
-        <main className="relative pt-14 md:pt-14">{children}</main>
+        <main className="relative h-screen w-full overflow-hidden">{children}</main>
 
         {/* Side Drawer */}
         <SideDrawer

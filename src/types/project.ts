@@ -13,7 +13,7 @@ import type { DesignSpec } from './designSpec';
 import type { DynamicPhasePlan } from './dynamicPhases';
 import type { BuildSettings, LayoutThumbnail } from './reviewTypes';
 import type { AppFile } from './railway';
-import type { ChatMessage as OmniChatMessage } from '@/store/useChatStore';
+import type { ChatMessage as OmniChatMessage } from '@/types/aiBuilderTypes';
 
 // ============================================================================
 // SAVED PROJECT (full snapshot stored in IndexedDB)

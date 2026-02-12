@@ -17,7 +17,7 @@
 
 **Two separate color systems exist:**
 
-1. **Garden Theme** (`globals.css` + `tailwind.config.js`) - The AI App Builder's own UI
+1. **Garden Theme** (`globals.css` + `tailwind.config.js`) - The Virtual World Engine's own UI
    - Nature-inspired greens, golds, blossom pinks
    - Already centralized in CSS variables and Tailwind semantic colors
    - `success` = Garden green (#2ECC71)
@@ -267,7 +267,7 @@ colors.primary || NEUTRAL_PALETTE.gray500;
 
 | File                           | Color Usage                | Reason                        |
 | ------------------------------ | -------------------------- | ----------------------------- |
-| `settings.ts`                  | `#1a1a2e`, `#2ECC71`       | AI App Builder UI settings    |
+| `settings.ts`                  | `#1a1a2e`, `#2ECC71`       | Virtual World Engine UI settings    |
 | `geminiLayoutBuilderPrompt.ts` | Example JSON in prompt     | Instructional examples for AI |
 | `dalleService.ts`              | Descriptive text in prompt | AI prompt instructions        |
 | Test files                     | Various                    | Test fixtures (isolated)      |
