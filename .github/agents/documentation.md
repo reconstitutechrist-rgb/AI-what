@@ -102,7 +102,7 @@ npm run dev
 ```
 
 ## Key Features to Document
-- OmniChat (Claude Sonnet 4.5 intent classification and conversation)
+- OmniChat (Claude Sonnet 4.6 intent classification and conversation)
 - Titan Pipeline (Gemini 3 Pro multi-stage code generation)
 - Visual Critic (Gemini Flash quality scoring)
 - Skill Library (pgvector cached solutions)

@@ -8,11 +8,11 @@ Virtual World Engine is a multi-AI-powered tool that lets users **build complete
 
 ## Core Architecture
 
-### 1. OmniChat (Claude Sonnet 4.5)
+### 1. OmniChat (Claude Sonnet 4.6)
 
 **Purpose:** Conversational interface and intent classification
 
-- Powered by Claude Sonnet 4.5 for natural language understanding
+- Powered by Claude Sonnet 4.6 for natural language understanding
 - Classifies user intent (build, modify, explain, refine, etc.)
 - Dispatches actions to appropriate pipeline stages
 - Maintains conversation context and history
@@ -75,7 +75,7 @@ Virtual World Engine is a multi-AI-powered tool that lets users **build complete
 User Message (OmniChat)
     |
     v
-Intent Classification (Claude Sonnet 4.5)
+Intent Classification (Claude Sonnet 4.6)
     |
     v
 Skill Library Check (pgvector similarity search)

@@ -50,7 +50,7 @@ You are a specialized TypeScript and React code editor for the Virtual World Eng
 
 ## Key Files to Reference
 - `src/components/LayoutBuilderView.tsx` - Main orchestrator component
-- `src/components/OmniChat.tsx` - Chat interface (Claude Sonnet 4.5)
+- `src/components/OmniChat.tsx` - Chat interface (Claude Sonnet 4.6)
 - `src/components/LayoutCanvas.tsx` - Visual preview component
 - `src/hooks/` - Hook patterns
 - `src/store/` - State management patterns

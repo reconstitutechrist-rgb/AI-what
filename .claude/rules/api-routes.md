@@ -15,7 +15,7 @@ All routes in `src/app/api/` follow Next.js 15 App Router patterns. There are 9 
 | Route                    | Method | Purpose                                           |
 | ------------------------ | ------ | ------------------------------------------------- |
 | `/api/layout/pipeline`   | POST   | Titan Pipeline code generation                    |
-| `/api/layout/chat`       | POST   | OmniChat conversational AI (Claude Sonnet 4.5)    |
+| `/api/layout/chat`       | POST   | OmniChat conversational AI (Claude Sonnet 4.6)    |
 | `/api/layout/critique`   | POST   | Visual Critic analysis (Gemini Flash screenshots) |
 | `/api/layout/repair`     | POST   | WebContainer code repair (Gemini Pro)             |
 | `/api/layout/analyze`    | POST   | Media analysis                                    |

@@ -16,7 +16,7 @@
 
 Virtual World Engine is a full-stack platform for building software and virtual processes through conversational AI. The system combines three AI providers into a unified creation pipeline:
 
-- **Claude Sonnet 4.5** powers OmniChat, the conversational interface that classifies user intent and orchestrates actions
+- **Claude Sonnet 4.6** powers OmniChat, the conversational interface that classifies user intent and orchestrates actions
 - **Gemini 3 Pro** drives the Titan Pipeline, a three-stage code generation engine (Router, Architect, Assembler)
 - **OpenAI Embeddings** back the Skill Library, a pgvector-powered long-term memory that caches and retrieves validated solutions
 
@@ -28,7 +28,7 @@ Generated code is validated in an in-browser WebContainer sandbox before reachin
 
 ### OmniChat
 
-Conversational interface powered by Claude Sonnet 4.5. Classifies every user message into one of four intents:
+Conversational interface powered by Claude Sonnet 4.6. Classifies every user message into one of four intents:
 
 | Intent        | Action                                                   |
 | ------------- | -------------------------------------------------------- |
@@ -81,7 +81,7 @@ Automated quality assessment using Gemini Flash:
 User Message (OmniChat)
     |
     v
-OmniChatService (Claude Sonnet 4.5)
+OmniChatService (Claude Sonnet 4.6)
     |-- intent classification
     v
 LayoutBuilderView.executeAction
@@ -111,7 +111,7 @@ Skill Library (feedback + cache)
 
 | Task                 | Model                          | Purpose                                   |
 | -------------------- | ------------------------------ | ----------------------------------------- |
-| Conversation + Intent| Claude Sonnet 4.5              | Intent classification, orchestration      |
+| Conversation + Intent| Claude Sonnet 4.6              | Intent classification, orchestration      |
 | Code Generation      | Gemini 3 Pro                   | Titan Pipeline (Router/Architect/Assembler)|
 | Visual Critique      | Gemini Flash                   | Screenshot analysis, quality scoring      |
 | Code Repair          | Gemini 3 Pro                   | WebContainer error auto-fix               |
@@ -151,7 +151,7 @@ Three Zustand stores with Immer and Persist middleware:
 
 ### AI Integration
 
-- **Anthropic Claude SDK** -- Sonnet 4.5 for OmniChat
+- **Anthropic Claude SDK** -- Sonnet 4.6 for OmniChat
 - **Google Generative AI SDK** -- Gemini 3 Pro (pipeline, repair, analysis), Gemini Flash (critic)
 - **OpenAI SDK** -- `text-embedding-3-small` for Skill Library embeddings
 
@@ -308,7 +308,7 @@ Three-stage code generation engine:
 
 ### OmniChatService
 
-Conversational AI powered by Claude Sonnet 4.5:
+Conversational AI powered by Claude Sonnet 4.6:
 
 - Intent classification (pipeline, autonomy, live-edit, none)
 - Context-aware responses with project state
@@ -361,7 +361,7 @@ Automated visual quality assessment:
 ### Prerequisites
 
 - Node.js 18+
-- Anthropic API key (Claude Sonnet 4.5)
+- Anthropic API key (Claude Sonnet 4.6)
 - Google AI API key (Gemini 3 Pro / Flash)
 - OpenAI API key (embeddings for Skill Library)
 - Supabase account with pgvector extension enabled

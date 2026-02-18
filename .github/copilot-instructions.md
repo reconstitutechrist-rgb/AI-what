@@ -2,11 +2,11 @@
 
 ## Project Overview
 
-Personal Virtual World Engine that generates complete React components and applications through a multi-AI pipeline combining Claude Sonnet 4.5 for intent classification and Gemini 3 Pro for code generation.
+Personal Virtual World Engine that generates complete React components and applications through a multi-AI pipeline combining Claude Sonnet 4.6 for intent classification and Gemini 3 Pro for code generation.
 
 ### Architecture Overview
 
-1. **OmniChat** (`OmniChat.tsx`) - Claude Sonnet 4.5-powered conversational interface that classifies user intent and dispatches actions
+1. **OmniChat** (`OmniChat.tsx`) - Claude Sonnet 4.6-powered conversational interface that classifies user intent and dispatches actions
 2. **Titan Pipeline** (`TitanPipelineService.ts`) - Gemini 3 Pro multi-stage code generation: Router -> Architect -> Assembler
 3. **Visual Critic** (`VisualCriticService.ts`) - Gemini Flash quality scoring of generated output
 4. **Skill Library** (`SkillLibraryService.ts`) - pgvector-backed cached solution retrieval and storage
@@ -14,7 +14,7 @@ Personal Virtual World Engine that generates complete React components and appli
 ### Core Data Flow
 
 ```
-User Input (OmniChat / Claude Sonnet 4.5)
+User Input (OmniChat / Claude Sonnet 4.6)
          |
     Intent Classification + Action Dispatch
          |
@@ -34,7 +34,7 @@ User Input (OmniChat / Claude Sonnet 4.5)
 
 - **Frontend:** Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS
 - **State:** Zustand 4.5 with Immer middleware (3 stores: useAppStore, useChatStore, useProjectStore)
-- **AI - Chat:** Anthropic Claude SDK (Sonnet 4.5) for OmniChat intent classification
+- **AI - Chat:** Anthropic Claude SDK (Sonnet 4.6) for OmniChat intent classification
 - **AI - Code Gen:** Google Gemini 3 Pro (Titan Pipeline), Gemini Flash (Visual Critic)
 - **AI - Images:** Google Gemini image generation, Google Search for reference images
 - **Backend:** Next.js API Routes with SSE streaming
@@ -48,7 +48,7 @@ User Input (OmniChat / Claude Sonnet 4.5)
 | File | Purpose |
 | --- | --- |
 | `src/components/LayoutBuilderView.tsx` | Main orchestrator - layout management, panel coordination |
-| `src/components/OmniChat.tsx` | Chat interface powered by Claude Sonnet 4.5 |
+| `src/components/OmniChat.tsx` | Chat interface powered by Claude Sonnet 4.6 |
 | `src/components/LayoutCanvas.tsx` | Visual preview of generated components |
 
 ### Stores (3)
@@ -64,7 +64,7 @@ User Input (OmniChat / Claude Sonnet 4.5)
 | Service | Purpose |
 | --- | --- |
 | `TitanPipelineService.ts` | Multi-stage code generation: Router -> Architect -> Assembler (Gemini 3 Pro) |
-| `OmniChatService.ts` | Claude Sonnet 4.5 intent classification and action dispatch |
+| `OmniChatService.ts` | Claude Sonnet 4.6 intent classification and action dispatch |
 | `WebContainerService.ts` | In-browser code validation sandbox |
 | `SkillLibraryService.ts` | pgvector-backed cached solution retrieval and storage |
 | `VisualCriticService.ts` | Gemini Flash quality scoring of generated output |

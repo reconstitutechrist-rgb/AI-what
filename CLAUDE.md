@@ -35,7 +35,7 @@ Virtual World Engine — Build software and virtual processes using an omnipoten
 - **State:** Zustand 4.5 with Immer middleware, Persist middleware
 - **Backend:** Next.js API Routes
 - **Database:** Supabase (PostgreSQL, Auth, Storage), pgvector for embeddings
-- **AI:** Anthropic Claude SDK (Sonnet 4.5), Google Generative AI (Gemini 3 Pro/Flash)
+- **AI:** Anthropic Claude SDK (Sonnet 4.6), Google Generative AI (Gemini 3 Pro/Flash)
 - **Sandbox:** WebContainer API (@webcontainer/api) for in-browser code execution
 - **Embeddings:** OpenAI text-embedding-3-small (1536 dimensions)
 - **Preview:** Sandpack for live code preview, Puppeteer for screenshots
@@ -121,7 +121,7 @@ src/
 ```
 User Message (OmniChat)
     ↓
-OmniChatService (Claude Sonnet 4.5)
+OmniChatService (Claude Sonnet 4.6)
     → Intent classification: pipeline | autonomy | live-edit | none
     → Skill Library query for cached solutions
     ↓

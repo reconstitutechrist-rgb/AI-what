@@ -2,7 +2,7 @@
  * OmniChat Service
  *
  * The AI brain behind the OmniChat interface.
- * Uses Claude Sonnet 4.5 for fast conversational responses + intent classification.
+ * Uses Claude Sonnet 4.6 for fast conversational responses + intent classification.
  *
  * Core philosophy: "Anything is possible. Figure it out."
  * The AI NEVER refuses a request. If it doesn't know how to do something,
@@ -29,7 +29,7 @@ import type { SkillMatch } from '@/types/skillLibrary';
 // CONFIGURATION
 // ============================================================================
 
-const CLAUDE_SONNET_MODEL = 'claude-sonnet-4-5-20250929';
+const CLAUDE_SONNET_MODEL = 'claude-sonnet-4-6-20250514';
 const MAX_CODE_PREVIEW_LINES = 200;
 /**
  * Maximum number of history messages to include in the LLM context.

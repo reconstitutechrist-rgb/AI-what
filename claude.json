@@ -142,7 +142,7 @@
       "Supabase Storage"
     ],
     "ai": [
-      "Anthropic Claude Sonnet 4.5",
+      "Anthropic Claude Sonnet 4.6",
       "OpenAI DALL-E 3",
       "js-tiktoken"
     ],

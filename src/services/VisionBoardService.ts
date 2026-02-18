@@ -2,14 +2,14 @@
  * Vision Board Service
  *
  * The creative brain behind the "Planning Mode".
- * Interacts with Claude 3.5 Sonnet to brainstorm, refine ideas, and build a
+ * Interacts with Claude Sonnet 4.6 to brainstorm, refine ideas, and build a
  * living Vision Document (PRD) before any code is written.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
 import type { VisionDocument, VisionFeature, OmniConversationMessage } from '@/types/titanPipeline';
 
-const CLAUDE_SONNET_MODEL = 'claude-sonnet-4-5-20250929'; // Claude Sonnet 4.5 (latest)
+const CLAUDE_SONNET_MODEL = 'claude-sonnet-4-6-20250514'; // Claude Sonnet 4.6 (latest)
 
 // ============================================================================
 // TYPES

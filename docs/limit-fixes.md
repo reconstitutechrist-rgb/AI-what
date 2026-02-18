@@ -2,7 +2,7 @@
 
 ## Overview
 
-OmniChat is the conversational AI brain of the Virtual World Engine. It uses **Claude Sonnet 4.5** for intent classification and routes user requests through one of four action paths: **pipeline**, **autonomy**, **live-edit**, or **none**. Its core philosophy: *"ANYTHING is possible. There are no impossible requests."*
+OmniChat is the conversational AI brain of the Virtual World Engine. It uses **Claude Sonnet 4.6** for intent classification and routes user requests through one of four action paths: **pipeline**, **autonomy**, **live-edit**, or **none**. Its core philosophy: *"ANYTHING is possible. There are no impossible requests."*
 
 ---
 
@@ -53,7 +53,7 @@ User Input (OmniChat UI)
 
 | File | Lines | Role |
 |------|-------|------|
-| [OmniChatService.ts](src/services/OmniChatService.ts) | ~392 | AI brain — Claude Sonnet 4.5 intent classification + Skill Library integration |
+| [OmniChatService.ts](src/services/OmniChatService.ts) | ~392 | AI brain — Claude Sonnet 4.6 intent classification + Skill Library integration |
 | [useLayoutBuilder.ts](src/hooks/useLayoutBuilder.ts) | ~903 | Pipeline orchestration hook — sendChatMessage, executeAction, runPipeline, validateAndRepair |
 | [TitanPipelineService.ts](src/services/titanPipeline/TitanPipelineService.ts) | Large | Code generation — Router → Surveyor → Builder stages |
 
@@ -105,7 +105,7 @@ User Input (OmniChat UI)
 5. OmniChatService.chat():
    a. Query SkillLibrary (similarity > 0.78, quality > 0.4)
    b. Build system prompt with: code context, app context, skill context
-   c. Call Claude Sonnet 4.5 (max 2048 tokens)
+   c. Call Claude Sonnet 4.6 (max 2048 tokens)
    d. Parse JSON: { reply, action: 'pipeline', actionPayload: { instructions } }
    e. If skill reused → fire-and-forget incrementUsage()
 6. Response returned to LayoutBuilderView
@@ -164,7 +164,7 @@ User Input (OmniChat UI)
 1. User is in chatMode: 'planning'
 2. Message routed to VisionBoardService (NOT OmniChat)
 3. POST /api/layout/vision
-4. VisionBoardService.chat() uses Claude Sonnet 4.5:
+4. VisionBoardService.chat() uses Claude Sonnet 4.6:
    - Creative PRD building prompt
    - Returns { reply, visionUpdate? }
    - visionUpdate is partial VisionDocument merge

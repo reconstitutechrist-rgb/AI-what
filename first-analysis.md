@@ -84,7 +84,7 @@ The app has two modes controlled by `chatMode` in the store:
 
 ### 2. OmniChat - The AI Brain
 
-**Service**: `OmniChatService.ts` (Claude Sonnet 4.5)
+**Service**: `OmniChatService.ts` (Claude Sonnet 4.6)
 
 **Core principle**: "You NEVER say 'I can't do that'. If you don't know, trigger autonomy mode."
 
@@ -317,7 +317,7 @@ LayoutBuilderView.handleSendMessage()
 useLayoutBuilder.sendChatMessage()
     → POST /api/layout/chat
     ↓
-OmniChatService.chat() [Claude Sonnet 4.5]
+OmniChatService.chat() [Claude Sonnet 4.6]
     → Query Skill Library: "todo app dark mode" → embed → pgvector search
     → If match (similarity ≥ 0.78): inject cached solution into prompt
     → Claude classifies intent: action = "pipeline"
@@ -370,7 +370,7 @@ User sees live React app running in Sandpack preview panel
 | State | Zustand 4.5 (immer + persist + devtools) |
 | Backend | Next.js API Routes |
 | Database | Supabase (PostgreSQL + Auth + Storage), pgvector |
-| AI - Chat | Claude Sonnet 4.5 (Anthropic SDK) |
+| AI - Chat | Claude Sonnet 4.6 (Anthropic SDK) |
 | AI - Generation | Gemini 3 Pro (`gemini-3-pro-preview`) |
 | AI - Critique | Gemini 3 Flash (`gemini-3-flash-preview`) |
 | AI - Polish | Claude Opus (`claude-opus-4-5-20251101`) - Builder Pass 2 |
@@ -406,8 +406,8 @@ User sees live React app running in Sandpack preview panel
 
 | Service | File | Purpose |
 |---------|------|---------|
-| **OmniChatService** | `services/OmniChatService.ts` | Claude Sonnet 4.5 chat + intent classification (pipeline/autonomy/live-edit/none) |
-| **VisionBoardService** | `services/VisionBoardService.ts` | Claude Sonnet 4.5 for Planning Mode → iterative VisionDocument building |
+| **OmniChatService** | `services/OmniChatService.ts` | Claude Sonnet 4.6 chat + intent classification (pipeline/autonomy/live-edit/none) |
+| **VisionBoardService** | `services/VisionBoardService.ts` | Claude Sonnet 4.6 for Planning Mode → iterative VisionDocument building |
 | **TechScoutService** | `services/TechScoutService.ts` | Gemini Pro + Tavily web search → TechDossier (optimal tech stack research) |
 | **BlueprintPlannerService** | `services/BlueprintPlannerService.ts` | Gemini Pro phased build planning with self-review coverage guarantee |
 

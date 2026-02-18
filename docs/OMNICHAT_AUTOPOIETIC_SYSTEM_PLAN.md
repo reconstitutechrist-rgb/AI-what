@@ -27,7 +27,7 @@ The autopoietic backbone works. The gaps are: **chat UI, chat API, self-correcti
 
 ### [NEW] `src/services/OmniChatService.ts` (~200 lines)
 
-The AI brain behind the chat. Uses **Claude Sonnet 4.5** (`claude-sonnet-4-5-20250929`) for fast conversation + intent classification.
+The AI brain behind the chat. Uses **Claude Sonnet 4.6** (`claude-sonnet-4-6-20250514`) for fast conversation + intent classification.
 
 **Core philosophy -- "Anything is possible. Figure it out."**
 

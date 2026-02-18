@@ -13,7 +13,7 @@ You are a specialized agent for creating and editing Next.js API routes in the V
 ## API Route Location
 All API routes are in `src/app/api/`:
 - `layout/pipeline/` - Titan Pipeline multi-stage code generation (Gemini 3 Pro)
-- `layout/chat/` - OmniChat conversational interface (Claude Sonnet 4.5)
+- `layout/chat/` - OmniChat conversational interface (Claude Sonnet 4.6)
 - `layout/critique/` - Visual Critic quality scoring (Gemini Flash)
 - `layout/repair/` - Code repair for validation failures
 - `layout/analyze/` - Layout analysis
